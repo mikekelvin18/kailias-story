@@ -1,26 +1,42 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #FFF9F0;
+  font-family: 'Trebuchet MS', 'Comic Sans MS', sans-serif;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(30px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.float { animation: float 3s ease-in-out infinite; }
+.wiggle { animation: wiggle 2s ease-in-out infinite; }
+.bounce-in { animation: bounce-in 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards; }
+.sparkle { animation: sparkle 1.5s ease-in-out infinite; }
+.slide-up { animation: slide-up 0.4s ease-out forwards; }
+
+button:active {
+  transform: scale(0.97);
 }
