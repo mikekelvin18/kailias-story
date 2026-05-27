@@ -19,12 +19,12 @@ interface Domain {
 }
 
 // ─── INFANT 6–11 months ──────────────────────────────────────────────────────
-// Evidence base: CDC Developmental Milestones (2022), WHO Motor Development Study,
-// Zero to Three developmental guidelines
+// Internal evidence base: CDC Developmental Milestones (2022), WHO Motor Development Study,
+// Zero to Three developmental guidelines, ASQ-3 fine motor items
 const INFANT_DOMAINS: Domain[] = [
   {
     key: 'communication', label: 'Communication & Social', emoji: '🗣️', color: '#EC4899', light: '#FDF2F8',
-    basis: 'CDC Milestones (2022) • Zero to Three guidelines',
+    basis: 'CDC Milestones (2022) • Zero to Three guidelines • developmental science research',
     questions: [
       'Does your baby respond to their name by looking toward you?',
       'Does your baby babble using sounds like "ba," "da," or "ma"?',
@@ -35,7 +35,7 @@ const INFANT_DOMAINS: Domain[] = [
   },
   {
     key: 'reading', label: 'Attention & Early Awareness', emoji: '👀', color: '#2563EB', light: '#EFF6FF',
-    basis: 'CDC Milestones (2022) • Zero to Three sensory-cognitive guidelines',
+    basis: 'CDC Milestones (2022) • Zero to Three guidelines • developmental science research',
     questions: [
       'Does your baby watch your face closely when you talk or read to them?',
       'Does your baby turn toward a voice or sound from across the room?',
@@ -46,7 +46,7 @@ const INFANT_DOMAINS: Domain[] = [
   },
   {
     key: 'writing', label: 'Fine Motor & Movement', emoji: '🤲', color: '#059669', light: '#ECFDF5',
-    basis: 'ASQ-3 fine motor milestones • CDC gross/fine motor norms',
+    basis: 'CDC gross/fine motor norms • developmental science research', // internally informed by ASQ-3 milestones
     questions: [
       'Does your baby reach for and grasp objects placed near them?',
       'Does your baby pass objects from one hand to the other?',
@@ -69,12 +69,12 @@ const INFANT_DOMAINS: Domain[] = [
 ];
 
 // ─── TODDLER 12–23 months ─────────────────────────────────────────────────────
-// Evidence base: CDC Milestones, ASQ-3 (12/18 month versions), MCHAT-R/F (social items),
+// Internal evidence base: CDC Milestones, ASQ-3 (12/18 month versions), MCHAT-R/F (social items),
 // First Words Project communication benchmarks
 const TODDLER_DOMAINS: Domain[] = [
   {
     key: 'communication', label: 'Communication & Talking', emoji: '🗣️', color: '#F97316', light: '#FFF7ED',
-    basis: 'CDC Milestones • ASQ-3 (12 & 18 month) • First Words Project norms',
+    basis: 'CDC Milestones • First Words Project • developmental science research',
     questions: [
       'Does your child say at least 1–3 recognizable words (e.g., "mama," "no," "ball")?',
       'Does your child follow simple one-step instructions ("Come here," "Give me that")?',
@@ -96,7 +96,7 @@ const TODDLER_DOMAINS: Domain[] = [
   },
   {
     key: 'writing', label: 'Fine Motor & Hand Skills', emoji: '✍️', color: '#059669', light: '#ECFDF5',
-    basis: 'ASQ-3 fine motor milestones (12 & 18 month) • CDC fine motor norms',
+    basis: 'CDC fine motor norms • developmental science research', // internally informed by ASQ-3 12/18mo
     questions: [
       'Does your child scribble with a crayon or marker?',
       'Does your child stack 2 or more blocks?',
@@ -107,7 +107,7 @@ const TODDLER_DOMAINS: Domain[] = [
   },
   {
     key: 'math', label: 'Problem Solving & Play', emoji: '🧩', color: '#D97706', light: '#FFFBEB',
-    basis: 'Piaget preoperational stage • CDC cognitive milestones • ASQ-3 problem solving',
+    basis: 'CDC cognitive milestones • Piaget developmental theory • educational research',
     questions: [
       'Does your child look for a hidden toy under a blanket or cup?',
       'Does your child understand simple concepts like "more" or "all gone"?',
@@ -119,12 +119,12 @@ const TODDLER_DOMAINS: Domain[] = [
 ];
 
 // ─── PRESCHOOL 2–4 years ──────────────────────────────────────────────────────
-// Evidence base: CDC Milestones (ages 2–4), ASQ-3 (24/36/48 month),
-// DRDP (Desired Results Developmental Profile), Head Start school readiness framework
+// Internal evidence base: CDC Milestones (ages 2–4), ASQ-3 (24/36/48 month),
+// DRDP, Head Start school readiness framework
 const PRESCHOOL_DOMAINS: Domain[] = [
   {
     key: 'communication', label: 'Communication & Talking', emoji: '🗣️', color: '#7C3AED', light: '#F3E8FF',
-    basis: 'CDC Milestones (2–4 yrs) • ASQ-3 (24–48 mo) • Head Start readiness framework',
+    basis: 'CDC Milestones (2–4 yrs) • Head Start readiness framework • developmental science research',
     questions: [
       'Can your child point to things when you name them (e.g., "Where\'s the ball?")?',
       'Can your child follow 1–2 step instructions (e.g., "Pick up your shoes and bring them here")?',
@@ -135,7 +135,7 @@ const PRESCHOOL_DOMAINS: Domain[] = [
   },
   {
     key: 'reading', label: 'Reading & Early Literacy', emoji: '📖', color: '#2563EB', light: '#EFF6FF',
-    basis: 'CDC language milestones • DRDP early literacy domain • phonemic awareness research',
+    basis: 'CDC language milestones • phonemic awareness research • early literacy science',
     questions: [
       'Does your child enjoy looking at picture books or being read to?',
       'Can your child recognize familiar signs, logos, or letters (e.g., McDonald\'s "M")?',
@@ -146,7 +146,7 @@ const PRESCHOOL_DOMAINS: Domain[] = [
   },
   {
     key: 'writing', label: 'Writing & Fine Motor', emoji: '✍️', color: '#059669', light: '#ECFDF5',
-    basis: 'ASQ-3 fine motor milestones • CDC fine motor norms (ages 2–4)',
+    basis: 'CDC fine motor norms (ages 2–4) • developmental science research', // internally informed by ASQ-3
     questions: [
       'Can your child scribble or draw simple lines and shapes with a crayon or pen?',
       'Can your child stack 6 or more blocks?',
@@ -157,7 +157,7 @@ const PRESCHOOL_DOMAINS: Domain[] = [
   },
   {
     key: 'math', label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', light: '#FFFBEB',
-    basis: 'CDC cognitive milestones • early numeracy research • DRDP math domain',
+    basis: 'CDC cognitive milestones • early numeracy research • developmental science',
     questions: [
       'Can your child count up to 5 objects correctly?',
       'Can your child match shapes (circle to circle, square to square)?',
@@ -169,13 +169,12 @@ const PRESCHOOL_DOMAINS: Domain[] = [
 ];
 
 // ─── SCHOOL AGE 5–12 years (parent report option) ────────────────────────────
-// Evidence base: CDC milestones (school age), WRAT-5 skill descriptions,
-// Common Core State Standards grade-level anchors (used descriptively, not by name),
-// DRDP school-age domains
+// Internal evidence base: CDC milestones (school age), WRAT-5 skill descriptions,
+// grade-level literacy/numeracy benchmarks, DRDP school-age domains
 const SCHOOLAGE_DOMAINS: Domain[] = [
   {
     key: 'communication', label: 'Communication & Language', emoji: '🗣️', color: '#7C3AED', light: '#F3E8FF',
-    basis: 'CDC school-age milestones • expressive/receptive language norms',
+    basis: 'CDC school-age milestones • expressive/receptive language research',
     questions: [
       'My child can have conversations with both kids and adults.',
       'My child tells stories or describes events with a clear beginning, middle, and end.',
@@ -186,7 +185,7 @@ const SCHOOLAGE_DOMAINS: Domain[] = [
   },
   {
     key: 'reading', label: 'Reading & Literacy', emoji: '📖', color: '#2563EB', light: '#EFF6FF',
-    basis: 'WRAT-5 reading skill anchors • phonemic awareness research • grade-level literacy benchmarks',
+    basis: 'Phonemic awareness research • grade-level literacy benchmarks • developmental science', // internally informed by reading achievement research
     questions: [
       'My child enjoys reading books on their own.',
       'My child can read and understand age-appropriate stories.',
@@ -197,7 +196,7 @@ const SCHOOLAGE_DOMAINS: Domain[] = [
   },
   {
     key: 'writing', label: 'Writing & Fine Motor', emoji: '✍️', color: '#059669', light: '#ECFDF5',
-    basis: 'ASQ school-age fine motor descriptors • grade-level writing benchmarks',
+    basis: 'CDC school-age milestones • grade-level writing benchmarks • developmental science',
     questions: [
       'My child\'s handwriting is clear enough to be understood.',
       'My child writes sentences with a beginning, middle, and end.',
@@ -208,7 +207,7 @@ const SCHOOLAGE_DOMAINS: Domain[] = [
   },
   {
     key: 'math', label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', light: '#FFFBEB',
-    basis: 'WRAT-5 math skill anchors • early numeracy research • school readiness benchmarks',
+    basis: 'Early numeracy research • school readiness benchmarks • developmental science', // internally informed by math achievement research
     questions: [
       'My child can add and subtract numbers confidently.',
       'My child can multiply and divide simple numbers.',
