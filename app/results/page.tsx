@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAssessment } from '@/context/AssessmentContext';
 import { supabase } from '@/lib/supabase';
 
 const DOMAIN_INFO = [
-  { key: 'reading', label: 'Reading & Literacy', emoji: '📖', color: '#2563EB', max: 10 },
-  { key: 'writing', label: 'Writing & Fine Motor', emoji: '✍️', color: '#059669', max: 10 },
-  { key: 'communication', label: 'Communication', emoji: '🗣️', color: '#7C3AED', max: 10 },
-  { key: 'math', label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', max: 10 },
+  { key: 'reading',       label: 'Reading & Literacy',     emoji: '📖', color: '#2563EB', max: 10 },
+  { key: 'writing',       label: 'Writing & Fine Motor',   emoji: '✍️', color: '#059669', max: 10 },
+  { key: 'communication', label: 'Communication',          emoji: '🗣️', color: '#7C3AED', max: 10 },
+  { key: 'math',          label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', max: 10 },
 ];
+
+// Maps each domain score (0–10) to the evidence base label used
+const DOMAIN_BASIS: Record<string, string> = {
+  reading:       'CDC language milestones + phonemic awareness research',
+  writing:       'ASQ-3 fine motor milestones + school readiness benchmarks',
+  communication: 'CDC communication milestones + expressive/receptive language norms',
+  math:          'Early numeracy research + school readiness benchmarks',
+};
 
 const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> = {
   'Early Explorer': {
@@ -57,39 +64,33 @@ const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> 
 };
 
 export default function ResultsPage() {
-  const { state, totalScore, learningStage, stageEmoji, stageDescription, resetAssessment } = useAssessment();
+  const {
+    state, totalScore, learningStage, stageEmoji, stageDescription,
+    developmentalAge, domainAge, resetAssessment,
+  } = useAssessment();
   const router = useRouter();
-  const [saved, setSaved] = useState(false);
   const [showCelebration, setShowCelebration] = useState(true);
 
   useEffect(() => {
     if (!state.childName) return;
-    const save = async () => {
-      await supabase.from('assessments').insert({
-        child_name: state.childName,
-        child_age: state.childAge,
-        assessment_type: state.assessmentType,
-        reading_score: state.scores.reading,
-        writing_score: state.scores.writing,
-        communication_score: state.scores.communication,
-        math_score: state.scores.math,
-        total_score: totalScore,
-        learning_stage: learningStage,
-      });
-      setSaved(true);
-    };
-    save();
-
-    const timer = setTimeout(() => setShowCelebration(false), 3000);
-    return () => clearTimeout(timer);
+    supabase.from('assessments').insert({
+      child_name: state.childName,
+      child_age: state.childAge,
+      assessment_type: state.assessmentType,
+      reading_score: state.scores.reading,
+      writing_score: state.scores.writing,
+      communication_score: state.scores.communication,
+      math_score: state.scores.math,
+      total_score: totalScore,
+      learning_stage: learningStage,
+    });
+    const t = setTimeout(() => setShowCelebration(false), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   const activities = STAGE_ACTIVITIES[learningStage] || STAGE_ACTIVITIES['Skill Builder'];
 
-  const handleStartOver = () => {
-    resetAssessment();
-    router.push('/');
-  };
+  const handleStartOver = () => { resetAssessment(); router.push('/'); };
 
   return (
     <main
@@ -100,17 +101,8 @@ export default function ResultsPage() {
       {showCelebration && (
         <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
           <div className="text-8xl bounce-in">🎉</div>
-          {['🌟', '⭐', '✨', '💫', '🎊', '🎈', '🏆', '🌈'].map((e, i) => (
-            <span
-              key={i}
-              className="absolute float"
-              style={{
-                left: `${10 + (i * 12)}%`,
-                top: `${5 + (i % 4) * 22}%`,
-                fontSize: 36,
-                animationDelay: `${i * 0.15}s`,
-              }}
-            >
+          {['🌟','⭐','✨','💫','🎊','🎈','🏆','🌈'].map((e, i) => (
+            <span key={i} className="absolute float" style={{ left: `${10 + i * 12}%`, top: `${5 + (i % 4) * 22}%`, fontSize: 36, animationDelay: `${i * 0.15}s` }}>
               {e}
             </span>
           ))}
@@ -120,57 +112,88 @@ export default function ResultsPage() {
       <div className="max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="float inline-block">
-            <span style={{ fontSize: 72 }}>🧒</span>
-          </div>
+          <div className="float inline-block"><span style={{ fontSize: 72 }}>🧒</span></div>
           <h1 className="text-4xl font-extrabold text-white mt-4 drop-shadow-lg">
             {state.childName ? `${state.childName}'s Adventure Map!` : 'Your Adventure Map!'}
           </h1>
           <p className="text-purple-300 mt-2 text-lg">Kailia found the perfect path just for you!</p>
         </div>
 
-        {/* Stage card */}
+        {/* Stage + Developmental Age card */}
         <div
           className="rounded-3xl p-8 mb-6 text-center shadow-2xl bounce-in"
           style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)', border: '4px solid rgba(255,255,255,0.3)' }}
         >
-          <div className="float inline-block mb-4">
-            <span style={{ fontSize: 80 }}>{stageEmoji}</span>
+          <div className="float inline-block mb-3">
+            <span style={{ fontSize: 72 }}>{stageEmoji}</span>
           </div>
-          <h2 className="text-4xl font-extrabold text-white mb-2">{learningStage}</h2>
-          <p className="text-purple-100 text-lg leading-relaxed">{stageDescription}</p>
+          <h2 className="text-4xl font-extrabold text-white mb-1">{learningStage}</h2>
+          <p className="text-purple-100 text-base leading-relaxed mb-5">{stageDescription}</p>
+
+          {/* Developmental age highlight */}
           <div
-            className="mt-4 inline-block px-6 py-2 rounded-full font-bold text-white text-sm"
-            style={{ background: 'rgba(255,255,255,0.2)' }}
+            className="rounded-2xl px-6 py-4 mb-4 inline-block w-full"
+            style={{ background: 'rgba(255,255,255,0.15)' }}
           >
-            Total Score: {totalScore} / 40
+            <p className="text-purple-100 text-sm font-semibold uppercase tracking-wide mb-1">
+              Estimated Developmental Level
+            </p>
+            <p className="text-white text-3xl font-extrabold">
+              {developmentalAge}
+            </p>
+            <p className="text-purple-200 text-xs mt-1">
+              Based on performance across all 4 domains
+            </p>
+          </div>
+
+          <div className="flex justify-center gap-4 text-white text-sm font-semibold">
+            <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+              Score: {totalScore} / 40
+            </span>
+            {state.childAge && (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Chronological age: {state.childAge} yrs
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Domain breakdown */}
+        {/* Domain breakdown with per-domain developmental age */}
         <div
           className="rounded-3xl p-6 mb-6 shadow-xl"
           style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
         >
-          <h3 className="text-xl font-bold text-white mb-5">Domain Strengths</h3>
-          <div className="space-y-4">
+          <h3 className="text-xl font-bold text-white mb-1">Domain Breakdown</h3>
+          <p className="text-purple-300 text-sm mb-5">Estimated developmental level per area</p>
+          <div className="space-y-5">
             {DOMAIN_INFO.map(d => {
               const score = state.scores[d.key as keyof typeof state.scores];
               const pct = Math.round((score / d.max) * 100);
+              const age = domainAge(score);
               return (
                 <div key={d.key}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-white font-semibold text-sm">
                       {d.emoji} {d.label}
                     </span>
-                    <span className="text-purple-200 text-sm font-bold">{score}/{d.max}</span>
+                    <div className="flex items-center gap-2">
+                      {/* Developmental age badge */}
+                      <span
+                        className="text-xs font-bold px-3 py-1 rounded-full"
+                        style={{ background: d.color, color: 'white' }}
+                      >
+                        {age}
+                      </span>
+                      <span className="text-purple-300 text-xs">{score}/{d.max}</span>
+                    </div>
                   </div>
-                  <div className="h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  <div className="h-3 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
                     <div
                       className="h-3 rounded-full transition-all"
                       style={{ width: `${pct}%`, background: d.color, minWidth: 8 }}
                     />
                   </div>
+                  <p className="text-purple-400 text-xs italic">{DOMAIN_BASIS[d.key]}</p>
                 </div>
               );
             })}
@@ -178,20 +201,11 @@ export default function ResultsPage() {
         </div>
 
         {/* Recommended activities */}
-        <div
-          className="rounded-3xl p-6 mb-6 shadow-xl"
-          style={{ background: 'rgba(255,255,255,0.95)' }}
-        >
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            🗺️ {activities.title}
-          </h3>
+        <div className="rounded-3xl p-6 mb-6 shadow-xl" style={{ background: 'rgba(255,255,255,0.95)' }}>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">🗺️ {activities.title}</h3>
           <ul className="space-y-3">
             {activities.activities.map((act, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-3 p-3 rounded-xl"
-                style={{ background: '#F8F0FF' }}
-              >
+              <li key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#F8F0FF' }}>
                 <span className="text-lg flex-shrink-0">{act.split(' ')[0]}</span>
                 <span className="text-gray-700 font-medium">{act.split(' ').slice(1).join(' ')}</span>
               </li>
@@ -205,11 +219,12 @@ export default function ResultsPage() {
           style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
         >
           <p className="text-purple-200 leading-relaxed">
-            <strong className="text-white">📋 Note for parents:</strong> This is a screening and
-            learning placement tool, not a diagnostic assessment. Results are inspired by
-            developmental science and educational research to help match your child with the
-            right learning activities. For clinical evaluation, please consult a qualified
-            professional.
+            <strong className="text-white">📋 Note for parents:</strong> Developmental age estimates
+            are approximate ranges based on typical milestone progressions — they are not a clinical
+            diagnosis. This is a screening and learning placement tool inspired by developmental
+            science and educational research. For a formal evaluation, please consult a qualified
+            professional such as an Occupational Therapist, Speech-Language Pathologist, or
+            Developmental Pediatrician.
           </p>
         </div>
 
