@@ -589,8 +589,8 @@ function TracingGame({
       <div className="max-w-2xl w-full mx-auto px-4 py-10 text-center">
         <div className="rounded-3xl p-8 shadow-xl" style={{ background:'white', border:'3px solid #059669' }}>
           <span style={{ fontSize:56 }}>✍️</span>
-          <h2 className="text-2xl font-extrabold text-gray-800 mt-3 mb-2">Fine Motor Assessment</h2>
-          <p className="text-gray-500 mb-3">5 drawing tasks — straight line, wave, circle, maze, and dot-to-dot!</p>
+          <h2 className="text-2xl font-extrabold text-gray-800 mt-3 mb-2">Fine Motor Assessment ✏️</h2>
+          <p className="text-gray-500 mb-3">5 drawing tasks — straight line, wave, circle, maze, and dot-to-dot! (v2)</p>
           <div className="flex gap-3 justify-center mb-5">
             {FM_TESTS.map(t => <span key={t.key} className="text-2xl" title={t.name}>{t.emoji}</span>)}
           </div>
