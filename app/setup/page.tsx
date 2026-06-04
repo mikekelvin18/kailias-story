@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
+import KailiaAvatar from '@/components/KailiaAvatar';
 
 // ageKey → display label, numeric value, group
 const AGE_GROUPS = [
@@ -110,7 +111,7 @@ export default function SetupPage() {
 
       <div className="relative z-10 max-w-lg w-full">
         <div className="text-center mb-6">
-          <div className="float inline-block mb-3"><span style={{ fontSize: 64 }}>🧒</span></div>
+          <div className="float inline-block mb-3"><KailiaAvatar size={80} /></div>
           <h1 className="text-4xl font-extrabold text-white drop-shadow-md mb-1">Tell Kailia About You!</h1>
           <p className="text-teal-100 text-lg">So she can find the perfect adventure for your child.</p>
         </div>

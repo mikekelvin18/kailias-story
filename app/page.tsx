@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import KailiaAvatar from '@/components/KailiaAvatar';
 
 const STARS = ['⭐', '🌟', '✨', '💫', '🌠'];
 
@@ -31,17 +32,8 @@ export default function LandingPage() {
       <div className="relative z-10 max-w-2xl w-full text-center">
         {/* Kailia character (emoji-based, no licensing needed) */}
         <div className="float mb-6">
-          <div
-            className="inline-flex items-center justify-center rounded-full shadow-2xl"
-            style={{
-              width: 140,
-              height: 140,
-              background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
-              fontSize: 72,
-              border: '6px solid white',
-            }}
-          >
-            🧒
+          <div className="inline-flex items-center justify-center" style={{ width: 150, height: 150 }}>
+            <KailiaAvatar size={150} />
           </div>
         </div>
 

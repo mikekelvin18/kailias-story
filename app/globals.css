@@ -40,3 +40,39 @@ body {
 button:active {
   transform: scale(0.97);
 }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(0); opacity: 0; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(16,185,129,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+@keyframes drop-in {
+  0% { transform: translateY(-40px) scale(0.7); opacity: 0; }
+  70% { transform: translateY(4px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes star-burst {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.4) rotate(15deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes slide-right {
+  0% { transform: translateX(-30px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.pop       { animation: pop 0.35s ease-out forwards; }
+.shake     { animation: shake 0.35s ease-in-out; }
+.pulse     { animation: pulse-ring 1.2s infinite; }
+.drop-in   { animation: drop-in 0.45s cubic-bezier(0.36,0.07,0.19,0.97) forwards; }
+.star-burst{ animation: star-burst 0.5s ease-in-out; }
+.slide-right { animation: slide-right 0.35s ease-out forwards; }
