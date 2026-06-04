@@ -122,12 +122,138 @@ const GAMES: DomainGame[] = [
 // ─── Grasp Patterns ───────────────────────────────────────────────────────────
 
 const GRASP_PATTERNS = [
-  { key: 'palmar',          emoji: '✊', label: 'Palmar / Fist Grip',    description: 'Whole hand wraps the pencil — thumb may fold over fingers', milestone: '~1–2 years',  color: '#EC4899' },
-  { key: 'digital_pronate', emoji: '👇', label: 'Digital Pronate',       description: 'Fingers point downward, whole arm moves to draw',           milestone: '~2–3 years',  color: '#F97316' },
-  { key: 'quadrupod',       emoji: '🖐️', label: 'Quadrupod (4 fingers)', description: '4 fingers on pencil with thumb, wrist starting to stabilise', milestone: '~3.5–4 yrs', color: '#F59E0B' },
-  { key: 'immature_tripod', emoji: '🤌', label: 'Immature Tripod',       description: '3-finger hold but rests on ring finger — less precise',     milestone: '~4–5 years',  color: '#3B82F6' },
-  { key: 'dynamic_tripod',  emoji: '✏️', label: 'Dynamic Tripod (mature)', description: 'Thumb, index & middle finger — precise wrist-driven movement', milestone: '~5–6+ yrs', color: '#059669' },
+  { key: 'palmar',          label: 'Palmar / Fist Grip',      description: 'Whole hand wraps the pencil — thumb may fold over fingers',      milestone: '~1–2 years',  color: '#EC4899' },
+  { key: 'digital_pronate', label: 'Digital Pronate',          description: 'Fingers point downward, whole arm moves to draw',                milestone: '~2–3 years',  color: '#F97316' },
+  { key: 'quadrupod',       label: 'Quadrupod (4 fingers)',    description: '4 fingers on pencil with thumb, wrist starting to stabilise',    milestone: '~3.5–4 yrs', color: '#F59E0B' },
+  { key: 'immature_tripod', label: 'Immature Tripod',          description: '3-finger hold but rests on ring finger — less precise',          milestone: '~4–5 years',  color: '#3B82F6' },
+  { key: 'dynamic_tripod',  label: 'Dynamic Tripod (mature)',  description: 'Thumb, index & middle finger — precise wrist-driven movement',   milestone: '~5–6+ yrs',  color: '#059669' },
 ];
+
+// ─── Grasp SVG Illustrations ──────────────────────────────────────────────────
+
+function GraspIllustration({ graspKey, color }: { graspKey: string; color: string }) {
+  // Skin palette
+  const SK  = '#FBBF88'; // mid skin
+  const SKD = '#E8965C'; // shadow
+  const SKL = '#FDE8C8'; // highlight
+  // Pencil palette
+  const PC  = '#FDE68A'; // yellow body
+  const PCE = '#B45309'; // edge stripe
+  const PT  = '#4B5563'; // graphite tip
+  const PE  = '#FCA5A5'; // eraser
+
+  // Shared pencil at ~30° angle (used by tripod variants)
+  const DiagPencil = () => (
+    <g transform="rotate(-28 32 44)">
+      <rect x="28" y="6"  width="8" height="7"  rx="2" fill={PE} />
+      <rect x="28" y="13" width="8" height="42" rx="1" fill={PC} />
+      <rect x="29" y="13" width="2" height="42" fill={PCE} opacity="0.25" />
+      <polygon points="28,55 36,55 32,65" fill={PT} />
+    </g>
+  );
+
+  switch (graspKey) {
+    // ── 1. Palmar: pencil vertical, full fist ──────────────────────────────
+    case 'palmar':
+      return (
+        <svg viewBox="0 0 64 80" width={54} height={68} aria-label="Palmar fist grip">
+          {/* pencil vertical */}
+          <rect x="28" y="5"  width="8" height="7"  rx="2" fill={PE} />
+          <rect x="28" y="12" width="8" height="42" rx="1" fill={PC} />
+          <rect x="29" y="12" width="2" height="42" fill={PCE} opacity="0.25" />
+          <polygon points="28,54 36,54 32,64" fill={PT} />
+          {/* palm */}
+          <ellipse cx="32" cy="48" rx="21" ry="19" fill={SK} />
+          {/* all fingers wrapped over pencil */}
+          <rect x="13" y="27" width="38" height="13" rx="8"  fill={SKD} />
+          <rect x="12" y="39" width="40" height="10" rx="7"  fill={SK}  />
+          {/* thumb on left side */}
+          <ellipse cx="13" cy="44" rx="8" ry="13" fill={SKL} transform="rotate(-18 13 44)" />
+          <ellipse cx="13" cy="44" rx="6" ry="10" fill={SK}  transform="rotate(-18 13 44)" />
+        </svg>
+      );
+
+    // ── 2. Digital Pronate: pencil vertical, forearm above, fingers down ──
+    case 'digital_pronate':
+      return (
+        <svg viewBox="0 0 64 80" width={54} height={68} aria-label="Digital pronate grip">
+          {/* pencil vertical (slightly left of center) */}
+          <rect x="28" y="4"  width="8" height="6"  rx="2" fill={PE} />
+          <rect x="28" y="10" width="8" height="46" rx="1" fill={PC} />
+          <rect x="29" y="10" width="2" height="46" fill={PCE} opacity="0.25" />
+          <polygon points="28,56 36,56 32,67" fill={PT} />
+          {/* forearm block from top */}
+          <rect x="12" y="0" width="40" height="22" rx="10" fill={SK} />
+          {/* 4 fingers pointing downward */}
+          <rect x="13" y="18" width="8"  height="28" rx="5" fill={SKD} />
+          <rect x="23" y="18" width="9"  height="32" rx="5" fill={SKD} />
+          <rect x="34" y="18" width="9"  height="30" rx="5" fill={SKD} />
+          <rect x="45" y="18" width="7"  height="22" rx="4" fill={SKD} />
+        </svg>
+      );
+
+    // ── 3. Quadrupod: pencil diagonal, 4 fingertips + thumb ──────────────
+    case 'quadrupod':
+      return (
+        <svg viewBox="0 0 64 80" width={54} height={68} aria-label="Quadrupod four-finger grip">
+          <DiagPencil />
+          {/* palm */}
+          <ellipse cx="40" cy="56" rx="17" ry="15" fill={SKL} />
+          {/* 4 finger pads on pencil */}
+          <ellipse cx="19" cy="27" rx="7" ry="6" fill={SKD} />
+          <ellipse cx="28" cy="20" rx="7" ry="6" fill={SKD} />
+          <ellipse cx="37" cy="19" rx="7" ry="6" fill={SKD} />
+          <ellipse cx="46" cy="23" rx="6" ry="5" fill={SKD} />
+          {/* thumb */}
+          <ellipse cx="15" cy="40" rx="8" ry="12" fill={SK} transform="rotate(18 15 40)" />
+          {/* knuckle line */}
+          <path d="M18 34 Q32 30 48 36" stroke={SKD} strokeWidth="2" fill="none" strokeLinecap="round" />
+        </svg>
+      );
+
+    // ── 4. Immature Tripod: 3 fingers + ring barely touching ─────────────
+    case 'immature_tripod':
+      return (
+        <svg viewBox="0 0 64 80" width={54} height={68} aria-label="Immature tripod grip">
+          <DiagPencil />
+          {/* palm */}
+          <ellipse cx="40" cy="57" rx="16" ry="15" fill={SKL} />
+          {/* index + middle on pencil */}
+          <ellipse cx="20" cy="26" rx="7" ry="6" fill={SKD} />
+          <ellipse cx="30" cy="19" rx="7" ry="6" fill={SKD} />
+          {/* ring finger barely resting (semi-transparent) */}
+          <ellipse cx="40" cy="20" rx="7" ry="6" fill={SKD} opacity="0.55" />
+          {/* pinky curled */}
+          <ellipse cx="50" cy="32" rx="5" ry="4" fill={SK}  opacity="0.45" />
+          {/* thumb */}
+          <ellipse cx="14" cy="39" rx="8" ry="12" fill={SK} transform="rotate(15 14 39)" />
+          <path d="M17 33 Q28 28 42 32" stroke={SKD} strokeWidth="2" fill="none" strokeLinecap="round" />
+        </svg>
+      );
+
+    // ── 5. Dynamic Tripod: clean 3-finger precision grip ─────────────────
+    case 'dynamic_tripod':
+    default:
+      return (
+        <svg viewBox="0 0 64 80" width={54} height={68} aria-label="Dynamic tripod grip">
+          <DiagPencil />
+          {/* palm */}
+          <ellipse cx="41" cy="57" rx="15" ry="15" fill={SKL} />
+          {/* ring + pinky curled away (subtle) */}
+          <ellipse cx="51" cy="46" rx="6" ry="5" fill={SK}  opacity="0.5" />
+          <ellipse cx="56" cy="54" rx="5" ry="4" fill={SKL} opacity="0.5" />
+          {/* index finger */}
+          <ellipse cx="20" cy="25" rx="7" ry="6" fill={SKD} />
+          {/* middle finger (resting point) */}
+          <ellipse cx="30" cy="18" rx="7" ry="6" fill={SKD} />
+          {/* thumb */}
+          <ellipse cx="14" cy="39" rx="8" ry="12" fill={SK} transform="rotate(15 14 39)" />
+          {/* clean arch — open space shows precision */}
+          <path d="M16 32 Q26 26 38 30" stroke={SKD} strokeWidth="2" fill="none" strokeLinecap="round" />
+        </svg>
+      );
+  }
+}
 
 // ─── Fine Motor Scoring Helpers ───────────────────────────────────────────────
 
@@ -549,7 +675,7 @@ function TracingGame({
                 className="w-full text-left p-3 rounded-xl transition-all hover:scale-[1.01]"
                 style={{ background:graspKey===gp.key?`${gp.color}18`:'#F9FAFB', border:`2px solid ${graspKey===gp.key?gp.color:'#E5E7EB'}` }}>
                 <div className="flex items-center gap-3">
-                  <span style={{ fontSize:26, flexShrink:0 }}>{gp.emoji}</span>
+                  <div style={{ flexShrink:0 }}><GraspIllustration graspKey={gp.key} color={gp.color} /></div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-800 text-sm">{gp.label}</p>
                     <p className="text-gray-500 text-xs truncate">{gp.description}</p>
