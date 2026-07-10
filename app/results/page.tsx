@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import { supabase } from '@/lib/supabase';
 import KailiaAvatar from '@/components/KailiaAvatar';
+import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 
 function getFineMotorStage(score: number) {
   if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', color: '#059669' };
@@ -138,6 +139,7 @@ export default function ResultsPage() {
   } = useAssessment();
   const router = useRouter();
   const [showCelebration, setShowCelebration] = useState(true);
+  const band = developmentalBand(state.ageGroup, totalScore);
 
   const sensoryMax = 6; // max per pattern = 3 questions × 2 pts
 
@@ -417,6 +419,28 @@ export default function ResultsPage() {
             Developmental Pediatrician.
           </p>
         </div>
+
+        {/* Parent & Baby Quest Library — the main path for the littlest ones */}
+        {band !== null && (
+          <button
+            onClick={() => router.push('/activities')}
+            className="w-full rounded-2xl p-5 mb-4 text-left transition-all hover:scale-[1.02] shadow-2xl"
+            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-5xl">{BAND_INFO[band].emoji}</span>
+              <div>
+                <p className="font-extrabold text-amber-950 text-lg leading-tight">
+                  {state.childName || 'Your child'} is a {BAND_INFO[band].name}!
+                </p>
+                <p className="text-sm font-semibold text-amber-900 mt-1">
+                  At this developmental level, the best &ldquo;games&rdquo; are played together, off the
+                  screen — Noel has 3 daily quests and a whole library waiting for you. →
+                </p>
+              </div>
+            </div>
+          </button>
+        )}
 
         {/* Actions */}
         <div className="flex flex-col gap-4 items-center">

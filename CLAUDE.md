@@ -44,6 +44,13 @@ Kailia and Noel travel together through every one of these lands — Kailia atte
 - Kids see only story rewards: map regions unlocked, companion creatures collected, badges. No scores, timers, or grades on the child-facing screens.
 - Parents get a separate dashboard: per-domain developmental-age estimate, trend over time, and plain-language notes. Include a disclaimer that this is a screening/guidance tool, not a clinical diagnosis.
 
+## Developmental bands & the Parent & Baby Quest Library
+For children below preschool developmental level, screens teach very little by themselves — so the app coaches the parent instead:
+- `lib/difficulty.ts` maps assessment results to game difficulty tiers (tiny/small/big) AND to developmental bands: **Band 1 "Little Sprout"** (≈6–18 mo), **Band 2 "Little Explorer"** (≈18 mo–2½ y), **Band 3 "Little Adventurer"** (≈2½–4 y). Band null = school-age, world-map games carry the load.
+- `lib/activities.ts` is the Parent & Baby Quest Library: 50+ real-world, OT-informed activities (by band × six domains), each framed as a Noel quest with steps, materials, and a "what to watch for" skill note.
+- `/activities` shows 3 date-stable daily quests plus the browsable library; parents report each with one tap (Did it / Tried with help / Not yet) — reports persist per day and feed `lib/metrics.ts` for the future parent dashboard.
+- The world map and results page surface a prominent library card whenever a band is detected.
+
 ## Tone & UX conventions
 - Warm, encouraging narrator voice. Kailia speaks in short, simple sentences.
 - Big touch targets, minimal text for pre-readers, audio narration for all instructions.

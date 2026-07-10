@@ -9,6 +9,7 @@ import {
   LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
   landStars, isLandComplete, isLandUnlocked, currentLandIndex, totalStars, maxStars,
 } from '@/lib/adventure';
+import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 
 // ── Tiny sound effects (no audio files needed) ────────────────────────────────
 
@@ -66,7 +67,8 @@ const DOMAIN_LAND: Record<string, string> = {
 };
 
 export default function AdventureMap() {
-  const { state } = useAssessment();
+  const { state, totalScore } = useAssessment();
+  const band = developmentalBand(state.ageGroup, totalScore);
   const [progress, setProgress] = useState<AdventureProgress>({ played: {}, celebrated: [] });
   const [hydrated, setHydrated] = useState(false);
   const [openLand, setOpenLand] = useState<Land | null>(null);
@@ -242,6 +244,28 @@ export default function AdventureMap() {
             {noelLine}
           </div>
         </div>
+
+        {/* Parent & Baby Quest Library — front and center for the littlest ones */}
+        {band !== null ? (
+          <Link href="/activities" className="block mt-4 rounded-2xl p-4 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', boxShadow: '0 4px 18px rgba(251,191,36,0.35)' }}>
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{BAND_INFO[band].emoji}</span>
+              <div className="flex-1">
+                <p className="font-extrabold text-amber-950 leading-tight">
+                  ☀️ Today&apos;s Quests for your {BAND_INFO[band].name}
+                </p>
+                <p className="text-xs font-semibold text-amber-900 mt-0.5">
+                  3 real-world adventures to play together today — a few minutes each! →
+                </p>
+              </div>
+            </div>
+          </Link>
+        ) : (
+          <Link href="/activities" className="block text-center mt-4 text-xs text-purple-300 underline">
+            🎒 Quest Library: real-world games to play together
+          </Link>
+        )}
 
         {/* For grown-ups */}
         <div className="text-center mt-4">
