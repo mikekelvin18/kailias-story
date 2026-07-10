@@ -6,6 +6,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { logQuestMetric } from '@/lib/metrics';
+import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 
 // ─── Snack Quest ──────────────────────────────────────────────────────────────
 // Embodied math: the child walks their character around a little field,
@@ -127,7 +128,7 @@ function findPath(from: Tile, to: Tile, walls: Tile[]): Tile[] | null {
 }
 
 export default function SnackQuestPage() {
-  const { state } = useAssessment();
+  const { state, totalScore } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
   const [phase, setPhase] = useState<'select' | 'playing' | 'checking' | 'roundDone' | 'done'>('select');
   const [roundIdx, setRoundIdx] = useState(0);
@@ -148,6 +149,9 @@ export default function SnackQuestPage() {
   const posRef = useRef<Tile>(START);
   const carriedRef = useRef(0);
   const itemsRef = useRef<Item[]>([]);
+  const tierRef = useRef<DifficultyTier>('small');
+  const firstPickupRef = useRef(false);
+  const [tilePx, setTilePx] = useState(56);
   const attemptsRef = useRef(0);          // wrong deliveries this round
   const roundStartRef = useRef(0);
   const itemIdRef = useRef(0);
@@ -156,27 +160,44 @@ export default function SnackQuestPage() {
   useEffect(() => { posRef.current = pos; }, [pos]);
   useEffect(() => { carriedRef.current = carried; }, [carried]);
   useEffect(() => { itemsRef.current = items; }, [items]);
+
+  // Measure the field so sprites, snacks and the dragon scale with the screen
+  useEffect(() => {
+    const el = fieldRef.current;
+    if (!el) return;
+    const update = () => setTilePx(el.clientWidth / COLS);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phase]);
   useEffect(() => () => { if (walkTimer.current) clearInterval(walkTimer.current); }, []);
 
   const cfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '' };
 
-  // ── Round plans, gently scaled by age ──
+  // ── Round plans, scaled to the child's developmental level ──
   const buildRounds = useCallback((): RoundCfg[] => {
-    const big = state.ageGroup === 'schoolAge';
-    const w = big ? [4, 6, 6, 9] : [3, 4, 3, 5];
-    const h = big ? [0, 0, 2, 3] : [0, 0, 1, 2];
+    const tier = difficultyTier(state.ageGroup, totalScore);
+    tierRef.current = tier;
+    const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
+      tiny:  { w: [1, 2, 2, 3], h: [0, 0, 1, 1] },   // developmental level under ~2½ yrs
+      small: { w: [3, 4, 3, 5], h: [0, 0, 1, 2] },
+      big:   { w: [4, 6, 6, 9], h: [0, 0, 2, 3] },
+    };
+    const { w, h } = plans[tier];
     const intros = [
-      `The baby dragon is hungry! Bring her exactly what she wishes for.`,
+      `The baby dragon is hungry! Walk to a snack to pick it up, then bring it to her!`,
       `She's still hungry — and this time it's a bigger wish!`,
       `Look — she already has some! How many MORE does she need?`,
       `One last feast! Count carefully — you've got this!`,
     ];
     return w.map((want, i) => ({ want, have: h[i], intro: intros[i] }));
-  }, [state.ageGroup]);
+  }, [state.ageGroup, totalScore]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
-    const total = needed + 2; // a couple of extras so counting matters
+    // extras make counting matter; the littlest ones get just one extra
+    const total = needed + (tierRef.current === 'tiny' ? 1 : 2);
     const taken = new Set<string>(wallSet.map(t => `${t.r},${t.c}`));
     taken.add(`${START.r},${START.c}`);
     taken.add(`${START.r - 1},${START.c}`);
@@ -205,7 +226,9 @@ export default function SnackQuestPage() {
     setCarried(0);
     setDelivered(0);
     setRevealed(0);
-    setShowSlots(idx === 0);   // slots teach the mechanic in round 1
+    // slots teach the mechanic in round 1; the littlest ones keep them always
+    setShowSlots(idx === 0 || tierRef.current === 'tiny');
+    firstPickupRef.current = false;
     setRoundIdx(idx);
     setGuideLine(round.intro);
     setGuideMood('excited');
@@ -239,6 +262,11 @@ export default function SnackQuestPage() {
           sfx.pickup();
           setCarried(c => c + 1);
           setItems(prev => prev.filter(i => i.id !== here.id));
+          if (!firstPickupRef.current) {
+            firstPickupRef.current = true;
+            setGuideLine('Got one! Now bring it to the dragon! 🐲');
+            setGuideMood('excited');
+          }
         }
       }
       // reached the dragon with snacks → deliver
@@ -323,8 +351,9 @@ export default function SnackQuestPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen pb-6" style={{ background: skin?.bg ?? 'linear-gradient(180deg, #1c1006 0%, #2b1a08 60%, #3a2410 100%)' }}>
-      <div className="max-w-md mx-auto px-3">
+    <main className="min-h-screen pb-4" style={{ background: skin?.bg ?? 'linear-gradient(180deg, #1c1006 0%, #2b1a08 60%, #3a2410 100%)' }}>
+      {/* the column is sized so the field fills the screen height with little waste */}
+      <div className="mx-auto px-3" style={{ width: 'min(100%, calc((100dvh - 330px) * 0.875 + 24px), 44rem)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
@@ -370,23 +399,25 @@ export default function SnackQuestPage() {
         {/* ── The game ── */}
         {phase !== 'select' && skin && (
           <>
-            {/* Dragon's wish */}
-            <div className="rounded-2xl px-4 py-2.5 mb-2 flex items-center gap-3"
-              style={{ background: 'rgba(255,255,255,0.95)' }} data-want={cfg.want}>
-              <span className="text-3xl">🐲</span>
-              <div className="flex-1">
-                <p className="text-sm font-extrabold text-gray-800">
-                  I wish for <span className="text-xl" style={{ color: '#D97706' }}>{cfg.want}</span> {skin.item}
-                  {cfg.have > 0 && <span className="font-semibold text-gray-600"> — I already have {cfg.have}!</span>}
+            {/* Dragon's wish — big and centered so little eyes can read it */}
+            <div className="rounded-2xl px-4 py-3 mb-2 text-center" style={{ background: 'rgba(255,255,255,0.95)' }} data-want={cfg.want}>
+              <p className="text-2xl font-extrabold text-gray-800 flex items-center justify-center gap-3 flex-wrap leading-tight">
+                <span className="text-5xl">🐲</span>
+                <span>
+                  I wish for <span className="text-4xl mx-1 align-middle" style={{ color: '#D97706' }}>{cfg.want}</span>
+                  <span className="text-4xl align-middle">{skin.item}</span>
+                </span>
+              </p>
+              {cfg.have > 0 && (
+                <p className="text-lg font-semibold text-gray-600 mt-0.5">I already have {cfg.have}!</p>
+              )}
+              {showSlots && (
+                <p className="text-4xl leading-none mt-2" style={{ letterSpacing: 4 }}>
+                  {Array.from({ length: cfg.want }).map((_, i) => (
+                    <span key={i} style={{ opacity: i < cfg.have + revealed ? 1 : 0.22 }}>{skin.item}</span>
+                  ))}
                 </p>
-                {showSlots && (
-                  <p className="text-lg leading-none mt-1" style={{ letterSpacing: 2 }}>
-                    {Array.from({ length: cfg.want }).map((_, i) => (
-                      <span key={i} style={{ opacity: i < cfg.have + revealed ? 1 : 0.22 }}>{skin.item}</span>
-                    ))}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Field */}
@@ -400,7 +431,7 @@ export default function SnackQuestPage() {
                 <span key={i} className="absolute flex items-center justify-center" style={{
                   left: `${(w.c / COLS) * 100}%`, top: `${(w.r / ROWS) * 100}%`,
                   width: `${100 / COLS}%`, height: `${100 / ROWS}%`,
-                  fontSize: 'min(7vw, 34px)', pointerEvents: 'none', opacity: 0.9 }}>
+                  fontSize: tilePx * 0.72, pointerEvents: 'none', opacity: 0.9 }}>
                   {skin.wallEmoji}
                 </span>
               ))}
@@ -409,8 +440,8 @@ export default function SnackQuestPage() {
               <div className="absolute text-center" style={{
                 left: `${(5 / COLS) * 100}%`, top: 0, width: `${(2 / COLS) * 100}%`, height: `${(2 / ROWS) * 100}%`,
                 pointerEvents: 'none' }}>
-                <span className={`block ${phase === 'roundDone' ? 'star-burst' : 'float'}`} style={{ fontSize: 'min(12vw, 56px)', lineHeight: 1.2 }}>🐲</span>
-                <span className="block text-base leading-none">
+                <span className={`block ${phase === 'roundDone' ? 'star-burst' : 'float'}`} style={{ fontSize: tilePx * 1.4, lineHeight: 1.15 }}>🐲</span>
+                <span className="block leading-none" style={{ fontSize: tilePx * 0.42 }}>
                   {Array.from({ length: cfg.have + revealed }).map((_, i) => <span key={i}>{skin.item}</span>)}
                 </span>
               </div>
@@ -420,8 +451,8 @@ export default function SnackQuestPage() {
                 <span key={it.id} className="absolute flex items-center justify-center sparkle" style={{
                   left: `${(it.c / COLS) * 100}%`, top: `${(it.r / ROWS) * 100}%`,
                   width: `${100 / COLS}%`, height: `${100 / ROWS}%`,
-                  fontSize: 'min(6.5vw, 30px)', pointerEvents: 'none',
-                  filter: 'drop-shadow(0 0 6px rgba(253,224,71,0.6))' }}>
+                  fontSize: tilePx * 0.62, pointerEvents: 'none',
+                  filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.7))' }}>
                   {skin.item}
                 </span>
               ))}
@@ -433,12 +464,12 @@ export default function SnackQuestPage() {
                 pointerEvents: 'none', zIndex: 5 }}>
                 {carried > 0 && (
                   <span data-carried={carried}
-                    className="absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-extrabold whitespace-nowrap"
+                    className="absolute -top-6 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-base font-extrabold whitespace-nowrap"
                     style={{ background: 'white', color: '#92400E', boxShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
                     {skin.item}×{carried}
                   </span>
                 )}
-                <Sprite size={46} expression={phase === 'roundDone' ? 'celebrating' : carried > 0 ? 'excited' : 'happy'} />
+                <Sprite size={Math.round(tilePx * 0.92)} expression={phase === 'roundDone' ? 'celebrating' : carried > 0 ? 'excited' : 'happy'} />
               </div>
 
               {/* round interstitial */}
@@ -455,15 +486,15 @@ export default function SnackQuestPage() {
             {/* Guide bar — the other character cheers you on */}
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-              <Guide size={46} expression={guideMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-sm font-semibold text-gray-800 bg-white relative">
+              <Guide size={54} expression={guideMood} style={{ flexShrink: 0 }} />
+              <div className="rounded-2xl px-4 py-2.5 text-base font-semibold text-gray-800 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {guideLine}
               </div>
             </div>
-            <p className="text-center text-xs mt-2" style={{ color: skin.accent, opacity: 0.8 }}>
-              Tap anywhere to walk there — walk over {skin.itemName} to pick them up!
+            <p className="text-center text-sm font-semibold mt-2" style={{ color: skin.accent, opacity: 0.9 }}>
+              Tap anywhere to walk. Pick up {skin.itemName}, then bring them to the dragon! 🐲
             </p>
           </>
         )}

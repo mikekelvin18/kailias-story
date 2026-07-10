@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type AgeGroup = 'infant' | 'toddler' | 'preschool' | 'schoolAge' | null;
 export type InputMethod = 'touch' | 'mouse' | null;
@@ -183,8 +183,23 @@ function getSensoryPattern(scores: SensoryScores) {
 
 const AssessmentContext = createContext<AssessmentContextType | null>(null);
 
+const STORAGE_KEY = 'kailia_assessment_v1';
+
 export function AssessmentProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AssessmentState>(defaultState);
+
+  // Remember assessment results on this device so games can adapt
+  // to the child's developmental level even after a page reload.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setState({ ...defaultState, ...JSON.parse(raw) });
+    } catch { /* start fresh if the saved copy is unreadable */ }
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+  }, [state]);
 
   const setChildInfo = (name: string, age: number) =>
     setState(s => ({ ...s, childName: name, childAge: age, ageGroup: deriveAgeGroup(age) }));

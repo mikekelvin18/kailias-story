@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { logQuestMetric } from '@/lib/metrics';
+import { useAssessment } from '@/context/AssessmentContext';
+import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 
 // ─── Firefly Catch ────────────────────────────────────────────────────────────
 // A real fine-motor exercise: tap drifting fireflies (targeting, speed),
@@ -39,6 +41,13 @@ const PRAISE = [
 
 const LANTERN_ZONE = 84; // drop radius around the lantern, px
 
+// developmental scaling: littler kids get bigger, slower fireflies
+const TIER_TUNING: Record<DifficultyTier, { r: number; speed: number; zone: number }> = {
+  tiny:  { r: 1.5,  speed: 0.5,  zone: 120 },
+  small: { r: 1.15, speed: 0.85, zone: 96 },
+  big:   { r: 1,    speed: 1,    zone: LANTERN_ZONE },
+};
+
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -65,6 +74,8 @@ const sfx = {
 };
 
 export default function FireflyCatchPage() {
+  const { state, totalScore } = useAssessment();
+  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore)];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [roundIdx, setRoundIdx] = useState(0);
   const [cfg, setCfg] = useState<RoundCfg>(ROUNDS[0]);
@@ -107,12 +118,15 @@ export default function FireflyCatchPage() {
     }
     const { w, h } = sizeRef.current;
 
-    // gentle adaptivity: a tough previous round makes this one bigger & slower
+    // developmental tier sets the baseline; a tough previous round
+    // makes this one gentler still
     const struggled = roundMissesRef.current > 4;
     const base = ROUNDS[idx];
-    const round: RoundCfg = struggled
-      ? { ...base, r: Math.round(base.r * 1.3), speed: base.speed * 0.75 }
-      : base;
+    const round: RoundCfg = {
+      ...base,
+      r: Math.round(base.r * tuning.r * (struggled ? 1.3 : 1)),
+      speed: base.speed * tuning.speed * (struggled ? 0.75 : 1),
+    };
 
     roundMissesRef.current = 0;
     consecMissRef.current = 0;
@@ -136,7 +150,7 @@ export default function FireflyCatchPage() {
     setNoelLine(round.noel);
     setNoelMood('excited');
     setPhase('playing');
-  }, []);
+  }, [tuning]);
 
   function startGame() {
     metricsRef.current = { tapOffsets: [], catchMs: [], misses: 0, dragRatios: [], dropOffsets: [], startedAt: Date.now() };
@@ -297,10 +311,10 @@ export default function FireflyCatchPage() {
     if (!fly) return;
     const { x: lx, y: ly } = lanternPos();
     const dropDist = Math.hypot(fly.x - lx, fly.y - ly);
-    if (dropDist <= LANTERN_ZONE) {
+    if (dropDist <= tuning.zone) {
       const straight = Math.hypot(lx - drag.sx, ly - drag.sy) || 1;
       metricsRef.current.dragRatios.push(Math.min(1, straight / Math.max(straight, drag.path)));
-      metricsRef.current.dropOffsets.push(Math.min(1, dropDist / LANTERN_ZONE));
+      metricsRef.current.dropOffsets.push(Math.min(1, dropDist / tuning.zone));
       setFireflies(prev => prev.map(f => (f.id === drag.id ? { ...f, caught: true } : f)));
       setTotalCaught(n => n + 1);
       addBurst(lx, ly - 40);
@@ -385,7 +399,7 @@ export default function FireflyCatchPage() {
                 {cfg.mode === 'drag' && phase === 'playing' && (
                   <span className="absolute rounded-full pulse" style={{
                     left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
-                    width: LANTERN_ZONE * 2, height: LANTERN_ZONE * 2,
+                    width: tuning.zone * 2, height: tuning.zone * 2,
                     border: '3px dashed rgba(253,224,71,0.6)' }} />
                 )}
                 <span className="block" style={{ fontSize: 52, filter: `grayscale(${1 - glow}) brightness(${0.55 + glow * 0.7}) drop-shadow(0 0 ${glow * 26}px #FDE047)` }}>
