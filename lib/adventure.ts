@@ -49,7 +49,7 @@ export const LANDS: Land[] = [
     tagline: 'Count the gems, feed the dragons',
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
-      { href: '/play/math', emoji: '🍪', title: 'Cookie Math', desc: 'Count cookies and solve tasty puzzles to pay the dragon\'s toll!' },
+      { href: '/play/snack-quest', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
     ],
   },
   {
