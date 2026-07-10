@@ -36,7 +36,7 @@ export const LANDS: Land[] = [
     noelIntro: "Ooh, the fireflies lost their way! Can you help Kailia trace the glowing trails? Steady hands, here we go!",
     quests: [
       { href: '/play/fine-motor', emoji: '✨', title: 'Maze Runner', desc: 'Guide Kailia through 5 magical mazes without touching the walls!' },
-      { href: '/play/grasp', emoji: '🤲', title: 'Grasp Master', desc: 'Match the right hand grip to each forest treasure!' },
+      { href: '/play/firefly-catch', emoji: '🏮', title: 'Firefly Catch', desc: "Catch the glowing fireflies and light Kailia's lantern!" },
     ],
   },
   {
