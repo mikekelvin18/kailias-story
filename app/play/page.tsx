@@ -3,14 +3,15 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaAvatar from '@/components/KailiaAvatar';
+import KailiaSprite from '@/components/characters/KailiaSprite';
+import PandaSprite from '@/components/characters/PandaSprite';
 
 const GAMES = [
   {
     href: '/play/visual-scan',
     emoji: '🔍',
     title: "Star Hunt",
-    sub: "Visual Scanning",
+    sub: "To improve attention & focus!",
     desc: "Find all the hidden stars before time runs out!",
     color: '#7C3AED',
     light: '#F5F3FF',
@@ -21,7 +22,7 @@ const GAMES = [
     href: '/play/math',
     emoji: '🍪',
     title: "Cookie Math",
-    sub: "Numbers & Counting",
+    sub: "To improve number sense & learning!",
     desc: "Help Kailia count cookies and solve tasty math problems!",
     color: '#D97706',
     light: '#FFFBEB',
@@ -32,7 +33,7 @@ const GAMES = [
     href: '/play/reading',
     emoji: '📖',
     title: "Word Wizard",
-    sub: "Reading & Letters",
+    sub: "To improve reading & vocabulary!",
     desc: "Match words to pictures and unlock magical spells!",
     color: '#2563EB',
     light: '#EFF6FF',
@@ -42,9 +43,9 @@ const GAMES = [
   {
     href: '/play/fine-motor',
     emoji: '✨',
-    title: "Shape Magic",
-    sub: "Fine Motor Tracing",
-    desc: "Trace magical shapes to help Kailia cast spells!",
+    title: "Maze Runner",
+    sub: "To improve handwriting & pencil control!",
+    desc: "Guide your character through 5 magical mazes — collect stars without hitting walls!",
     color: '#059669',
     light: '#ECFDF5',
     border: '#A7F3D0',
@@ -54,7 +55,7 @@ const GAMES = [
     href: '/play/story',
     emoji: '🃏',
     title: "Story Flip",
-    sub: "Comprehension",
+    sub: "To improve communication & storytelling!",
     desc: "Put Kailia's mixed-up adventure back in order!",
     color: '#EC4899',
     light: '#FDF2F8',
@@ -65,12 +66,23 @@ const GAMES = [
     href: '/play/sensory',
     emoji: '🌈',
     title: "Sense Explorer",
-    sub: "Sensory & Perception",
+    sub: "To improve sensory processing!",
     desc: "Match colors, sounds, and patterns in Kailia's world!",
     color: '#0891B2',
     light: '#ECFEFF',
     border: '#A5F3FC',
     domain: 'sensory',
+  },
+  {
+    href: '/play/grasp',
+    emoji: '🤲',
+    title: "Grasp Master",
+    sub: "To improve hand grip & tool use!",
+    desc: "Match the right hand grip to each object — pincer, palmar, and more!",
+    color: '#7C3AED',
+    light: '#F5F3FF',
+    border: '#DDD6FE',
+    domain: 'writing',
   },
 ];
 
@@ -113,12 +125,20 @@ export default function PlayHub() {
 
       <div className="max-w-2xl mx-auto relative z-10">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="float inline-block mb-3"><KailiaAvatar size={80} /></div>
+        {/* Header — Kailia + Noel */}
+        <div className="text-center mb-6">
+          <div className="flex items-end justify-center gap-2 mb-2">
+            <div className="float" style={{ animationDelay: '0.2s' }}>
+              <PandaSprite size={90} expression={hasAssessment ? 'excited' : 'happy'} />
+            </div>
+            <div className="float">
+              <KailiaSprite size={110} expression={hasAssessment ? 'excited' : 'happy'} />
+            </div>
+          </div>
           <h1 className="text-4xl font-extrabold text-white drop-shadow-lg">
-            {hasAssessment ? `${state.childName}'s Game World!` : "Kailia's Game World!"}
+            {hasAssessment ? `${state.childName}'s Game World!` : "Kailia & Noel's Games!"}
           </h1>
+          <p className="text-purple-300 text-sm mt-1">Kailia &amp; Noel are ready to play!</p>
           {hasAssessment ? (
             <div className="mt-3 flex items-center justify-center gap-3 flex-wrap">
               <span className="px-4 py-1.5 rounded-full font-bold text-sm text-white"
@@ -131,7 +151,7 @@ export default function PlayHub() {
               </span>
             </div>
           ) : (
-            <p className="text-purple-300 mt-2">
+            <p className="text-purple-300 mt-2 text-sm">
               Do the{' '}
               <Link href="/setup" className="underline text-purple-200 font-bold">assessment first</Link>
               {' '}to unlock your personalized level!
@@ -139,16 +159,17 @@ export default function PlayHub() {
           )}
         </div>
 
-        {/* Focus suggestion */}
+        {/* Noel's tip */}
         {hasAssessment && weak && (
-          <div className="rounded-2xl p-4 mb-6 text-center"
+          <div className="rounded-2xl p-3 mb-5 flex items-center gap-3"
             style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-            <p className="text-purple-200 text-sm">
-              💡 <strong className="text-white">Kailia's tip:</strong> Try practicing{' '}
+            <PandaSprite size={48} expression="thinking" style={{ flexShrink: 0 }} />
+            <p className="text-purple-200 text-sm text-left">
+              <strong className="text-white">Noel says:</strong> &ldquo;Let&apos;s practice{' '}
               <strong className="text-yellow-300">
-                {weak === 'reading' ? 'Word Wizard' : weak === 'writing' ? 'Shape Magic' : weak === 'math' ? 'Cookie Math' : 'Story Flip'}
-              </strong>{' '}
-              to build that skill!
+                {weak === 'reading' ? 'Word Wizard' : weak === 'writing' ? 'Maze Runner' : weak === 'math' ? 'Cookie Math' : 'Story Flip'}
+              </strong>
+              {' '}today!&rdquo;
             </p>
           </div>
         )}
