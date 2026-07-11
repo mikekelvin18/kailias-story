@@ -297,7 +297,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Count the rescued stars together at the end.',
     ],
     watchFor: 'Fingertip pinching, and the wrist twisting to place a sticker where they want it.',
-    minutes: 6,
+    minutes: 4,
   },
   {
     id: 'b2-big-tower', band: 2, domain: 'fine motor', emoji: '🏰',
@@ -349,7 +349,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Stamp their hand with a pretend medal after each delivery.',
     ],
     watchFor: 'Following a one-step instruction from words alone.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b2-animal-sounds', band: 2, domain: 'communication', emoji: '🐄',
@@ -362,7 +362,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Sing the whole chorus together, louder each round.',
     ],
     watchFor: 'Imitating sounds, then producing the right sound for the right animal on their own.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b2-what-happened', band: 2, domain: 'communication', emoji: '🎈',
@@ -388,7 +388,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Three finds = a victory wiggle.',
     ],
     watchFor: 'Pointing to named pictures — understanding words before saying them.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b2-fill-blank-song', band: 2, domain: 'reading', emoji: '🎵',
@@ -401,7 +401,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Celebrate whatever sound fills the gap.',
     ],
     watchFor: 'Filling in the missing word or sound — memory for language and rhythm.',
-    minutes: 4,
+    minutes: 3,
   },
   {
     id: 'b2-turn-pages', band: 2, domain: 'reading', emoji: '📖',
@@ -440,7 +440,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'March around finding big and small things.',
     ],
     watchFor: 'Picking the right one for "big" and "small" — first size concepts.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b2-cup-shuffle', band: 2, domain: 'processing', emoji: '🎩',
@@ -453,7 +453,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Ask: "where is it?"',
     ],
     watchFor: 'Tracking the right cup even after it moves.',
-    minutes: 4,
+    minutes: 3,
   },
   {
     id: 'b2-freeze-dance', band: 2, domain: 'processing', emoji: '🕺',
@@ -573,7 +573,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Swap roles: let them give YOU a two-step mission.',
     ],
     watchFor: 'Both steps done in order from one telling.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b3-tea-party', band: 3, domain: 'communication', emoji: '🫖',
@@ -612,7 +612,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Let them catch YOUR wrong answers.',
     ],
     watchFor: 'Hearing which words rhyme — a top predictor of reading readiness.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b3-letter-hunt', band: 3, domain: 'reading', emoji: '🔠',
@@ -625,7 +625,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Keep a tally of every capture.',
     ],
     watchFor: 'Recognizing their letter in new places — print carries meaning.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b3-story-ending', band: 3, domain: 'reading', emoji: '📕',
@@ -651,7 +651,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Ask "how many?" at the end — see if the last number sticks.',
     ],
     watchFor: 'Touching one piece per number word, and knowing the last number IS the amount.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b3-color-sort', band: 3, domain: 'math', emoji: '🌈',
@@ -677,7 +677,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Ask: "which one is missing?!" Swap roles after.',
     ],
     watchFor: 'Remembering which of three items disappeared — visual memory.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b3-obstacle-course', band: 3, domain: 'processing', emoji: '🏔️',
@@ -703,7 +703,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Swap: they pick a smell to stump YOU.',
     ],
     watchFor: 'Playing with eyes closed comfortably and matching smells to names.',
-    minutes: 6,
+    minutes: 4,
   },
   {
     id: 'b3-heavy-light', band: 3, domain: 'sensory', emoji: '🏋️',
@@ -716,7 +716,7 @@ export const ACTIVITIES: ParentActivity[] = [
       'Do a "heavy work" march carrying the big one — great before calm-down time.',
     ],
     watchFor: 'Telling heavy from light; note if they crave or avoid the heavy carrying.',
-    minutes: 5,
+    minutes: 3,
   },
   {
     id: 'b3-draw-person', band: 3, domain: 'fine motor', emoji: '🖼️',
@@ -755,25 +755,26 @@ export function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// The free daily set is deliberately small: about 5 minutes of play in
-// total, so it always feels doable — and tomorrow is worth coming back for.
-const DAILY_BUDGET_MINUTES = 7; // picks land around 5–7 minutes combined
-
+// The free daily set is deliberately small: two quick quests, the shortest
+// good pair among the day's rotating candidates — so it always feels doable
+// and tomorrow is worth coming back for.
 export function todaysQuests(band: 1 | 2 | 3): ParentActivity[] {
   const rand = seededRandom(todayKey() + '-band' + band);
   const pool = ACTIVITIES.filter(a => a.band === band);
   const shuffled = [...pool].sort(() => rand() - 0.5);
-  const picked: ParentActivity[] = [];
-  let total = 0;
-  for (const a of shuffled) {
-    if (picked.length === 3) break;
-    if (picked.some(p => p.domain === a.domain)) continue;   // spread across skills
-    if (total + a.minutes > DAILY_BUDGET_MINUTES) continue;  // keep the day light
-    picked.push(a);
-    total += a.minutes;
+  // consider the first six of today's shuffle, keep the quickest
+  // two that exercise different skills
+  const candidates = shuffled.slice(0, 6);
+  let best: ParentActivity[] = [];
+  let bestTotal = Infinity;
+  for (let i = 0; i < candidates.length; i++) {
+    for (let j = i + 1; j < candidates.length; j++) {
+      const a = candidates[i], b = candidates[j];
+      if (a.domain === b.domain) continue;
+      if (a.minutes + b.minutes < bestTotal) { best = [a, b]; bestTotal = a.minutes + b.minutes; }
+    }
   }
-  if (picked.length === 0) picked.push(shuffled.reduce((m, a) => (a.minutes < m.minutes ? a : m)));
-  return picked;
+  return best.length ? best : shuffled.slice(0, 2);
 }
 
 export function dailyMinutes(quests: ParentActivity[]): number {

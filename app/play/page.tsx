@@ -315,9 +315,13 @@ export default function AdventureMap() {
             <p className="text-sm font-semibold text-amber-800 mb-1">
               Noel picked {dailyPrompt.length === 1 ? 'a tiny adventure' : `${dailyPrompt.length} little adventures`} for {state.childName ? `${state.childName} the` : 'your'} {BAND_INFO[band].name} {BAND_INFO[band].emoji}
             </p>
-            <p className="text-xs text-amber-700 mb-4 px-2 leading-snug">
-              At this stage, playing <strong>together with you</strong>{' '}grows skills fastest —
-              that&apos;s why these come first! Only ~{dailyPrompt.reduce((s, q) => s + q.minutes, 0)} minutes all together.
+            <p className="text-xs text-amber-800 mb-4 px-2 leading-snug rounded-xl py-2"
+              style={{ background: 'rgba(255,255,255,0.55)' }}>
+              💡 {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure check showed a
+              developmental age of {BAND_INFO[band].ages} — and at the{' '}
+              {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
+              <strong>together with you</strong>. That&apos;s why Noel suggests these quests first!
+              Only ~{dailyPrompt.reduce((s, q) => s + q.minutes, 0)} minutes all together.
             </p>
             <div className="space-y-2 mb-5 text-left">
               {dailyPrompt.map((q, i) => (
