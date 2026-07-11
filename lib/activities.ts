@@ -755,21 +755,29 @@ export function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// The free daily set is deliberately small: about 5 minutes of play in
+// total, so it always feels doable — and tomorrow is worth coming back for.
+const DAILY_BUDGET_MINUTES = 7; // picks land around 5–7 minutes combined
+
 export function todaysQuests(band: 1 | 2 | 3): ParentActivity[] {
   const rand = seededRandom(todayKey() + '-band' + band);
   const pool = ACTIVITIES.filter(a => a.band === band);
   const shuffled = [...pool].sort(() => rand() - 0.5);
   const picked: ParentActivity[] = [];
+  let total = 0;
   for (const a of shuffled) {
     if (picked.length === 3) break;
-    if (!picked.some(p => p.domain === a.domain)) picked.push(a);
+    if (picked.some(p => p.domain === a.domain)) continue;   // spread across skills
+    if (total + a.minutes > DAILY_BUDGET_MINUTES) continue;  // keep the day light
+    picked.push(a);
+    total += a.minutes;
   }
-  // top up if fewer than 3 domains available
-  for (const a of shuffled) {
-    if (picked.length === 3) break;
-    if (!picked.includes(a)) picked.push(a);
-  }
+  if (picked.length === 0) picked.push(shuffled.reduce((m, a) => (a.minutes < m.minutes ? a : m)));
   return picked;
+}
+
+export function dailyMinutes(quests: ParentActivity[]): number {
+  return quests.reduce((s, q) => s + q.minutes, 0);
 }
 
 // ── Parent reports (saved on this device) ──

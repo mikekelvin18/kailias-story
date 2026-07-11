@@ -8,7 +8,7 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import {
   ACTIVITIES, DOMAIN_META, ParentActivity, ActivityDomain, ReportScore,
-  todaysQuests, getTodayReports, reportActivity, streakDays,
+  todaysQuests, dailyMinutes, getTodayReports, reportActivity, streakDays,
 } from '@/lib/activities';
 
 // ─── Parent & Baby Quest Library ──────────────────────────────────────────────
@@ -114,6 +114,8 @@ export default function ActivityLibraryPage() {
   const library = ACTIVITIES.filter(a =>
     a.band === band && !dailyIds.has(a.id) && (domainFilter === 'all' || a.domain === domainFilter));
   const doneToday = daily.filter(a => reports[a.id] !== undefined).length;
+  const allDone = doneToday === daily.length;
+  const minutes = dailyMinutes(daily);
   const info = BAND_INFO[band];
 
   function handleReport(a: ParentActivity, s: ReportScore) {
@@ -135,7 +137,7 @@ export default function ActivityLibraryPage() {
           </span>
         </div>
         <p className="text-purple-200 text-xs text-center mb-4">
-          Three little adventures a day, played <strong>together</strong> — new ones arrive tomorrow!
+          A pocket-sized adventure each day (~5 minutes), played <strong>together</strong> — new quests tomorrow!
         </p>
 
         {/* Band banner */}
@@ -150,21 +152,39 @@ export default function ActivityLibraryPage() {
           </div>
         </div>
 
+        {/* Why these quests — only when the assessment itself picked this band */}
+        {detectedBand === band && (
+          <div className="rounded-2xl p-3 mb-4 flex items-start gap-2"
+            style={{ background: 'rgba(253,224,71,0.12)', border: '1.5px solid rgba(253,224,71,0.35)' }}>
+            <span className="text-xl" style={{ flexShrink: 0 }}>💡</span>
+            <p className="text-xs text-yellow-100 leading-relaxed">
+              <strong>Why these quests?</strong> {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure
+              level is still growing — and at the {info.name} stage, children learn most from playing
+              <strong> with you</strong>, not from a screen. That&apos;s why these together-quests are the
+              main adventure we recommend, with the map games as a fun extra.
+            </p>
+          </div>
+        )}
+
         {/* ── Today's quests ── */}
         <div className="flex items-center gap-2 mb-2 px-1">
           <h2 className="text-lg font-extrabold text-white">☀️ Today&apos;s Quests</h2>
           <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold"
-            style={{ background: doneToday === 3 ? '#059669' : 'rgba(255,255,255,0.12)', color: 'white' }}>
-            {doneToday} / 3 done
+            style={{ background: allDone ? '#059669' : 'rgba(255,255,255,0.12)', color: 'white' }}>
+            {doneToday} / {daily.length} done
+          </span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold"
+            style={{ background: 'rgba(255,255,255,0.12)', color: '#fde047' }}>
+            ⏱️ ~{minutes} min total
           </span>
         </div>
         <div className="flex items-start gap-2 rounded-2xl p-2.5 mb-3"
           style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
-          <PandaSprite size={44} expression={doneToday === 3 ? 'celebrating' : 'happy'} style={{ flexShrink: 0 }} />
+          <PandaSprite size={44} expression={allDone ? 'celebrating' : 'happy'} style={{ flexShrink: 0 }} />
           <p className="text-sm font-semibold text-purple-100 pt-2">
-            {doneToday === 3
-              ? 'ALL THREE?! You two are unstoppable! See you tomorrow! 🎉'
-              : `Noel picked ${3 - doneToday === 3 ? 'three' : 3 - doneToday} little adventure${3 - doneToday === 1 ? '' : 's'} for today — a few minutes each!`}
+            {allDone
+              ? 'ALL DONE?! You two are unstoppable! See you tomorrow! 🎉'
+              : `Noel picked ${daily.length === 1 ? 'one tiny adventure' : `${daily.length} little adventures`} for today — about ${minutes} minutes all together!`}
           </p>
         </div>
         <div className="space-y-3 mb-5">
@@ -174,12 +194,12 @@ export default function ActivityLibraryPage() {
         </div>
 
         {/* All done → the reason to come back tomorrow */}
-        {doneToday === 3 && (
+        {allDone && (
           <div className="rounded-2xl p-4 mb-5 text-center bounce-in"
             style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
             <p className="text-2xl font-extrabold text-amber-950">🌅 All done for today!</p>
             <p className="text-sm font-semibold text-amber-900 mt-1">
-              Three brand-new quests arrive tomorrow morning.
+              Brand-new quests arrive tomorrow morning.
               {streak >= 2 ? ` That's a ${streak}-day streak — Noel is amazed! 🔥` : ' See you then!'}
             </p>
           </div>

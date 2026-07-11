@@ -173,6 +173,29 @@ export default function AdventureMap() {
           {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
         </p>
 
+        {/* For young explorers, today's together-quests are the MAIN course —
+            so they come before the map, with a why note */}
+        {band !== null && (
+          <Link href="/activities" className="block mb-3 rounded-2xl p-4 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', boxShadow: '0 4px 18px rgba(251,191,36,0.35)' }}>
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{BAND_INFO[band].emoji}</span>
+              <div className="flex-1">
+                <p className="font-extrabold text-amber-950 leading-tight">
+                  ☀️ Today&apos;s Quests for your {BAND_INFO[band].name}
+                </p>
+                <p className="text-xs font-semibold text-amber-900 mt-0.5">
+                  ~5 minutes of real-world play together — start here! →
+                </p>
+              </div>
+            </div>
+            <p className="text-[11px] text-amber-900 mt-2 leading-snug" style={{ opacity: 0.85 }}>
+              💡 Because {state.childName || 'your child'} is at the {BAND_INFO[band].name} stage,
+              playing together with you helps most — the map games below are the fun extra.
+            </p>
+          </Link>
+        )}
+
         {/* ── The map ── */}
         <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl"
           style={{ aspectRatio: '400 / 640', border: '3px solid rgba(255,255,255,0.15)' }}>
@@ -267,23 +290,8 @@ export default function AdventureMap() {
           </div>
         </div>
 
-        {/* Parent & Baby Quest Library — front and center for the littlest ones */}
-        {band !== null ? (
-          <Link href="/activities" className="block mt-4 rounded-2xl p-4 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', boxShadow: '0 4px 18px rgba(251,191,36,0.35)' }}>
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">{BAND_INFO[band].emoji}</span>
-              <div className="flex-1">
-                <p className="font-extrabold text-amber-950 leading-tight">
-                  ☀️ Today&apos;s Quests for your {BAND_INFO[band].name}
-                </p>
-                <p className="text-xs font-semibold text-amber-900 mt-0.5">
-                  3 real-world adventures to play together today — a few minutes each! →
-                </p>
-              </div>
-            </div>
-          </Link>
-        ) : (
+        {/* Older kids: the games ARE the main course; library is a footnote */}
+        {band === null && (
           <Link href="/activities" className="block text-center mt-4 text-xs text-purple-300 underline">
             🎒 Quest Library: real-world games to play together
           </Link>
@@ -304,8 +312,12 @@ export default function AdventureMap() {
             onClick={e => e.stopPropagation()}>
             <PandaSprite size={84} expression="excited" className="mx-auto float" />
             <h2 className="text-2xl font-extrabold text-amber-900 mt-1">☀️ Today&apos;s Quests!</h2>
-            <p className="text-sm font-semibold text-amber-800 mb-4">
-              Noel picked 3 little adventures for {state.childName ? `${state.childName} the` : 'your'} {BAND_INFO[band].name} {BAND_INFO[band].emoji}
+            <p className="text-sm font-semibold text-amber-800 mb-1">
+              Noel picked {dailyPrompt.length === 1 ? 'a tiny adventure' : `${dailyPrompt.length} little adventures`} for {state.childName ? `${state.childName} the` : 'your'} {BAND_INFO[band].name} {BAND_INFO[band].emoji}
+            </p>
+            <p className="text-xs text-amber-700 mb-4 px-2 leading-snug">
+              At this stage, playing <strong>together with you</strong>{' '}grows skills fastest —
+              that&apos;s why these come first! Only ~{dailyPrompt.reduce((s, q) => s + q.minutes, 0)} minutes all together.
             </p>
             <div className="space-y-2 mb-5 text-left">
               {dailyPrompt.map((q, i) => (
