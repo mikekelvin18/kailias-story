@@ -103,6 +103,7 @@ export default function ActivityLibraryPage() {
   const [domainFilter, setDomainFilter] = useState<ActivityDomain | 'all'>('all');
   const [reports, setReports] = useState<{ [id: string]: ReportScore }>({});
   const [streak, setStreak] = useState(0);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // follow the assessment once it loads from storage
   useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
@@ -134,7 +135,7 @@ export default function ActivityLibraryPage() {
           </span>
         </div>
         <p className="text-purple-200 text-xs text-center mb-4">
-          Real-world adventures you play <strong>together</strong> — no screen needed.
+          Three little adventures a day, played <strong>together</strong> — new ones arrive tomorrow!
         </p>
 
         {/* Band banner */}
@@ -147,19 +148,6 @@ export default function ActivityLibraryPage() {
             </p>
             <p className="text-xs text-gray-600 mt-0.5">{info.blurb}</p>
           </div>
-        </div>
-
-        {/* Band switcher */}
-        <div className="flex gap-2 mb-5 justify-center">
-          {([1, 2, 3] as const).map(b => (
-            <button key={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
-              className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
-              style={band === b
-                ? { background: '#FBBF24', color: '#451a03' }
-                : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff', border: '1.5px solid rgba(255,255,255,0.2)' }}>
-              {BAND_INFO[b].emoji} Band {b}
-            </button>
-          ))}
         </div>
 
         {/* ── Today's quests ── */}
@@ -179,42 +167,78 @@ export default function ActivityLibraryPage() {
               : `Noel picked ${3 - doneToday === 3 ? 'three' : 3 - doneToday} little adventure${3 - doneToday === 1 ? '' : 's'} for today — a few minutes each!`}
           </p>
         </div>
-        <div className="space-y-3 mb-7">
+        <div className="space-y-3 mb-5">
           {daily.map(a => (
             <ActivityCard key={a.id} activity={a} report={reports[a.id]} onReport={handleReport} highlight />
           ))}
         </div>
 
-        {/* ── Full library ── */}
-        <h2 className="text-lg font-extrabold text-white mb-2 px-1">📚 The Whole Library</h2>
-        <div className="flex gap-1.5 flex-wrap mb-3">
-          <button onClick={() => setDomainFilter('all')}
-            className="px-3 py-1 rounded-full text-xs font-extrabold"
-            style={domainFilter === 'all'
-              ? { background: 'white', color: '#312e81' }
-              : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff' }}>
-            All
-          </button>
-          {DOMAINS.map(d => (
-            <button key={d} onClick={() => setDomainFilter(d)}
-              className="px-3 py-1 rounded-full text-xs font-extrabold"
-              style={domainFilter === d
-                ? { background: 'white', color: '#312e81' }
-                : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff' }}>
-              {DOMAIN_META[d].emoji} {DOMAIN_META[d].label}
-            </button>
-          ))}
-        </div>
-        <div className="space-y-3">
-          {library.map(a => (
-            <ActivityCard key={a.id} activity={a} report={reports[a.id]} onReport={handleReport} />
-          ))}
-          {library.length === 0 && (
-            <p className="text-center text-purple-300 text-sm py-6">
-              Today&apos;s quests cover this one — check back tomorrow! 🌙
+        {/* All done → the reason to come back tomorrow */}
+        {doneToday === 3 && (
+          <div className="rounded-2xl p-4 mb-5 text-center bounce-in"
+            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
+            <p className="text-2xl font-extrabold text-amber-950">🌅 All done for today!</p>
+            <p className="text-sm font-semibold text-amber-900 mt-1">
+              Three brand-new quests arrive tomorrow morning.
+              {streak >= 2 ? ` That's a ${streak}-day streak — Noel is amazed! 🔥` : ' See you then!'}
             </p>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* ── The full library, tucked away so today stays special ── */}
+        {!showLibrary ? (
+          <button onClick={() => setShowLibrary(true)}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-purple-200 transition-all hover:text-white"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px dashed rgba(255,255,255,0.25)' }}>
+            🗂️ Need a different quest? Peek at the whole library ▾
+          </button>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h2 className="text-lg font-extrabold text-white">📚 The Whole Library</h2>
+              <button onClick={() => setShowLibrary(false)} className="text-xs font-bold text-purple-300">Hide ▴</button>
+            </div>
+            <div className="flex gap-2 mb-3 justify-center">
+              {([1, 2, 3] as const).map(b => (
+                <button key={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
+                  className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
+                  style={band === b
+                    ? { background: '#FBBF24', color: '#451a03' }
+                    : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                  {BAND_INFO[b].emoji} Band {b}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5 flex-wrap mb-3">
+              <button onClick={() => setDomainFilter('all')}
+                className="px-3 py-1 rounded-full text-xs font-extrabold"
+                style={domainFilter === 'all'
+                  ? { background: 'white', color: '#312e81' }
+                  : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff' }}>
+                All
+              </button>
+              {DOMAINS.map(d => (
+                <button key={d} onClick={() => setDomainFilter(d)}
+                  className="px-3 py-1 rounded-full text-xs font-extrabold"
+                  style={domainFilter === d
+                    ? { background: 'white', color: '#312e81' }
+                    : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff' }}>
+                  {DOMAIN_META[d].emoji} {DOMAIN_META[d].label}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3">
+              {library.map(a => (
+                <ActivityCard key={a.id} activity={a} report={reports[a.id]} onReport={handleReport} />
+              ))}
+              {library.length === 0 && (
+                <p className="text-center text-purple-300 text-sm py-6">
+                  Today&apos;s quests cover this one — check back tomorrow! 🌙
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Kailia sign-off + disclaimer */}
         <div className="flex items-center justify-center gap-2 mt-8">

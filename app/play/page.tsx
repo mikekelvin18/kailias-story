@@ -10,6 +10,9 @@ import {
   landStars, isLandComplete, isLandUnlocked, currentLandIndex, totalStars, maxStars,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
+
+const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 
 // ── Tiny sound effects (no audio files needed) ────────────────────────────────
 
@@ -76,6 +79,7 @@ export default function AdventureMap() {
   const [shakeId, setShakeId] = useState<string | null>(null);
   const [noelLine, setNoelLine] = useState(IDLE_LINES[0]);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
+  const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
 
   // Load saved progress + detect a land finished on the last game visit
   useEffect(() => {
@@ -88,6 +92,24 @@ export default function AdventureMap() {
       sfx.fanfare();
     }
   }, []);
+
+  // For families below school age, today's quests ARE the main event —
+  // pop them up front and center (once per day, until done or dismissed)
+  useEffect(() => {
+    if (!band) return;
+    try {
+      if (localStorage.getItem(DAILY_SEEN_KEY) === todayKey()) return;
+      const quests = todaysQuests(band);
+      const reports = getTodayReports();
+      if (quests.every(q => reports[q.id] !== undefined)) return;
+      setDailyPrompt(quests);
+    } catch { /* never block the map */ }
+  }, [band]);
+
+  function dismissDaily() {
+    try { localStorage.setItem(DAILY_SEEN_KEY, todayKey()); } catch { /* ignore */ }
+    setDailyPrompt(null);
+  }
 
   // Noel chats while idle
   useEffect(() => {
@@ -272,6 +294,41 @@ export default function AdventureMap() {
           <Link href="/results" className="text-xs text-purple-300 underline">For grown-ups: progress &amp; results</Link>
         </div>
       </div>
+
+      {/* ── Today's quests popup — the main event for little ones ── */}
+      {dailyPrompt && band && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4"
+          style={{ background: 'rgba(10,8,40,0.85)' }} onClick={dismissDaily}>
+          <div className="w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl text-center"
+            style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)' }}
+            onClick={e => e.stopPropagation()}>
+            <PandaSprite size={84} expression="excited" className="mx-auto float" />
+            <h2 className="text-2xl font-extrabold text-amber-900 mt-1">☀️ Today&apos;s Quests!</h2>
+            <p className="text-sm font-semibold text-amber-800 mb-4">
+              Noel picked 3 little adventures for {state.childName ? `${state.childName} the` : 'your'} {BAND_INFO[band].name} {BAND_INFO[band].emoji}
+            </p>
+            <div className="space-y-2 mb-5 text-left">
+              {dailyPrompt.map((q, i) => (
+                <div key={q.id} className="flex items-center gap-3 rounded-2xl p-3 bg-white shadow-sm">
+                  <span className="text-3xl">{q.emoji}</span>
+                  <span className="flex-1">
+                    <span className="block font-extrabold text-sm text-gray-800">{i + 1}. {q.title}</span>
+                    <span className="block text-xs text-gray-500">~{q.minutes} minutes together</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <Link href="/activities" onClick={dismissDaily}
+              className="block w-full py-4 rounded-full text-lg font-extrabold text-amber-950 shadow-xl transition-transform hover:scale-[1.03]"
+              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
+              Let&apos;s play together! →
+            </Link>
+            <button onClick={dismissDaily} className="mt-3 text-sm font-semibold text-amber-700">
+              Maybe later
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Land panel ── */}
       {openLand && (
