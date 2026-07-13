@@ -85,7 +85,14 @@ export default function LandingPage() {
         </Link>
 
         <p className="mt-6 text-purple-200 text-sm">
-          Free • No sign-up required • For ages 2–12
+          Free to start • Parents stay in charge • For ages 0–12
+        </p>
+
+        {/* Footer: privacy links (parent-facing) */}
+        <p className="mt-8 text-xs text-purple-200">
+          <Link href="/family" className="underline mr-3">👨‍👩‍👧 Parent Zone</Link>
+          <Link href="/privacy" className="underline mr-3">Privacy Policy</Link>
+          <Link href="/retention" className="underline">Data Retention</Link>
         </p>
       </div>
     </main>

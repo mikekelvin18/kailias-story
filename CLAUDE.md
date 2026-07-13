@@ -51,6 +51,19 @@ For children below preschool developmental level, screens teach very little by t
 - `/activities` shows 3 date-stable daily quests plus the browsable library; parents report each with one tap (Did it / Tried with help / Not yet) — reports persist per day and feed `lib/metrics.ts` for the future parent dashboard.
 - The world map and results page surface a prominent library card whenever a band is detected.
 
+## Privacy & COPPA Rules (MANDATORY for every feature)
+This app is child-directed (under 13), so children's privacy law (COPPA) applies to everything. Any new feature MUST follow these rules:
+
+1. **Parent-first accounts.** Parents own the account (`lib/family.ts`, managed at `/family`). Child profiles hold the absolute minimum: first name/nickname, birth month+year, avatar emoji. NEVER add: last name, photos, email, phone, location, school, or free-text fields about the child.
+2. **Children never enter personal info.** No child-facing screen may contain an input that could collect personal information. Name/age always come from the parent-created profile. Any new input field on a child-reachable screen needs explicit justification here.
+3. **Data minimization.** Quest/game events log ONLY: child profile id, domain, task id, difficulty, accuracy, attempts, timing (`lib/metrics.ts` enforces the shape). No free text, no media, no device fingerprinting.
+4. **Never record audio, video, or photos.** Communication games use parent-assist tap ratings instead of voice recording. Do not request microphone or camera permissions, ever.
+5. **No third-party analytics, ads, or trackers.** Do not add analytics SDKs, ad SDKs, pixels, or session-replay tools. Essential service providers only (hosting). The old Supabase upload was removed for this reason — child data currently never leaves the device.
+6. **Consent before collection.** No child profile can exist before the parent actively consents (checkbox + confirm; timestamp, method and policy version saved in `lib/family.ts`). When payments arrive, upgrade the consent `method` to card verification.
+7. **Parental rights.** `/family` must always offer: view all stored child data (`childDataInventory()`), delete child profile + all data, delete entire account. When adding a new localStorage key or (later) server table that holds child data, ADD IT to `CHILD_DATA_KEYS` in `lib/family.ts` and to the data inventory, or deletion becomes incomplete — this is a compliance bug, not a nice-to-have.
+8. **Retention.** Child data lives only while the profile is active. Deletion is immediate on-device; any future server copies must purge within 30 days. Policy pages live at `/privacy` and `/retention` (both marked DRAFT until legal review).
+9. **Security.** No child data in URLs or query strings. When cloud sync is added: per-family access control (RLS) from day one, TLS in transit, encryption at rest. See SECURITY.md.
+
 ## Tone & UX conventions
 - Warm, encouraging narrator voice. Kailia speaks in short, simple sentences.
 - Big touch targets, minimal text for pre-readers, audio narration for all instructions.

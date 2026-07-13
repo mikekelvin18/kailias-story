@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
-import { supabase } from '@/lib/supabase';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 
@@ -144,24 +143,8 @@ export default function ResultsPage() {
   const sensoryMax = 6; // max per pattern = 3 questions × 2 pts
 
   useEffect(() => {
-    if (!state.childName) return;
-    supabase.from('assessments').insert({
-      child_name: state.childName,
-      child_age: state.childAge,
-      assessment_type: state.assessmentType,
-      reading_score: state.scores.reading,
-      writing_score: state.scores.writing,
-      communication_score: state.scores.communication,
-      math_score: state.scores.math,
-      total_score: totalScore,
-      learning_stage: learningStage,
-      sensory_low_registration: state.sensoryScores.lowRegistration,
-      sensory_seeking: state.sensoryScores.seeking,
-      sensory_sensitive: state.sensoryScores.sensitive,
-      sensory_avoiding: state.sensoryScores.avoiding,
-      primary_sensory_pattern: primarySensoryPattern || null,
-      fine_motor_input_method: state.fineMotorInputMethod || null,
-    });
+    // COPPA: child data stays on this device only — no cloud upload.
+    // (The old Supabase insert was removed; see SECURITY.md.)
     const t = setTimeout(() => setShowCelebration(false), 3000);
     return () => clearTimeout(t);
   }, []);
