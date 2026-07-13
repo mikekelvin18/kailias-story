@@ -102,6 +102,7 @@ export const LANDS: Land[] = [
     noelIntro: "The wise old owl only opens her tower for sharp eyes! Find every hidden star before her hourglass runs out!",
     quests: [
       { href: '/play/visual-scan', emoji: '🔍', title: 'Star Hunt', desc: 'Find all the hidden stars before time runs out!' },
+      { href: '/play/sky-mail', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
     ],
   },
 ];
