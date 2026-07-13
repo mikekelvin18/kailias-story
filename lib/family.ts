@@ -61,6 +61,13 @@ export function hasConsent(f: FamilyAccount | null): boolean {
   return !!f?.consent;
 }
 
+// The one question every data-writing module asks before saving anything.
+// No consent on file → no collection, full stop (games still play fine,
+// they just don't record).
+export function hasActiveConsent(): boolean {
+  return !!loadFamily()?.consent;
+}
+
 // Creates the parent account at the moment of consent — no consent, no account.
 export function recordConsent(method: ParentConsent['method'] = 'checkbox'): FamilyAccount {
   const f: FamilyAccount = loadFamily() ?? {

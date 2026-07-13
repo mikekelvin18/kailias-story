@@ -799,6 +799,11 @@ export function getTodayReports(): { [activityId: string]: ReportScore } {
 }
 
 export function reportActivity(activity: ParentActivity, score: ReportScore) {
+  // COPPA: reports are child data — no parental consent, no saving.
+  try {
+    const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
+    if (!fam?.consent) return;
+  } catch { return; }
   const log = loadReports();
   const day = todayKey();
   log[day] = { ...(log[day] ?? {}), [activity.id]: score };

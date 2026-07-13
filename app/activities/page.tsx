@@ -6,6 +6,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { hasActiveConsent } from '@/lib/family';
 import {
   ACTIVITIES, DOMAIN_META, ParentActivity, ActivityDomain, ReportScore,
   todaysQuests, dailyMinutes, getTodayReports, reportActivity, streakDays,
@@ -104,10 +105,11 @@ export default function ActivityLibraryPage() {
   const [reports, setReports] = useState<{ [id: string]: ReportScore }>({});
   const [streak, setStreak] = useState(0);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [consented, setConsented] = useState(true);
 
   // follow the assessment once it loads from storage
   useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
-  useEffect(() => { setReports(getTodayReports()); setStreak(streakDays()); }, []);
+  useEffect(() => { setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent()); }, []);
 
   const daily = useMemo(() => todaysQuests(band), [band]);
   const dailyIds = new Set(daily.map(a => a.id));
@@ -164,6 +166,17 @@ export default function ActivityLibraryPage() {
               main adventure we recommend, with the map games as a fun extra.
             </p>
           </div>
+        )}
+
+        {/* No consent yet → reports can't be saved */}
+        {!consented && (
+          <Link href="/family" className="block rounded-2xl p-3 mb-4"
+            style={{ background: 'rgba(253,224,71,0.14)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
+            <p className="text-xs text-yellow-100">
+              ⚠️ <strong>Heads up:</strong> quest reports aren&apos;t being saved yet. A parent needs to
+              set up the free family account first — <span className="underline font-bold">tap here for the Parent Zone</span>.
+            </p>
+          </Link>
         )}
 
         {/* ── Today's quests ── */}

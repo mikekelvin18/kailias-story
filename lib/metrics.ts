@@ -19,11 +19,10 @@ const MAX_EVENTS = 500; // keep the log from growing forever
 export function logQuestMetric(domain: string, taskId: string, data: Record<string, number>) {
   if (typeof window === 'undefined') return;
   try {
-    let childId = 'no-profile';
-    try {
-      const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
-      childId = fam?.children?.[0]?.id ?? 'no-profile';
-    } catch { /* keep default */ }
+    // COPPA: no parental consent on file → nothing is recorded, ever.
+    const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
+    if (!fam?.consent) return;
+    const childId = fam?.children?.[0]?.id ?? 'no-profile';
     const list: QuestMetric[] = JSON.parse(localStorage.getItem(KEY) ?? '[]');
     list.push({ childId, domain, taskId, ts: Date.now(), data });
     localStorage.setItem(KEY, JSON.stringify(list.slice(-MAX_EVENTS)));

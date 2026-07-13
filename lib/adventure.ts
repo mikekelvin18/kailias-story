@@ -130,6 +130,12 @@ export function loadProgress(): AdventureProgress {
 }
 
 function save(p: AdventureProgress) {
+  // COPPA: without parental consent, progress lives only for this visit —
+  // the map still plays, but nothing about the child is stored.
+  try {
+    const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
+    if (!fam?.consent) return;
+  } catch { return; }
   localStorage.setItem(KEY, JSON.stringify(p));
 }
 

@@ -198,7 +198,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+    try {
+      // COPPA: assessment results are child data — only saved once a
+      // parent has consented in the Parent Zone.
+      const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
+      if (!fam?.consent) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch { /* ignore */ }
   }, [state]);
 
   const setChildInfo = (name: string, age: number) =>

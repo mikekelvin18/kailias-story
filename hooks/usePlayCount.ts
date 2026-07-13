@@ -9,6 +9,11 @@ function getCount(): number {
 export function usePlayCount() {
   const increment = (): number => {
     const next = getCount() + 1;
+    // COPPA: no parental consent on file → nothing is recorded
+    try {
+      const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
+      if (!fam?.consent) return next;
+    } catch { return next; }
     localStorage.setItem(KEY, String(next));
     return next;
   };
