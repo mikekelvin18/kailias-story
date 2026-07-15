@@ -7,6 +7,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel } from '@/lib/rewards';
 
 // ─── Sky Mail ─────────────────────────────────────────────────────────────────
 // Swipe-card game (think: flick cards left/right with real physics).
@@ -17,7 +18,7 @@ import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 //   wind      → swipe the direction shown                (fine motor)
 // Swiping itself is measured: decision speed + how straight the fling is.
 
-type DeckId = 'math' | 'sentence' | 'wind' | 'tricky';
+type DeckId = 'math' | 'sentence' | 'wind' | 'tricky' | 'shapes' | 'feelings' | 'rhyme';
 type Dir = 'left' | 'right' | 'up' | 'down';
 
 interface Card {
@@ -49,6 +50,21 @@ const DECKS: Record<DeckId, { emoji: string; title: string; desc: string; domain
     desc: 'The word sometimes LIES — always follow the arrow!',
     noel: "Watch out — the tricky wind writes the WRONG word sometimes! Don't listen to the word. Follow the ARROW only!",
   },
+  shapes: {
+    emoji: '🔷', title: 'Shape Twins', domain: 'sensory',
+    desc: 'Every shape has a twin — swipe it home!',
+    noel: 'Every shape letter has a twin mailbox! Look closely and swipe it to its perfect match!',
+  },
+  feelings: {
+    emoji: '💛', title: 'Feeling Finder', domain: 'communication',
+    desc: 'Happy or sad? Swipe how it would feel!',
+    noel: 'These letters show little moments. How would THAT feel? Swipe to the happy face or the sad face!',
+  },
+  rhyme: {
+    emoji: '🎵', title: 'Rhyme Chime', domain: 'reading',
+    desc: 'Do the words rhyme? Swipe and find out!',
+    noel: 'Say both words out loud — do their endings SING together? Rhymes go right, no-rhymes go left!',
+  },
 };
 
 const SENTENCE_PAIRS: [string, string][] = [
@@ -67,6 +83,24 @@ const SENTENCE_PAIRS: [string, string][] = [
 ];
 
 const WIND_RIDERS = ['🦋', '🐦', '🐝', '🍃', '🪁', '🐞'];
+
+const SHAPES = ['🔵', '🔺', '🟩', '⭐', '❤️', '🟣'];
+
+// little moments → how would that feel? (emotion inference, no reading needed)
+const FEELING_CARDS: [string, 'happy' | 'sad'][] = [
+  ['🎂🎈', 'happy'], ['💔🧸', 'sad'], ['🍦☀️', 'happy'], ['🌧️⚽', 'sad'],
+  ['🎁🎀', 'happy'], ['🤕🩹', 'sad'], ['🐶💕', 'happy'], ['🍪❌', 'sad'],
+  ['🎠🎡', 'happy'], ['😿🥛', 'sad'],
+];
+
+const RHYME_TRUE: [string, string][] = [
+  ['cat', 'hat'], ['sun', 'bun'], ['star', 'car'], ['bee', 'tree'], ['fish', 'dish'],
+  ['cake', 'snake'], ['mouse', 'house'], ['moon', 'spoon'], ['bear', 'chair'], ['dog', 'log'],
+];
+const RHYME_FALSE: [string, string][] = [
+  ['cat', 'banana'], ['dog', 'star'], ['sun', 'fish'], ['bee', 'rock'], ['cake', 'bird'],
+  ['moon', 'apple'], ['bear', 'cup'], ['star', 'milk'],
+];
 const DIR_ARROW: Record<Dir, string> = { left: '⬅️', right: '➡️', up: '⬆️', down: '⬇️' };
 
 function playNotes(notes: { f: number; t: number; d: number }[]) {
@@ -146,6 +180,33 @@ function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
     }
   }
 
+  if (deck === 'shapes') {
+    for (let i = 0; i < count; i++) {
+      const shape = pick(SHAPES);
+      const other = pick(SHAPES.filter(s => s !== shape));
+      const correct: Dir = Math.random() < 0.5 ? 'left' : 'right';
+      cards.push({ text: shape, sub: 'Find its twin!', correct,
+        targets: { left: correct === 'left' ? shape : other, right: correct === 'right' ? shape : other } });
+    }
+  }
+
+  if (deck === 'feelings') {
+    const shuffled = [...FEELING_CARDS].sort(() => Math.random() - 0.5).slice(0, count);
+    for (const [scene, mood] of shuffled) {
+      cards.push({ text: scene, sub: 'How would that feel?', correct: mood === 'happy' ? 'right' : 'left',
+        targets: { left: '😢', right: '😊' } });
+    }
+  }
+
+  if (deck === 'rhyme') {
+    for (let i = 0; i < count; i++) {
+      const isRhyme = Math.random() < 0.5;
+      const [a, b] = pick(isRhyme ? RHYME_TRUE : RHYME_FALSE);
+      cards.push({ text: `${a} · ${b}`, sub: 'Say them out loud!', correct: isRhyme ? 'right' : 'left',
+        targets: { left: 'No rhyme 🙅', right: 'Rhyme! 🎵' } });
+    }
+  }
+
   if (deck === 'tricky') {
     // Stroop-style inhibition: the word sometimes disagrees with the arrow;
     // the rule is ALWAYS obey the arrow. Readers only (big tier).
@@ -187,10 +248,13 @@ export default function SkyMailPage() {
   const card = cards[idx];
   const fourWay = deckId === 'tricky' || (deckId === 'wind' && tier !== 'tiny');
   const isTwoWay = !fourWay;
-  // Tricky Wind needs reading — it only appears for school-age (big) tier
-  const availableDecks = useMemo<DeckId[]>(
-    () => (tier === 'big' ? ['math', 'sentence', 'wind', 'tricky'] : ['math', 'sentence', 'wind']),
-    [tier]);
+  // The mailbag shelf grows with the child: pre-readers get the no-text
+  // decks; readers unlock rhymes and the Tricky Wind inhibition deck.
+  const availableDecks = useMemo<DeckId[]>(() => {
+    if (tier === 'tiny') return ['shapes', 'feelings', 'math', 'wind'];
+    if (tier === 'small') return ['shapes', 'feelings', 'math', 'sentence', 'wind'];
+    return ['math', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', 'tricky'];
+  }, [tier]);
 
   const startDeck = useCallback((d: DeckId) => {
     sfx.deck();
@@ -260,13 +324,16 @@ export default function SkyMailPage() {
       setDrag({ dx: 0, dy: 0, grabbed: false });
       setWobble(true);
       setTimeout(() => setWobble(false), 400);
-      setNoelLine(deckId === 'sentence'
-        ? 'Hmm, read it once more — does it really sound like that?'
-        : deckId === 'math'
-          ? 'Ooh, count again — which mailbox is the TRUE answer?'
-          : deckId === 'tricky'
-            ? 'The wind tricked you! Ignore the word — where does the ARROW point?'
-            : 'Almost! Look at the arrow and swipe that exact way!');
+      const hints: Record<DeckId, string> = {
+        sentence: 'Hmm, read it once more — does it really sound like that?',
+        math: 'Ooh, count again — which mailbox is the TRUE answer?',
+        tricky: 'The wind tricked you! Ignore the word — where does the ARROW point?',
+        wind: 'Almost! Look at the arrow and swipe that exact way!',
+        shapes: 'So close! Which mailbox has the EXACT same shape?',
+        feelings: 'Think about it — would that make you smile or feel down?',
+        rhyme: 'Say both words slowly — do the endings sound the same?',
+      };
+      setNoelLine(hints[deckId ?? 'wind']);
       setNoelMood('thinking');
       if (missesRef.current >= 2) setHintDir(card.correct); // gentle scaffold
     }
@@ -282,9 +349,16 @@ export default function SkyMailPage() {
       avgDecisionMs: Math.round(avg(m.ms)),
       swipeEfficiency: Math.round(avg(m.eff) * 100),
     });
+    // ✨ starlight: base for finishing, minus a little for wrong swipes,
+    // never below the floor — effort always pays
+    awardStarlight(Math.max(6, 12 - m.wrong * 2));
     const newDone = doneDecks.includes(deckId) ? doneDecks : [...doneDecks, deckId];
     setDoneDecks(newDone);
-    if (newDone.length === availableDecks.length) { sfx.fanfare(); setPhase('allDone'); }
+    if (newDone.length === availableDecks.length) {
+      awardStarlight(25); // full mailbag-shelf bonus
+      recordGameLevel('sky-mail', newDone.length);
+      sfx.fanfare(); setPhase('allDone');
+    }
     else { sfx.deck(); setPhase('deckDone'); }
   }
 

@@ -43,6 +43,7 @@ export const CHILD_DATA_KEYS = [
   'kailia_daily_v1',           // parent activity reports
   'kailia_daily_seen_v1',      // daily popup shown flag
   'kailias_play_count',        // games played counter
+  'kailia_rewards_v1',         // starlight points, game levels, companions
 ];
 
 export function loadFamily(): FamilyAccount | null {
@@ -167,6 +168,14 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '🎯 Game measurements', items: metrics.slice(-25).map((m: { taskId: string; domain: string; ts: number; data: Record<string, number> }) =>
       `${new Date(m.ts).toLocaleDateString()} — ${m.taskId} (${m.domain}): ${Object.entries(m.data).map(([k, v]) => `${k} ${v}`).join(', ')}`),
     });
+  }
+
+  const rewards = read('kailia_rewards_v1');
+  if (rewards?.starlight) {
+    sections.push({ label: '✨ Rewards', items: [
+      `Starlight collected: ${rewards.starlight}`,
+      ...Object.entries(rewards.gameLevels ?? {}).map(([g, l]) => `${g}: reached level ${l}`),
+    ]});
   }
 
   const daily = read('kailia_daily_v1');

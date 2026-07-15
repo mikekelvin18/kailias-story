@@ -7,6 +7,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel } from '@/lib/rewards';
 
 // ─── Snack Quest ──────────────────────────────────────────────────────────────
 // Embodied math: the child walks their character around a little field,
@@ -342,6 +343,9 @@ export default function SnackQuestPage() {
       maxNumber: m.maxNumber,
       totalMs: Date.now() - m.startedAt,
     });
+    // ✨ starlight for the feast: perfect first tries shine extra
+    awardStarlight(15 + m.firstTry * 3);
+    recordGameLevel('snack-quest', rounds.length);
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
   }, [phase, roundIdx, rounds, startRound]);

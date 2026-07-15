@@ -7,6 +7,7 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 
 // ─── Firefly Catch ────────────────────────────────────────────────────────────
 // A real fine-motor exercise: tap drifting fireflies (targeting, speed),
@@ -77,6 +78,10 @@ export default function FireflyCatchPage() {
   const { state, totalScore } = useAssessment();
   const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore)];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
+  // video-game levels: each one a touch faster and trickier; the game
+  // remembers the highest level beaten and offers the next one
+  const [level, setLevel] = useState(1);
+  useEffect(() => { setLevel(nextGameLevel('firefly-catch')); }, []);
   const [roundIdx, setRoundIdx] = useState(0);
   const [cfg, setCfg] = useState<RoundCfg>(ROUNDS[0]);
   const [fireflies, setFireflies] = useState<Firefly[]>([]);
@@ -122,10 +127,14 @@ export default function FireflyCatchPage() {
     // makes this one gentler still
     const struggled = roundMissesRef.current > 4;
     const base = ROUNDS[idx];
+    // level curve: +12% speed and slightly smaller fireflies per level,
+    // capped so it stays fun rather than frantic
+    const lvlSpeed = 1 + Math.min(2.2, (level - 1) * 0.12);
+    const lvlSize = Math.max(0.72, 1 - (level - 1) * 0.035);
     const round: RoundCfg = {
       ...base,
-      r: Math.round(base.r * tuning.r * (struggled ? 1.3 : 1)),
-      speed: base.speed * tuning.speed * (struggled ? 0.75 : 1),
+      r: Math.round(base.r * tuning.r * lvlSize * (struggled ? 1.3 : 1)),
+      speed: base.speed * tuning.speed * lvlSpeed * (struggled ? 0.75 : 1),
     };
 
     roundMissesRef.current = 0;
@@ -150,7 +159,7 @@ export default function FireflyCatchPage() {
     setNoelLine(round.noel);
     setNoelMood('excited');
     setPhase('playing');
-  }, [tuning]);
+  }, [tuning, level]);
 
   function startGame() {
     metricsRef.current = { tapOffsets: [], catchMs: [], misses: 0, dragRatios: [], dropOffsets: [], startedAt: Date.now() };
@@ -215,6 +224,7 @@ export default function FireflyCatchPage() {
     const m = metricsRef.current;
     const avg = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
     logQuestMetric('fine motor', 'firefly-catch', {
+      level,
       tapAccuracy: Math.round((1 - avg(m.tapOffsets)) * 100),
       avgCatchMs: Math.round(avg(m.catchMs)),
       misses: m.misses,
@@ -222,9 +232,12 @@ export default function FireflyCatchPage() {
       dropAccuracy: Math.round((1 - avg(m.dropOffsets)) * 100),
       totalMs: Date.now() - m.startedAt,
     });
+    // ✨ higher levels shine brighter
+    awardStarlight(15 + level * 5);
+    recordGameLevel('firefly-catch', level);
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
-  }, [phase, roundIdx, startRound]);
+  }, [phase, roundIdx, startRound, level]);
 
   useEffect(() => () => { if (kailiaTimerRef.current) clearTimeout(kailiaTimerRef.current); }, []);
 
@@ -337,7 +350,9 @@ export default function FireflyCatchPage() {
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="text-sm font-bold text-emerald-300">← Map</Link>
-          <h1 className="text-xl font-extrabold text-white drop-shadow">🏮 Firefly Catch</h1>
+          <h1 className="text-xl font-extrabold text-white drop-shadow">
+            🏮 Firefly Catch <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+          </h1>
           <span className="text-sm w-12 text-right">
             {Array.from({ length: ROUNDS.length }).map((_, i) => (
               <span key={i} style={{ opacity: i <= roundIdx && phase !== 'intro' ? 1 : 0.25 }}>✨</span>
@@ -467,13 +482,14 @@ export default function FireflyCatchPage() {
               <PandaSprite size={100} expression="celebrating" className="float" />
               <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">You lit Kailia&apos;s lantern!</h2>
-            <p className="text-emerald-100 font-semibold mb-6">Every firefly made it home. Noel is doing his happy dance! 🎉</p>
+            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
+            <p className="text-emerald-100 font-semibold mb-2">Every firefly made it home. Noel is doing his happy dance! 🎉</p>
+            <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{15 + level * 5} starlight collected!</p>
             <div className="flex gap-3 justify-center">
-              <button onClick={startGame}
+              <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-900 shadow-xl transition-transform hover:scale-105"
                 style={{ background: 'white' }}>
-                Play again!
+                Level {level + 1} ▶
               </button>
               <Link href="/play"
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105 inline-block"

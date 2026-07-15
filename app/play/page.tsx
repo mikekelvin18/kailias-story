@@ -11,6 +11,7 @@ import {
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
+import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 
@@ -80,6 +81,9 @@ export default function AdventureMap() {
   const [noelLine, setNoelLine] = useState(IDLE_LINES[0]);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
+  const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {} });
+
+  useEffect(() => { setRewards(loadRewards()); }, []);
 
   // Load saved progress + detect a land finished on the last game visit
   useEffect(() => {
@@ -164,9 +168,15 @@ export default function AdventureMap() {
         {/* Header */}
         <div className="flex items-center justify-between pt-5 pb-2 px-1">
           <h1 className="text-2xl font-extrabold text-white drop-shadow-lg">🗺️ Kailia&apos;s World</h1>
-          <div className="px-3 py-1.5 rounded-full font-bold text-sm text-yellow-300"
-            style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
-            ⭐ {stars} / {maxStars()}
+          <div className="flex gap-1.5">
+            <div className="px-2.5 py-1.5 rounded-full font-bold text-xs text-yellow-300"
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
+              ⭐ {stars}/{maxStars()}
+            </div>
+            <div className="px-2.5 py-1.5 rounded-full font-bold text-xs text-yellow-200"
+              style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
+              ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)}
+            </div>
           </div>
         </div>
         <p className="text-purple-200 text-xs px-1 mb-3">
@@ -288,6 +298,22 @@ export default function AdventureMap() {
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
             {noelLine}
           </div>
+        </div>
+
+        {/* Companion collection — starlight milestones bring new friends */}
+        <div className="flex items-center justify-center gap-2 mt-4 rounded-2xl p-2.5"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
+          <span className="text-[11px] font-bold text-purple-300 mr-1">Companions:</span>
+          {COMPANIONS.map(c => {
+            const unlocked = rewards.starlight >= c.at;
+            return (
+              <span key={c.name} title={unlocked ? c.name : `✨${c.at} starlight`}
+                className={`text-xl ${unlocked ? 'sparkle' : ''}`}
+                style={{ filter: unlocked ? 'none' : 'grayscale(1) brightness(0.5)', opacity: unlocked ? 1 : 0.6 }}>
+                {c.emoji}
+              </span>
+            );
+          })}
         </div>
 
         {/* Older kids: the games ARE the main course; library is a footnote */}

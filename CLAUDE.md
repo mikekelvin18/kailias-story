@@ -51,6 +51,11 @@ For children below preschool developmental level, screens teach very little by t
 - `/activities` shows 3 date-stable daily quests plus the browsable library; parents report each with one tap (Did it / Tried with help / Not yet) — reports persist per day and feed `lib/metrics.ts` for the future parent dashboard.
 - The world map and results page surface a prominent library card whenever a band is detected.
 
+## Rewards & the growing game library
+- `lib/rewards.ts`: ✨ Starlight points (earned per quest, never framed as grades), Explorer level (sqrt curve), per-game highest-level, and companion creatures unlocked at starlight milestones — the hook for future real rewards. Key `kailia_rewards_v1` is consent-gated and registered in `CHILD_DATA_KEYS`.
+- **Library strategy — engines × content × levels, not hand-built games.** The goal of 50+ games per age group per skill is reached multiplicatively: a few polished engines (swipe cards in `sky-mail`, tap-moving-targets in `firefly-catch`, walk-and-collect in `snack-quest`, tracing in `fine-motor`), each accepting new content decks (a card list = a "new game", no engine code) and infinite level scaling (speed/size/number curves per level). When adding variety, prefer a new content deck or level curve on an existing engine over a new engine; add a new engine only for a genuinely new interaction (e.g. pinch, rhythm tap, drag-to-sort).
+- Games award starlight on completion (effort floor — wrong answers reduce but never zero it) and call `recordGameLevel` so progress persists.
+
 ## Privacy & COPPA Rules (MANDATORY for every feature)
 This app is child-directed (under 13), so children's privacy law (COPPA) applies to everything. Any new feature MUST follow these rules:
 
