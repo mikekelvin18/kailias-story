@@ -17,12 +17,13 @@ import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 //   wind      → swipe the direction shown                (fine motor)
 // Swiping itself is measured: decision speed + how straight the fling is.
 
-type DeckId = 'math' | 'sentence' | 'wind';
+type DeckId = 'math' | 'sentence' | 'wind' | 'tricky';
 type Dir = 'left' | 'right' | 'up' | 'down';
 
 interface Card {
   text: string;
   sub?: string;
+  bigSub?: boolean;   // Tricky Wind shows the (sometimes lying) word large
   correct: Dir;
   targets: Partial<Record<Dir, string>>;
 }
@@ -42,6 +43,11 @@ const DECKS: Record<DeckId, { emoji: string; title: string; desc: string; domain
     emoji: '🌬️', title: 'Wind Riders', domain: 'fine motor',
     desc: 'Swipe each creature the way the wind blows!',
     noel: 'These little riders need a push! Swipe each one exactly the way its arrow points — smooth and straight!',
+  },
+  tricky: {
+    emoji: '🌪️', title: 'Tricky Wind', domain: 'processing',
+    desc: 'The word sometimes LIES — always follow the arrow!',
+    noel: "Watch out — the tricky wind writes the WRONG word sometimes! Don't listen to the word. Follow the ARROW only!",
   },
 };
 
@@ -132,8 +138,25 @@ function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
     const dirs: Dir[] = tier === 'tiny' ? ['left', 'right'] : ['left', 'right', 'up', 'down'];
     for (let i = 0; i < count; i++) {
       const d = pick(dirs);
-      cards.push({ text: `${pick(WIND_RIDERS)} ${DIR_ARROW[d]}`, sub: 'Swipe this way!', correct: d,
+      // Readers get the direction word under the arrow (builds left/right
+      // vocabulary); pre-readers get the arrow alone — no text clutter.
+      cards.push({ text: `${pick(WIND_RIDERS)} ${DIR_ARROW[d]}`,
+        sub: tier === 'big' ? d.toUpperCase() : 'Swipe this way!', correct: d,
         targets: { left: '⬅️', right: '➡️', ...(dirs.length > 2 ? { up: '⬆️', down: '⬇️' } : {}) } });
+    }
+  }
+
+  if (deck === 'tricky') {
+    // Stroop-style inhibition: the word sometimes disagrees with the arrow;
+    // the rule is ALWAYS obey the arrow. Readers only (big tier).
+    const dirs: Dir[] = ['left', 'right', 'up', 'down'];
+    for (let i = 0; i < count; i++) {
+      const d = pick(dirs);
+      const lies = Math.random() < 0.6;
+      const word = lies ? pick(dirs.filter(x => x !== d)) : d;
+      cards.push({ text: `${pick(WIND_RIDERS)} ${DIR_ARROW[d]}`,
+        sub: word.toUpperCase(), bigSub: true, correct: d,
+        targets: { left: '⬅️', right: '➡️', up: '⬆️', down: '⬇️' } });
     }
   }
 
@@ -162,7 +185,12 @@ export default function SkyMailPage() {
   const metricsRef = useRef({ wrong: 0, ms: [] as number[], eff: [] as number[] });
 
   const card = cards[idx];
-  const isTwoWay = deckId !== 'wind' || tier === 'tiny';
+  const fourWay = deckId === 'tricky' || (deckId === 'wind' && tier !== 'tiny');
+  const isTwoWay = !fourWay;
+  // Tricky Wind needs reading — it only appears for school-age (big) tier
+  const availableDecks = useMemo<DeckId[]>(
+    () => (tier === 'big' ? ['math', 'sentence', 'wind', 'tricky'] : ['math', 'sentence', 'wind']),
+    [tier]);
 
   const startDeck = useCallback((d: DeckId) => {
     sfx.deck();
@@ -236,7 +264,9 @@ export default function SkyMailPage() {
         ? 'Hmm, read it once more — does it really sound like that?'
         : deckId === 'math'
           ? 'Ooh, count again — which mailbox is the TRUE answer?'
-          : 'Almost! Look at the arrow and swipe that exact way!');
+          : deckId === 'tricky'
+            ? 'The wind tricked you! Ignore the word — where does the ARROW point?'
+            : 'Almost! Look at the arrow and swipe that exact way!');
       setNoelMood('thinking');
       if (missesRef.current >= 2) setHintDir(card.correct); // gentle scaffold
     }
@@ -254,7 +284,7 @@ export default function SkyMailPage() {
     });
     const newDone = doneDecks.includes(deckId) ? doneDecks : [...doneDecks, deckId];
     setDoneDecks(newDone);
-    if (newDone.length === 3) { sfx.fanfare(); setPhase('allDone'); }
+    if (newDone.length === availableDecks.length) { sfx.fanfare(); setPhase('allDone'); }
     else { sfx.deck(); setPhase('deckDone'); }
   }
 
@@ -295,8 +325,8 @@ export default function SkyMailPage() {
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
           <Link href="/play" className="text-sm font-bold text-indigo-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">📬 Sky Mail</h1>
-          <span className="text-sm w-14 text-right">
-            {(Object.keys(DECKS) as DeckId[]).map(d => (
+          <span className="text-sm w-16 text-right">
+            {availableDecks.map(d => (
               <span key={d} style={{ opacity: doneDecks.includes(d) ? 1 : 0.3 }}>⭐</span>
             ))}
           </span>
@@ -312,7 +342,7 @@ export default function SkyMailPage() {
               </p>
             </div>
             <div className="space-y-3">
-              {(Object.keys(DECKS) as DeckId[]).map(d => (
+              {availableDecks.map(d => (
                 <button key={d} onClick={() => startDeck(d)}
                   className="w-full flex items-center gap-3 rounded-3xl p-4 bg-white shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] text-left">
                   <span className="text-4xl">{DECKS[d].emoji}</span>
@@ -375,7 +405,13 @@ export default function SkyMailPage() {
                   <span className={`font-extrabold text-indigo-900 text-center leading-snug ${deckId === 'sentence' ? 'text-2xl' : 'text-5xl'}`}>
                     {card.text}
                   </span>
-                  {card.sub && <span className="text-sm font-semibold text-gray-500 mt-2">{card.sub}</span>}
+                  {card.sub && (
+                    <span className={card.bigSub
+                      ? 'text-3xl font-extrabold text-indigo-600 mt-3 tracking-wide'
+                      : 'text-sm font-semibold text-gray-500 mt-2'}>
+                      {card.sub}
+                    </span>
+                  )}
                   <span className="text-[11px] text-gray-400 absolute bottom-3">grab me and swipe!</span>
                 </div>
               </div>
