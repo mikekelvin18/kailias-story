@@ -103,6 +103,7 @@ export const LANDS: Land[] = [
     quests: [
       { href: '/play/visual-scan', emoji: '🔍', title: 'Star Hunt', desc: 'Find all the hidden stars before time runs out!' },
       { href: '/play/sky-mail', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
+      { href: '/play/moonlight-match', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
     ],
   },
 ];
