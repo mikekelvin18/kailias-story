@@ -18,7 +18,7 @@ import { awardStarlight, recordGameLevel } from '@/lib/rewards';
 //   wind      → swipe the direction shown                (fine motor)
 // Swiping itself is measured: decision speed + how straight the fling is.
 
-type DeckId = 'math' | 'sentence' | 'wind' | 'tricky' | 'shapes' | 'feelings' | 'rhyme';
+type DeckId = 'math' | 'sentence' | 'wind' | 'tricky' | 'shapes' | 'feelings' | 'rhyme' | 'berries';
 type Dir = 'left' | 'right' | 'up' | 'down';
 
 interface Card {
@@ -59,6 +59,11 @@ const DECKS: Record<DeckId, { emoji: string; title: string; desc: string; domain
     emoji: '💛', title: 'Feeling Finder', domain: 'communication',
     desc: 'Happy or sad? Swipe how it would feel!',
     noel: 'These letters show little moments. How would THAT feel? Swipe to the happy face or the sad face!',
+  },
+  berries: {
+    emoji: '🍓', title: 'Berry Battle', domain: 'math',
+    desc: 'Which side has MORE berries? Swipe to the winner!',
+    noel: 'Two berry bushes had a contest! Look closely — swipe toward the side with MORE!',
   },
   rhyme: {
     emoji: '🎵', title: 'Rhyme Chime', domain: 'reading',
@@ -207,6 +212,22 @@ function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
     }
   }
 
+  if (deck === 'berries') {
+    // numerosity comparison: which side has more? gaps shrink as tiers rise
+    for (let i = 0; i < count; i++) {
+      const berry = pick(['\u{1F353}', '\u{1FAD0}', '\u{1F352}']);
+      const small = tier === 'tiny' ? 1 + Math.floor(Math.random() * 3) : 2 + Math.floor(Math.random() * 5);
+      const gap = tier === 'big' ? 1 : 1 + Math.floor(Math.random() * 2);
+      const big = small + gap;
+      const correct: Dir = Math.random() < 0.5 ? 'left' : 'right';
+      const leftN = correct === 'left' ? big : small;
+      const rightN = correct === 'right' ? big : small;
+      cards.push({ text: `${berry.repeat(leftN)}  ·  ${berry.repeat(rightN)}`,
+        sub: 'Which side has MORE?', correct,
+        targets: { left: 'More! \u{1F448}', right: '\u{1F449} More!' } });
+    }
+  }
+
   if (deck === 'tricky') {
     // Stroop-style inhibition: the word sometimes disagrees with the arrow;
     // the rule is ALWAYS obey the arrow. Readers only (big tier).
@@ -251,9 +272,9 @@ export default function SkyMailPage() {
   // The mailbag shelf grows with the child: pre-readers get the no-text
   // decks; readers unlock rhymes and the Tricky Wind inhibition deck.
   const availableDecks = useMemo<DeckId[]>(() => {
-    if (tier === 'tiny') return ['shapes', 'feelings', 'math', 'wind'];
-    if (tier === 'small') return ['shapes', 'feelings', 'math', 'sentence', 'wind'];
-    return ['math', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', 'tricky'];
+    if (tier === 'tiny') return ['berries', 'shapes', 'feelings', 'math', 'wind'];
+    if (tier === 'small') return ['berries', 'shapes', 'feelings', 'math', 'sentence', 'wind'];
+    return ['math', 'berries', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', 'tricky'];
   }, [tier]);
 
   const startDeck = useCallback((d: DeckId) => {
@@ -332,6 +353,7 @@ export default function SkyMailPage() {
         shapes: 'So close! Which mailbox has the EXACT same shape?',
         feelings: 'Think about it — would that make you smile or feel down?',
         rhyme: 'Say both words slowly — do the endings sound the same?',
+        berries: 'Count each side with your finger — which bush grew MORE?',
       };
       setNoelLine(hints[deckId ?? 'wind']);
       setNoelMood('thinking');
