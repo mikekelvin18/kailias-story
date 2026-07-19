@@ -25,6 +25,7 @@ interface Card {
   text: string;
   sub?: string;
   bigSub?: boolean;   // Tricky Wind shows the (sometimes lying) word large
+  split?: { left: string; right: string };  // comparison decks show two framed sides
   correct: Dir;
   targets: Partial<Record<Dir, string>>;
 }
@@ -222,8 +223,8 @@ function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
       const correct: Dir = Math.random() < 0.5 ? 'left' : 'right';
       const leftN = correct === 'left' ? big : small;
       const rightN = correct === 'right' ? big : small;
-      cards.push({ text: `${berry.repeat(leftN)}  ·  ${berry.repeat(rightN)}`,
-        sub: 'Which side has MORE?', correct,
+      cards.push({ text: '', sub: 'Which side has MORE?', correct,
+        split: { left: berry.repeat(leftN), right: berry.repeat(rightN) },
         targets: { left: 'More! \u{1F448}', right: '\u{1F449} More!' } });
     }
   }
@@ -498,9 +499,23 @@ export default function SkyMailPage() {
                     opacity: flyOffset ? 0 : 1,
                   }}>
                   <span className="text-xs font-bold text-indigo-300 absolute top-3 left-4">💌 air mail</span>
-                  <span className={`font-extrabold text-indigo-900 text-center leading-snug ${deckId === 'sentence' ? 'text-2xl' : 'text-5xl'}`}>
-                    {card.text}
-                  </span>
+                  {card.split ? (
+                    <div className="flex items-center w-full gap-1 mt-1">
+                      <span className="flex-1 flex flex-wrap items-center justify-center gap-0.5 rounded-2xl py-3 px-1 text-2xl leading-tight"
+                        style={{ background: '#FFF1F2', border: '2px solid #FECDD3', minHeight: 90 }}>
+                        {[...card.split.left].map((ch, i) => <span key={i}>{ch}</span>)}
+                      </span>
+                      <span className="px-2 py-1 rounded-full text-xs font-extrabold text-white" style={{ background: '#6366F1', flexShrink: 0 }}>VS</span>
+                      <span className="flex-1 flex flex-wrap items-center justify-center gap-0.5 rounded-2xl py-3 px-1 text-2xl leading-tight"
+                        style={{ background: '#EFF6FF', border: '2px solid #BFDBFE', minHeight: 90 }}>
+                        {[...card.split.right].map((ch, i) => <span key={i}>{ch}</span>)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className={`font-extrabold text-indigo-900 text-center leading-snug ${deckId === 'sentence' ? 'text-2xl' : card.text.length > 8 ? 'text-4xl' : 'text-5xl'}`}>
+                      {card.text}
+                    </span>
+                  )}
                   {card.sub && (
                     <span className={card.bigSub
                       ? 'text-3xl font-extrabold text-indigo-600 mt-3 tracking-wide'
