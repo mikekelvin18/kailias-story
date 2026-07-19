@@ -102,7 +102,7 @@ export const LANDS: Land[] = [
     tagline: 'Riddles at the top of the world',
     noelIntro: "The wise old owl only opens her tower for sharp eyes! Find every hidden star before her hourglass runs out!",
     quests: [
-      { href: '/play/visual-scan', emoji: '🔍', title: 'Star Hunt', desc: 'Find all the hidden stars before time runs out!' },
+      { href: '/play/hidden-friends', emoji: '🔍', title: "Where's Noel?", desc: 'Busy storybook scenes hide a napping panda and lost treasures — search every corner!' },
       { href: '/play/sky-mail', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
       { href: '/play/moonlight-match', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
     ],
