@@ -75,7 +75,7 @@ export const LANDS: Land[] = [
     tagline: 'Every door opens with a story',
     noelIntro: "The Story Keepers mixed up all their tales! Put Kailia's adventure back in order and the village doors will open!",
     quests: [
-      { href: '/play/story', emoji: '🃏', title: 'Story Flip', desc: "Put Kailia's mixed-up adventure back in the right order!" },
+      { href: '/play/story-sparks', emoji: '✨', title: 'Story Sparks', desc: 'The storybooks lost their pages! Choose what really happens next and bring each tale back to life!' },
     ],
   },
   {
