@@ -89,6 +89,7 @@ export const LANDS: Land[] = [
     noelIntro: "Shhh… hear that? The caves echo with colors and sounds! Find the ones that match and the crystals will glow!",
     quests: [
       { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Match colors, sounds and patterns deep in the glowing caves!" },
+      { href: '/play/echo-song', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
     ],
   },
   {
