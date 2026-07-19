@@ -19,6 +19,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
       'Child profile (created by the parent): a first name or nickname, birth month and year, and a cartoon avatar choice. Never a last name, photo, email address, phone number, or location.',
       'Play measurements: which quests were played, difficulty level, accuracy, number of attempts, and timing (for example, how steadily a path was traced). These estimate developmental progress.',
       'Parent reports: your one-tap answers about daily activities (did it / tried with help / not yet) and assessment questionnaire answers.',
+      'Reward progress: starlight points, game levels reached, and companion creatures unlocked — used only to celebrate effort in the story.',
       'Consent record: the date, time, and method of your agreement.',
       'We never record audio, video, or photos of your child. The microphone and camera are never used.',
     ],

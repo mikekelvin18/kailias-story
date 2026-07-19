@@ -82,6 +82,7 @@ export default function AdventureMap() {
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {} });
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => { setRewards(loadRewards()); }, []);
 
@@ -173,10 +174,11 @@ export default function AdventureMap() {
               style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
               ⭐ {stars}/{maxStars()}
             </div>
-            <div className="px-2.5 py-1.5 rounded-full font-bold text-xs text-yellow-200"
+            <button onClick={() => setShowGuide(true)}
+              className="px-2.5 py-1.5 rounded-full font-bold text-xs text-yellow-200 transition-transform hover:scale-105"
               style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
-              ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)}
-            </div>
+              ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
+            </button>
           </div>
         </div>
         <p className="text-purple-200 text-xs px-1 mb-3">
@@ -301,7 +303,8 @@ export default function AdventureMap() {
         </div>
 
         {/* Companion collection — starlight milestones bring new friends */}
-        <div className="flex items-center justify-center gap-2 mt-4 rounded-2xl p-2.5"
+        <button onClick={() => setShowGuide(true)}
+          className="w-full flex items-center justify-center gap-2 mt-4 rounded-2xl p-2.5 transition-transform hover:scale-[1.01]"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
           <span className="text-[11px] font-bold text-purple-300 mr-1">Companions:</span>
           {COMPANIONS.map(c => {
@@ -314,7 +317,8 @@ export default function AdventureMap() {
               </span>
             );
           })}
-        </div>
+          <span className="text-[10px] text-purple-400 ml-1">ⓘ</span>
+        </button>
 
         {/* Older kids: the games ARE the main course; library is a footnote */}
         {band === null && (
@@ -328,6 +332,59 @@ export default function AdventureMap() {
           <Link href="/results" className="text-xs text-purple-300 underline">For grown-ups: progress &amp; results</Link>
         </div>
       </div>
+
+      {/* ── Starlight guide — explains the whole reward system ── */}
+      {showGuide && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4"
+          style={{ background: 'rgba(10,8,40,0.85)' }} onClick={() => setShowGuide(false)}>
+          <div className="w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl"
+            style={{ background: 'linear-gradient(180deg, #1e1b4b, #312e81)', border: '2px solid rgba(253,224,71,0.35)' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-3">
+              <PandaSprite size={70} expression="excited" className="mx-auto float" />
+              <h2 className="text-2xl font-extrabold text-yellow-300">✨ Starlight!</h2>
+            </div>
+            <div className="space-y-2.5 text-sm font-semibold text-indigo-100">
+              <p className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                ✨ Every quest you play sprinkles <strong className="text-yellow-300">starlight</strong> —
+                you earn it for <strong>trying</strong>, not just for being right!
+              </p>
+              <p className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                🎖️ Collecting starlight raises your <strong className="text-yellow-300">Explorer level</strong> —
+                you are level {explorerLevel(rewards.starlight)} with {rewards.starlight} starlight!
+              </p>
+              <div className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <p className="mb-2">🌙 Sleeping <strong className="text-yellow-300">companions</strong> wake up
+                  and join the adventure at starlight milestones:</p>
+                {COMPANIONS.map(c => {
+                  const unlocked = rewards.starlight >= c.at;
+                  return (
+                    <p key={c.name} className="flex items-center gap-2 py-0.5">
+                      <span className="text-xl" style={{ filter: unlocked ? 'none' : 'grayscale(1) brightness(0.6)' }}>{c.emoji}</span>
+                      <span className={unlocked ? 'text-emerald-300' : 'text-indigo-300'}>
+                        {c.name} — {unlocked ? 'awake! ✓' : `sleeps until ✨${c.at}`}
+                      </span>
+                    </p>
+                  );
+                })}
+                {(() => {
+                  const next = COMPANIONS.find(c => rewards.starlight < c.at);
+                  return next ? (
+                    <p className="mt-2 text-yellow-200">
+                      Only ✨{next.at - rewards.starlight} more until {next.name} the {next.emoji} wakes up!
+                    </p>
+                  ) : <p className="mt-2 text-yellow-200">Every companion is awake — amazing! 🎉</p>;
+                })()}
+              </div>
+            </div>
+            <button onClick={() => setShowGuide(false)}
+              className="mt-4 w-full py-3 rounded-full text-lg font-extrabold text-indigo-950 shadow-xl"
+              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
+              Got it! ✨
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Today's quests popup — the main event for little ones ── */}
       {dailyPrompt && band && (
