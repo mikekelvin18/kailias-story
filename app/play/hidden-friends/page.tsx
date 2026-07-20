@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
@@ -182,6 +183,7 @@ export default function WheresNoelPage() {
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
               Start the search! 🔍
             </button>
+            <SkillIntro gameId="hidden-friends" />
           </div>
         )}
 

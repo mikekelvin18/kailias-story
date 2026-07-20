@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
@@ -381,6 +382,7 @@ export default function FireflyCatchPage() {
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
               Catch fireflies! 🏮
             </button>
+            <SkillIntro gameId="firefly-catch" />
           </div>
         )}
 

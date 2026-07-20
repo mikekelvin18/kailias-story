@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel } from '@/lib/rewards';
@@ -453,6 +454,7 @@ export default function SkyMailPage() {
                 </button>
               ))}
             </div>
+            <SkillIntro gameId="sky-mail" />
             {phase === 'deckDone' && (
               <div className="text-center mt-4 bounce-in">
                 <p className="text-xl font-extrabold text-yellow-300 drop-shadow">✨ Mailbag sorted! ✨</p>

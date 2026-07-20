@@ -37,6 +37,7 @@ export const LANDS: Land[] = [
     quests: [
       { href: '/play/fine-motor', emoji: '✨', title: 'Maze Runner', desc: 'Guide Kailia through 5 magical mazes without touching the walls!' },
       { href: '/play/firefly-catch', emoji: '🏮', title: 'Firefly Catch', desc: "Catch the glowing fireflies and light Kailia's lantern!" },
+      { href: '/play/firefly-trails', emoji: '🪰', title: 'Firefly Trails', desc: 'Trace the firefly\'s glowing sky pictures — on tricky nights the trail fades and you draw from memory!' },
     ],
   },
   {
@@ -63,6 +64,7 @@ export const LANDS: Land[] = [
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
       { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'Match words to pictures and unlock magical spells!' },
+      { href: '/play/journey', emoji: '🥾', title: "Kailia's Journey", desc: 'Walk a living trail, meet creatures, solve their riddles, and collect a party of friends all the way to the flag!' },
     ],
   },
   {

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel } from '@/lib/rewards';
@@ -397,6 +398,7 @@ export default function SnackQuestPage() {
                 <span className="block text-xs text-gray-600 mt-1">Gather bamboo 🎋 in the forest!</span>
               </button>
             </div>
+            <SkillIntro gameId="snack-quest" />
           </div>
         )}
 
