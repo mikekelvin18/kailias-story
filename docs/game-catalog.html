@@ -1,0 +1,425 @@
+<meta charset="utf-8">
+<title>Kailia's Story — Game Catalog</title>
+<style>
+  :root{
+    --ink:#241E3F; --muted:#6b6485; --ground:#F1EFF7; --sheet:#ffffff;
+    --violet:#7C3AED; --gold:#D97706; --line:#E5E1F0;
+    --fm:#059669; --ma:#D97706; --re:#2563EB; --co:#DB2777; --se:#0891B2; --pr:#7C3AED;
+    --fm-bg:#ECFDF5; --ma-bg:#FFFBEB; --re-bg:#EFF6FF; --co-bg:#FDF2F8; --se-bg:#ECFEFF; --pr-bg:#F5F3FF;
+  }
+  @media (prefers-color-scheme: dark){ :root{ --ground:#1c1830; } }
+  :root[data-theme="dark"]{ --ground:#1c1830; }
+  :root[data-theme="light"]{ --ground:#F1EFF7; }
+  *{ box-sizing:border-box; margin:0; }
+  body{ background:var(--ground); color:var(--ink);
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif; font-size:14px; line-height:1.5; }
+  .page{ max-width:880px; margin:0 auto; padding:28px 16px 60px; display:flex; flex-direction:column; gap:22px; }
+  .sheet{ background:var(--sheet); border-radius:14px; padding:28px 32px; box-shadow:0 2px 14px rgba(36,30,63,.10); }
+  h1,h2,h3{ font-family:"Trebuchet MS","Avenir Next",sans-serif; text-wrap:balance; }
+  h1{ font-size:30px; line-height:1.15; }
+  h2{ font-size:20px; margin-bottom:4px; }
+  h3{ font-size:15px; }
+  .eyebrow{ font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--violet); font-weight:700; }
+  .sub{ color:var(--muted); }
+  .small{ font-size:12px; color:var(--muted); }
+  table{ border-collapse:collapse; width:100%; font-size:12.5px; font-variant-numeric:tabular-nums; }
+  th,td{ border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+  th{ background:#F7F5FC; font-family:"Trebuchet MS",sans-serif; font-size:11.5px; }
+  .chip{ display:inline-block; padding:1px 8px; border-radius:99px; font-size:10.5px; font-weight:700; white-space:nowrap; }
+  .c-fm{ background:var(--fm-bg); color:var(--fm);} .c-ma{ background:var(--ma-bg); color:var(--ma);}
+  .c-re{ background:var(--re-bg); color:var(--re);} .c-co{ background:var(--co-bg); color:var(--co);}
+  .c-se{ background:var(--se-bg); color:var(--se);} .c-pr{ background:var(--pr-bg); color:var(--pr);}
+  .legend{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .grid2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:18px; }
+  .gamecard{ border:1.5px solid var(--line); border-radius:14px; overflow:hidden; break-inside:avoid; page-break-inside:avoid; background:var(--sheet); display:flex; flex-direction:column; }
+  .shot{ height:190px; position:relative; overflow:hidden; flex-shrink:0; }
+  .shot *{ pointer-events:none; }
+  .gbody{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+  .gtitle{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .gtitle h3{ font-size:16px; }
+  .land{ font-size:11px; color:var(--muted); font-weight:600; }
+  .meta{ display:grid; grid-template-columns:86px 1fr; gap:3px 10px; font-size:12px; }
+  .meta dt{ color:var(--muted); font-weight:700; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; padding-top:1px; }
+  .meta dd{ margin:0; }
+  .agebar{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; font-size:11px; }
+  .agebar div{ background:#F7F5FC; border:1px solid var(--line); border-radius:8px; padding:5px 7px; }
+  .agebar b{ display:block; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--violet); }
+  .bubble{ position:absolute; background:#fff; border-radius:10px; padding:3px 8px; font-size:9px; font-weight:700; box-shadow:0 2px 6px rgba(0,0,0,.25); }
+  .printtip{ background:#FFFBEB; border:1.5px dashed var(--gold); border-radius:12px; padding:10px 16px; font-size:13px; }
+  .bandrow{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:12px; }
+  .band{ border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .band b{ font-family:"Trebuchet MS",sans-serif; }
+  .foot{ text-align:center; color:var(--muted); font-size:11.5px; }
+  @media print{
+    body{ background:#fff; font-size:12.5px; }
+    .page{ max-width:none; padding:0; gap:14px; }
+    .sheet{ box-shadow:none; border-radius:0; padding:14px 6px; }
+    .printtip{ display:none; }
+    .shot{ height:170px; }
+    h2{ page-break-after:avoid; }
+    .sheet{ page-break-inside:auto; }
+    .gamecard,.band,table{ page-break-inside:avoid; }
+    a{ color:inherit; text-decoration:none; }
+  }
+</style>
+
+<div class="page">
+
+  <div class="printtip">🖨️ <b>To print:</b> press <b>Cmd + P</b> (Mac) or Ctrl + P, and turn ON
+    “Background graphics” in the print options so the game previews keep their colors. “Save as PDF” works the same way.</div>
+
+  <!-- ═══════════ COVER ═══════════ -->
+  <header class="sheet" style="background:linear-gradient(135deg,#2a2354,#4c1d95); color:#fff;">
+    <p class="eyebrow" style="color:#FDE047;">Internal documentation · July 2026</p>
+    <h1 style="color:#fff; margin:6px 0 4px;">🗺️ Kailia's Story — Game Catalog</h1>
+    <p style="color:#d8cef5; max-width:60ch;">Every playable title in the adventure, organized by age group:
+      what it looks like, which skill it builds, what it quietly measures, and how it adapts to each child.
+      Previews are faithful recreations of the live screens (the app's art is emoji&nbsp;+&nbsp;code, so these
+      print pixel-perfect at any size).</p>
+    <div style="display:flex; gap:22px; margin-top:14px; flex-wrap:wrap; font-family:'Trebuchet MS',sans-serif;">
+      <div><span style="font-size:24px; font-weight:800; color:#FDE047;">18</span><br><span style="font-size:11px; color:#d8cef5;">screen game titles</span></div>
+      <div><span style="font-size:24px; font-weight:800; color:#FDE047;">52</span><br><span style="font-size:11px; color:#d8cef5;">parent &amp; baby quests</span></div>
+      <div><span style="font-size:24px; font-weight:800; color:#FDE047;">6</span><br><span style="font-size:11px; color:#d8cef5;">lands · 6 skills</span></div>
+      <div><span style="font-size:24px; font-weight:800; color:#FDE047;">∞</span><br><span style="font-size:11px; color:#d8cef5;">levels via ✨ starlight</span></div>
+    </div>
+  </header>
+
+  <!-- ═══════════ AGES ═══════════ -->
+  <section class="sheet">
+    <p class="eyebrow">How age works</p>
+    <h2>One adventure, four experiences</h2>
+    <p class="sub" style="max-width:70ch;">The assessment estimates a <b>developmental age</b> (not just birthday age) and sets two dials:
+      a <b>band</b> (which experience leads) and a <b>difficulty tier</b> (how every game tunes itself — sizes, speeds, numbers, reading).</p>
+    <div class="bandrow">
+      <div class="band" style="background:#F0FDF4;"><b>🌱 Band 1 · Little Sprout</b><br><span class="small">≈ 6–18 months</span>
+        <p style="font-size:12px; margin-top:6px;">Screens teach little at this age — the <b>Parent &amp; Baby Quest Library</b> leads (2 real-world quests/day, ~5 min). Screen games hidden.</p></div>
+      <div class="band" style="background:#FFF7ED;"><b>🐾 Band 2 · Little Explorer</b><br><span class="small">≈ 18 mo – 2½ yrs</span>
+        <p style="font-size:12px; margin-top:6px;">Daily parent quests still lead; games open as dessert on the <b>tiny tier</b> — biggest targets, slowest speeds, numbers 1–3, zero reading.</p></div>
+      <div class="band" style="background:#FEFCE8;"><b>🎒 Band 3 · Little Adventurer</b><br><span class="small">≈ 2½ – 4 yrs</span>
+        <p style="font-size:12px; margin-top:6px;">Games step up to the <b>small tier</b> — numbers to ~5, picture hints stay on, still no reading required.</p></div>
+      <div class="band" style="background:#F5F3FF;"><b>🚀 School Age</b><br><span class="small">≈ 5 – 12 yrs</span>
+        <p style="font-size:12px; margin-top:6px;">The world map leads on the <b>big tier</b> — reading decks unlock, numbers to ~20, speeds climb, and the Stroop-style challenges appear.</p></div>
+    </div>
+    <p class="small" style="margin-top:10px;">Skill color code used throughout:</p>
+    <div class="legend">
+      <span class="chip c-fm">🤲 Fine motor</span><span class="chip c-ma">🔢 Math</span>
+      <span class="chip c-re">📖 Reading</span><span class="chip c-co">🗣️ Communication</span>
+      <span class="chip c-se">🌈 Sensory</span><span class="chip c-pr">🧠 Processing</span>
+    </div>
+  </section>
+
+  <!-- ═══════════ MATRIX ═══════════ -->
+  <section class="sheet">
+    <p class="eyebrow">At a glance</p>
+    <h2>Age × game matrix</h2>
+    <p class="small" style="margin-bottom:10px;">● plays fully &nbsp;·&nbsp; ◐ plays in an easier form &nbsp;·&nbsp; — hidden at this age</p>
+    <div style="overflow-x:auto;">
+    <table>
+      <tr><th>Title</th><th>Skill</th><th>Land</th><th>🌱 Sprout</th><th>🐾 Explorer</th><th>🎒 Adventurer</th><th>🚀 School</th></tr>
+      <tr><td><b>Daily Parent Quests</b> (52 activities)</td><td><span class="chip c-co">all six</span></td><td>Quest Library</td><td>● leads</td><td>● leads</td><td>● daily</td><td>—</td></tr>
+      <tr><td><b>Firefly Catch</b></td><td><span class="chip c-fm">fine motor</span></td><td>Firefly Forest</td><td>—</td><td>◐ huge &amp; slow</td><td>◐ big</td><td>● + levels</td></tr>
+      <tr><td><b>Maze Runner</b></td><td><span class="chip c-fm">fine motor</span></td><td>Firefly Forest</td><td>—</td><td>—</td><td>◐ first mazes</td><td>● 5 mazes</td></tr>
+      <tr><td><b>Snack Quest</b></td><td><span class="chip c-ma">math</span></td><td>Dragon's Cave</td><td>—</td><td>◐ bring 1–3</td><td>◐ to 5, hints</td><td>● to 9 + “how many more?”</td></tr>
+      <tr><td><b>Word Wizard</b></td><td><span class="chip c-re">reading</span></td><td>Whispering Signposts</td><td>—</td><td>—</td><td>◐ pictures</td><td>● words</td></tr>
+      <tr><td><b>Story Sparks</b></td><td><span class="chip c-co">communication</span></td><td>Story Keepers</td><td>—</td><td>◐ read aloud</td><td>◐ read aloud</td><td>●</td></tr>
+      <tr><td><b>Sense Explorer</b></td><td><span class="chip c-se">sensory</span></td><td>Echo Caves</td><td>—</td><td>◐</td><td>●</td><td>●</td></tr>
+      <tr><td><b>Echo Song</b></td><td><span class="chip c-pr">processing</span></td><td>Echo Caves</td><td>—</td><td>◐ 2-note songs</td><td>◐ 2–3 notes</td><td>● to 8 notes</td></tr>
+      <tr><td><b>Where's Noel?</b></td><td><span class="chip c-pr">processing</span></td><td>Owl's Tower</td><td>—</td><td>◐ 30 big items</td><td>◐ 45 items</td><td>● up to 150</td></tr>
+      <tr><td><b>Moonlight Match</b></td><td><span class="chip c-pr">processing</span></td><td>Owl's Tower</td><td>—</td><td>◐ 2–6 pairs</td><td>◐ 3–8 pairs</td><td>● 4–10 + letter pairs</td></tr>
+      <tr><td colspan="7" style="background:#F7F5FC;"><b>📬 Sky Mail</b> — one swipe engine, eight decks (each deck = its own game):</td></tr>
+      <tr><td>&nbsp;&nbsp;Number Letters</td><td><span class="chip c-ma">math</span></td><td>Owl's Tower</td><td>—</td><td>◐ count dots</td><td>◐ + to 10</td><td>● + − ×</td></tr>
+      <tr><td>&nbsp;&nbsp;Berry Battle</td><td><span class="chip c-ma">math</span></td><td>Owl's Tower</td><td>—</td><td>◐ big gaps</td><td>●</td><td>● close calls</td></tr>
+      <tr><td>&nbsp;&nbsp;Shape Twins</td><td><span class="chip c-se">sensory</span></td><td>Owl's Tower</td><td>—</td><td>●</td><td>●</td><td>●</td></tr>
+      <tr><td>&nbsp;&nbsp;Feeling Finder</td><td><span class="chip c-co">communication</span></td><td>Owl's Tower</td><td>—</td><td>●</td><td>●</td><td>●</td></tr>
+      <tr><td>&nbsp;&nbsp;Wind Riders</td><td><span class="chip c-fm">fine motor</span></td><td>Owl's Tower</td><td>—</td><td>◐ left/right only</td><td>◐ 4-way</td><td>● + direction words</td></tr>
+      <tr><td>&nbsp;&nbsp;Silly Sentences</td><td><span class="chip c-re">reading</span></td><td>Owl's Tower</td><td>—</td><td>—</td><td>◐ read aloud</td><td>●</td></tr>
+      <tr><td>&nbsp;&nbsp;Rhyme Chime</td><td><span class="chip c-re">reading</span></td><td>Owl's Tower</td><td>—</td><td>—</td><td>—</td><td>●</td></tr>
+      <tr><td>&nbsp;&nbsp;Tricky Wind <span class="small">(Stroop)</span></td><td><span class="chip c-pr">processing</span></td><td>Owl's Tower</td><td>—</td><td>—</td><td>—</td><td>●</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ GAME CARDS ═══════════ -->
+  <section class="sheet">
+    <p class="eyebrow">The games</p>
+    <h2>Title-by-title, with screen previews</h2>
+    <p class="small" style="margin-bottom:14px;">Every card: how the screen looks, the story, the hidden measurement, and how each age experiences it.</p>
+
+    <div class="grid2">
+
+      <!-- Firefly Catch -->
+      <article class="gamecard">
+        <div class="shot" style="background:radial-gradient(ellipse at 50% 115%,#14532daa,transparent 60%),linear-gradient(180deg,#052012,#071f15);">
+          <span style="position:absolute;left:18%;top:18%;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#FEF9C3 15%,#FDE047 45%,transparent 75%);box-shadow:0 0 22px 10px rgba(253,224,71,.4);font-size:22px;text-align:center;line-height:44px;">✨</span>
+          <span style="position:absolute;left:62%;top:32%;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle,#FEF9C3 15%,#FDE047 45%,transparent 75%);box-shadow:0 0 18px 8px rgba(253,224,71,.35);font-size:17px;text-align:center;line-height:34px;">✨</span>
+          <span style="position:absolute;left:40%;top:55%;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle,#FEF9C3 15%,#FDE047 45%,transparent 75%);box-shadow:0 0 14px 7px rgba(253,224,71,.3);font-size:14px;text-align:center;line-height:28px;">✨</span>
+          <span style="position:absolute;left:46%;bottom:8px;font-size:34px;filter:drop-shadow(0 0 12px #FDE047);">🏮</span>
+          <span style="position:absolute;left:24%;bottom:10px;font-size:22px;">👧</span>
+          <span style="position:absolute;left:8px;bottom:64px;font-size:16px;opacity:.6;">🌲</span>
+          <span style="position:absolute;right:10px;bottom:60px;font-size:14px;opacity:.6;">🍄</span>
+          <span class="bubble" style="top:8px;left:10px;color:#065f46;">🏮 Firefly Catch · Lv 3</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>🏮 Firefly Catch</h3><span class="chip c-fm">fine motor</span></div>
+          <p class="land">Firefly Forest · endless levels · ✨ pay rises per level</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>Kailia's lantern went dark — catch fireflies to relight it, then drag sleepy ones home.</dd>
+            <dt>Play</dt><dd>3 tap rounds (drifting targets get smaller &amp; faster) + 1 drag round into the lantern.</dd>
+            <dt>Measures</dt><dd>tap accuracy on moving targets, catch speed, drag steadiness, drop precision</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>50% bigger, half speed, huge drop zone</div>
+            <div><b>🎒 Adventurer</b>big &amp; gentle</div>
+            <div><b>🚀 School</b>+12% speed each level, shrinking targets</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Snack Quest -->
+      <article class="gamecard">
+        <div class="shot" style="background:radial-gradient(ellipse at 50% 115%,#92400e55,transparent 60%),linear-gradient(180deg,#241505,#2e1d08);">
+          <span class="bubble" style="top:8px;left:10px;color:#92400E;">🐲 I wish for <b style="font-size:12px;color:#D97706;">4</b> 🍪</span>
+          <span style="position:absolute;right:14px;top:26px;font-size:34px;">🐲</span>
+          <span style="position:absolute;left:20%;top:38%;font-size:17px;filter:drop-shadow(0 0 5px rgba(253,224,71,.7));">🍪</span>
+          <span style="position:absolute;left:55%;top:52%;font-size:17px;filter:drop-shadow(0 0 5px rgba(253,224,71,.7));">🍪</span>
+          <span style="position:absolute;left:70%;top:70%;font-size:17px;filter:drop-shadow(0 0 5px rgba(253,224,71,.7));">🍪</span>
+          <span style="position:absolute;left:36%;top:62%;font-size:18px;opacity:.9;">🪨</span>
+          <span style="position:absolute;left:62%;top:30%;font-size:18px;opacity:.9;">🪨</span>
+          <span style="position:absolute;left:12px;bottom:8px;font-size:24px;">👧</span>
+          <span class="bubble" style="bottom:52px;left:14px;color:#92400E;">🍪×2</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>🐲 Snack Quest</h3><span class="chip c-ma">math</span></div>
+          <p class="land">Dragon's Treasure Cave · play as Kailia (cookies) or Noel (bamboo)</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>A baby dragon only eats <i>exactly</i> the right amount — walk the field, gather, deliver.</dd>
+            <dt>Play</dt><dd>Tap-to-walk pathfinding; counting rounds then “she has 2, wants 5 — bring how many more?”</dd>
+            <dt>Measures</dt><dd>counting accuracy, first-try deliveries, biggest number mastered</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>bring 1–3, hints always on</div>
+            <div><b>🎒 Adventurer</b>to 5, hints round 1</div>
+            <div><b>🚀 School</b>to 9, addition rounds</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Sky Mail -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(180deg,#1e1b4b,#3730a3 60%,#60a5fa 140%);">
+          <span style="position:absolute;left:8px;top:8px;font-size:14px;opacity:.5;">☁️</span>
+          <span style="position:absolute;right:14px;top:20px;font-size:12px;opacity:.5;">🌙</span>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-52%) rotate(6deg);background:#fff;border:2px solid #C7D2FE;border-radius:14px;width:57%;height:64%;box-shadow:0 8px 18px rgba(0,0,0,.35);text-align:center;">
+            <div style="font-size:8px;font-weight:700;color:#a5b4fc;text-align:left;padding:5px 8px 0;">💌 air mail</div>
+            <div style="font-size:26px;font-weight:800;color:#312E81;margin-top:14%;">2 + 3</div>
+          </div>
+          <div style="position:absolute;left:7px;top:42%;text-align:center;"><span style="font-size:18px;">📮</span><br><span class="bubble" style="position:static;color:#312E81;">5</span></div>
+          <div style="position:absolute;right:7px;top:42%;text-align:center;"><span style="font-size:18px;">📮</span><br><span class="bubble" style="position:static;color:#312E81;">6</span></div>
+          <span class="bubble" style="bottom:8px;left:10px;color:#312E81;">📬 Sky Mail — swipe the card!</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>📬 Sky Mail</h3>
+            <span class="chip c-ma">math</span><span class="chip c-re">reading</span><span class="chip c-fm">fine motor</span><span class="chip c-co">comm.</span><span class="chip c-se">sensory</span><span class="chip c-pr">processing</span></div>
+          <p class="land">Owl's Tower · 8 decks on one Tinder-style swipe engine</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>The wind stole Noel's letters — fling each flying card into the right mailbox.</dd>
+            <dt>Decks</dt><dd>Number Letters · Berry Battle (VS panels) · Shape Twins · Feeling Finder · Wind Riders · Silly Sentences · Rhyme Chime · Tricky Wind (word lies, obey the arrow!)</dd>
+            <dt>Measures</dt><dd>per-deck accuracy, decision speed, swipe straightness (motor), inhibition (Tricky Wind)</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>4 no-text decks</div>
+            <div><b>🎒 Adventurer</b>+ Silly Sentences (read together)</div>
+            <div><b>🚀 School</b>all 8 incl. Stroop deck</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Moonlight Match -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(180deg,#0c0a2e,#1e1b4b 60%,#312e81);">
+          <span style="position:absolute;right:12px;top:8px;font-size:16px;">🌙</span>
+          <div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(4,44px);gap:7px;">
+            <div style="background:linear-gradient(135deg,#4338CA,#6D28D9);border:1.5px solid #818CF8;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:18px;">🪶</div>
+            <div style="background:linear-gradient(135deg,#FEF9C3,#FDE68A);border:2px solid #FBBF24;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:20px;box-shadow:0 0 10px rgba(253,224,71,.6);">🦊</div>
+            <div style="background:linear-gradient(135deg,#4338CA,#6D28D9);border:1.5px solid #818CF8;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:18px;">🪶</div>
+            <div style="background:linear-gradient(135deg,#4338CA,#6D28D9);border:1.5px solid #818CF8;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:18px;">🪶</div>
+            <div style="background:linear-gradient(135deg,#4338CA,#6D28D9);border:1.5px solid #818CF8;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:18px;">🪶</div>
+            <div style="background:linear-gradient(135deg,#4338CA,#6D28D9);border:1.5px solid #818CF8;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:18px;">🪶</div>
+            <div style="background:linear-gradient(135deg,#FEF9C3,#FDE68A);border:2px solid #FBBF24;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:20px;box-shadow:0 0 10px rgba(253,224,71,.6);">🦊</div>
+            <div style="background:linear-gradient(135deg,#4338CA,#6D28D9);border:1.5px solid #818CF8;border-radius:9px;height:56px;text-align:center;line-height:56px;font-size:18px;">🪶</div>
+          </div>
+          <span class="bubble" style="top:8px;left:10px;color:#312E81;">🦉 Moonlight Match · ✨ Combo ×2!</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>🦉 Moonlight Match</h3><span class="chip c-pr">processing</span><span class="chip c-re">reading†</span></div>
+          <p class="land">Owl's Tower · 3D card flips · combo streaks with rising chimes</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>The owl hid her friends under moonlit feathers — flip two, remember where everyone sleeps.</dd>
+            <dt>Play</dt><dd>Classic pairs with combo bonuses; content rotates: creatures → shapes → †letter pairs (A ↔ a) for readers.</dd>
+            <dt>Measures</dt><dd>visual memory (flips per pair), mismatches, best streak</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>2 pairs → cap 6</div>
+            <div><b>🎒 Adventurer</b>3 pairs → cap 8</div>
+            <div><b>🚀 School</b>4 → 10 + letters</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Echo Song -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(180deg,#082f49,#0e7490 85%);">
+          <div style="position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);display:grid;grid-template-columns:88px 88px;gap:10px;">
+            <div style="background:rgba(255,255,255,.1);border:2px solid #60A5FA66;border-radius:14px;height:62px;text-align:center;line-height:62px;font-size:26px;">🔷</div>
+            <div style="background:#4ADE80;border:2px solid #fff;border-radius:14px;height:62px;text-align:center;line-height:62px;font-size:28px;box-shadow:0 0 20px #4ADE80;">💚</div>
+            <div style="background:rgba(255,255,255,.1);border:2px solid #C084FC66;border-radius:14px;height:62px;text-align:center;line-height:62px;font-size:26px;">💜</div>
+            <div style="background:rgba(255,255,255,.1);border:2px solid #FB923C66;border-radius:14px;height:62px;text-align:center;line-height:62px;font-size:26px;">🧡</div>
+          </div>
+          <span class="bubble" style="top:8px;left:10px;color:#155e75;">🎶 Echo Song — the crystals are singing…</span>
+          <span style="position:absolute;right:10px;bottom:8px;font-size:16px;opacity:.6;">🔮</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>🎶 Echo Song</h3><span class="chip c-pr">processing</span><span class="chip c-se">sensory</span></div>
+          <p class="land">Echo Caves · each crystal has its own musical note</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>The cave crystals sing a little melody — echo it back by tapping in the same order.</dd>
+            <dt>Play</dt><dd>Simon-style: watch + listen, repeat; a slip just replays the song.</dd>
+            <dt>Measures</dt><dd>auditory-visual sequence memory span, replays needed</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>2-note songs</div>
+            <div><b>🎒 Adventurer</b>2–3 notes</div>
+            <div><b>🚀 School</b>3 notes → cap 8</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Story Sparks -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(180deg,#3b0764,#6b21a8 70%);">
+          <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);background:linear-gradient(180deg,#FFFBEB,#FEF3C7);border:2px solid #FDE68A;border-radius:14px;width:74%;padding:8px 10px;text-align:center;">
+            <div style="font-size:7.5px;font-weight:700;letter-spacing:.1em;color:#D97706;">🍦 THE FALLEN ICE CREAM · PAGE 2</div>
+            <div style="font-size:22px;margin:2px 0;">🍦💥</div>
+            <div style="font-size:10.5px;font-weight:800;color:#78350f;">Oh no — the ice cream fell on the ground!</div>
+          </div>
+          <div style="position:absolute;left:50%;bottom:34px;transform:translateX(-50%);background:#fff;border-radius:10px;width:74%;padding:5px 9px;font-size:9.5px;font-weight:800;color:#581c87;box-shadow:0 3px 8px rgba(0,0,0,.3);">😢 Kailia feels sad</div>
+          <div style="position:absolute;left:50%;bottom:8px;transform:translateX(-50%);background:#fff;border-radius:10px;width:74%;padding:5px 9px;font-size:9.5px;font-weight:800;color:#581c87;box-shadow:0 3px 8px rgba(0,0,0,.3);">😋🌍 The ground says “yum!”</div>
+          <span class="bubble" style="top:8px;left:10px;color:#581c87;">✨ What happens next?</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>✨ Story Sparks</h3><span class="chip c-co">communication</span></div>
+          <p class="land">Village of the Story Keepers · visual-novel style, 4 tales cycling</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>The Keepers' books lost their pages — the child steers each tale, page by page.</dd>
+            <dt>Play</dt><dd>Pick what <i>really</i> happens next vs. the silly option; silly picks get Noel's giggle + retry.</dd>
+            <dt>Measures</dt><dd>narrative &amp; social inference (silly-pick rate)</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>grown-up reads aloud</div>
+            <div><b>🎒 Adventurer</b>read together</div>
+            <div><b>🚀 School</b>reads solo</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Where's Noel -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(180deg,#1e3a8a,#1d4ed8 60%,#312e81);">
+          <span class="bubble" style="top:6px;left:10px;color:#1e3a8a;">🐼 Noel ✓ &nbsp; ⭐ 1/3</span>
+          <span style="position:absolute;left:6%;top:26%;font-size:15px;">⛄</span><span style="position:absolute;left:20%;top:48%;font-size:14px;transform:rotate(-12deg);">🐧</span>
+          <span style="position:absolute;left:33%;top:30%;font-size:15px;">🐻‍❄️</span><span style="position:absolute;left:47%;top:55%;font-size:14px;transform:rotate(9deg);">🐨</span>
+          <span style="position:absolute;left:60%;top:34%;font-size:15px;">🦌</span><span style="position:absolute;left:73%;top:52%;font-size:14px;">🐻</span>
+          <span style="position:absolute;left:85%;top:30%;font-size:14px;transform:rotate(14deg);">⛄</span><span style="position:absolute;left:12%;top:68%;font-size:15px;">🌲</span>
+          <span style="position:absolute;left:28%;top:80%;font-size:14px;">🐧</span><span style="position:absolute;left:41%;top:72%;font-size:16px;filter:drop-shadow(0 0 7px #FDE047);">🐼</span>
+          <span style="position:absolute;left:56%;top:82%;font-size:14px;">🐻‍❄️</span><span style="position:absolute;left:69%;top:74%;font-size:13px;">❄️</span>
+          <span style="position:absolute;left:82%;top:78%;font-size:15px;">⭐</span><span style="position:absolute;left:90%;top:60%;font-size:13px;">🧊</span>
+          <span style="position:absolute;left:7%;top:46%;font-size:13px;">❄️</span><span style="position:absolute;left:63%;top:16%;font-size:13px;">☁️</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>🔍 Where's Noel?</h3><span class="chip c-pr">processing</span></div>
+          <p class="land">Owl's Tower · Where's-Waldo style · 4 story chapters</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>Chapters: Forest Party, Busy Market, Snowy Peaks, Night Garden — Noel hides in each crowd.</dd>
+            <dt>Play</dt><dd>Spot the panda among look-alike bears + 3 treasures among foils; clutter grows per level.</dd>
+            <dt>Measures</dt><dd>visual scanning &amp; discrimination (wrong taps, search time)</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🐾 Explorer</b>~30 big items</div>
+            <div><b>🎒 Adventurer</b>~45 items</div>
+            <div><b>🚀 School</b>60 → 150 items</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Parent library -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(180deg,#1e1b4b,#312e81 60%,#1e3a5f);">
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:2.5px solid #FBBF24;border-radius:14px;width:80%;padding:9px 12px;box-shadow:0 0 14px rgba(251,191,36,.35);">
+            <div style="font-size:12px;font-weight:800;color:#241E3F;">🪣 The In-and-Out Game <span style="font-size:9px;color:#6b7280;">· 🔢 Counting · ~6 min</span></div>
+            <div style="font-size:9px;color:#4b5563;margin-top:3px;">1. Drop toys in one at a time, saying “in!”<br>2. Dump them out: “out!”<br>3. Hand your child a toy and hold out the container.</div>
+            <div style="margin-top:5px;display:flex;gap:4px;">
+              <span style="background:#059669;color:#fff;border-radius:99px;padding:1px 7px;font-size:8.5px;font-weight:800;">Did it! 🌟</span>
+              <span style="border:1.5px solid #D97706;color:#D97706;border-radius:99px;padding:1px 7px;font-size:8.5px;font-weight:800;">Tried with help 💪</span>
+            </div>
+          </div>
+          <span class="bubble" style="top:8px;left:10px;color:#312e81;">☀️ Today's Quests · 1/2 done · ⏱️ ~5 min</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>🎒 Parent &amp; Baby Quest Library</h3><span class="chip c-fm">all</span><span class="chip c-ma">six</span><span class="chip c-co">skills</span></div>
+          <p class="land">Quest Library route · 52 real-world activities · bands 1–3</p>
+          <dl class="meta">
+            <dt>Story</dt><dd>Noel frames ordinary play (cheerio pickup, peekaboo, freeze dance…) as daily quests played <i>off-screen, together</i>.</dd>
+            <dt>Play</dt><dd>2 quests/day (~5 min total), new ones each morning; parent reports with one tap; streak counter.</dd>
+            <dt>Measures</dt><dd>parent-reported milestones across all six domains — the primary data source below preschool level</dd>
+          </dl>
+          <div class="agebar">
+            <div><b>🌱 Sprout</b>the whole experience</div>
+            <div><b>🐾 Explorer</b>leads; games are dessert</div>
+            <div><b>🎒 Adventurer</b>daily habit</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Legacy trio -->
+      <article class="gamecard">
+        <div class="shot" style="background:linear-gradient(135deg,#064e3b,#065f46);">
+          <div style="position:absolute;left:14%;top:18%;width:72%;height:60%;border:3px dashed #4ade80;border-radius:12px;"></div>
+          <span style="position:absolute;left:18%;top:24%;font-size:16px;">👧</span>
+          <span style="position:absolute;right:20%;bottom:28%;font-size:16px;">⭐</span>
+          <span style="position:absolute;left:44%;top:44%;font-size:13px;">✨</span>
+          <span class="bubble" style="top:8px;left:10px;color:#065f46;">✨ Maze Runner · maze 2 of 5</span>
+        </div>
+        <div class="gbody">
+          <div class="gtitle"><h3>✨ Maze Runner &nbsp;+&nbsp; 📖 Word Wizard &nbsp;+&nbsp; 🌈 Sense Explorer</h3></div>
+          <p class="land">Firefly Forest · Whispering Signposts · Echo Caves — first-generation titles</p>
+          <dl class="meta">
+            <dt>What</dt><dd><b>Maze Runner</b> <span class="chip c-fm">fine motor</span> — trace 5 mazes without touching walls (precision, smoothness, lift-offs).
+              <b>Word Wizard</b> <span class="chip c-re">reading</span> — match words to pictures. <b>Sense Explorer</b> <span class="chip c-se">sensory</span> — match colors, sounds &amp; patterns.</dd>
+            <dt>Status</dt><dd>Still solid, but built before the video-game era of the app — queued for the same glow-up Star Hunt and Cookie Math received.</dd>
+          </dl>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ REWARDS ═══════════ -->
+  <section class="sheet">
+    <p class="eyebrow">Shared across every game</p>
+    <h2>✨ Starlight, levels &amp; companions</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;">
+      <div class="band" style="flex:1;min-width:220px;">
+        <b>✨ Starlight</b>
+        <p style="font-size:12px;margin-top:4px;">Earned for <i>finishing</i> any quest — effort floor means wrong answers reduce but never zero the payout. Never shown as a grade.</p></div>
+      <div class="band" style="flex:1;min-width:220px;">
+        <b>🎖️ Levels</b>
+        <p style="font-size:12px;margin-top:4px;">Each game remembers its highest level beaten and offers the next (faster, smaller, longer, more crowded). Explorer level grows with total starlight.</p></div>
+      <div class="band" style="flex:1;min-width:220px;">
+        <b>🐢🦊🦉🦄🐉 Companions</b>
+        <p style="font-size:12px;margin-top:4px;">Shelly ✨30 · Flick ✨80 · Sage ✨150 · Nova ✨250 · Ember ✨400 — sleeping silhouettes until unlocked; the hook for future real-world rewards.</p></div>
+    </div>
+    <p class="small" style="margin-top:12px;">Every game logs only: child profile id, domain, task, difficulty, accuracy, attempts, timing — consent-gated, on-device, parent-deletable (see SECURITY.md &amp; Privacy Policy).</p>
+  </section>
+
+  <p class="foot">Kailia's Story · internal game catalog · generated July 2026 · previews are CSS recreations of live screens</p>
+</div>
