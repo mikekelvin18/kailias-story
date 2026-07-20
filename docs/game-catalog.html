@@ -10,7 +10,7 @@
   @media (prefers-color-scheme: dark){ :root{ --ground:#1c1830; } }
   :root[data-theme="dark"]{ --ground:#1c1830; }
   :root[data-theme="light"]{ --ground:#F1EFF7; }
-  *{ box-sizing:border-box; margin:0; }
+  *{ box-sizing:border-box; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body{ background:var(--ground); color:var(--ink);
     font-family:"Avenir Next","Segoe UI",system-ui,sans-serif; font-size:14px; line-height:1.5; }
   .page{ max-width:880px; margin:0 auto; padding:28px 16px 60px; display:flex; flex-direction:column; gap:22px; }
