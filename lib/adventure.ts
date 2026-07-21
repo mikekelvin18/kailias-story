@@ -64,7 +64,8 @@ export const LANDS: Land[] = [
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
       { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'Match words to pictures and unlock magical spells!' },
-      { href: '/play/journey', emoji: '🥾', title: "Kailia's Journey", desc: 'Walk a living trail, meet creatures, solve their riddles, and collect a party of friends all the way to the flag!' },
+      { href: '/play/journey', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
+      { href: '/play/trail-walk', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
     ],
   },
   {

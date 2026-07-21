@@ -48,6 +48,13 @@ const BIOMES: Biome[] = [
 const CREATURES: Record<ChType, string[]> = {
   count: ['🐉', '🐲'], memory: ['🦉', '🦝'], color: ['🦜', '🦚'], feeling: ['🐰', '🐨'], word: ['🦌', '🦢'],
 };
+// The three starter partners offered on a brand-new journey — same names
+// as the companions unlocked by starlight, tying the two systems together.
+const STARTERS = [
+  { emoji: '🐢', name: 'Shelly', blurb: 'Slow and steady — never rattled.' },
+  { emoji: '🦊', name: 'Flick', blurb: 'Quick, clever, always curious.' },
+  { emoji: '🦉', name: 'Sage', blurb: 'Wise eyes that notice everything.' },
+];
 const GEMS = ['💎', '🔮', '🟡', '🍓'];
 const COLOR_SET = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
 const FEELINGS: [string, boolean][] = [['🎂🎈', true], ['💔🧸', false], ['🍦☀️', true], ['🌧️⚽', false], ['🎁🎀', true], ['🤕🩹', false]];
@@ -202,7 +209,7 @@ export default function JourneyPage() {
   const tier = difficultyTier(state.ageGroup, totalScore);
 
   const [level, setLevel] = useState(1);
-  const [phase, setPhase] = useState<'intro' | 'walking' | 'battle' | 'capturing' | 'done'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'battle' | 'capturing' | 'done'>('intro');
   const [world, setWorld] = useState<ReturnType<typeof buildWorld> | null>(null);
   const [player, setPlayer] = useState<Pt>({ x: 1, y: H - 2 });
   const [party, setParty] = useState<string[]>([]);
@@ -210,6 +217,8 @@ export default function JourneyPage() {
   const [dialog, setDialog] = useState('Walk into the tall grass 🌾 to meet a wild friend!');
   const [shakeBox, setShakeBox] = useState(false);
   const [caughtCreature, setCaughtCreature] = useState<string | null>(null);
+  const [showParty, setShowParty] = useState(false);
+  const [pendingTile, setPendingTile] = useState<string | null>(null);
 
   const movingRef = useRef(false);
   const wrongRef = useRef(0);
@@ -218,17 +227,22 @@ export default function JourneyPage() {
 
   useEffect(() => { setLevel(nextGameLevel('journey')); }, []);
 
-  const startLevel = useCallback(() => {
+  const beginWorld = useCallback((starter?: string) => {
     const w = buildWorld(tier, level);
     setWorld(w);
     setPlayer(w.start);
-    setParty([]);
+    setParty(starter ? [starter] : []);
     setActiveTile(null);
     setCaughtCreature(null);
     wrongRef.current = 0; stepsRef.current = 0; startedRef.current = Date.now();
     setDialog(`Welcome to the ${w.biome.name}! Walk into the tall grass 🌾 to meet a wild friend!`);
     setPhase('walking');
   }, [tier, level]);
+
+  const startLevel = useCallback(() => {
+    if (level === 1) setPhase('starter');
+    else beginWorld();
+  }, [level, beginWorld]);
 
   const tileAt = useCallback((x: number, y: number): TileType => {
     if (!world || x < 0 || x >= W || y < 0 || y >= H) return 'tree';
@@ -263,10 +277,14 @@ export default function JourneyPage() {
       const t = tileAt(nx, ny);
       const k = `${nx},${ny}`;
       if (t === 'tallgrass' && world.encounters[k] && !world.encounters[k].solved) {
-        setActiveTile(k);
-        sfx.encounter();
-        setDialog(`A wild ${world.encounters[k].challenge.creature} appeared!`);
-        setPhase('battle');
+        setPendingTile(k);
+        setPhase('rustle');
+        setTimeout(() => {
+          setActiveTile(k);
+          sfx.encounter();
+          setDialog(`A wild ${world.encounters[k].challenge.creature} appeared!`);
+          setPhase('battle');
+        }, 650);
       } else if (t === 'flag') {
         tryFinish(nx, ny);
       }
@@ -331,11 +349,13 @@ export default function JourneyPage() {
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="text-sm font-bold text-slate-300">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
-            🥾 Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+            🗺️ Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="text-xs font-bold text-emerald-300 w-16 text-right">
-            {world && phase !== 'intro' ? `🐾 ${party.length}/${world.required}` : ''}
-          </span>
+          {world && phase !== 'intro' && phase !== 'starter' ? (
+            <button onClick={() => setShowParty(true)} className="text-xs font-bold text-emerald-300 w-16 text-right">
+              🎒 {party.length}/{world.required}
+            </button>
+          ) : <span className="w-16" />}
         </div>
 
         {phase === 'intro' && (
@@ -343,6 +363,10 @@ export default function JourneyPage() {
             <div className="flex items-end justify-center gap-1 mb-4">
               <PandaSprite size={90} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
               <KailiaSprite size={110} expression="excited" className="float" />
+            </div>
+            <div className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide mb-3"
+              style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
+              ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-700 text-lg leading-relaxed mb-3">A brand-new world stretches ahead! 🗺️</p>
@@ -358,6 +382,27 @@ export default function JourneyPage() {
               Enter the world! 🌍
             </button>
             <SkillIntro gameId="journey" />
+          </div>
+        )}
+
+        {phase === 'starter' && (
+          <div className="text-center mt-6 bounce-in">
+            <PandaSprite size={80} expression="excited" className="mx-auto float mb-3" />
+            <div className="rounded-3xl p-5 mx-2 mb-4" style={{ background: 'rgba(255,255,255,0.95)' }}>
+              <p className="text-gray-800 font-extrabold text-lg mb-1">Before you set out…</p>
+              <p className="text-gray-600 text-sm">Every explorer starts with one true partner. Who will it be?</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 px-2">
+              {STARTERS.map(s => (
+                <button key={s.name} onClick={() => beginWorld(s.emoji)}
+                  className="rounded-2xl p-3 shadow-xl transition-transform hover:scale-105 active:scale-95"
+                  style={{ background: 'rgba(255,255,255,0.95)', border: '3px solid #1a1a2e' }}>
+                  <span className="block text-4xl mb-1">{s.emoji}</span>
+                  <span className="block text-sm font-extrabold text-slate-900">{s.name}</span>
+                  <span className="block text-[10px] text-slate-500 leading-snug mt-1">{s.blurb}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -434,6 +479,43 @@ export default function JourneyPage() {
           </>
         )}
       </div>
+
+      {/* ── Grass-rustle transition ── */}
+      {phase === 'rustle' && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: '#1a1a2e' }}>
+          <div className="text-center">
+            <span className="block text-6xl shake" style={{ animationIterationCount: 'infinite' }}>🌾</span>
+            <p className="mt-3 font-extrabold text-lg" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
+              The grass rustles…
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Party / Pokédex viewer ── */}
+      {showParty && world && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowParty(false)}>
+          <div className="w-full max-w-sm rounded-2xl p-5 bounce-in" style={{ background: '#fdfdf8', border: '4px solid #1a1a2e' }} onClick={e => e.stopPropagation()}>
+            <p className="font-extrabold text-lg mb-1" style={{ color: '#1a1a2e', fontFamily: '"Courier New", monospace' }}>🎒 Your Party</p>
+            <p className="text-xs text-slate-500 mb-3">{party.length} of {world.required} friends caught in {world.biome.name}</p>
+            {party.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">No friends yet — find them in the tall grass 🌾!</p>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {party.map((p, i) => (
+                  <div key={i} className="rounded-xl flex items-center justify-center text-3xl" style={{ aspectRatio: '1', background: '#f1f5f9', border: '2px solid #1a1a2e' }}>{p}</div>
+                ))}
+                {Array.from({ length: Math.max(0, world.required - party.length) }).map((_, i) => (
+                  <div key={`e${i}`} className="rounded-xl flex items-center justify-center text-2xl text-slate-300" style={{ aspectRatio: '1', background: '#f8fafc', border: '2px dashed #cbd5e1' }}>?</div>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setShowParty(false)} className="mt-4 w-full py-2.5 rounded-full font-bold text-sm text-slate-500" style={{ border: '2px solid #cbd5e1' }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Retro battle overlay ── */}
       {(phase === 'battle' || phase === 'capturing') && activeEncounter && world && (

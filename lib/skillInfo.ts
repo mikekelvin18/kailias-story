@@ -57,7 +57,12 @@ export const SKILL_INFO: Record<string, SkillNote> = {
   },
   'journey': {
     skills: ['🔢 Math', '🧠 Memory', '🌈 Matching', '🗣️ Feelings', '📖 Words'],
-    builds: 'A walking adventure where every creature met poses a different kind of little challenge — a gentle mixed workout across skills.',
+    builds: 'An explorable RPG-style world where every creature encountered poses a different kind of little challenge — a gentle mixed workout across skills, Pokémon-adventure style.',
+    notices: 'Which challenge types are solved first-try, and which need another look.',
+  },
+  'trail-walk': {
+    skills: ['🔢 Math', '🧠 Memory', '🌈 Matching', '🗣️ Feelings', '📖 Words'],
+    builds: 'A relaxed walking adventure where every creature met poses a different kind of little challenge — a gentle mixed workout across skills.',
     notices: 'Which challenge types are solved first-try, and which need another look.',
   },
 };
