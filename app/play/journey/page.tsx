@@ -488,7 +488,7 @@ export default function JourneyPage() {
                 <PandaSprite size={80} expression="excited" className="mx-auto float mb-3" />
                 <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.95)' }}>
                   <p className="text-gray-800 font-extrabold text-lg mb-1">Before you set out…</p>
-                  <p className="text-gray-600 text-sm">Every explorer starts with one true partner. Who will it be?</p>
+                  <p className="text-gray-700 text-base font-bold">Every explorer starts with one true partner. Who will it be?</p>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   {STARTERS.map(s => (
@@ -576,14 +576,14 @@ export default function JourneyPage() {
             <div className="absolute bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-8"
               style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.6), transparent)' }}>
               <div className="flex items-center gap-3">
-                <PandaSprite size={44} expression="happy" style={{ flexShrink: 0 }} />
-                <div className="rounded-2xl px-3 py-2 text-sm font-semibold text-gray-800 bg-white relative shadow-lg">
+                <PandaSprite size={50} expression="happy" style={{ flexShrink: 0 }} />
+                <div className="rounded-2xl px-4 py-3 text-lg font-extrabold leading-snug text-gray-900 bg-white relative shadow-lg">
                   <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
-                    style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
+                    style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                   {dialog}
                 </div>
               </div>
-              <p className="text-center text-xs font-semibold text-slate-200 mt-1.5 drop-shadow">
+              <p className="text-center text-base font-extrabold text-white mt-2 drop-shadow-lg">
                 👆 Tap anywhere to walk there!
               </p>
             </div>
@@ -652,7 +652,7 @@ export default function JourneyPage() {
           {/* Game-Boy-style dialog box */}
           <div className={`mx-3 mb-3 rounded-lg p-4 ${shakeBox ? 'shake' : ''}`}
             style={{ background: '#fdfdf8', border: '4px solid #1a1a2e', boxShadow: '0 -4px 0 rgba(0,0,0,0.15) inset' }}>
-            <p style={{ fontFamily: '"Courier New", monospace', fontSize: 15, color: '#1a1a2e', lineHeight: 1.5 }}>
+            <p style={{ fontFamily: '"Courier New", monospace', fontSize: 19, fontWeight: 800, color: '#1a1a2e', lineHeight: 1.5 }}>
               {phase === 'capturing'
                 ? `Gotcha! ${activeEncounter.challenge.creature} was caught!`
                 : dialog}
@@ -668,7 +668,7 @@ export default function JourneyPage() {
                     {activeEncounter.challenge.display}
                   </p>
                 )}
-                <p style={{ fontFamily: '"Courier New", monospace', fontSize: 12, color: '#64748b', marginTop: 6, marginBottom: 4 }}>{activeEncounter.challenge.ask}</p>
+                <p style={{ fontFamily: '"Courier New", monospace', fontSize: 15, fontWeight: 700, color: '#334155', marginTop: 6, marginBottom: 4 }}>{activeEncounter.challenge.ask}</p>
                 <div className="rounded-md overflow-hidden mt-1" style={{ border: '3px solid #1a1a2e' }}>
                   {activeEncounter.challenge.options.map((o, i) => (
                     <button key={i} data-correct={o.correct} onClick={() => answer(o, activeEncounter.challenge)}
