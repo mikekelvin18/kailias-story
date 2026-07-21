@@ -19,9 +19,8 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 // (counting, memory, color matching, feelings, words) tied to its own
 // skill domain. Four biomes cycle level to level — a real world to walk.
 
-const W = 12, H = 10;           // map size, tiles
-const TILE = 44;                // px per tile
-const VIEWW = 8, VIEWH = 8;     // viewport size, tiles — bigger now that the D-pad is gone
+const W = 16, H = 20;            // map size, tiles — bigger now the whole screen is the world
+const TILE = 44;                 // px per tile
 
 type TileType = 'grass' | 'path' | 'tallgrass' | 'tree' | 'water' | 'flower' | 'flag';
 type ChType = 'count' | 'memory' | 'color' | 'feeling' | 'word';
@@ -180,9 +179,12 @@ function buildWorld(tier: string, level: number) {
   const goal = path[path.length - 1];
   grid[goal.y][goal.x] = 'flag';
 
-  // sprinkle obstacles & decor off the path
+  // sprinkle obstacles & decor off the path — scaled to the map's area so
+  // a bigger world (the whole screen) still feels populated, not empty
+  const obstacleTarget = Math.round((W * H) / 12);
+  const decorTarget = Math.round((W * H) / 18);
   let placed = 0, guard = 0;
-  while (placed < 10 && guard++ < 300) {
+  while (placed < obstacleTarget && guard++ < obstacleTarget * 30) {
     const x = 1 + Math.floor(Math.random() * (W - 2)), y = 1 + Math.floor(Math.random() * (H - 2));
     const p = { x, y };
     if (pathKeys.has(key(p))) continue;
@@ -191,7 +193,7 @@ function buildWorld(tier: string, level: number) {
     placed++;
   }
   let decor = 0; guard = 0;
-  while (decor < 6 && guard++ < 200) {
+  while (decor < decorTarget && guard++ < decorTarget * 30) {
     const x = 1 + Math.floor(Math.random() * (W - 2)), y = 1 + Math.floor(Math.random() * (H - 2));
     const p = { x, y };
     if (pathKeys.has(key(p)) || grid[y][x] !== 'grass') continue;
@@ -269,10 +271,23 @@ export default function JourneyPage() {
   const worldRef = useRef<ReturnType<typeof buildWorld> | null>(null);
   const pathQueueRef = useRef<Pt[]>([]);
   const viewportRef = useRef<HTMLDivElement>(null);
+  // The game canvas measures itself so it can fill the entire screen —
+  // any phone, tablet or window size — rather than a fixed tile count.
+  const [screenSize, setScreenSize] = useState({ w: 360, h: 640 });
 
   useEffect(() => { playerRef.current = player; }, [player]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { worldRef.current = world; }, [world]);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const update = () => setScreenSize({ w: el.clientWidth, h: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phase]);
 
   useEffect(() => { setLevel(nextGameLevel('journey')); }, []);
 
@@ -425,141 +440,156 @@ export default function JourneyPage() {
   }
 
   const activeEncounter = activeTile && world ? world.encounters[activeTile] : null;
-  const offsetX = Math.max(0, Math.min((W - VIEWW) * TILE, player.x * TILE - (VIEWW * TILE) / 2 + TILE / 2));
-  const offsetY = Math.max(0, Math.min((H - VIEWH) * TILE, player.y * TILE - (VIEWH * TILE) / 2 + TILE / 2));
+  const maxOffX = Math.max(0, W * TILE - screenSize.w);
+  const maxOffY = Math.max(0, H * TILE - screenSize.h);
+  const offsetX = Math.max(0, Math.min(maxOffX, player.x * TILE - screenSize.w / 2 + TILE / 2));
+  const offsetY = Math.max(0, Math.min(maxOffY, player.y * TILE - screenSize.h / 2 + TILE / 2));
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: '#0f172a' }}>
+    <main className="fixed inset-0 overflow-hidden" style={{ background: '#0f172a' }}>
       <style>{`
         @keyframes kwiggle{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
         @keyframes kshrink{0%{transform:scale(1);opacity:1}100%{transform:scale(0.15);opacity:0.9}}
       `}</style>
-      <div className="max-w-md mx-auto px-3">
-        <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-slate-300">← Map</Link>
-          <h1 className="text-xl font-extrabold text-white drop-shadow">
-            🗺️ Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
-          </h1>
-          {world && phase !== 'intro' && phase !== 'starter' ? (
-            <button onClick={() => setShowParty(true)} className="text-xs font-bold text-emerald-300 w-16 text-right">
-              🎒 {party.length}/{world.required}
-            </button>
-          ) : <span className="w-16" />}
-        </div>
 
-        {phase === 'intro' && (
-          <div className="text-center mt-6 bounce-in">
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={90} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={110} expression="excited" className="float" />
-            </div>
-            <div className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide mb-3"
-              style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
-              ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
-            </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-700 text-lg leading-relaxed mb-3">A brand-new world stretches ahead! 🗺️</p>
-              <p className="text-gray-700 text-lg leading-relaxed">
-                Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
-                anywhere on the map to walk there! Step into patches of <strong>tall grass 🌾</strong> to meet
-                wild creatures — solve their riddle to catch them, then lead your new friends to the flag! 🚩
-              </p>
-            </div>
-            <button onClick={startLevel}
-              className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Enter the world! 🌍
-            </button>
-            <SkillIntro gameId="journey" />
-          </div>
-        )}
-
-        {phase === 'starter' && (
-          <div className="text-center mt-6 bounce-in">
-            <PandaSprite size={80} expression="excited" className="mx-auto float mb-3" />
-            <div className="rounded-3xl p-5 mx-2 mb-4" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-800 font-extrabold text-lg mb-1">Before you set out…</p>
-              <p className="text-gray-600 text-sm">Every explorer starts with one true partner. Who will it be?</p>
-            </div>
-            <div className="grid grid-cols-3 gap-3 px-2">
-              {STARTERS.map(s => (
-                <button key={s.name} onClick={() => beginWorld(s.emoji)}
-                  className="rounded-2xl p-3 shadow-xl transition-transform hover:scale-105 active:scale-95"
-                  style={{ background: 'rgba(255,255,255,0.95)', border: '3px solid #1a1a2e' }}>
-                  <span className="block text-4xl mb-1">{s.emoji}</span>
-                  <span className="block text-sm font-extrabold text-slate-900">{s.name}</span>
-                  <span className="block text-[10px] text-slate-500 leading-snug mt-1">{s.blurb}</span>
+      {(phase === 'intro' || phase === 'starter') && (
+        <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-4">
+          <div className="w-full max-w-sm">
+            {phase === 'intro' && (
+              <div className="text-center bounce-in">
+                <div className="flex items-end justify-center gap-1 mb-4">
+                  <PandaSprite size={90} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+                  <KailiaSprite size={110} expression="excited" className="float" />
+                </div>
+                <div className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide mb-3"
+                  style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
+                  ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
+                </div>
+                <div className="rounded-3xl p-6 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+                  <p className="text-gray-700 text-lg leading-relaxed mb-3">A brand-new world stretches ahead! 🗺️</p>
+                  <p className="text-gray-700 text-lg leading-relaxed">
+                    Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
+                    anywhere on the map to walk there! Step into patches of <strong>tall grass 🌾</strong> to meet
+                    wild creatures — solve their riddle to catch them, then lead your new friends to the flag! 🚩
+                  </p>
+                </div>
+                <button onClick={startLevel}
+                  className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
+                  style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
+                  Enter the world! 🌍
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+                <SkillIntro gameId="journey" />
+                <Link href="/play" className="block mt-4 text-sm font-bold text-slate-400">← Back to the map</Link>
+              </div>
+            )}
 
-        {phase !== 'intro' && world && (
-          <>
-            <div ref={viewportRef} onClick={phase === 'walking' ? onViewportClick : undefined}
-              className="relative mx-auto rounded-2xl overflow-hidden select-none"
-              style={{ width: VIEWW * TILE, height: VIEWH * TILE, border: '4px solid #1a1a2e', boxShadow: '0 6px 20px rgba(0,0,0,0.5)', background: world.biome.sky,
-                cursor: phase === 'walking' ? 'pointer' : 'default' }}>
-              <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px)`, transition: 'transform 150ms linear' }}>
-                {world.grid.map((row, y) => row.map((t, x) => {
-                  const isEnc = world.encounters[`${x},${y}`];
-                  let bg = world.biome.ground;
-                  if (t === 'path') bg = world.biome.path;
-                  if (t === 'tallgrass') bg = world.biome.tallgrassBg;
-                  if (t === 'flag') bg = world.biome.path;
-                  let emoji = '';
-                  if (t === 'tree' || t === 'water') emoji = t === 'tree' ? world.biome.obstacles[0] : world.biome.obstacles[1];
-                  if (t === 'flower') emoji = pick(world.biome.decor);
-                  if (t === 'tallgrass' && isEnc && !isEnc.solved) emoji = '🌾';
-                  if (t === 'flag') emoji = '🚩';
-                  return (
-                    <div key={`${x}-${y}`} className="absolute flex items-center justify-center"
-                      style={{ left: x * TILE, top: y * TILE, width: TILE, height: TILE, background: bg,
-                        outline: '1px solid rgba(0,0,0,0.04)', fontSize: TILE * 0.62 }}>
-                      {emoji}
-                    </div>
-                  );
-                }))}
-                {/* party trailing marker (just a count badge near player, drawn below) */}
-                <div className="absolute flex items-center justify-center" style={{
-                  left: player.x * TILE, top: player.y * TILE, width: TILE, height: TILE,
-                  transition: 'left 150ms linear, top 150ms linear', zIndex: 5,
-                }}>
-                  <div style={{ transform: 'translateY(-6px)' }}><KailiaSprite size={TILE * 0.95} expression="happy" /></div>
+            {phase === 'starter' && (
+              <div className="text-center bounce-in">
+                <PandaSprite size={80} expression="excited" className="mx-auto float mb-3" />
+                <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.95)' }}>
+                  <p className="text-gray-800 font-extrabold text-lg mb-1">Before you set out…</p>
+                  <p className="text-gray-600 text-sm">Every explorer starts with one true partner. Who will it be?</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {STARTERS.map(s => (
+                    <button key={s.name} onClick={() => beginWorld(s.emoji)}
+                      className="rounded-2xl p-3 shadow-xl transition-transform hover:scale-105 active:scale-95"
+                      style={{ background: 'rgba(255,255,255,0.95)', border: '3px solid #1a1a2e' }}>
+                      <span className="block text-4xl mb-1">{s.emoji}</span>
+                      <span className="block text-sm font-extrabold text-slate-900">{s.name}</span>
+                      <span className="block text-[10px] text-slate-500 leading-snug mt-1">{s.blurb}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            {/* Tap-to-walk hint (arrow keys still work on a computer) */}
-            {phase === 'walking' && (
-              <p className="text-center text-xs font-semibold text-slate-300 mt-2">
-                👆 Tap anywhere on the map to walk there!
-              </p>
             )}
+          </div>
+        </div>
+      )}
 
-            {/* party roster */}
-            {party.length > 0 && phase !== 'battle' && phase !== 'capturing' && (
-              <div className="flex justify-center gap-1.5 mt-3 flex-wrap">
-                {party.map((p, i) => <span key={i} className="text-2xl">{p}</span>)}
+      {/* ── The world — fills the entire screen ── */}
+      {phase !== 'intro' && phase !== 'starter' && world && (
+        <>
+          <div ref={viewportRef} onClick={phase === 'walking' ? onViewportClick : undefined}
+            className="absolute inset-0 select-none"
+            style={{ background: world.biome.sky, cursor: phase === 'walking' ? 'pointer' : 'default' }}>
+            <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px)`, transition: 'transform 150ms linear' }}>
+              {world.grid.map((row, y) => row.map((t, x) => {
+                const isEnc = world.encounters[`${x},${y}`];
+                let bg = world.biome.ground;
+                if (t === 'path') bg = world.biome.path;
+                if (t === 'tallgrass') bg = world.biome.tallgrassBg;
+                if (t === 'flag') bg = world.biome.path;
+                let emoji = '';
+                if (t === 'tree' || t === 'water') emoji = t === 'tree' ? world.biome.obstacles[0] : world.biome.obstacles[1];
+                if (t === 'flower') emoji = pick(world.biome.decor);
+                if (t === 'tallgrass' && isEnc && !isEnc.solved) emoji = '🌾';
+                if (t === 'flag') emoji = '🚩';
+                return (
+                  <div key={`${x}-${y}`} className="absolute flex items-center justify-center"
+                    style={{ left: x * TILE, top: y * TILE, width: TILE, height: TILE, background: bg,
+                      outline: '1px solid rgba(0,0,0,0.04)', fontSize: TILE * 0.62 }}>
+                    {emoji}
+                  </div>
+                );
+              }))}
+              <div className="absolute flex items-center justify-center" style={{
+                left: player.x * TILE, top: player.y * TILE, width: TILE, height: TILE,
+                transition: 'left 150ms linear, top 150ms linear', zIndex: 5,
+              }}>
+                <div style={{ transform: 'translateY(-6px)' }}><KailiaSprite size={TILE * 0.95} expression="happy" /></div>
               </div>
-            )}
+            </div>
+          </div>
 
-            {/* Noel dialog bar (overworld) */}
-            {phase === 'walking' && (
-              <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+          {/* ── Floating header, on top of the world ── */}
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 pt-3 pb-6 pointer-events-none"
+            style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.55), transparent)' }}>
+            <Link href="/play" className="text-sm font-bold text-white drop-shadow pointer-events-auto">← Map</Link>
+            <h1 className="text-lg font-extrabold text-white drop-shadow">
+              🗺️ Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.2)', border: '1px solid rgba(253,224,71,0.5)' }}>Lv {level}</span>
+            </h1>
+            <button onClick={() => setShowParty(true)} className="text-xs font-bold text-emerald-300 drop-shadow pointer-events-auto">
+              🎒 {party.length}/{world.required}
+            </button>
+          </div>
+
+          {/* ── Floating mini D-pad, inside the screen (tap-to-walk still works everywhere else) ── */}
+          {phase === 'walking' && (
+            <div className="absolute z-10" style={{ right: 12, bottom: 96 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', gap: 3 }}>
+                <div />
+                <button onClick={() => move(0, -1)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬆️</button>
+                <div />
+                <button onClick={() => move(-1, 0)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬅️</button>
+                <div />
+                <button onClick={() => move(1, 0)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>➡️</button>
+                <div />
+                <button onClick={() => move(0, 1)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬇️</button>
+                <div />
+              </div>
+            </div>
+          )}
+
+          {/* ── Floating Noel dialog + tap hint, pinned to the bottom of the world ── */}
+          {phase === 'walking' && (
+            <div className="absolute bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-8"
+              style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.6), transparent)' }}>
+              <div className="flex items-center gap-3">
                 <PandaSprite size={44} expression="happy" style={{ flexShrink: 0 }} />
-                <div className="rounded-2xl px-3 py-2 text-sm font-semibold text-gray-800 bg-white relative">
+                <div className="rounded-2xl px-3 py-2 text-sm font-semibold text-gray-800 bg-white relative shadow-lg">
                   <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                     style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                   {dialog}
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <p className="text-center text-xs font-semibold text-slate-200 mt-1.5 drop-shadow">
+                👆 Tap anywhere to walk there!
+              </p>
+            </div>
+          )}
+        </>
+      )}
 
       {/* ── Grass-rustle transition ── */}
       {phase === 'rustle' && (
