@@ -20,8 +20,8 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 // skill domain. Four biomes cycle level to level — a real world to walk.
 
 const W = 12, H = 10;           // map size, tiles
-const TILE = 34;                // px per tile
-const VIEWW = 8, VIEWH = 7;     // viewport size, tiles
+const TILE = 44;                // px per tile
+const VIEWW = 8, VIEWH = 8;     // viewport size, tiles — bigger now that the D-pad is gone
 
 type TileType = 'grass' | 'path' | 'tallgrass' | 'tree' | 'water' | 'flower' | 'flag';
 type ChType = 'count' | 'memory' | 'color' | 'feeling' | 'word';
@@ -204,6 +204,43 @@ function buildWorld(tier: string, level: number) {
 
 const BLOCKED: TileType[] = ['tree', 'water'];
 
+// Shortest walkable route from start to goal (BFS on the tile grid),
+// used for tap-to-walk. Returns the steps AFTER start, or null if no
+// route exists.
+function bfsPath(start: Pt, goal: Pt, grid: TileType[][]): Pt[] | null {
+  const key = (p: Pt) => `${p.x},${p.y}`;
+  if (goal.x < 0 || goal.x >= W || goal.y < 0 || goal.y >= H) return null;
+  if (BLOCKED.includes(grid[goal.y][goal.x])) return null;
+  if (start.x === goal.x && start.y === goal.y) return [];
+  const visited = new Set([key(start)]);
+  const prev = new Map<string, Pt>();
+  const queue: Pt[] = [start];
+  let found = false;
+  while (queue.length && !found) {
+    const cur = queue.shift()!;
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const nx = cur.x + dx, ny = cur.y + dy;
+      if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+      const nk = `${nx},${ny}`;
+      if (visited.has(nk) || BLOCKED.includes(grid[ny][nx])) continue;
+      visited.add(nk);
+      prev.set(nk, cur);
+      if (nx === goal.x && ny === goal.y) { found = true; break; }
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  if (!found) return null;
+  const path: Pt[] = [];
+  let curKey = key(goal), curPt = goal;
+  while (curKey !== key(start)) {
+    path.unshift(curPt);
+    const p = prev.get(curKey);
+    if (!p) return null;
+    curPt = p; curKey = key(p);
+  }
+  return path;
+}
+
 export default function JourneyPage() {
   const { state, totalScore } = useAssessment();
   const tier = difficultyTier(state.ageGroup, totalScore);
@@ -224,11 +261,27 @@ export default function JourneyPage() {
   const wrongRef = useRef(0);
   const stepsRef = useRef(0);
   const startedRef = useRef(0);
+  // Kept in sync with state so the tap-to-walk step loop (which fires
+  // from setTimeout chains) always reads the CURRENT position/phase/
+  // world instead of a stale one captured when the walk began.
+  const playerRef = useRef<Pt>({ x: 1, y: H - 2 });
+  const phaseRef = useRef(phase);
+  const worldRef = useRef<ReturnType<typeof buildWorld> | null>(null);
+  const pathQueueRef = useRef<Pt[]>([]);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { playerRef.current = player; }, [player]);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { worldRef.current = world; }, [world]);
 
   useEffect(() => { setLevel(nextGameLevel('journey')); }, []);
 
   const beginWorld = useCallback((starter?: string) => {
     const w = buildWorld(tier, level);
+    worldRef.current = w;
+    playerRef.current = w.start;
+    pathQueueRef.current = [];
+    movingRef.current = false;
     setWorld(w);
     setPlayer(w.start);
     setParty(starter ? [starter] : []);
@@ -244,11 +297,6 @@ export default function JourneyPage() {
     else beginWorld();
   }, [level, beginWorld]);
 
-  const tileAt = useCallback((x: number, y: number): TileType => {
-    if (!world || x < 0 || x >= W || y < 0 || y >= H) return 'tree';
-    return world.grid[y][x];
-  }, [world]);
-
   const tryFinish = useCallback((x: number, y: number) => {
     if (!world) return;
     if (party.length >= world.required) {
@@ -263,37 +311,78 @@ export default function JourneyPage() {
     }
   }, [world, party.length, level]);
 
+  const tryFinishRef = useRef(tryFinish);
+  useEffect(() => { tryFinishRef.current = tryFinish; }, [tryFinish]);
+
+  // Single-tile step. Reads position/phase/world from refs so it stays
+  // correct when called repeatedly from a setTimeout chain (tap-to-walk)
+  // rather than only from a single fresh render (D-pad/keyboard).
   const move = useCallback((dx: number, dy: number) => {
-    if (phase !== 'walking' || movingRef.current || !world) return;
-    const nx = player.x + dx, ny = player.y + dy;
+    const w = worldRef.current;
+    if (phaseRef.current !== 'walking' || movingRef.current || !w) return;
+    const cur = playerRef.current;
+    const nx = cur.x + dx, ny = cur.y + dy;
     if (nx < 0 || nx >= W || ny < 0 || ny >= H) return;
-    if (BLOCKED.includes(tileAt(nx, ny))) return;
+    if (BLOCKED.includes(w.grid[ny][nx])) return;
     movingRef.current = true;
     stepsRef.current += 1;
     sfx.step();
+    playerRef.current = { x: nx, y: ny };
     setPlayer({ x: nx, y: ny });
     setTimeout(() => {
       movingRef.current = false;
-      const t = tileAt(nx, ny);
+      const t = w.grid[ny][nx];
       const k = `${nx},${ny}`;
-      if (t === 'tallgrass' && world.encounters[k] && !world.encounters[k].solved) {
+      if (t === 'tallgrass' && w.encounters[k] && !w.encounters[k].solved) {
+        pathQueueRef.current = []; // an encounter always interrupts a tap-to-walk route
         setPendingTile(k);
         setPhase('rustle');
         setTimeout(() => {
           setActiveTile(k);
           sfx.encounter();
-          setDialog(`A wild ${world.encounters[k].challenge.creature} appeared!`);
+          setDialog(`A wild ${w.encounters[k].challenge.creature} appeared!`);
           setPhase('battle');
         }, 650);
       } else if (t === 'flag') {
-        tryFinish(nx, ny);
+        pathQueueRef.current = [];
+        tryFinishRef.current(nx, ny);
       }
     }, 150);
-  }, [phase, player, world, tileAt, tryFinish]);
+  }, []);
+
+  // Walks the queued route one tile at a time, re-checking phase/position
+  // fresh from refs before every step so an encounter or the level ending
+  // cleanly stops the walk.
+  const stepQueue = useCallback(() => {
+    if (phaseRef.current !== 'walking' || movingRef.current) { pathQueueRef.current = []; return; }
+    const next = pathQueueRef.current.shift();
+    if (!next) return;
+    const cur = playerRef.current;
+    move(next.x - cur.x, next.y - cur.y);
+    setTimeout(stepQueue, 210);
+  }, [move]);
+
+  const walkTo = useCallback((tx: number, ty: number) => {
+    const w = worldRef.current;
+    if (phaseRef.current !== 'walking' || movingRef.current || !w) return;
+    const path = bfsPath(playerRef.current, { x: tx, y: ty }, w.grid);
+    if (!path || !path.length) return;
+    pathQueueRef.current = path;
+    stepQueue();
+  }, [stepQueue]);
+
+  function onViewportClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!viewportRef.current) return;
+    const rect = viewportRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left + offsetX;
+    const clickY = e.clientY - rect.top + offsetY;
+    walkTo(Math.floor(clickX / TILE), Math.floor(clickY / TILE));
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (phase !== 'walking') return;
+      if (phaseRef.current !== 'walking') return;
+      pathQueueRef.current = []; // a manual key press cancels any tap-to-walk route
       if (['ArrowUp', 'w', 'W'].includes(e.key)) move(0, -1);
       else if (['ArrowDown', 's', 'S'].includes(e.key)) move(0, 1);
       else if (['ArrowLeft', 'a', 'A'].includes(e.key)) move(-1, 0);
@@ -301,7 +390,7 @@ export default function JourneyPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, move]);
+  }, [move]);
 
   function answer(opt: { label: string; correct: boolean }, challenge: Challenge) {
     if (phase !== 'battle' || !activeTile || !world) return;
@@ -371,9 +460,9 @@ export default function JourneyPage() {
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-700 text-lg leading-relaxed mb-3">A brand-new world stretches ahead! 🗺️</p>
               <p className="text-gray-700 text-lg leading-relaxed">
-                Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> with the arrows below.
-                Step into patches of <strong>tall grass 🌾</strong> to meet wild creatures — solve their riddle to
-                catch them, then lead your new friends to the flag! 🚩
+                Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
+                anywhere on the map to walk there! Step into patches of <strong>tall grass 🌾</strong> to meet
+                wild creatures — solve their riddle to catch them, then lead your new friends to the flag! 🚩
               </p>
             </div>
             <button onClick={startLevel}
@@ -408,8 +497,10 @@ export default function JourneyPage() {
 
         {phase !== 'intro' && world && (
           <>
-            <div className="relative mx-auto rounded-2xl overflow-hidden select-none"
-              style={{ width: VIEWW * TILE, height: VIEWH * TILE, border: '4px solid #1a1a2e', boxShadow: '0 6px 20px rgba(0,0,0,0.5)', background: world.biome.sky }}>
+            <div ref={viewportRef} onClick={phase === 'walking' ? onViewportClick : undefined}
+              className="relative mx-auto rounded-2xl overflow-hidden select-none"
+              style={{ width: VIEWW * TILE, height: VIEWH * TILE, border: '4px solid #1a1a2e', boxShadow: '0 6px 20px rgba(0,0,0,0.5)', background: world.biome.sky,
+                cursor: phase === 'walking' ? 'pointer' : 'default' }}>
               <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px)`, transition: 'transform 150ms linear' }}>
                 {world.grid.map((row, y) => row.map((t, x) => {
                   const isEnc = world.encounters[`${x},${y}`];
@@ -440,21 +531,11 @@ export default function JourneyPage() {
               </div>
             </div>
 
-            {/* D-pad */}
+            {/* Tap-to-walk hint (arrow keys still work on a computer) */}
             {phase === 'walking' && (
-              <div className="flex items-center justify-center mt-4" style={{ gap: 6 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gridTemplateRows: 'repeat(3, 52px)', gap: 4 }}>
-                  <div />
-                  <button onClick={() => move(0, -1)} className="rounded-xl text-xl font-extrabold text-white active:scale-90 transition-transform" style={{ background: '#1e293b', border: '2px solid #475569' }}>⬆️</button>
-                  <div />
-                  <button onClick={() => move(-1, 0)} className="rounded-xl text-xl font-extrabold text-white active:scale-90 transition-transform" style={{ background: '#1e293b', border: '2px solid #475569' }}>⬅️</button>
-                  <div className="rounded-xl" style={{ background: '#0f172a' }} />
-                  <button onClick={() => move(1, 0)} className="rounded-xl text-xl font-extrabold text-white active:scale-90 transition-transform" style={{ background: '#1e293b', border: '2px solid #475569' }}>➡️</button>
-                  <div />
-                  <button onClick={() => move(0, 1)} className="rounded-xl text-xl font-extrabold text-white active:scale-90 transition-transform" style={{ background: '#1e293b', border: '2px solid #475569' }}>⬇️</button>
-                  <div />
-                </div>
-              </div>
+              <p className="text-center text-xs font-semibold text-slate-300 mt-2">
+                👆 Tap anywhere on the map to walk there!
+              </p>
             )}
 
             {/* party roster */}
