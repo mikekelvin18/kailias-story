@@ -76,3 +76,25 @@ button:active {
 .drop-in   { animation: drop-in 0.45s cubic-bezier(0.36,0.07,0.19,0.97) forwards; }
 .star-burst{ animation: star-burst 0.5s ease-in-out; }
 .slide-right { animation: slide-right 0.35s ease-out forwards; }
+
+/* ── Critter animation kit ── */
+@keyframes critter-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-2deg); }
+}
+@keyframes critter-blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  92% { transform: scaleY(0.1); }
+}
+@keyframes critter-flutter {
+  0%, 100% { transform: rotate(-18deg); }
+  50% { transform: rotate(18deg); }
+}
+@keyframes critter-wag {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(12deg); }
+}
+.critter-bob     { animation: critter-bob 1.8s ease-in-out infinite; transform-origin: center bottom; }
+.critter-blink   { animation: critter-blink 3.2s ease-in-out infinite; transform-origin: center; }
+.critter-flutter { animation: critter-flutter 0.5s ease-in-out infinite; transform-origin: 100% 50%; }
+.critter-wag     { animation: critter-wag 0.9s ease-in-out infinite; transform-origin: top center; }

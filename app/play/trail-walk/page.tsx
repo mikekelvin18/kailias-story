@@ -10,6 +10,7 @@ import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, type Challenge } from '@/lib/creatureChallenges';
+import { Critter } from '@/components/characters/CritterSprite';
 
 // ─── Kailia's Trail ───────────────────────────────────────────────────────────
 // A side-scrolling adventure walk: Kailia strolls a parallax landscape and
@@ -204,7 +205,9 @@ export default function TrailWalkPage() {
                 ))}
                 {challengesRef.current.map((c, i) => (
                   i >= party.length && (
-                    <span key={i} className="absolute float" style={{ left: (i + 1) * SEG + kailiaScreenX + 90, bottom: 40, fontSize: 40, pointerEvents: 'none' }}>{c.creature}</span>
+                    <span key={i} className="absolute" style={{ left: (i + 1) * SEG + kailiaScreenX + 90, bottom: 40, pointerEvents: 'none' }}>
+                      <Critter emoji={c.creature} size={40} />
+                    </span>
                   )
                 ))}
                 <span className="absolute" style={{ left: (STOPS + 1) * SEG + kailiaScreenX + 90, bottom: 40, fontSize: 44, pointerEvents: 'none' }}>🚩</span>
@@ -216,7 +219,9 @@ export default function TrailWalkPage() {
                 <KailiaSprite size={56} expression={phase === 'done' ? 'celebrating' : 'happy'} />
               </div>
               {party.map((p, i) => (
-                <span key={i} className="absolute" style={{ left: kailiaScreenX - 70 - i * 30, bottom: 40, fontSize: 24, animation: walking.current ? `bob 0.5s ${i * 0.1}s infinite` : 'none', zIndex: 4 }}>{p}</span>
+                <span key={i} className="absolute" style={{ left: kailiaScreenX - 70 - i * 30, bottom: 40, animation: walking.current ? `bob 0.5s ${i * 0.1}s infinite` : 'none', zIndex: 4 }}>
+                  <Critter emoji={p} size={30} />
+                </span>
               ))}
 
               {phase === 'walking' && !walking.current && (
@@ -241,18 +246,22 @@ export default function TrailWalkPage() {
             {phase === 'memoryShow' && challenge?.memoryFull && (
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
                 <p className="text-sm font-extrabold text-sky-900 mb-2">👀 Look closely — remember everyone here!</p>
-                <p style={{ fontSize: 44, letterSpacing: 8 }}>{challenge.memoryFull.join('')}</p>
+                <div className="flex gap-3 justify-center flex-wrap">
+                  {challenge.memoryFull.map((c, i) => <Critter key={i} emoji={c} size={56} />)}
+                </div>
               </div>
             )}
 
             {phase === 'challenge' && challenge && (
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
-                <p className="text-3xl mb-1">{challenge.creature}</p>
+                <div className="flex justify-center mb-1"><Critter emoji={challenge.creature} size={64} /></div>
                 <p className="text-base font-extrabold text-sky-950 mb-2">{challenge.ask}</p>
                 {challenge.memoryCast && (
                   <>
                     <p className="text-xs font-bold text-slate-500">Still here:</p>
-                    <p className="mb-2" style={{ fontSize: 34, letterSpacing: 6 }}>{challenge.memoryCast.join('')}</p>
+                    <div className="flex gap-2 justify-center flex-wrap mb-2">
+                      {challenge.memoryCast.map((c, i) => <Critter key={i} emoji={c} size={40} />)}
+                    </div>
                   </>
                 )}
                 {challenge.display && (
@@ -263,9 +272,11 @@ export default function TrailWalkPage() {
                 <div className="flex gap-3 justify-center flex-wrap">
                   {challenge.options.map((o, i) => (
                     <button key={i} data-correct={o.correct} onClick={() => answer(o)}
-                      className="px-6 py-3 rounded-2xl font-extrabold shadow transition-transform hover:scale-105 active:scale-95"
+                      className="px-6 py-3 rounded-2xl font-extrabold shadow transition-transform hover:scale-105 active:scale-95 flex items-center justify-center"
                       style={{ background: '#F0F9FF', border: '2.5px solid #7DD3FC', color: '#0c4a6e', fontSize: /\d/.test(o.label) ? 22 : 28 }}>
-                      {o.label}
+                      {(challenge.type === 'memory' || challenge.type === 'word')
+                        ? <Critter emoji={o.label} size={36} animate={false} />
+                        : o.label}
                     </button>
                   ))}
                 </div>
@@ -284,7 +295,9 @@ export default function TrailWalkPage() {
               <PandaSprite size={100} expression="celebrating" className="float" />
               <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
-            <p style={{ fontSize: 34, letterSpacing: 6 }} className="mb-2">{party.join('')}</p>
+            <div className="flex gap-2 justify-center flex-wrap mb-2">
+              {party.map((p, i) => <Critter key={i} emoji={p} size={44} />)}
+            </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">You reached the flag!</h2>
             <p className="text-emerald-100 font-semibold mb-1">{party.length} new friends walked the whole way with you! 🥾</p>
             <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{Math.max(10, 16 + level * 2 - wrongsRef.current * 2)} starlight</p>

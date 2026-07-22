@@ -10,6 +10,7 @@ import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { makeChallenge, DOMAIN, type Challenge } from '@/lib/creatureChallenges';
+import { Critter } from '@/components/characters/CritterSprite';
 
 // ─── Kailia's Journey ─────────────────────────────────────────────────────────
 // An old-school, Game-Boy-style top-down overworld: a tile grid, a camera
@@ -452,7 +453,7 @@ export default function JourneyPage() {
                     <button key={s.name} onClick={() => beginWorld(s.emoji)}
                       className="rounded-2xl p-3 shadow-xl transition-transform hover:scale-105 active:scale-95"
                       style={{ background: 'rgba(255,255,255,0.95)', border: '3px solid #1a1a2e' }}>
-                      <span className="block text-4xl mb-1">{s.emoji}</span>
+                      <div className="flex justify-center mb-1"><Critter emoji={s.emoji} size={48} /></div>
                       <span className="block text-sm font-extrabold text-slate-900">{s.name}</span>
                       <span className="block text-[10px] text-slate-500 leading-snug mt-1">{s.blurb}</span>
                     </button>
@@ -567,9 +568,11 @@ export default function JourneyPage() {
             <p className="font-extrabold text-lg mb-4" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
               👀 Look closely — remember everyone here!
             </p>
-            <p style={{ fontSize: 56, letterSpacing: 10 }} className="bounce-in">
-              {activeEncounter.challenge.memoryFull?.join('')}
-            </p>
+            <div className="bounce-in flex gap-3 justify-center flex-wrap">
+              {activeEncounter.challenge.memoryFull?.map((c, i) => (
+                <Critter key={i} emoji={c} size={64} />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -585,7 +588,9 @@ export default function JourneyPage() {
             ) : (
               <div className="grid grid-cols-4 gap-2">
                 {party.map((p, i) => (
-                  <div key={i} className="rounded-xl flex items-center justify-center text-3xl" style={{ aspectRatio: '1', background: '#f1f5f9', border: '2px solid #1a1a2e' }}>{p}</div>
+                  <div key={i} className="rounded-xl flex items-center justify-center" style={{ aspectRatio: '1', background: '#f1f5f9', border: '2px solid #1a1a2e' }}>
+                    <Critter emoji={p} size={40} />
+                  </div>
                 ))}
                 {Array.from({ length: Math.max(0, world.required - party.length) }).map((_, i) => (
                   <div key={`e${i}`} className="rounded-xl flex items-center justify-center text-2xl text-slate-300" style={{ aspectRatio: '1', background: '#f8fafc', border: '2px dashed #cbd5e1' }}>?</div>
@@ -605,10 +610,10 @@ export default function JourneyPage() {
           {/* battle stage */}
           <div className="flex-1 relative">
             <div className="absolute" style={{ right: '14%', top: '18%' }}>
-              <span className={`block ${phase === 'capturing' ? '' : 'float'}`}
-                style={{ fontSize: 84, animation: phase === 'capturing' ? 'kshrink 0.5s ease-in forwards, kwiggle 0.4s ease-in-out 0.5s 3' : undefined }}>
-                {activeEncounter.challenge.creature}
-              </span>
+              <div className={phase === 'capturing' ? '' : 'float'}
+                style={{ animation: phase === 'capturing' ? 'kshrink 0.5s ease-in forwards, kwiggle 0.4s ease-in-out 0.5s 3' : undefined }}>
+                <Critter emoji={activeEncounter.challenge.creature} size={96} />
+              </div>
             </div>
             <div className="absolute" style={{ left: '10%', bottom: '8%' }}>
               <KailiaSprite size={70} expression={phase === 'capturing' ? 'celebrating' : 'thinking'} />
@@ -634,7 +639,11 @@ export default function JourneyPage() {
                 {activeEncounter.challenge.memoryCast && (
                   <>
                     <p className="text-center text-xs font-bold" style={{ color: '#64748b', fontFamily: '"Courier New", monospace' }}>Still here:</p>
-                    <p className="text-center my-1" style={{ fontSize: 34, letterSpacing: 6 }}>{activeEncounter.challenge.memoryCast.join('')}</p>
+                    <div className="flex gap-2 justify-center my-1 flex-wrap">
+                      {activeEncounter.challenge.memoryCast.map((c, i) => (
+                        <Critter key={i} emoji={c} size={40} />
+                      ))}
+                    </div>
                   </>
                 )}
                 {activeEncounter.challenge.display && (
@@ -646,10 +655,13 @@ export default function JourneyPage() {
                 <div className="rounded-md overflow-hidden mt-1" style={{ border: '3px solid #1a1a2e' }}>
                   {activeEncounter.challenge.options.map((o, i) => (
                     <button key={i} data-correct={o.correct} onClick={() => answer(o, activeEncounter.challenge)}
-                      className="w-full text-left px-3 py-2 transition-colors hover:bg-slate-100 active:bg-slate-200"
+                      className="w-full text-left px-3 py-2 transition-colors hover:bg-slate-100 active:bg-slate-200 flex items-center gap-2"
                       style={{ fontFamily: '"Courier New", monospace', fontSize: 16, fontWeight: 700, color: '#1a1a2e',
                         borderBottom: i < activeEncounter.challenge.options.length - 1 ? '2px solid #1a1a2e' : 'none', background: '#fdfdf8' }}>
-                      ▶ {o.label}
+                      <span>▶</span>
+                      {(activeEncounter.challenge.type === 'memory' || activeEncounter.challenge.type === 'word')
+                        ? <Critter emoji={o.label} size={32} animate={false} />
+                        : <span>{o.label}</span>}
                     </button>
                   ))}
                 </div>
@@ -668,7 +680,9 @@ export default function JourneyPage() {
               <PandaSprite size={100} expression="celebrating" className="float" />
               <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
-            <p style={{ fontSize: 34, letterSpacing: 6 }} className="mb-2">{party.join('')}</p>
+            <div className="flex gap-2 justify-center flex-wrap mb-2">
+              {party.map((p, i) => <Critter key={i} emoji={p} size={44} />)}
+            </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">You crossed {world.biome.name}!</h2>
             <p className="text-slate-200 font-semibold mb-1">{party.length} new friends joined your journey! 🐾</p>
             <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{Math.max(10, 16 + level * 2 - wrongRef.current * 2)} starlight</p>
