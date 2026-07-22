@@ -101,63 +101,63 @@ export default function PandaSprite({ size = 120, expression = 'happy', classNam
 
   return (
     <svg
-      viewBox="0 0 100 120"
-      width={size}
-      height={size * 1.2}
+      viewBox="0 0 120 140"
+      width={size * 1.2}
+      height={size * 1.4}
       className={className}
       style={style}
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* ── Shadow ── */}
-      <ellipse cx="50" cy="117" rx="28" ry="4" fill="rgba(0,0,0,0.1)" />
+      <ellipse cx="60" cy="136" rx="38" ry="5" fill="rgba(0,0,0,0.1)" />
 
-      {/* ── Body ── */}
-      <ellipse cx="50" cy="97" rx="30" ry="26" fill="white" stroke={SK} strokeWidth={SW} />
+      {/* ── Body — big and round ── */}
+      <ellipse cx="60" cy="106" rx="42" ry="34" fill="white" stroke={SK} strokeWidth={SW} />
       {/* Tummy oval */}
-      <ellipse cx="50" cy="97" rx="18" ry="16" fill="#f5f5f5" stroke="#e0e0e0" strokeWidth="1" />
+      <ellipse cx="60" cy="108" rx="26" ry="22" fill="#f5f5f5" stroke="#e0e0e0" strokeWidth="1" />
 
       {/* Purple scarf — matches Kailia */}
-      <ellipse cx="50" cy="77" rx="22" ry="8" fill="#7C3AED" stroke={SK} strokeWidth="2" />
+      <ellipse cx="60" cy="80" rx="27" ry="9" fill="#7C3AED" stroke={SK} strokeWidth="2" />
       {/* Scarf knot dangle */}
-      <rect x="28" y="77" width="10" height="16" rx="5" fill="#7C3AED" stroke={SK} strokeWidth="2" />
+      <rect x="34" y="80" width="12" height="19" rx="6" fill="#7C3AED" stroke={SK} strokeWidth="2" />
 
       {/* Bamboo in right hand */}
-      <rect x="76" y="82" width="6" height="30" rx="3" fill="#4ade80" stroke="#16a34a" strokeWidth="1.5" />
-      <ellipse cx="79" cy="82" rx="5" ry="4" fill="#86efac" stroke="#16a34a" strokeWidth="1" />
-      <rect x="74" y="90" width="10" height="4" rx="2" fill="#22c55e" />
-      <rect x="74" y="102" width="10" height="4" rx="2" fill="#22c55e" />
+      <rect x="92" y="88" width="7" height="34" rx="3.5" fill="#4ade80" stroke="#16a34a" strokeWidth="1.5" />
+      <ellipse cx="95.5" cy="88" rx="6" ry="5" fill="#86efac" stroke="#16a34a" strokeWidth="1" />
+      <rect x="90" y="98" width="12" height="4.5" rx="2" fill="#22c55e" />
+      <rect x="90" y="112" width="12" height="4.5" rx="2" fill="#22c55e" />
 
-      {/* Arms (stubby) */}
-      <ellipse cx="17" cy="98" rx="11" ry="8" fill={SK} stroke={SK} strokeWidth="1" transform="rotate(-20 17 98)" />
-      <ellipse cx="83" cy="98" rx="11" ry="8" fill={SK} stroke={SK} strokeWidth="1" transform="rotate(20 83 98)" />
+      {/* Arms (stubby, round and chunky) */}
+      <ellipse cx="15" cy="108" rx="15" ry="11" fill={SK} stroke={SK} strokeWidth="1" transform="rotate(-15 15 108)" />
+      <ellipse cx="105" cy="108" rx="15" ry="11" fill={SK} stroke={SK} strokeWidth="1" transform="rotate(15 105 108)" />
 
       {/* Legs */}
-      <ellipse cx="36" cy="118" rx="11" ry="6" fill={SK} />
-      <ellipse cx="64" cy="118" rx="11" ry="6" fill={SK} />
+      <ellipse cx="41" cy="137" rx="15" ry="8" fill={SK} />
+      <ellipse cx="79" cy="137" rx="15" ry="8" fill={SK} />
 
-      {/* ── Head ── */}
-      <circle cx="50" cy="48" r="38" fill="white" stroke={SK} strokeWidth={SW} />
+      {/* ── Head — bigger ── */}
+      <circle cx="60" cy="46" r="44" fill="white" stroke={SK} strokeWidth={SW} />
 
       {/* ── Ears (black patches on top) ── */}
-      <circle cx="16" cy="17" r="16" fill={SK} stroke={SK} strokeWidth="1" />
-      <circle cx="84" cy="17" r="16" fill={SK} stroke={SK} strokeWidth="1" />
+      <circle cx="20" cy="12" r="18" fill={SK} stroke={SK} strokeWidth="1" />
+      <circle cx="100" cy="12" r="18" fill={SK} stroke={SK} strokeWidth="1" />
       {/* Ear inner colour */}
-      <circle cx="16" cy="17" r="9" fill="#2a1a18" />
-      <circle cx="84" cy="17" r="9" fill="#2a1a18" />
+      <circle cx="20" cy="12" r="10" fill="#2a1a18" />
+      <circle cx="100" cy="12" r="10" fill="#2a1a18" />
 
       {/* ── Eyes ── */}
-      {eyes[expression]}
+      <g transform="translate(10, -2)">{eyes[expression]}</g>
 
       {/* ── Nose ── */}
-      <ellipse cx="50" cy="63" rx="6" ry="4" fill={SK} />
-      <ellipse cx="49" cy="62" rx="2" ry="1.5" fill="#3a2a28" />
+      <ellipse cx="60" cy="62" rx="7" ry="5" fill={SK} />
+      <ellipse cx="59" cy="61" rx="2.3" ry="1.7" fill="#3a2a28" />
 
       {/* ── Mouth ── */}
-      {mouths[expression]}
+      <g transform="translate(10, 0)">{mouths[expression]}</g>
 
       {/* ── Cheeks ── */}
-      <circle cx="24" cy="65" r="9" fill="#FFB3C6" opacity="0.5" />
-      <circle cx="76" cy="65" r="9" fill="#FFB3C6" opacity="0.5" />
+      <circle cx="30" cy="64" r="10" fill="#FFB3C6" opacity="0.5" />
+      <circle cx="90" cy="64" r="10" fill="#FFB3C6" opacity="0.5" />
     </svg>
   );
 }
