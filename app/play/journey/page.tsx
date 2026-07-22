@@ -9,6 +9,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { makeChallenge, DOMAIN, type Challenge } from '@/lib/creatureChallenges';
 
 // ─── Kailia's Journey ─────────────────────────────────────────────────────────
 // An old-school, Game-Boy-style top-down overworld: a tile grid, a camera
@@ -23,14 +24,8 @@ const W = 16, H = 20;            // map size, tiles — bigger now the whole scr
 const TILE = 44;                 // px per tile
 
 type TileType = 'grass' | 'path' | 'tallgrass' | 'tree' | 'water' | 'flower' | 'flag';
-type ChType = 'count' | 'memory' | 'color' | 'feeling' | 'word';
 
 interface Pt { x: number; y: number; }
-interface Challenge {
-  type: ChType; creature: string; ask: string; display: string;
-  options: { label: string; correct: boolean }[];
-  memoryCast?: string[];
-}
 interface Encounter { challenge: Challenge; solved: boolean; }
 
 interface Biome {
@@ -44,9 +39,6 @@ const BIOMES: Biome[] = [
   { name: 'Autumn Grove', sky: 'linear-gradient(180deg,#fdba74,#fb923c 65%)', ground: '#fed7aa', path: '#d4a373', obstacles: ['🍁', '🪵'], decor: ['🍂', '🍄'], tallgrassBg: '#f59e42' },
 ];
 
-const CREATURES: Record<ChType, string[]> = {
-  count: ['🐉', '🐲'], memory: ['🦉', '🦝'], color: ['🦜', '🦚'], feeling: ['🐰', '🐨'], word: ['🦌', '🦢'],
-};
 // The three starter partners offered on a brand-new journey — same names
 // as the companions unlocked by starlight, tying the two systems together.
 const STARTERS = [
@@ -54,53 +46,8 @@ const STARTERS = [
   { emoji: '🦊', name: 'Flick', blurb: 'Quick, clever, always curious.' },
   { emoji: '🦉', name: 'Sage', blurb: 'Wise eyes that notice everything.' },
 ];
-const GEMS = ['💎', '🔮', '🟡', '🍓'];
-const COLOR_SET = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
-const FEELINGS: [string, boolean][] = [['🎂🎈', true], ['💔🧸', false], ['🍦☀️', true], ['🌧️⚽', false], ['🎁🎀', true], ['🤕🩹', false]];
-const WORDS: [string, string, string[]][] = [
-  ['cat', '🐱', ['🐶', '🍎']], ['sun', '☀️', ['🌙', '🐟']], ['dog', '🐶', ['🐱', '⭐']],
-  ['fish', '🐟', ['🐦', '🍪']], ['star', '⭐', ['🌸', '🐢']], ['bee', '🐝', ['🦋', '🍞']],
-];
-const MEMORY_POOL = ['🦊', '🐸', '🦋', '🐢', '🐿️', '🦔', '🐝'];
-const DOMAIN: Record<ChType, string> = { count: 'math', memory: 'processing', color: 'sensory', feeling: 'communication', word: 'reading' };
 
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
-const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
-
-function makeChallenge(i: number, tier: string): Challenge {
-  const types: ChType[] = tier === 'tiny' ? ['count', 'color', 'memory', 'feeling'] : ['count', 'memory', 'word', 'color', 'feeling'];
-  const type = types[i % types.length];
-  const creature = pick(CREATURES[type]);
-  if (type === 'count') {
-    const max = tier === 'tiny' ? 4 : tier === 'small' ? 6 : 9;
-    const n = 2 + Math.floor(Math.random() * (max - 1));
-    let wrong = n + pick([-1, 1, 2]); if (wrong < 1 || wrong === n) wrong = n + 1;
-    let wrong2 = n + pick([-2, 2, 3]); if (wrong2 < 1 || wrong2 === n || wrong2 === wrong) wrong2 = n + 3;
-    return { type, creature, ask: 'How many gems do I have?', display: pick(GEMS).repeat(n),
-      options: shuffle([{ label: String(n), correct: true }, { label: String(wrong), correct: false }, { label: String(wrong2), correct: false }]) };
-  }
-  if (type === 'memory') {
-    const cast = shuffle(MEMORY_POOL).slice(0, tier === 'big' ? 4 : 3);
-    const hidden = pick(cast);
-    const others = shuffle(MEMORY_POOL.filter(m => !cast.includes(m))).slice(0, 2);
-    return { type, creature, ask: 'Someone snuck away — who was it?', display: '', memoryCast: cast,
-      options: shuffle([{ label: hidden, correct: true }, ...others.map(o => ({ label: o, correct: false }))]) };
-  }
-  if (type === 'color') {
-    const c = pick(COLOR_SET);
-    const others = shuffle(COLOR_SET.filter(x => x !== c)).slice(0, 2);
-    return { type, creature, ask: "Find my gem's twin color!", display: c,
-      options: shuffle([{ label: c, correct: true }, ...others.map(o => ({ label: o, correct: false }))]) };
-  }
-  if (type === 'feeling') {
-    const [scene, happy] = pick(FEELINGS);
-    return { type, creature, ask: 'How would that feel?', display: scene,
-      options: shuffle([{ label: '😊', correct: happy }, { label: '😢', correct: !happy }]) };
-  }
-  const [word, right, wrongs] = pick(WORDS);
-  return { type, creature, ask: `Which picture says "${word}"?`, display: word,
-    options: shuffle([{ label: right, correct: true }, ...wrongs.map(w => ({ label: w, correct: false }))]) };
-}
 
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   try {
@@ -248,7 +195,7 @@ export default function JourneyPage() {
   const tier = difficultyTier(state.ageGroup, totalScore);
 
   const [level, setLevel] = useState(1);
-  const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'battle' | 'capturing' | 'done'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');
   const [world, setWorld] = useState<ReturnType<typeof buildWorld> | null>(null);
   const [player, setPlayer] = useState<Pt>({ x: 1, y: H - 2 });
   const [party, setParty] = useState<string[]>([]);
@@ -355,8 +302,14 @@ export default function JourneyPage() {
         setTimeout(() => {
           setActiveTile(k);
           sfx.encounter();
-          setDialog(`A wild ${w.encounters[k].challenge.creature} appeared!`);
-          setPhase('battle');
+          const ch = w.encounters[k].challenge;
+          setDialog(`A wild ${ch.creature} appeared!`);
+          if (ch.type === 'memory') {
+            setPhase('memoryShow');
+            setTimeout(() => setPhase('battle'), 2400);
+          } else {
+            setPhase('battle');
+          }
         }, 650);
       } else if (t === 'flag') {
         pathQueueRef.current = [];
@@ -432,7 +385,7 @@ export default function JourneyPage() {
       setShakeBox(true);
       setTimeout(() => setShakeBox(false), 400);
       const hint = challenge.type === 'count' ? 'Count one by one with your finger, then try again!'
-        : challenge.type === 'memory' ? 'Picture who was standing there… try again!'
+        : challenge.type === 'memory' ? 'Try to remember who was missing… look again!'
         : challenge.type === 'word' ? 'Sound it out slowly… try again!'
         : 'Look closely and try again!';
       setDialog(hint);
@@ -440,10 +393,14 @@ export default function JourneyPage() {
   }
 
   const activeEncounter = activeTile && world ? world.encounters[activeTile] : null;
+  // The floating dialog/hint bar (plus the D-pad above it) occupies the
+  // bottom of the screen — bias the camera so Kailia stays visible above
+  // that reserved strip instead of centered dead-in-the-middle.
+  const BOTTOM_UI_RESERVE = 190;
   const maxOffX = Math.max(0, W * TILE - screenSize.w);
   const maxOffY = Math.max(0, H * TILE - screenSize.h);
   const offsetX = Math.max(0, Math.min(maxOffX, player.x * TILE - screenSize.w / 2 + TILE / 2));
-  const offsetY = Math.max(0, Math.min(maxOffY, player.y * TILE - screenSize.h / 2 + TILE / 2));
+  const offsetY = Math.max(0, Math.min(maxOffY, player.y * TILE - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + TILE / 2));
 
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: '#0f172a' }}>
@@ -556,7 +513,7 @@ export default function JourneyPage() {
 
           {/* ── Floating mini D-pad, inside the screen (tap-to-walk still works everywhere else) ── */}
           {phase === 'walking' && (
-            <div className="absolute z-10" style={{ right: 12, bottom: 96 }}>
+            <div className="absolute z-10" style={{ right: 12, bottom: 200 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', gap: 3 }}>
                 <div />
                 <button onClick={() => move(0, -1)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬆️</button>
@@ -598,6 +555,20 @@ export default function JourneyPage() {
             <span className="block text-6xl shake" style={{ animationIterationCount: 'infinite' }}>🌾</span>
             <p className="mt-3 font-extrabold text-lg" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
               The grass rustles…
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Memory reveal: show the full lineup before one disappears ── */}
+      {phase === 'memoryShow' && activeEncounter && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: '#1a1a2e' }}>
+          <div className="text-center px-6">
+            <p className="font-extrabold text-lg mb-4" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
+              👀 Look closely — remember everyone here!
+            </p>
+            <p style={{ fontSize: 56, letterSpacing: 10 }} className="bounce-in">
+              {activeEncounter.challenge.memoryFull?.join('')}
             </p>
           </div>
         </div>
@@ -661,7 +632,10 @@ export default function JourneyPage() {
             {phase === 'battle' && (
               <>
                 {activeEncounter.challenge.memoryCast && (
-                  <p className="text-center my-2" style={{ fontSize: 34, letterSpacing: 6 }}>{activeEncounter.challenge.memoryCast.join('')}</p>
+                  <>
+                    <p className="text-center text-xs font-bold" style={{ color: '#64748b', fontFamily: '"Courier New", monospace' }}>Still here:</p>
+                    <p className="text-center my-1" style={{ fontSize: 34, letterSpacing: 6 }}>{activeEncounter.challenge.memoryCast.join('')}</p>
+                  </>
                 )}
                 {activeEncounter.challenge.display && (
                   <p className="text-center my-2 font-extrabold" style={{ fontSize: 30, color: '#1a1a2e', fontFamily: '"Courier New", monospace' }}>

@@ -9,6 +9,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { makeChallenge as makeChallengeBase, DOMAIN, type Challenge } from '@/lib/creatureChallenges';
 
 // ─── Kailia's Trail ───────────────────────────────────────────────────────────
 // A side-scrolling adventure walk: Kailia strolls a parallax landscape and
@@ -20,71 +21,14 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 const SEG = 860;              // px walked between encounters
 const STOPS = 4;              // creatures per walk
 
-type ChType = 'count' | 'memory' | 'color' | 'feeling' | 'word';
-
-interface Challenge {
-  type: ChType;
-  creature: string;
-  ask: string;
-  display: string;
-  options: { label: string; correct: boolean }[];
-  memoryCast?: string[];
-}
-
-const CREATURES: Record<ChType, string[]> = {
-  count: ['🐉', '🐲'], memory: ['🦉', '🦝'], color: ['🦜', '🦚'], feeling: ['🐰', '🐨'], word: ['🦌', '🦢'],
-};
-const GEMS = ['💎', '🔮', '🟡', '🍓'];
-const COLOR_SET = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
-const FEELINGS: [string, boolean][] = [['🎂🎈', true], ['💔🧸', false], ['🍦☀️', true], ['🌧️⚽', false], ['🎁🎀', true], ['🤕🩹', false]];
-const WORDS: [string, string, string[]][] = [
-  ['cat', '🐱', ['🐶', '🍎']], ['sun', '☀️', ['🌙', '🐟']], ['dog', '🐶', ['🐱', '⭐']],
-  ['fish', '🐟', ['🐦', '🍪']], ['star', '⭐', ['🌸', '🐢']], ['bee', '🐝', ['🦋', '🍞']],
-];
-const MEMORY_POOL = ['🦊', '🐸', '🦋', '🐢', '🐿️', '🦔', '🐝'];
-
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
-const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 
+// level folded into the picked index so each walk's mix of challenge
+// types rotates from level to level, then delegates to the shared,
+// picture-matches-question generator used by both Journey and Trail.
 function makeChallenge(i: number, tier: string, level: number): Challenge {
-  const types: ChType[] = tier === 'tiny'
-    ? ['count', 'color', 'memory', 'feeling']
-    : ['count', 'memory', 'word', 'color', 'feeling'];
-  const type = types[(i + level) % types.length];
-  const creature = pick(CREATURES[type]);
-
-  if (type === 'count') {
-    const max = tier === 'tiny' ? 4 : tier === 'small' ? 6 : Math.min(9, 6 + level);
-    const n = 2 + Math.floor(Math.random() * (max - 1));
-    let wrong = n + pick([-1, 1, 2]); if (wrong < 1 || wrong === n) wrong = n + 1;
-    let wrong2 = n + pick([-2, 2, 3]); if (wrong2 < 1 || wrong2 === n || wrong2 === wrong) wrong2 = n + 3;
-    return { type, creature, ask: 'How many gems do I have?', display: pick(GEMS).repeat(n),
-      options: shuffle([{ label: String(n), correct: true }, { label: String(wrong), correct: false }, { label: String(wrong2), correct: false }]) };
-  }
-  if (type === 'memory') {
-    const cast = shuffle(MEMORY_POOL).slice(0, tier === 'big' ? 4 : 3);
-    const hidden = pick(cast);
-    const others = shuffle(MEMORY_POOL.filter(m => !cast.includes(m))).slice(0, 2);
-    return { type, creature, ask: 'Someone snuck away — who was it?', display: '', memoryCast: cast,
-      options: shuffle([{ label: hidden, correct: true }, ...others.map(o => ({ label: o, correct: false }))]) };
-  }
-  if (type === 'color') {
-    const c = pick(COLOR_SET);
-    const others = shuffle(COLOR_SET.filter(x => x !== c)).slice(0, 2);
-    return { type, creature, ask: "Find my gem's twin color!", display: c,
-      options: shuffle([{ label: c, correct: true }, ...others.map(o => ({ label: o, correct: false }))]) };
-  }
-  if (type === 'feeling') {
-    const [scene, happy] = pick(FEELINGS);
-    return { type, creature, ask: 'How would that feel?', display: scene,
-      options: shuffle([{ label: '😊', correct: happy }, { label: '😢', correct: !happy }]) };
-  }
-  const [word, right, wrongs] = pick(WORDS);
-  return { type, creature, ask: `Which picture says "${word}"?`, display: word,
-    options: shuffle([{ label: right, correct: true }, ...wrongs.map(w => ({ label: w, correct: false }))]) };
+  return makeChallengeBase(i + level, tier);
 }
-
-const DOMAIN: Record<ChType, string> = { count: 'math', memory: 'processing', color: 'sensory', feeling: 'communication', word: 'reading' };
 
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   try {
@@ -192,7 +136,7 @@ export default function TrailWalkPage() {
       wrongsRef.current += 1;
       sfx.hmm();
       setNoelLine(challenge.type === 'count' ? 'Count them one by one with your finger!'
-        : challenge.type === 'memory' ? 'Close your eyes and picture who was standing there…'
+        : challenge.type === 'memory' ? 'Try to remember who was missing… look again!'
         : challenge.type === 'word' ? 'Sound it out slowly — what does it start with?'
         : 'Look really closely and try again!');
     }
@@ -294,10 +238,10 @@ export default function TrailWalkPage() {
               </div>
             </div>
 
-            {phase === 'memoryShow' && challenge?.memoryCast && (
+            {phase === 'memoryShow' && challenge?.memoryFull && (
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
-                <p className="text-sm font-extrabold text-sky-900 mb-2">👀 Remember who&apos;s here…</p>
-                <p style={{ fontSize: 44, letterSpacing: 8 }}>{challenge.memoryCast.join('')}</p>
+                <p className="text-sm font-extrabold text-sky-900 mb-2">👀 Look closely — remember everyone here!</p>
+                <p style={{ fontSize: 44, letterSpacing: 8 }}>{challenge.memoryFull.join('')}</p>
               </div>
             )}
 
@@ -305,6 +249,12 @@ export default function TrailWalkPage() {
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
                 <p className="text-3xl mb-1">{challenge.creature}</p>
                 <p className="text-base font-extrabold text-sky-950 mb-2">{challenge.ask}</p>
+                {challenge.memoryCast && (
+                  <>
+                    <p className="text-xs font-bold text-slate-500">Still here:</p>
+                    <p className="mb-2" style={{ fontSize: 34, letterSpacing: 6 }}>{challenge.memoryCast.join('')}</p>
+                  </>
+                )}
                 {challenge.display && (
                   <p className="mb-3" style={{ fontSize: 30, fontWeight: 800, color: '#0c4a6e', letterSpacing: challenge.type === 'count' ? 2 : 0 }}>
                     {challenge.display}
