@@ -29,49 +29,48 @@ export default function PandaSprite({ size = 120, expression = 'happy', classNam
   }
 
   const SW = 3;
-  const SK = '#1a1108';
+  const SK = '#3a2a28'; // soft warm dark brown — friendlier than near-black
 
   const mouths: Record<Expression, React.ReactNode> = {
-    happy:       <path d="M 42 70 Q 50 79 58 70" stroke={SK} strokeWidth={SW} fill="#FF8080" strokeLinecap="round" />,
-    excited:     <ellipse cx="50" cy="72" rx="10" ry="8" fill={SK} />,
+    happy:       <path d="M 42 70 Q 50 77 58 70" stroke={SK} strokeWidth={SW} fill="none" strokeLinecap="round" />,
+    excited:     <path d="M 41 69 Q 50 82 59 69 Q 50 75 41 69 Z" stroke={SK} strokeWidth="2" fill="#FF8080" strokeLinecap="round" />,
     thinking:    <path d="M 43 71 Q 50 67 57 71" stroke={SK} strokeWidth={SW} fill="none" strokeLinecap="round" />,
-    celebrating: <path d="M 39 69 Q 50 80 61 69" stroke={SK} strokeWidth={SW} fill="#FF8080" strokeLinecap="round" />,
+    celebrating: <path d="M 40 68 Q 50 81 60 68 Q 50 74 40 68 Z" stroke={SK} strokeWidth="2" fill="#FF8080" strokeLinecap="round" />,
     sleepy:      <path d="M 44 71 Q 50 74 56 71" stroke={SK} strokeWidth={SW} fill="none" strokeLinecap="round" />,
   };
 
+  // Eye patches sized so the white eyeball dominates — a small dark patch
+  // with a big friendly white eye reads as cute; a big black patch with a
+  // small eye reads as a blank stare, which is what made Noel look scary.
   const eyes: Record<Expression, React.ReactNode> = {
     happy: (
       <>
-        {/* Eye patches */}
-        <ellipse cx="35" cy="52" rx="13" ry="12" fill={SK} />
-        <ellipse cx="65" cy="52" rx="13" ry="12" fill={SK} />
-        {/* White eyeballs */}
-        <circle cx="35" cy="53" r="7" fill="white" />
-        <circle cx="65" cy="53" r="7" fill="white" />
-        {/* Pupils */}
-        <circle cx="35" cy="54" r="4" fill={SK} />
-        <circle cx="65" cy="54" r="4" fill={SK} />
-        {/* Shine */}
-        <circle cx="37" cy="51" r="1.8" fill="white" />
-        <circle cx="67" cy="51" r="1.8" fill="white" />
+        <ellipse cx="35" cy="52" rx="12" ry="11" fill={SK} />
+        <ellipse cx="65" cy="52" rx="12" ry="11" fill={SK} />
+        <circle cx="35" cy="53" r="8.5" fill="white" />
+        <circle cx="65" cy="53" r="8.5" fill="white" />
+        <circle cx="35" cy="54.5" r="4.2" fill={SK} />
+        <circle cx="65" cy="54.5" r="4.2" fill={SK} />
+        <circle cx="37.5" cy="50.5" r="2" fill="white" />
+        <circle cx="67.5" cy="50.5" r="2" fill="white" />
       </>
     ),
     excited: (
       <>
-        <ellipse cx="35" cy="52" rx="13" ry="12" fill={SK} />
-        <ellipse cx="65" cy="52" rx="13" ry="12" fill={SK} />
-        <circle cx="35" cy="53" r="8" fill="white" />
-        <circle cx="65" cy="53" r="8" fill="white" />
-        <circle cx="35" cy="54" r="5" fill={SK} />
-        <circle cx="65" cy="54" r="5" fill={SK} />
-        <circle cx="37" cy="50" r="2" fill="white" />
-        <circle cx="67" cy="50" r="2" fill="white" />
+        <ellipse cx="35" cy="52" rx="12" ry="11" fill={SK} />
+        <ellipse cx="65" cy="52" rx="12" ry="11" fill={SK} />
+        <circle cx="35" cy="53" r="9" fill="white" />
+        <circle cx="65" cy="53" r="9" fill="white" />
+        <circle cx="35" cy="54.5" r="5" fill={SK} />
+        <circle cx="65" cy="54.5" r="5" fill={SK} />
+        <circle cx="37.5" cy="50" r="2.2" fill="white" />
+        <circle cx="67.5" cy="50" r="2.2" fill="white" />
       </>
     ),
     thinking: (
       <>
-        <ellipse cx="35" cy="52" rx="13" ry="12" fill={SK} />
-        <ellipse cx="65" cy="52" rx="13" ry="12" fill={SK} />
+        <ellipse cx="35" cy="52" rx="12" ry="11" fill={SK} />
+        <ellipse cx="65" cy="52" rx="12" ry="11" fill={SK} />
         {/* Half-closed eyes */}
         <path d="M 23 54 Q 35 48 47 54 Q 35 58 23 54" fill="white" />
         <path d="M 53 54 Q 65 48 77 54 Q 65 58 53 54" fill="white" />
@@ -81,16 +80,16 @@ export default function PandaSprite({ size = 120, expression = 'happy', classNam
     ),
     celebrating: (
       <>
-        <ellipse cx="35" cy="52" rx="13" ry="12" fill={SK} />
-        <ellipse cx="65" cy="52" rx="13" ry="12" fill={SK} />
+        <ellipse cx="35" cy="52" rx="12" ry="11" fill={SK} />
+        <ellipse cx="65" cy="52" rx="12" ry="11" fill={SK} />
         <text x="22" y="60" fontSize="16" fill="#FFD700">★</text>
         <text x="52" y="60" fontSize="16" fill="#FFD700">★</text>
       </>
     ),
     sleepy: (
       <>
-        <ellipse cx="35" cy="52" rx="13" ry="12" fill={SK} />
-        <ellipse cx="65" cy="52" rx="13" ry="12" fill={SK} />
+        <ellipse cx="35" cy="52" rx="12" ry="11" fill={SK} />
+        <ellipse cx="65" cy="52" rx="12" ry="11" fill={SK} />
         {/* Closed eyes */}
         <path d="M 24 54 Q 35 50 46 54" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
         <path d="M 54 54 Q 65 50 76 54" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
@@ -150,7 +149,7 @@ export default function PandaSprite({ size = 120, expression = 'happy', classNam
 
       {/* ── Nose ── */}
       <ellipse cx="60" cy="62" rx="7" ry="5" fill={SK} />
-      <ellipse cx="59" cy="61" rx="2.3" ry="1.7" fill="#3a2a28" />
+      <ellipse cx="59" cy="61" rx="2.3" ry="1.7" fill="#e8d8c8" opacity="0.4" />
 
       {/* ── Mouth ── */}
       <g transform="translate(10, 0)">{mouths[expression]}</g>
