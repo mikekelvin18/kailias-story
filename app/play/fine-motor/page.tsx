@@ -196,11 +196,13 @@ export default function MazeRunnerPage() {
   const animRef      = useRef(0);
   const headImgRef   = useRef<HTMLImageElement | null>(null);
 
-  // Load Kailia's head once — drawn into the maze player token instead of a
-  // plain blank circle-face.
+  // Load one of Kailia's running poses once — drawn into the maze player
+  // token instead of a plain blank circle-face. The run frames are close
+  // to square, so they drop into the round token without the tall
+  // full-body portrait's squish/distortion.
   useEffect(() => {
     const img = new window.Image();
-    img.src = '/characters/kailia/portrait-front.png';
+    img.src = '/characters/kailia/run-3.png';
     img.onload = () => { headImgRef.current = img; };
   }, []);
 
@@ -283,7 +285,7 @@ export default function MazeRunnerPage() {
     }
     ctx.shadowBlur=0;
 
-    // Character — Kailia's head, clipped to a circle, instead of a blank face
+    // Character — Kailia running, clipped to a circle, instead of a blank face
     if (char) {
       ctx.shadowBlur=24; ctx.shadowColor=lv.accent;
       ctx.beginPath(); ctx.arc(char.x,char.y,15,0,Math.PI*2); ctx.fillStyle=lv.accent; ctx.fill();
@@ -292,9 +294,9 @@ export default function MazeRunnerPage() {
       ctx.beginPath(); ctx.arc(char.x,char.y,12,0,Math.PI*2);
       ctx.save(); ctx.clip();
       if (head) {
-        // source-crop just the head/face region (top of the full-body portrait)
-        const sw = head.naturalWidth, sh = head.naturalHeight * 0.4;
-        ctx.drawImage(head, 0, 0, sw, sh, char.x-13, char.y-13, 26, 26);
+        // square-crop from the (near-square) running pose — no aspect distortion
+        const s = Math.min(head.naturalWidth, head.naturalHeight);
+        ctx.drawImage(head, 0, 0, s, s, char.x-13, char.y-13, 26, 26);
       } else {
         ctx.fillStyle='#fff'; ctx.fill();
       }
