@@ -539,7 +539,7 @@ export default function SkyMailPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-sm font-semibold text-gray-800 bg-white relative">
+              <div className="rounded-2xl px-3 py-2 text-base font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}

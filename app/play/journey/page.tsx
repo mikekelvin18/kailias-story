@@ -430,8 +430,8 @@ export default function JourneyPage() {
                   ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
                 </div>
                 <div className="rounded-3xl p-6 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-                  <p className="text-gray-700 text-lg leading-relaxed mb-3">A brand-new world stretches ahead! 🗺️</p>
-                  <p className="text-gray-700 text-lg leading-relaxed">
+                  <p className="text-gray-800 text-xl font-semibold leading-relaxed mb-3">A brand-new world stretches ahead! 🗺️</p>
+                  <p className="text-gray-800 text-xl font-semibold leading-relaxed">
                     Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
                     anywhere on the map to walk there! Step into patches of <strong>tall grass 🌾</strong> to meet
                     wild creatures — solve their riddle to catch them, then lead your new friends to the flag! 🚩

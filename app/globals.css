@@ -2,7 +2,7 @@
 
 body {
   background: #FFF9F0;
-  font-family: 'Trebuchet MS', 'Comic Sans MS', sans-serif;
+  font-family: var(--font-baloo), 'Trebuchet MS', 'Comic Sans MS', sans-serif;
 }
 
 @keyframes float {

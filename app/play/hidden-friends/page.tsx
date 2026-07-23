@@ -176,7 +176,7 @@ export default function WheresNoelPage() {
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{scene.emoji} Chapter {level}: {scene.name}</p>
-              <p className="text-gray-700 text-lg leading-relaxed">{scene.story}</p>
+              <p className="text-gray-800 text-xl font-semibold leading-relaxed">{scene.story}</p>
             </div>
             <button onClick={startLevel}
               className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
@@ -220,7 +220,7 @@ export default function WheresNoelPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={targetsLeft.length === 0 ? 'celebrating' : 'thinking'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-sm font-semibold text-gray-800 bg-white relative">
+              <div className="rounded-2xl px-3 py-2 text-base font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
