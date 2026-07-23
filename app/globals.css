@@ -98,3 +98,14 @@ button:active {
 .critter-blink   { animation: critter-blink 3.2s ease-in-out infinite; transform-origin: center; }
 .critter-flutter { animation: critter-flutter 0.5s ease-in-out infinite; transform-origin: 100% 50%; }
 .critter-wag     { animation: critter-wag 0.9s ease-in-out infinite; transform-origin: top center; }
+
+/* ── Real-art character sprites: a soft ground shadow + gentle bob so a
+   flat cutout reads as standing IN the scene, not pasted on top of it. ── */
+@keyframes overworld-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.overworld-bob { animation: overworld-bob 0.28s ease-in-out infinite; }
+.character-art-shadow {
+  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.30));
+}

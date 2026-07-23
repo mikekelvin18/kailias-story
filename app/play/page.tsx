@@ -485,8 +485,8 @@ export default function AdventureMap() {
           style={{ background: 'linear-gradient(135deg, #667EEAee, #764BA2ee)' }}>
           <div className="text-center bounce-in">
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <div className="text-6xl mb-2 star-burst">{celebrating.emoji}</div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">

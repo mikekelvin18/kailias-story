@@ -556,8 +556,8 @@ export default function SkyMailPage() {
           <div className="text-center bounce-in">
             <span className="block text-7xl mb-3 star-burst">📬</span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Every letter made it home!</h2>
             <p className="text-indigo-100 font-semibold mb-6">The wise owl hoots with joy — what a wind-fast sorter! 🦉</p>

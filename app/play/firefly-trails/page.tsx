@@ -187,8 +187,8 @@ export default function FireflyTrailsPage() {
         {phase === 'intro' && (
           <div className="text-center mt-6 bounce-in">
             <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={90} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={110} expression="excited" className="float" />
+              <PandaSprite size={128} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+              <KailiaSprite size={96} expression="excited" className="float" />
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-700 text-lg leading-relaxed mb-3">
@@ -276,8 +276,8 @@ export default function FireflyTrailsPage() {
           <div className="text-center bounce-in">
             <span className="block text-7xl mb-3 star-burst">{shape.emoji}</span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">{shape.name} shines again!</h2>
             <p className="text-emerald-100 font-semibold mb-1">

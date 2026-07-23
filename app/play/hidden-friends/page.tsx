@@ -172,7 +172,7 @@ export default function WheresNoelPage() {
           <div className="text-center mt-6 bounce-in">
             <div className="flex items-end justify-center gap-1 mb-4">
               <span className="text-6xl mb-3 float">🔍</span>
-              <KailiaSprite size={110} expression="thinking" className="float" />
+              <KailiaSprite size={96} expression="thinking" className="float" />
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{scene.emoji} Chapter {level}: {scene.name}</p>
@@ -236,8 +236,8 @@ export default function WheresNoelPage() {
           <div className="text-center bounce-in">
             <span className="block text-7xl mb-3 star-burst">{scene.emoji}</span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Found everyone!</h2>
             <p className="text-slate-200 font-semibold mb-1">Chapter {level}: {scene.name} — complete! 🔍</p>

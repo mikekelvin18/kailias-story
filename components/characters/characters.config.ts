@@ -16,18 +16,22 @@
 
 export type CharacterExpression = 'happy' | 'excited' | 'thinking' | 'celebrating' | 'sleepy';
 
+// Every expression currently points at the same real-art front portrait —
+// we only have one smooth, non-pixelated pose per character (no separate
+// drawn expressions yet), so every KailiaSprite/PandaSprite instance across
+// the whole site renders the real art instead of the placeholder SVG.
 export const CHARACTER_IMAGES: Record<'kailia' | 'noel', Partial<Record<CharacterExpression, string>>> = {
   kailia: {
-    // happy: '/characters/kailia-happy.png',
-    // excited: '/characters/kailia-excited.png',
-    // thinking: '/characters/kailia-thinking.png',
-    // celebrating: '/characters/kailia-celebrating.png',
+    happy: '/characters/kailia/portrait-front.png',
+    excited: '/characters/kailia/portrait-front.png',
+    thinking: '/characters/kailia/portrait-front.png',
+    celebrating: '/characters/kailia/portrait-front.png',
   },
   noel: {
-    // happy: '/characters/noel-happy.png',
-    // excited: '/characters/noel-excited.png',
-    // thinking: '/characters/noel-thinking.png',
-    // celebrating: '/characters/noel-celebrating.png',
-    // sleepy: '/characters/noel-sleepy.png',
+    happy: '/characters/noel/portrait-front.png',
+    excited: '/characters/noel/portrait-front.png',
+    thinking: '/characters/noel/portrait-front.png',
+    celebrating: '/characters/noel/portrait-front.png',
+    sleepy: '/characters/noel/portrait-front.png',
   },
 };

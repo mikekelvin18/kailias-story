@@ -11,6 +11,7 @@ import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
+import RunnerSprite from '@/components/characters/RunnerSprite';
 
 // ─── Kailia's Trail ───────────────────────────────────────────────────────────
 // A side-scrolling adventure walk: Kailia strolls a parallax landscape and
@@ -164,8 +165,8 @@ export default function TrailWalkPage() {
         {phase === 'intro' && (
           <div className="text-center mt-6 bounce-in">
             <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={90} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={110} expression="excited" className="float" />
+              <PandaSprite size={128} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+              <KailiaSprite size={96} expression="excited" className="float" />
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-700 text-lg leading-relaxed mb-3">
@@ -215,11 +216,15 @@ export default function TrailWalkPage() {
 
               <div className="absolute left-0 right-0" style={{ bottom: 0, height: 34, background: 'linear-gradient(180deg, #16a34a, #15803d)', pointerEvents: 'none' }} />
 
-              <div className="absolute" style={{ left: kailiaScreenX - 30, bottom: 22, animation: walking.current ? 'bob 0.45s infinite' : 'none', zIndex: 5 }}>
-                <KailiaSprite size={56} expression={phase === 'done' ? 'celebrating' : 'happy'} />
+              {/* Noel runs alongside Kailia — bigger, since he's a giant panda */}
+              <div className="absolute" style={{ left: kailiaScreenX - 96, bottom: 18, zIndex: 4 }}>
+                <RunnerSprite character="noel" action={walking.current ? 'run' : 'idle'} width={88} height={57} />
+              </div>
+              <div className="absolute" style={{ left: kailiaScreenX - 28, bottom: 22, zIndex: 5 }}>
+                <RunnerSprite character="kailia" action={walking.current ? 'run' : 'idle'} width={58} height={57} />
               </div>
               {party.map((p, i) => (
-                <span key={i} className="absolute" style={{ left: kailiaScreenX - 70 - i * 30, bottom: 40, animation: walking.current ? `bob 0.5s ${i * 0.1}s infinite` : 'none', zIndex: 4 }}>
+                <span key={i} className="absolute" style={{ left: kailiaScreenX - 150 - i * 30, bottom: 40, animation: walking.current ? `bob 0.5s ${i * 0.1}s infinite` : 'none', zIndex: 3 }}>
                   <Critter emoji={p} size={30} />
                 </span>
               ))}
@@ -292,8 +297,8 @@ export default function TrailWalkPage() {
           <div className="text-center bounce-in">
             <span className="block text-7xl mb-3 star-burst">🚩</span>
             <div className="flex items-end justify-center gap-2 mb-2">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <div className="flex gap-2 justify-center flex-wrap mb-2">
               {party.map((p, i) => <Critter key={i} emoji={p} size={44} />)}

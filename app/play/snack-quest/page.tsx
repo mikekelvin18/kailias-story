@@ -513,8 +513,8 @@ export default function SnackQuestPage() {
           <div className="text-center bounce-in">
             <span className="block text-7xl mb-3 star-burst">🐲</span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">The dragon is full and happy!</h2>
             <p className="text-amber-100 font-semibold mb-6">

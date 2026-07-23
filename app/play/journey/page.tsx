@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
+import OverworldSprite, { type Facing } from '@/components/characters/OverworldSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
@@ -199,6 +200,8 @@ export default function JourneyPage() {
   const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');
   const [world, setWorld] = useState<ReturnType<typeof buildWorld> | null>(null);
   const [player, setPlayer] = useState<Pt>({ x: 1, y: H - 2 });
+  const [facing, setFacing] = useState<Facing>('front');
+  const [isWalking, setIsWalking] = useState(false);
   const [party, setParty] = useState<string[]>([]);
   const [activeTile, setActiveTile] = useState<string | null>(null);
   const [dialog, setDialog] = useState('Walk into the tall grass 🌾 to meet a wild friend!');
@@ -292,8 +295,11 @@ export default function JourneyPage() {
     sfx.step();
     playerRef.current = { x: nx, y: ny };
     setPlayer({ x: nx, y: ny });
+    setFacing(dx < 0 ? 'left' : dx > 0 ? 'right' : dy < 0 ? 'back' : 'front');
+    setIsWalking(true);
     setTimeout(() => {
       movingRef.current = false;
+      setIsWalking(false);
       const t = w.grid[ny][nx];
       const k = `${nx},${ny}`;
       if (t === 'tallgrass' && w.encounters[k] && !w.encounters[k].solved) {
@@ -416,8 +422,8 @@ export default function JourneyPage() {
             {phase === 'intro' && (
               <div className="text-center bounce-in">
                 <div className="flex items-end justify-center gap-1 mb-4">
-                  <PandaSprite size={90} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-                  <KailiaSprite size={110} expression="excited" className="float" />
+                  <PandaSprite size={128} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+                  <KailiaSprite size={96} expression="excited" className="float" />
                 </div>
                 <div className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide mb-3"
                   style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
@@ -495,7 +501,9 @@ export default function JourneyPage() {
                 left: player.x * TILE, top: player.y * TILE, width: TILE, height: TILE,
                 transition: 'left 150ms linear, top 150ms linear', zIndex: 5,
               }}>
-                <div style={{ transform: 'translateY(-6px)' }}><KailiaSprite size={TILE * 0.95} expression="happy" /></div>
+                <div style={{ transform: 'translateY(-6px)' }}>
+                  <OverworldSprite character="kailia" facing={facing} walking={isWalking} size={TILE * 1.15} />
+                </div>
               </div>
             </div>
           </div>
@@ -677,8 +685,8 @@ export default function JourneyPage() {
           <div className="text-center bounce-in">
             <span className="block text-7xl mb-3 star-burst">🚩</span>
             <div className="flex items-end justify-center gap-2 mb-2">
-              <PandaSprite size={100} expression="celebrating" className="float" />
-              <KailiaSprite size={120} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={145} expression="celebrating" className="float" />
+              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
             <div className="flex gap-2 justify-center flex-wrap mb-2">
               {party.map((p, i) => <Critter key={i} emoji={p} size={44} />)}
