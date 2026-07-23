@@ -285,22 +285,21 @@ export default function MazeRunnerPage() {
     }
     ctx.shadowBlur=0;
 
-    // Character — Kailia running, clipped to a circle, instead of a blank face
+    // Character — the whole running pose, full size, instead of a blank
+    // face or a tiny circle-cropped sliver of one
     if (char) {
-      ctx.shadowBlur=24; ctx.shadowColor=lv.accent;
-      ctx.beginPath(); ctx.arc(char.x,char.y,15,0,Math.PI*2); ctx.fillStyle=lv.accent; ctx.fill();
-      ctx.shadowBlur=0;
       const head = headImgRef.current;
-      ctx.beginPath(); ctx.arc(char.x,char.y,12,0,Math.PI*2);
-      ctx.save(); ctx.clip();
       if (head) {
-        // square-crop from the (near-square) running pose — no aspect distortion
-        const s = Math.min(head.naturalWidth, head.naturalHeight);
-        ctx.drawImage(head, 0, 0, s, s, char.x-13, char.y-13, 26, 26);
+        ctx.shadowBlur=18; ctx.shadowColor=lv.accent;
+        const dh = 34, dw = dh * (head.naturalWidth / head.naturalHeight);
+        ctx.drawImage(head, char.x - dw/2, char.y - dh/2 + 2, dw, dh);
+        ctx.shadowBlur=0;
       } else {
-        ctx.fillStyle='#fff'; ctx.fill();
+        ctx.shadowBlur=24; ctx.shadowColor=lv.accent;
+        ctx.beginPath(); ctx.arc(char.x,char.y,15,0,Math.PI*2); ctx.fillStyle=lv.accent; ctx.fill();
+        ctx.shadowBlur=0;
+        ctx.beginPath(); ctx.arc(char.x,char.y,8,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
       }
-      ctx.restore();
     }
 
     // Hit flash
