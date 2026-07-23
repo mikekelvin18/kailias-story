@@ -194,6 +194,15 @@ export default function MazeRunnerPage() {
   const doneRef      = useRef(false);
   const levelRef     = useRef(LEVELS[0]);
   const animRef      = useRef(0);
+  const headImgRef   = useRef<HTMLImageElement | null>(null);
+
+  // Load Kailia's head once — drawn into the maze player token instead of a
+  // plain blank circle-face.
+  useEffect(() => {
+    const img = new window.Image();
+    img.src = '/characters/kailia/portrait-front.png';
+    img.onload = () => { headImgRef.current = img; };
+  }, []);
 
   // Sync levelRef in effect (not during render)
   useEffect(() => { levelRef.current = LEVELS[levelIdx]; }, [levelIdx]);
@@ -274,17 +283,22 @@ export default function MazeRunnerPage() {
     }
     ctx.shadowBlur=0;
 
-    // Character
+    // Character — Kailia's head, clipped to a circle, instead of a blank face
     if (char) {
       ctx.shadowBlur=24; ctx.shadowColor=lv.accent;
       ctx.beginPath(); ctx.arc(char.x,char.y,15,0,Math.PI*2); ctx.fillStyle=lv.accent; ctx.fill();
       ctx.shadowBlur=0;
-      ctx.beginPath(); ctx.arc(char.x,char.y,8,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
-      ctx.fillStyle=lv.bg;
-      ctx.beginPath(); ctx.arc(char.x-3,char.y-2,2.2,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(char.x+3,char.y-2,2.2,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(char.x,char.y+1,3,0.1*Math.PI,0.9*Math.PI);
-      ctx.strokeStyle=lv.bg; ctx.lineWidth=1.5; ctx.stroke();
+      const head = headImgRef.current;
+      ctx.beginPath(); ctx.arc(char.x,char.y,12,0,Math.PI*2);
+      ctx.save(); ctx.clip();
+      if (head) {
+        // source-crop just the head/face region (top of the full-body portrait)
+        const sw = head.naturalWidth, sh = head.naturalHeight * 0.4;
+        ctx.drawImage(head, 0, 0, sw, sh, char.x-13, char.y-13, 26, 26);
+      } else {
+        ctx.fillStyle='#fff'; ctx.fill();
+      }
+      ctx.restore();
     }
 
     // Hit flash
