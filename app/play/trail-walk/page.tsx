@@ -169,10 +169,10 @@ export default function TrailWalkPage() {
               <KailiaSprite size={96} expression="excited" className="float" />
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-800 text-xl font-semibold leading-relaxed mb-3">
+              <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
                 A brand-new trail stretches past the meadows! 🥾
               </p>
-              <p className="text-gray-800 text-xl font-semibold leading-relaxed">
+              <p className="text-gray-900 text-2xl font-bold leading-snug">
                 Walk with Kailia, meet the creatures along the way, and solve each one&apos;s little
                 riddle — every solved friend <strong>joins your party</strong> until you reach the flag! 🚩
               </p>
@@ -216,11 +216,13 @@ export default function TrailWalkPage() {
 
               <div className="absolute left-0 right-0" style={{ bottom: 0, height: 34, background: 'linear-gradient(180deg, #16a34a, #15803d)', pointerEvents: 'none' }} />
 
-              {/* Noel runs alongside Kailia — bigger, since he's a giant panda */}
-              <div className="absolute" style={{ left: kailiaScreenX - 96, bottom: 18, zIndex: 4 }}>
+              {/* Noel runs alongside Kailia — bigger, since he's a giant panda.
+                  Positioned with a clear gap (no overlap) so neither sprite's
+                  body ever gets clipped by the other. */}
+              <div className="absolute" style={{ left: kailiaScreenX - 124, bottom: 18, zIndex: 4 }}>
                 <RunnerSprite character="noel" action={walking.current ? 'run' : 'idle'} width={88} height={57} />
               </div>
-              <div className="absolute" style={{ left: kailiaScreenX - 28, bottom: 22, zIndex: 5 }}>
+              <div className="absolute" style={{ left: kailiaScreenX - 24, bottom: 22, zIndex: 5 }}>
                 <RunnerSprite character="kailia" action={walking.current ? 'run' : 'idle'} width={58} height={57} />
               </div>
               {party.map((p, i) => (
@@ -241,7 +243,7 @@ export default function TrailWalkPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.6)', border: '1.5px solid rgba(14,116,144,0.2)' }}>
               <PandaSprite size={46} expression={phase === 'challenge' ? 'thinking' : 'happy'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-base font-bold text-gray-900 bg-white relative shadow-sm">
+              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative shadow-sm">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}

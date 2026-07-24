@@ -376,7 +376,7 @@ export default function SnackQuestPage() {
         {phase === 'select' && (
           <div className="text-center mt-6 bounce-in">
             <div className="rounded-3xl p-5 mx-1 mb-5 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-800 text-xl font-semibold leading-relaxed">
+              <p className="text-gray-900 text-2xl font-bold leading-snug">
                 <span className="text-3xl mr-1">🐲</span>
                 A <strong>baby dragon</strong> is hungry — and she only eats <strong>exactly</strong> the
                 right amount! Who will gather her snacks?
