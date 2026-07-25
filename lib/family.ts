@@ -8,6 +8,8 @@
 // consent record here is where stronger verification (e.g. card
 // verification via the payment system) plugs in.
 
+import { deleteAllPhotos } from './photos';
+
 export interface ParentConsent {
   agreedAt: string;               // ISO timestamp of active agreement
   policyVersion: string;          // which privacy notice they agreed to
@@ -23,10 +25,20 @@ export interface ChildProfile {
   createdAt: string;
 }
 
+// A separate, narrower consent from the general child-data consent
+// above — shown the first time a parent tries to attach a worksheet
+// photo, before the file picker ever opens. See CLAUDE.md Privacy &
+// COPPA rule 4. Photos themselves never touch this record; they live
+// only in lib/photos.ts (on-device IndexedDB).
+export interface PhotoConsent {
+  agreedAt: string;
+}
+
 export interface FamilyAccount {
   id: string;
   createdAt: string;
   consent: ParentConsent | null;
+  photoConsent: PhotoConsent | null;
   children: ChildProfile[];
 }
 
@@ -44,13 +56,16 @@ export const CHILD_DATA_KEYS = [
   'kailia_daily_seen_v1',      // daily popup shown flag
   'kailias_play_count',        // games played counter
   'kailia_rewards_v1',         // starlight points, game levels, companions
+  'kailia_worksheet_progress_v1', // printable worksheet completion records
 ];
 
 export function loadFamily(): FamilyAccount | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(FAMILY_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const f = JSON.parse(raw);
+    return { photoConsent: null, ...f }; // older accounts predate photoConsent
   } catch { return null; }
 }
 
@@ -75,9 +90,24 @@ export function recordConsent(method: ParentConsent['method'] = 'checkbox'): Fam
     id: `fam-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
     consent: null,
+    photoConsent: null,
     children: [],
   };
   f.consent = { agreedAt: new Date().toISOString(), policyVersion: POLICY_VERSION, method };
+  save(f);
+  return f;
+}
+
+// The separate, narrower consent for the ONE photo exception (printable
+// worksheets). Shown in plain language before any file picker opens.
+export function hasPhotoConsent(): boolean {
+  return !!loadFamily()?.photoConsent;
+}
+
+export function recordPhotoConsent(): FamilyAccount | null {
+  const f = loadFamily();
+  if (!f) return null; // must already have the general consent/account first
+  f.photoConsent = { agreedAt: new Date().toISOString() };
   save(f);
   return f;
 }
@@ -113,17 +143,22 @@ export function childAgeYears(c: ChildProfile): number {
 
 // Deletion is immediate and complete on this device (stronger than the
 // 30-day rule in the retention policy, which covers any future servers).
-export function deleteChildAndData(childId: string) {
+// Async because worksheet photos live in IndexedDB (lib/photos.ts), not
+// localStorage — treat any new photo-storing path the same way, or
+// deletion is incomplete (see CLAUDE.md rule 4).
+export async function deleteChildAndData(childId: string) {
   const f = loadFamily();
   if (!f) return;
   f.children = f.children.filter(c => c.id !== childId);
   save(f);
   CHILD_DATA_KEYS.forEach(k => localStorage.removeItem(k));
+  await deleteAllPhotos();
 }
 
-export function deleteEverything() {
+export async function deleteEverything() {
   CHILD_DATA_KEYS.forEach(k => localStorage.removeItem(k));
   localStorage.removeItem(FAMILY_KEY);
+  await deleteAllPhotos();
 }
 
 // ── "View my child's data" — everything stored, in readable form ──
@@ -184,6 +219,14 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '☀️ Daily quest reports', items:
       Object.entries(daily as Record<string, Record<string, number>>).flatMap(([date, acts]) =>
         Object.entries(acts).map(([id, score]) => `${date} — ${id.replace(/^b\d-/, '')}: ${labels[score] ?? score}`)),
+    });
+  }
+
+  const worksheets = read('kailia_worksheet_progress_v1');
+  if (worksheets && Object.keys(worksheets).length) {
+    sections.push({ label: '🖨️ Printable worksheets', items:
+      Object.entries(worksheets as Record<string, { completedAt: string; hasPhoto: boolean }>).map(([id, rec]) =>
+        `${id} — done ${new Date(rec.completedAt).toLocaleDateString()}${rec.hasPhoto ? ' (photo saved on this device only)' : ''}`),
     });
   }
 

@@ -43,8 +43,27 @@ const sfx = {
 };
 
 // ── Map decorations (pure charm) ──────────────────────────────────────────────
+// Two skies to choose from — a bright daytime map (friendlier, easier to
+// read at a glance) or the original moonlit one, picked with the toggle
+// in the header and remembered per-device (not child data, just a
+// display preference, so it isn't consent-gated).
 
-const DECOR = [
+const MAP_THEMES = {
+  bright: { background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 30%, #bef264 70%, #86efac 100%)' },
+  dark: { background: 'linear-gradient(180deg, #0b0b2a 0%, #1a1a3e 30%, #16324a 60%, #0f3d2e 100%)' },
+} as const;
+
+const DECOR_BRIGHT = [
+  { e: '☀️', x: 8,  y: 3,  s: 34 }, { e: '🌈', x: 55, y: 5,  s: 22 },
+  { e: '✨', x: 40, y: 12, s: 14 }, { e: '☁️', x: 78, y: 20, s: 26 },
+  { e: '☁️', x: 12, y: 25, s: 22 }, { e: '🔮', x: 38, y: 33, s: 16 },
+  { e: '🏔️', x: 60, y: 40, s: 26 }, { e: '🌸', x: 8,  y: 48, s: 16 },
+  { e: '🌋', x: 62, y: 66, s: 24 }, { e: '🍄', x: 45, y: 78, s: 16 },
+  { e: '🌲', x: 33, y: 90, s: 22 }, { e: '🌲', x: 60, y: 93, s: 18 },
+  { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
+];
+
+const DECOR_DARK = [
   { e: '🌙', x: 8,  y: 3,  s: 34 }, { e: '⭐', x: 55, y: 5,  s: 16 },
   { e: '✨', x: 40, y: 12, s: 14 }, { e: '☁️', x: 78, y: 20, s: 26 },
   { e: '☁️', x: 12, y: 25, s: 22 }, { e: '🔮', x: 38, y: 33, s: 16 },
@@ -83,8 +102,34 @@ export default function AdventureMap() {
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {} });
   const [showGuide, setShowGuide] = useState(false);
+  const [bright, setBright] = useState(true);
 
   useEffect(() => { setRewards(loadRewards()); }, []);
+
+  // Bright/dark map toggle — a device display preference, not child data,
+  // so it's just remembered locally rather than consent-gated.
+  useEffect(() => {
+    const saved = localStorage.getItem('kailia_map_theme');
+    if (saved === 'dark') setBright(false);
+  }, []);
+  function toggleTheme() {
+    setBright(b => {
+      const next = !b;
+      localStorage.setItem('kailia_map_theme', next ? 'bright' : 'dark');
+      return next;
+    });
+  }
+  const theme = bright ? MAP_THEMES.bright : MAP_THEMES.dark;
+  const DECOR = bright ? DECOR_BRIGHT : DECOR_DARK;
+  const tc = bright
+    ? { title: 'text-indigo-950', sub: 'text-indigo-900', badge: 'text-amber-800', badgeBg: 'rgba(255,255,255,0.75)',
+        badgeBorder: 'rgba(217,119,6,0.4)', link: 'text-indigo-900 font-semibold',
+        noelBar: 'rgba(255,255,255,0.55)', noelBarBorder: 'rgba(30,41,59,0.12)',
+        companionsBg: 'rgba(255,255,255,0.4)', companionsBorder: 'rgba(30,41,59,0.1)', companionsLabel: 'text-indigo-900' }
+    : { title: 'text-white drop-shadow-lg', sub: 'text-purple-200', badge: 'text-yellow-300', badgeBg: 'rgba(255,255,255,0.1)',
+        badgeBorder: 'rgba(253,224,71,0.4)', link: 'text-purple-300',
+        noelBar: 'rgba(255,255,255,0.08)', noelBarBorder: 'rgba(255,255,255,0.15)',
+        companionsBg: 'rgba(255,255,255,0.06)', companionsBorder: 'rgba(255,255,255,0.12)', companionsLabel: 'text-purple-300' };
 
   // Load saved progress + detect a land finished on the last game visit
   useEffect(() => {
@@ -163,25 +208,30 @@ export default function AdventureMap() {
   }
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0b0b2a 0%, #1a1a3e 30%, #16324a 60%, #0f3d2e 100%)' }}>
+    <main className="min-h-screen pb-6" style={{ background: theme.background }}>
       <div className="max-w-md mx-auto px-3">
 
         {/* Header */}
         <div className="flex items-center justify-between pt-5 pb-2 px-1">
-          <h1 className="text-2xl font-extrabold text-white drop-shadow-lg">🗺️ Kailia&apos;s World</h1>
+          <h1 className={`text-2xl font-extrabold ${tc.title}`}>🗺️ Kailia&apos;s World</h1>
           <div className="flex gap-1.5">
-            <div className="px-2.5 py-1.5 rounded-full font-bold text-xs text-yellow-300"
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
+            <button onClick={toggleTheme} title={bright ? 'Switch to night map' : 'Switch to day map'}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-base transition-transform hover:scale-110"
+              style={{ background: tc.badgeBg, border: `1.5px solid ${tc.badgeBorder}` }}>
+              {bright ? '🌙' : '☀️'}
+            </button>
+            <div className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${tc.badge}`}
+              style={{ background: tc.badgeBg, border: `1.5px solid ${tc.badgeBorder}` }}>
               ⭐ {stars}/{maxStars()}
             </div>
             <button onClick={() => setShowGuide(true)}
-              className="px-2.5 py-1.5 rounded-full font-bold text-xs text-yellow-200 transition-transform hover:scale-105"
-              style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
+              className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${tc.badge} transition-transform hover:scale-105`}
+              style={{ background: tc.badgeBg, border: `1.5px solid ${tc.badgeBorder}` }}>
               ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
             </button>
           </div>
         </div>
-        <p className="text-purple-200 text-xs px-1 mb-3">
+        <p className={`text-xs px-1 mb-3 font-semibold ${tc.sub}`}>
           {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
         </p>
 
@@ -292,7 +342,7 @@ export default function AdventureMap() {
 
         {/* ── Noel's guide bar ── */}
         <div className="flex items-center gap-3 mt-4 rounded-2xl p-3"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+          style={{ background: tc.noelBar, border: `1.5px solid ${tc.noelBarBorder}` }}>
           <PandaSprite size={54} expression={noelMood} style={{ flexShrink: 0 }} />
           <div className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-800 relative"
             style={{ background: 'white' }}>
@@ -305,8 +355,8 @@ export default function AdventureMap() {
         {/* Companion collection — starlight milestones bring new friends */}
         <button onClick={() => setShowGuide(true)}
           className="w-full flex items-center justify-center gap-2 mt-4 rounded-2xl p-2.5 transition-transform hover:scale-[1.01]"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
-          <span className="text-[11px] font-bold text-purple-300 mr-1">Companions:</span>
+          style={{ background: tc.companionsBg, border: `1.5px solid ${tc.companionsBorder}` }}>
+          <span className={`text-[11px] font-bold mr-1 ${tc.companionsLabel}`}>Companions:</span>
           {COMPANIONS.map(c => {
             const unlocked = rewards.starlight >= c.at;
             return (
@@ -317,19 +367,23 @@ export default function AdventureMap() {
               </span>
             );
           })}
-          <span className="text-[10px] text-purple-400 ml-1">ⓘ</span>
+          <span className={`text-[10px] ml-1 ${tc.companionsLabel}`} style={{ opacity: 0.85 }}>ⓘ</span>
         </button>
 
         {/* Older kids: the games ARE the main course; library is a footnote */}
         {band === null && (
-          <Link href="/activities" className="block text-center mt-4 text-xs text-purple-300 underline">
+          <Link href="/activities" className={`block text-center mt-4 text-xs underline ${tc.link}`}>
             🎒 Quest Library: real-world games to play together
           </Link>
         )}
 
+        <Link href="/printables" className={`block text-center mt-2 text-xs underline ${tc.link}`}>
+          🖨️ Printables: tracing sheets, mazes, and screen-free activities
+        </Link>
+
         {/* For grown-ups */}
         <div className="text-center mt-4">
-          <Link href="/results" className="text-xs text-purple-300 underline">For grown-ups: progress &amp; results</Link>
+          <Link href="/results" className={`text-xs underline ${tc.link}`}>For grown-ups: progress &amp; results</Link>
         </div>
       </div>
 

@@ -55,17 +55,17 @@ export default function ParentZonePage() {
     setFormError('');
   }
 
-  function handleDeleteChild() {
+  async function handleDeleteChild() {
     if (!child) return;
-    deleteChildAndData(child.id);
+    await deleteChildAndData(child.id);
     setFamily(loadFamily());
     setConfirmingChild(false);
     setShowData(false);
     setDeletedMsg('Child profile and every piece of stored data were permanently deleted from this device.');
   }
 
-  function handleDeleteAll() {
-    deleteEverything();
+  async function handleDeleteAll() {
+    await deleteEverything();
     setFamily(null);
     setConfirmingAll(false);
     setShowData(false);
@@ -115,9 +115,12 @@ export default function ParentZonePage() {
             <div className="rounded-xl p-2.5 mb-3" style={{ background: '#FEF3C7' }}>
               <p className="text-xs text-amber-900">
                 <strong>Where it lives:</strong> only on this device. Nothing is uploaded, sold, or
-                shared. <strong>Never collected:</strong> photos, audio, video, location, email, or a
-                last name. <strong>How long:</strong> only while the profile exists — deleting it
-                erases everything (within 30 days on any future servers).
+                shared. <strong>Never collected:</strong> audio, video, location, email, or a last
+                name. The one exception is Printable Worksheets, where a parent may optionally
+                photograph a completed paper sheet — that photo stays on this device only and has
+                its own separate consent, asked the first time you try it. <strong>How long:</strong>{' '}
+                only while the profile exists — deleting it erases everything (within 30 days on
+                any future servers).
               </p>
             </div>
             <p className="text-xs text-gray-500 mb-3">
