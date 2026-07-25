@@ -2,6 +2,8 @@
 // One place that defines the six lands, which mini-games (quests) live in
 // each land, and how the child's progress is saved on this device.
 
+import { scopedKey } from './family';
+
 export interface Quest {
   href: string;      // route of an existing mini-game
   emoji: string;
@@ -128,7 +130,7 @@ const empty: AdventureProgress = { played: {}, celebrated: [] };
 export function loadProgress(): AdventureProgress {
   if (typeof window === 'undefined') return empty;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(scopedKey(KEY));
     return raw ? { ...empty, ...JSON.parse(raw) } : empty;
   } catch {
     return empty;
@@ -142,7 +144,7 @@ function save(p: AdventureProgress) {
     const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
     if (!fam?.consent) return;
   } catch { return; }
-  localStorage.setItem(KEY, JSON.stringify(p));
+  localStorage.setItem(scopedKey(KEY), JSON.stringify(p));
 }
 
 export function recordQuestPlay(landId: string, href: string): AdventureProgress {

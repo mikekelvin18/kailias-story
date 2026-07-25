@@ -7,6 +7,7 @@
 // Band 1 ≈ 6–18 months · Band 2 ≈ 18 mo–2½ yrs · Band 3 ≈ 2½–4 yrs
 
 import { logQuestMetric } from './metrics';
+import { scopedKey } from './family';
 
 export type ActivityDomain = 'fine motor' | 'communication' | 'reading' | 'math' | 'sensory' | 'processing';
 
@@ -791,7 +792,7 @@ interface ReportLog { [date: string]: { [activityId: string]: ReportScore } }
 
 function loadReports(): ReportLog {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(REPORT_KEY) ?? '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(scopedKey(REPORT_KEY)) ?? '{}'); } catch { return {}; }
 }
 
 export function getTodayReports(): { [activityId: string]: ReportScore } {
@@ -807,7 +808,7 @@ export function reportActivity(activity: ParentActivity, score: ReportScore) {
   const log = loadReports();
   const day = todayKey();
   log[day] = { ...(log[day] ?? {}), [activity.id]: score };
-  try { localStorage.setItem(REPORT_KEY, JSON.stringify(log)); } catch { /* ignore */ }
+  try { localStorage.setItem(scopedKey(REPORT_KEY), JSON.stringify(log)); } catch { /* ignore */ }
   logQuestMetric(activity.domain, `parent-${activity.id}`, { score, band: activity.band });
 }
 

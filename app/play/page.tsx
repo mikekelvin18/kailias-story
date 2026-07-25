@@ -13,6 +13,7 @@ import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
 import BottomNav from '@/components/BottomNav';
+import { scopedKey, activeChild } from '@/lib/family';
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 
@@ -151,7 +152,7 @@ export default function AdventureMap() {
   useEffect(() => {
     if (!band) return;
     try {
-      if (localStorage.getItem(DAILY_SEEN_KEY) === todayKey()) return;
+      if (localStorage.getItem(scopedKey(DAILY_SEEN_KEY)) === todayKey()) return;
       const quests = todaysQuests(band);
       const reports = getTodayReports();
       if (quests.every(q => reports[q.id] !== undefined)) return;
@@ -160,7 +161,7 @@ export default function AdventureMap() {
   }, [band]);
 
   function dismissDaily() {
-    try { localStorage.setItem(DAILY_SEEN_KEY, todayKey()); } catch { /* ignore */ }
+    try { localStorage.setItem(scopedKey(DAILY_SEEN_KEY), todayKey()); } catch { /* ignore */ }
     setDailyPrompt(null);
   }
 

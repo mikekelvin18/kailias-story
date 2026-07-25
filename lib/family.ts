@@ -8,7 +8,7 @@
 // consent record here is where stronger verification (e.g. card
 // verification via the payment system) plugs in.
 
-import { deleteAllPhotos } from './photos';
+import { deleteAllPhotos, deletePhotosForChild } from './photos';
 
 export interface ParentConsent {
   agreedAt: string;               // ISO timestamp of active agreement
@@ -40,6 +40,8 @@ export interface FamilyAccount {
   consent: ParentConsent | null;
   photoConsent: PhotoConsent | null;
   children: ChildProfile[];
+  activeChildId?: string | null;    // which child's data every game reads/writes
+  migratedLegacyData?: boolean;     // one-time flag, see migrateLegacyData()
 }
 
 export const POLICY_VERSION = '2026-07-draft-1';
@@ -59,14 +61,49 @@ export const CHILD_DATA_KEYS = [
   'kailia_worksheet_progress_v1', // printable worksheet completion records
 ];
 
+// One-time migration for accounts created before multi-child support:
+// every CHILD_DATA_KEYS entry used to be a single global key holding
+// that one child's data. Now every key is namespaced per child
+// (see scopedKey below) so a second child's progress can't bleed into
+// the first's. This copies each legacy key's value under the first
+// child's namespaced key — the legacy key is left in place (harmless,
+// just unused going forward) rather than deleted, so a bug here can
+// never destroy data that hasn't been safely copied first.
+function migrateLegacyData(f: FamilyAccount) {
+  if (f.migratedLegacyData) return;
+  const child = f.children[0];
+  if (child) {
+    CHILD_DATA_KEYS.forEach(base => {
+      const legacy = localStorage.getItem(base);
+      if (legacy !== null && localStorage.getItem(`${base}::${child.id}`) === null) {
+        localStorage.setItem(`${base}::${child.id}`, legacy);
+      }
+    });
+    if (!f.activeChildId) f.activeChildId = child.id;
+  }
+  f.migratedLegacyData = true;
+  localStorage.setItem(FAMILY_KEY, JSON.stringify(f));
+}
+
 export function loadFamily(): FamilyAccount | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(FAMILY_KEY);
     if (!raw) return null;
-    const f = JSON.parse(raw);
-    return { photoConsent: null, ...f }; // older accounts predate photoConsent
+    const f: FamilyAccount = { photoConsent: null, activeChildId: null, ...JSON.parse(raw) };
+    migrateLegacyData(f);
+    return f;
   } catch { return null; }
+}
+
+// Every localStorage feature module calls this to read/write ONLY the
+// currently active child's data, e.g. scopedKey('kailia_rewards_v1').
+// Falls back to the un-namespaced key if no child is active yet (e.g.
+// mid-onboarding), which also keeps this compatible with any code path
+// that runs before a family/child exists.
+export function scopedKey(base: string): string {
+  const id = loadFamily()?.activeChildId;
+  return id ? `${base}::${id}` : base;
 }
 
 function save(f: FamilyAccount) {
@@ -112,6 +149,11 @@ export function recordPhotoConsent(): FamilyAccount | null {
   return f;
 }
 
+// Adds a child profile — a family can have more than one (siblings at
+// different developmental stages). The first child added automatically
+// becomes active; later ones don't switch the active child on their
+// own (use setActiveChild), so adding a second kid never yanks the
+// screen away from whoever's currently playing.
 export function addChild(input: { nickname: string; birthYear: number; birthMonth: number; avatar: string }): FamilyAccount | null {
   const f = loadFamily();
   if (!f || !f.consent) return null;   // consent must come first, always
@@ -124,13 +166,32 @@ export function addChild(input: { nickname: string; birthYear: number; birthMont
     createdAt: new Date().toISOString(),
   };
   f.children.push(child);
+  if (!f.activeChildId) f.activeChildId = child.id;
   save(f);
   return f;
 }
 
+// The child whose data every game currently reads/writes.
 export function activeChild(f?: FamilyAccount | null): ChildProfile | null {
   const fam = f === undefined ? loadFamily() : f;
-  return fam?.children[0] ?? null;
+  if (!fam) return null;
+  return fam.children.find(c => c.id === fam.activeChildId) ?? fam.children[0] ?? null;
+}
+
+// Switches which child is "active" — every game/quest from this point
+// on reads and writes that child's own namespaced data (see scopedKey).
+export const ACTIVE_CHILD_CHANGED_EVENT = 'kailia-active-child-changed';
+
+export function setActiveChild(childId: string): FamilyAccount | null {
+  const f = loadFamily();
+  if (!f || !f.children.some(c => c.id === childId)) return null;
+  f.activeChildId = childId;
+  save(f);
+  // Long-lived providers (e.g. AssessmentContext, mounted once at the
+  // root layout) cache per-child state in React rather than re-reading
+  // localStorage on every render — they need a signal to reload.
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(ACTIVE_CHILD_CHANGED_EVENT));
+  return f;
 }
 
 export function childAgeYears(c: ChildProfile): number {
@@ -150,13 +211,22 @@ export async function deleteChildAndData(childId: string) {
   const f = loadFamily();
   if (!f) return;
   f.children = f.children.filter(c => c.id !== childId);
+  if (f.activeChildId === childId) f.activeChildId = f.children[0]?.id ?? null;
   save(f);
-  CHILD_DATA_KEYS.forEach(k => localStorage.removeItem(k));
-  await deleteAllPhotos();
+  CHILD_DATA_KEYS.forEach(base => {
+    localStorage.removeItem(`${base}::${childId}`);
+    // also clear the un-namespaced legacy key — it only ever held data
+    // for whichever child migrateLegacyData ran against, but clearing
+    // it here is a harmless no-op for every other child
+    localStorage.removeItem(base);
+  });
+  await deletePhotosForChild(childId);
 }
 
 export async function deleteEverything() {
-  CHILD_DATA_KEYS.forEach(k => localStorage.removeItem(k));
+  const f = loadFamily();
+  f?.children.forEach(c => CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(`${base}::${c.id}`)));
+  CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(base));
   localStorage.removeItem(FAMILY_KEY);
   await deleteAllPhotos();
 }

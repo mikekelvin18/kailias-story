@@ -7,7 +7,7 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import WorksheetSheet from '@/components/worksheets/WorksheetSheet';
 import { findWorksheet } from '@/lib/worksheets';
 import { markWorksheetDone, isWorksheetDone } from '@/lib/worksheetProgress';
-import { hasActiveConsent, hasPhotoConsent, recordPhotoConsent } from '@/lib/family';
+import { hasActiveConsent, hasPhotoConsent, recordPhotoConsent, activeChild } from '@/lib/family';
 import { savePhoto, getPhoto, deletePhoto } from '@/lib/photos';
 import { awardStarlight } from '@/lib/rewards';
 
@@ -29,14 +29,19 @@ export default function PrintableDetailPage() {
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Photos are stored under a childId-prefixed key so siblings' completed
+  // sheets for the same worksheet never collide (see lib/photos.ts).
+  const photoKey = worksheet ? `${activeChild()?.id ?? 'default'}:${worksheet.id}` : '';
+
   useEffect(() => {
     if (!worksheet) return;
     setConsented(hasActiveConsent());
     setPhotoConsentGiven(hasPhotoConsent());
     setDone(isWorksheetDone(worksheet.id));
     if (worksheet.verifyMethod === 'photo') {
-      getPhoto(worksheet.id).then(p => { if (p) setPhotoUrl(URL.createObjectURL(p.blob)); });
+      getPhoto(photoKey).then(p => { if (p) setPhotoUrl(URL.createObjectURL(p.blob)); });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worksheet]);
 
   if (!worksheet) {
@@ -80,8 +85,8 @@ export default function PrintableDetailPage() {
     if (!file || !worksheet) return;
     setSaving(true);
     try {
-      await savePhoto(worksheet.id, file);
-      const p = await getPhoto(worksheet.id);
+      await savePhoto(photoKey, file);
+      const p = await getPhoto(photoKey);
       if (p) setPhotoUrl(URL.createObjectURL(p.blob));
       const alreadyDone = done;
       markWorksheetDone(worksheet.id, true);
@@ -94,7 +99,7 @@ export default function PrintableDetailPage() {
 
   async function removePhoto() {
     if (!worksheet) return;
-    await deletePhoto(worksheet.id);
+    await deletePhoto(photoKey);
     setPhotoUrl(null);
   }
 

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
-  FamilyAccount, loadFamily, recordConsent, addChild, activeChild,
+  FamilyAccount, loadFamily, recordConsent, addChild, activeChild, setActiveChild,
   deleteChildAndData, deleteEverything, childDataInventory, DataSection, POLICY_VERSION,
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
@@ -38,6 +38,7 @@ export default function ParentZonePage() {
   const [confirmingAll, setConfirmingAll] = useState(false);
   const [deletedMsg, setDeletedMsg] = useState('');
   const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
+  const [showAddChild, setShowAddChild] = useState(false);
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); }, []);
 
@@ -65,6 +66,12 @@ export default function ParentZonePage() {
     if (!birthMonth || !birthYear) { setFormError('Please pick the birth month and year.'); return; }
     setFamily(addChild({ nickname, birthYear, birthMonth, avatar }));
     setFormError('');
+    setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(AVATARS[0]);
+    setShowAddChild(false);
+  }
+
+  function handleSwitchChild(childId: string) {
+    setFamily(setActiveChild(childId));
   }
 
   async function handleDeleteChild() {
@@ -203,10 +210,37 @@ export default function ParentZonePage() {
           </div>
         )}
 
-        {/* ── STEP 2: Add child profile ── */}
-        {consented && !child && (
-          <div className="rounded-3xl p-5" style={{ background: 'rgba(255,255,255,0.97)' }}>
-            <h2 className="text-lg font-extrabold text-gray-800 mb-1">Add your child</h2>
+        {/* ── Child switcher — families can have more than one child; tap
+            an avatar to make it active, or add another sibling ── */}
+        {consented && family && family.children.length > 0 && (
+          <div className="rounded-2xl p-3 mb-4 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
+            {family.children.map(c => (
+              <button key={c.id} onClick={() => handleSwitchChild(c.id)}
+                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition-transform hover:scale-105"
+                style={{ background: c.id === family.activeChildId ? '#7C3AED' : 'rgba(255,255,255,0.08)' }}>
+                <span className="text-2xl">{c.avatar}</span>
+                <span className="text-[10px] font-extrabold text-white">{c.nickname}</span>
+              </button>
+            ))}
+            <button onClick={() => setShowAddChild(true)}
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-transform hover:scale-105"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px dashed rgba(255,255,255,0.3)' }}>
+              <span className="text-2xl text-white">➕</span>
+              <span className="text-[10px] font-extrabold text-white">Add</span>
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 2: Add child profile (always for the first child; a
+            toggled form for adding a sibling afterward) ── */}
+        {consented && (!child || showAddChild) && (
+          <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-extrabold text-gray-800">{child ? 'Add another child' : 'Add your child'}</h2>
+              {child && (
+                <button onClick={() => setShowAddChild(false)} className="text-xs font-bold text-gray-400">Cancel</button>
+              )}
+            </div>
             <p className="text-xs text-gray-500 mb-4">
               Just three things — a first name or nickname, birth month/year (so quests match your
               child&apos;s development), and a cartoon avatar. Nothing else, ever.

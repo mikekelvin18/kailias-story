@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { scopedKey, ACTIVE_CHILD_CHANGED_EVENT } from '@/lib/family';
 
 export type AgeGroup = 'infant' | 'toddler' | 'preschool' | 'schoolAge' | null;
 export type InputMethod = 'touch' | 'mouse' | null;
@@ -189,12 +190,19 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AssessmentState>(defaultState);
 
   // Remember assessment results on this device so games can adapt
-  // to the child's developmental level even after a page reload.
+  // to the child's developmental level even after a page reload. Reloads
+  // whenever the active child switches, since this provider is mounted
+  // once at the root layout and otherwise wouldn't notice.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState({ ...defaultState, ...JSON.parse(raw) });
-    } catch { /* start fresh if the saved copy is unreadable */ }
+    const load = () => {
+      try {
+        const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
+        setState(raw ? { ...defaultState, ...JSON.parse(raw) } : defaultState);
+      } catch { /* start fresh if the saved copy is unreadable */ }
+    };
+    load();
+    window.addEventListener(ACTIVE_CHILD_CHANGED_EVENT, load);
+    return () => window.removeEventListener(ACTIVE_CHILD_CHANGED_EVENT, load);
   }, []);
 
   useEffect(() => {
@@ -203,7 +211,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       // parent has consented in the Parent Zone.
       const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
       if (!fam?.consent) return;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(state));
     } catch { /* ignore */ }
   }, [state]);
 

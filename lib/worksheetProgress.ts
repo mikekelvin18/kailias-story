@@ -13,6 +13,8 @@ export interface WorksheetRecord {
 
 export type WorksheetProgress = Record<string, WorksheetRecord>;
 
+import { scopedKey } from './family';
+
 const KEY = 'kailia_worksheet_progress_v1';
 
 function consented(): boolean {
@@ -22,7 +24,7 @@ function consented(): boolean {
 
 export function loadWorksheetProgress(): WorksheetProgress {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '{}'); }
+  try { return JSON.parse(localStorage.getItem(scopedKey(KEY)) ?? '{}'); }
   catch { return {}; }
 }
 
@@ -30,13 +32,13 @@ export function markWorksheetDone(worksheetId: string, hasPhoto: boolean) {
   if (!consented()) return; // COPPA: no consent → nothing recorded
   const p = loadWorksheetProgress();
   p[worksheetId] = { completedAt: new Date().toISOString(), hasPhoto };
-  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* ignore */ }
+  try { localStorage.setItem(scopedKey(KEY), JSON.stringify(p)); } catch { /* ignore */ }
 }
 
 export function unmarkWorksheet(worksheetId: string) {
   const p = loadWorksheetProgress();
   delete p[worksheetId];
-  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* ignore */ }
+  try { localStorage.setItem(scopedKey(KEY), JSON.stringify(p)); } catch { /* ignore */ }
 }
 
 export function isWorksheetDone(worksheetId: string): boolean {

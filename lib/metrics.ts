@@ -10,6 +10,8 @@ export interface QuestMetric {
   data: Record<string, number>;
 }
 
+import { scopedKey } from './family';
+
 const KEY = 'kailia_quest_metrics_v1';
 const MAX_EVENTS = 500; // keep the log from growing forever
 
@@ -22,17 +24,18 @@ export function logQuestMetric(domain: string, taskId: string, data: Record<stri
     // COPPA: no parental consent on file → nothing is recorded, ever.
     const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
     if (!fam?.consent) return;
-    const childId = fam?.children?.[0]?.id ?? 'no-profile';
-    const list: QuestMetric[] = JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    const childId = fam?.activeChildId ?? fam?.children?.[0]?.id ?? 'no-profile';
+    const key = scopedKey(KEY);
+    const list: QuestMetric[] = JSON.parse(localStorage.getItem(key) ?? '[]');
     list.push({ childId, domain, taskId, ts: Date.now(), data });
-    localStorage.setItem(KEY, JSON.stringify(list.slice(-MAX_EVENTS)));
+    localStorage.setItem(key, JSON.stringify(list.slice(-MAX_EVENTS)));
   } catch { /* measurement must never break play */ }
 }
 
 export function getQuestMetrics(): QuestMetric[] {
   if (typeof window === 'undefined') return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '[]');
+    return JSON.parse(localStorage.getItem(scopedKey(KEY)) ?? '[]');
   } catch {
     return [];
   }

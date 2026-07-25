@@ -13,6 +13,8 @@ export interface RewardsState {
   gameLevels: Record<string, number>; // gameId -> highest level beaten
 }
 
+import { scopedKey } from './family';
+
 const KEY = 'kailia_rewards_v1';
 const empty: RewardsState = { starlight: 0, gameLevels: {} };
 
@@ -32,14 +34,14 @@ function consented(): boolean {
 export function loadRewards(): RewardsState {
   if (typeof window === 'undefined') return empty;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(scopedKey(KEY));
     return raw ? { ...empty, ...JSON.parse(raw) } : empty;
   } catch { return empty; }
 }
 
 function save(r: RewardsState) {
   if (!consented()) return; // COPPA: no consent → nothing recorded
-  try { localStorage.setItem(KEY, JSON.stringify(r)); } catch { /* ignore */ }
+  try { localStorage.setItem(scopedKey(KEY), JSON.stringify(r)); } catch { /* ignore */ }
 }
 
 export function awardStarlight(amount: number): RewardsState {

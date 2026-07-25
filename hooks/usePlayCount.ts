@@ -1,9 +1,11 @@
+import { scopedKey } from '@/lib/family';
+
 const KEY = 'kailias_play_count';
 const REASSESS_THRESHOLD = 10;
 
 function getCount(): number {
   if (typeof window === 'undefined') return 0;
-  return parseInt(localStorage.getItem(KEY) ?? '0', 10);
+  return parseInt(localStorage.getItem(scopedKey(KEY)) ?? '0', 10);
 }
 
 export function usePlayCount() {
@@ -14,11 +16,11 @@ export function usePlayCount() {
       const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
       if (!fam?.consent) return next;
     } catch { return next; }
-    localStorage.setItem(KEY, String(next));
+    localStorage.setItem(scopedKey(KEY), String(next));
     return next;
   };
 
-  const reset = () => localStorage.setItem(KEY, '0');
+  const reset = () => localStorage.setItem(scopedKey(KEY), '0');
 
   const count = getCount();
   const needsReassessment = count > 0 && count % REASSESS_THRESHOLD === 0;

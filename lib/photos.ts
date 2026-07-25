@@ -99,13 +99,38 @@ export async function deletePhoto(worksheetId: string): Promise<void> {
   db.close();
 }
 
-// Full wipe — called by lib/family.ts on child/account deletion.
+// Full wipe — called by lib/family.ts on whole-account deletion.
 export async function deleteAllPhotos(): Promise<void> {
   try {
     const db = await openDb();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
       tx.objectStore(STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  } catch { /* if the store doesn't exist yet, there's nothing to delete */ }
+}
+
+// Deletes only one child's photos — callers store worksheet photos under
+// a `${childId}:${worksheetId}` key (see app/printables/[id]/page.tsx) so
+// siblings' completed sheets never collide, and so deleting one child
+// never touches another child's saved photos.
+export async function deletePhotosForChild(childId: string): Promise<void> {
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const req = store.openCursor();
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (cursor) {
+          if (String(cursor.key).startsWith(`${childId}:`)) cursor.delete();
+          cursor.continue();
+        }
+      };
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
