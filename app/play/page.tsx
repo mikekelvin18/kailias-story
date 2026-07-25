@@ -12,12 +12,15 @@ import {
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
+import BottomNav from '@/components/BottomNav';
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 
 // ── Tiny sound effects (no audio files needed) ────────────────────────────────
 
+import { soundEnabled } from '@/lib/accessibility';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
+  if (!soundEnabled()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
@@ -208,7 +211,7 @@ export default function AdventureMap() {
   }
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
       <div className="max-w-md mx-auto px-3">
 
         {/* Header */}
@@ -370,18 +373,8 @@ export default function AdventureMap() {
           <span className={`text-[10px] ml-1 ${tc.companionsLabel}`} style={{ opacity: 0.85 }}>ⓘ</span>
         </button>
 
-        {/* Older kids: the games ARE the main course; library is a footnote */}
-        {band === null && (
-          <Link href="/activities" className={`block text-center mt-4 text-xs underline ${tc.link}`}>
-            🎒 Quest Library: real-world games to play together
-          </Link>
-        )}
-
-        <Link href="/printables" className={`block text-center mt-2 text-xs underline ${tc.link}`}>
-          🖨️ Printables: tracing sheets, mazes, and screen-free activities
-        </Link>
-
-        {/* For grown-ups */}
+        {/* Quests and Printables now live in the bottom nav — only Results
+            needs a footer link here since it isn't one of the four tabs. */}
         <div className="text-center mt-4">
           <Link href="/results" className={`text-xs underline ${tc.link}`}>For grown-ups: progress &amp; results</Link>
         </div>
@@ -557,6 +550,7 @@ export default function AdventureMap() {
           </div>
         </div>
       )}
+      <BottomNav />
     </main>
   );
 }

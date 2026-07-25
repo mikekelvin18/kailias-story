@@ -50,7 +50,9 @@ const TIER_TUNING: Record<DifficultyTier, { r: number; speed: number; zone: numb
   big:   { r: 1,    speed: 1,    zone: LANTERN_ZONE },
 };
 
+import { soundEnabled } from '@/lib/accessibility';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
+  if (!soundEnabled()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();

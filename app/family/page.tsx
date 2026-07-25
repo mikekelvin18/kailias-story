@@ -7,6 +7,8 @@ import {
   FamilyAccount, loadFamily, recordConsent, addChild, activeChild,
   deleteChildAndData, deleteEverything, childDataInventory, DataSection, POLICY_VERSION,
 } from '@/lib/family';
+import BottomNav from '@/components/BottomNav';
+import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
 
 // ── Parent Zone ──
 // Consent first, then a minimal child profile, then full parental rights:
@@ -35,8 +37,18 @@ export default function ParentZonePage() {
   const [confirmingChild, setConfirmingChild] = useState(false);
   const [confirmingAll, setConfirmingAll] = useState(false);
   const [deletedMsg, setDeletedMsg] = useState('');
+  const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
 
-  useEffect(() => { setFamily(loadFamily()); setLoaded(true); }, []);
+  useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); }, []);
+
+  function updateA11y(patch: Partial<AccessibilityPrefs>) {
+    setA11y(prev => {
+      const next = { ...prev, ...patch };
+      saveA11y(next);
+      applyA11y(next);
+      return next;
+    });
+  }
 
   const consented = !!family?.consent;
   const child = activeChild(family);
@@ -75,7 +87,7 @@ export default function ParentZonePage() {
   if (!loaded) return null;
 
   return (
-    <main className="min-h-screen pb-10" style={{ background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)' }}>
+    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)' }}>
       <div className="max-w-md mx-auto px-4">
 
         <div className="flex items-center justify-between pt-6 pb-1">
@@ -86,6 +98,48 @@ export default function ParentZonePage() {
         <p className="text-slate-300 text-xs text-center mb-5">
           For grown-ups: your account, your child&apos;s data, your controls.
         </p>
+
+        {/* ── Accessibility settings — a device display preference, not
+            child data, so it's always available regardless of consent ── */}
+        <div className="rounded-2xl p-4 mb-5" style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
+          <h2 className="text-sm font-extrabold text-white mb-3">♿ Accessibility</h2>
+
+          <div className="mb-3">
+            <p className="text-xs font-bold text-slate-300 mb-1.5">Text size</p>
+            <div className="flex gap-2">
+              {(['normal', 'large', 'xlarge'] as const).map(size => (
+                <button key={size} onClick={() => updateA11y({ textSize: size })}
+                  className="flex-1 py-2 rounded-xl text-xs font-extrabold transition-transform hover:scale-105"
+                  style={{ background: a11y.textSize === size ? '#7C3AED' : 'rgba(255,255,255,0.08)', color: 'white' }}>
+                  {size === 'normal' ? 'A' : size === 'large' ? 'A+' : 'A++'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <span className="text-xs font-semibold text-slate-200">🎬 Reduce motion &amp; animation</span>
+            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <span className="text-xs font-semibold text-slate-200">🔇 Reduce sound effects</span>
+            <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <span className="text-xs font-semibold text-slate-200">📖 Dyslexia-friendly text spacing</span>
+            <input type="checkbox" checked={a11y.dyslexiaFriendly} onChange={e => updateA11y({ dyslexiaFriendly: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <span className="text-xs font-semibold text-slate-200">👁️ Colorblind-safe colors</span>
+            <input type="checkbox" checked={a11y.colorblindSafe} onChange={e => updateA11y({ colorblindSafe: e.target.checked })} className="w-5 h-5" />
+          </label>
+          <p className="text-[10px] text-slate-400 mt-2">
+            These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
+          </p>
+        </div>
 
         {deletedMsg && (
           <div className="rounded-2xl p-4 mb-5 text-center" style={{ background: '#ECFDF5', border: '2px solid #34D399' }}>
@@ -305,6 +359,7 @@ export default function ParentZonePage() {
           <Link href="/retention" className="text-sky-300 underline">Data Retention Policy</Link>
         </p>
       </div>
+      <BottomNav />
     </main>
   );
 }

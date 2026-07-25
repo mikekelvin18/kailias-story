@@ -11,6 +11,7 @@ import {
   ACTIVITIES, DOMAIN_META, ParentActivity, ActivityDomain, ReportScore,
   todaysQuests, dailyMinutes, getTodayReports, reportActivity, streakDays,
 } from '@/lib/activities';
+import BottomNav from '@/components/BottomNav';
 
 // ─── Parent & Baby Quest Library ──────────────────────────────────────────────
 // Daily real-world quests for the youngest adventurers, coached by Noel,
@@ -127,7 +128,7 @@ export default function ActivityLibraryPage() {
   }
 
   return (
-    <main className="min-h-screen pb-10" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #1e3a5f 100%)' }}>
+    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #1e3a5f 100%)' }}>
       <div className="max-w-md mx-auto px-3">
 
         {/* Header */}
@@ -286,6 +287,7 @@ export default function ActivityLibraryPage() {
           pediatrician or an occupational therapist.
         </p>
       </div>
+      <BottomNav />
     </main>
   );
 }

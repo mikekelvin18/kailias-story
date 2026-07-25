@@ -27,7 +27,9 @@ const CREATURES = ['🦊', '🐰', '🦉', '🐸', '🦋', '🐝', '🐢', '🦄
 const SHAPES = ['🔵', '🔺', '🟩', '⭐', '❤️', '🟣', '🌙', '☀️', '🍀', '💎'];
 const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
 
+import { soundEnabled } from '@/lib/accessibility';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
+  if (!soundEnabled()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();

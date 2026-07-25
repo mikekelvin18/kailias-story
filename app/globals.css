@@ -5,6 +5,51 @@ body {
   font-family: var(--font-baloo), 'Trebuchet MS', 'Comic Sans MS', sans-serif;
 }
 
+/* ── Accessibility: driven by data-* attributes AccessibilityProvider
+   sets on <html> from lib/accessibility.ts. Plain CSS so it applies
+   everywhere without every page needing to opt in. ── */
+
+/* Reduced motion — kill/shrink every animation and transition app-wide
+   for kids sensitive to movement (vestibular sensitivity, migraine, etc). */
+:root[data-reduced-motion="true"] *,
+:root[data-reduced-motion="true"] *::before,
+:root[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Text size — Tailwind's text-* utilities are rem-based, so scaling the
+   root font-size scales every bit of text in the app proportionally. */
+:root[data-text-size="large"] { font-size: 112.5%; }
+:root[data-text-size="xlarge"] { font-size: 125%; }
+
+/* Dyslexia-friendly — wider letter/word/line spacing and a plainer
+   sans-serif read better for many dyslexic readers than font choice
+   alone (the spacing matters more than the specific typeface). */
+:root[data-dyslexia-friendly="true"] body {
+  font-family: Verdana, Arial, 'Trebuchet MS', sans-serif;
+  letter-spacing: 0.02em;
+  word-spacing: 0.1em;
+  line-height: 1.6;
+}
+
+/* Colorblind-safe accents — swap the red/green "wrong/right" pair (the
+   hardest combination for the most common colorblindness types) for a
+   blue/orange pair wherever a component opts in via these variables.
+   New shared components should read --ok-color/--no-color instead of
+   hardcoding green/red; existing per-game hardcoded colors are a
+   follow-up audit, not fixed by this alone. */
+:root {
+  --ok-color: #059669;
+  --no-color: #EF4444;
+}
+:root[data-colorblind-safe="true"] {
+  --ok-color: #2563EB;
+  --no-color: #EA580C;
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }

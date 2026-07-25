@@ -6,6 +6,7 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import { WORKSHEETS, CATEGORY_INFO, WorksheetCategory } from '@/lib/worksheets';
 import { loadWorksheetProgress } from '@/lib/worksheetProgress';
 import { hasActiveConsent } from '@/lib/family';
+import BottomNav from '@/components/BottomNav';
 
 // ─── Printable Worksheets library ──────────────────────────────────────────────
 // Real paper activities parents print at home: tracing sheets progressing
@@ -29,7 +30,7 @@ export default function PrintablesPage() {
   const doneCount = Object.keys(progress).length;
 
   return (
-    <main className="min-h-screen pb-10" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)' }}>
+    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)' }}>
       <div className="max-w-md mx-auto px-4 pt-5">
         <div className="flex items-center justify-between mb-3">
           <Link href="/play" className="text-sm font-bold text-purple-200">← Map</Link>
@@ -83,6 +84,7 @@ export default function PrintablesPage() {
           );
         })}
       </div>
+      <BottomNav />
     </main>
   );
 }

@@ -73,7 +73,9 @@ const PRAISE = [
   'Yum yum yum! Just the right amount!', 'The dragon does a happy wiggle!',
 ];
 
+import { soundEnabled } from '@/lib/accessibility';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
+  if (!soundEnabled()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();

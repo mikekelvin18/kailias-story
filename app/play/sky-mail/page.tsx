@@ -110,7 +110,9 @@ const RHYME_FALSE: [string, string][] = [
 ];
 const DIR_ARROW: Record<Dir, string> = { left: '⬅️', right: '➡️', up: '⬆️', down: '⬇️' };
 
+import { soundEnabled } from '@/lib/accessibility';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
+  if (!soundEnabled()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();

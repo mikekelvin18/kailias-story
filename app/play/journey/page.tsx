@@ -51,7 +51,9 @@ const STARTERS = [
 
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
+import { soundEnabled } from '@/lib/accessibility';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
+  if (!soundEnabled()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
