@@ -10,7 +10,16 @@
 
 const KEY = 'kailia_premium_v1';
 
+// ── Launch mode ──
+// Flip this to true only once you're confident the app is actually helping
+// kids and parents and you're ready to start charging. While it's false,
+// everything is unlocked for everyone — the paywall UI (locked quests,
+// /upgrade, library limit) all still exist and can be tested, but nobody
+// visiting the real site is ever gated behind them.
+const PAYWALL_ENABLED = false;
+
 export function isPremium(): boolean {
+  if (!PAYWALL_ENABLED) return true;
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(KEY) === 'true';
 }
