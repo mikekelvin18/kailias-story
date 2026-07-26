@@ -758,7 +758,7 @@ function TracingGame({
 const ENCOURAGEMENTS = ['Great thinking! 🌟', "Kailia loves your answer! ✨", "You're amazing! 🎉", 'Keep it up, explorer! 🚀', 'Wonderful! 🌈'];
 
 export default function GamesPage() {
-  const { state, setDomainScore, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores } = useAssessment();
+  const { state, setDomainScore, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
   const router = useRouter();
 
   const [gameStep, setGameStep]       = useState(0);
@@ -805,7 +805,7 @@ export default function GamesPage() {
     const domainKey = game.key as 'reading' | 'writing' | 'communication' | 'math';
     if (isLastQ) {
       setDomainScore(domainKey, domainScore);
-      if (isLastStep) { router.push('/results'); }
+      if (isLastStep) { completeAssessment(); router.push('/results'); }
       else {
         setGameStep(s => s + 1);
         setQuestionIdx(0); setLocalScore(0);

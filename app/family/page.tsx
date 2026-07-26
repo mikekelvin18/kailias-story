@@ -8,6 +8,7 @@ import {
   deleteChildAndData, deleteEverything, childDataInventory, DataSection, POLICY_VERSION,
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
+import ThemeToggle from '@/components/ThemeToggle';
 import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
 
@@ -40,7 +41,7 @@ export default function ParentZonePage() {
   const [deletedMsg, setDeletedMsg] = useState('');
   const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
   const [showAddChild, setShowAddChild] = useState(false);
-  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); }, []);
@@ -103,11 +104,7 @@ export default function ParentZonePage() {
         <div className="flex items-center justify-between pt-6 pb-1">
           <Link href="/" className={`text-sm font-bold ${theme.link}`}>← Home</Link>
           <h1 className={`text-2xl font-extrabold ${theme.title}`}>👨‍👩‍👧 Parent Zone</h1>
-          <button onClick={toggleTheme} title={bright ? 'Switch to night theme' : 'Switch to day theme'}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-base"
-            style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-            {bright ? '🌙' : '☀️'}
-          </button>
+          <ThemeToggle />
         </div>
         <p className={`text-xs text-center mb-5 ${theme.subtitle}`}>
           For grown-ups: your account, your child&apos;s data, your controls.

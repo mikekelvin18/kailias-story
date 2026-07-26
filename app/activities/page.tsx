@@ -12,6 +12,7 @@ import {
   todaysQuests, dailyMinutes, getTodayReports, reportActivity, streakDays,
 } from '@/lib/activities';
 import BottomNav from '@/components/BottomNav';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import { isPremium } from '@/lib/premium';
 
@@ -115,7 +116,7 @@ export default function ActivityLibraryPage() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [consented, setConsented] = useState(true);
   const [premium, setPremiumState] = useState(false);
-  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
 
   // follow the assessment once it loads from storage
@@ -145,12 +146,8 @@ export default function ActivityLibraryPage() {
         <div className="flex items-center justify-between pt-5 pb-1 px-1">
           <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
           <h1 className={`text-2xl font-extrabold ${theme.title}`}>🎒 Quest Library</h1>
-          <div className="flex items-center gap-1.5 w-14 justify-end">
-            <button onClick={toggleTheme} title={bright ? 'Switch to night theme' : 'Switch to day theme'}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-sm"
-              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-              {bright ? '🌙' : '☀️'}
-            </button>
+          <div className="flex items-center gap-1.5 justify-end">
+            <ThemeToggle />
             {streak >= 2 && <span className="text-sm font-bold text-yellow-500">🔥{streak}</span>}
           </div>
         </div>
@@ -175,7 +172,7 @@ export default function ActivityLibraryPage() {
           <div className="rounded-2xl p-3 mb-4 flex items-start gap-2"
             style={{ background: 'rgba(253,224,71,0.12)', border: '1.5px solid rgba(253,224,71,0.35)' }}>
             <span className="text-xl" style={{ flexShrink: 0 }}>💡</span>
-            <p className="text-xs text-yellow-100 leading-relaxed">
+            <p className={`text-xs leading-relaxed ${bright ? 'text-amber-900' : 'text-yellow-100'}`}>
               <strong>Why these quests?</strong> {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure
               level is still growing — and at the {info.name} stage, children learn most from playing
               <strong> with you</strong>, not from a screen. That&apos;s why these together-quests are the
@@ -188,7 +185,7 @@ export default function ActivityLibraryPage() {
         {!consented && (
           <Link href="/family" className="block rounded-2xl p-3 mb-4"
             style={{ background: 'rgba(253,224,71,0.14)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
-            <p className="text-xs text-yellow-100">
+            <p className={`text-xs ${bright ? 'text-amber-900' : 'text-yellow-100'}`}>
               ⚠️ <strong>Heads up:</strong> quest reports aren&apos;t being saved yet. A parent needs to
               set up the free family account first — <span className="underline font-bold">tap here for the Parent Zone</span>.
             </p>
@@ -197,20 +194,20 @@ export default function ActivityLibraryPage() {
 
         {/* ── Today's quests ── */}
         <div className="flex items-center gap-2 mb-2 px-1">
-          <h2 className="text-lg font-extrabold text-white">☀️ Today&apos;s Quests</h2>
+          <h2 className={`text-lg font-extrabold ${theme.title}`}>☀️ Today&apos;s Quests</h2>
           <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold"
-            style={{ background: allDone ? '#059669' : 'rgba(255,255,255,0.12)', color: 'white' }}>
+            style={{ background: allDone ? '#059669' : theme.badgeBg, color: allDone ? 'white' : (bright ? '#78350F' : 'white') }}>
             {doneToday} / {daily.length} done
           </span>
           <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold"
-            style={{ background: 'rgba(255,255,255,0.12)', color: '#fde047' }}>
+            style={{ background: theme.badgeBg, color: bright ? '#B45309' : '#fde047' }}>
             ⏱️ ~{minutes} min total
           </span>
         </div>
         <div className="flex items-start gap-2 rounded-2xl p-2.5 mb-3"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+          style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           <PandaSprite size={44} expression={allDone ? 'celebrating' : 'happy'} style={{ flexShrink: 0 }} />
-          <p className="text-sm font-semibold text-purple-100 pt-2">
+          <p className={`text-sm font-semibold pt-2 ${theme.subtitle}`}>
             {allDone
               ? 'ALL DONE?! You two are unstoppable! See you tomorrow! 🎉'
               : `Noel picked ${daily.length === 1 ? 'one tiny adventure' : `${daily.length} little adventures`} for today — about ${minutes} minutes all together!`}
@@ -237,15 +234,15 @@ export default function ActivityLibraryPage() {
         {/* ── The full library, tucked away so today stays special ── */}
         {!showLibrary ? (
           <button onClick={() => setShowLibrary(true)}
-            className="w-full py-3 rounded-2xl text-sm font-bold text-purple-200 transition-all hover:text-white"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px dashed rgba(255,255,255,0.25)' }}>
+            className={`w-full py-3 rounded-2xl text-sm font-bold transition-all ${theme.subtitle}`}
+            style={{ background: theme.cardBg, border: `1.5px dashed ${theme.cardBorder}` }}>
             🗂️ Need a different quest? Peek at the whole library ▾
           </button>
         ) : (
           <>
             <div className="flex items-center justify-between mb-2 px-1">
-              <h2 className="text-lg font-extrabold text-white">📚 The Whole Library</h2>
-              <button onClick={() => setShowLibrary(false)} className="text-xs font-bold text-purple-300">Hide ▴</button>
+              <h2 className={`text-lg font-extrabold ${theme.title}`}>📚 The Whole Library</h2>
+              <button onClick={() => setShowLibrary(false)} className={`text-xs font-bold ${theme.link}`}>Hide ▴</button>
             </div>
             <div className="flex gap-2 mb-3 justify-center">
               {([1, 2, 3] as const).map(b => (
@@ -253,7 +250,7 @@ export default function ActivityLibraryPage() {
                   className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
                   style={band === b
                     ? { background: '#FBBF24', color: '#451a03' }
-                    : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                    : { background: theme.badgeBg, color: bright ? '#4338CA' : '#e9d5ff', border: `1.5px solid ${theme.panelBorder}` }}>
                   {BAND_INFO[b].emoji} Band {b}
                 </button>
               ))}
@@ -263,7 +260,7 @@ export default function ActivityLibraryPage() {
                 className="px-3 py-1 rounded-full text-xs font-extrabold"
                 style={domainFilter === 'all'
                   ? { background: 'white', color: '#312e81' }
-                  : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff' }}>
+                  : { background: theme.badgeBg, color: bright ? '#4338CA' : '#e9d5ff' }}>
                 All
               </button>
               {DOMAINS.map(d => (
@@ -271,7 +268,7 @@ export default function ActivityLibraryPage() {
                   className="px-3 py-1 rounded-full text-xs font-extrabold"
                   style={domainFilter === d
                     ? { background: 'white', color: '#312e81' }
-                    : { background: 'rgba(255,255,255,0.1)', color: '#e9d5ff' }}>
+                    : { background: theme.badgeBg, color: bright ? '#4338CA' : '#e9d5ff' }}>
                   {DOMAIN_META[d].emoji} {DOMAIN_META[d].label}
                 </button>
               ))}
@@ -283,12 +280,12 @@ export default function ActivityLibraryPage() {
               {!premium && library.length > FREE_LIBRARY_PREVIEW && (
                 <Link href="/upgrade"
                   className="block text-center rounded-2xl p-4 font-extrabold text-sm transition-transform hover:scale-[1.02]"
-                  style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.4)', color: '#FDE047' }}>
+                  style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.4)', color: bright ? '#92400E' : '#FDE047' }}>
                   🔒 {library.length - FREE_LIBRARY_PREVIEW} more activities — Unlock Premium
                 </Link>
               )}
               {library.length === 0 && (
-                <p className="text-center text-purple-300 text-sm py-6">
+                <p className={`text-center text-sm py-6 ${theme.subtitle}`}>
                   Today&apos;s quests cover this one — check back tomorrow! 🌙
                 </p>
               )}
@@ -299,11 +296,11 @@ export default function ActivityLibraryPage() {
         {/* Kailia sign-off + disclaimer */}
         <div className="flex items-center justify-center gap-2 mt-8">
           <KailiaSprite size={60} expression="happy" className="float" />
-          <p className="text-purple-200 text-sm font-semibold max-w-[240px]">
+          <p className={`text-sm font-semibold max-w-[240px] ${theme.subtitle}`}>
             &ldquo;Every little game you play together helps me know your explorer better!&rdquo;
           </p>
         </div>
-        <p className="text-center text-purple-400 text-[11px] mt-5 px-4 leading-relaxed">
+        <p className={`text-center text-[11px] mt-5 px-4 leading-relaxed ${theme.subtitle}`} style={{ opacity: 0.75 }}>
           These activities are a screening and play-guidance tool inspired by developmental research —
           not a diagnosis. If you have concerns about your child&apos;s development, talk with your
           pediatrician or an occupational therapist.

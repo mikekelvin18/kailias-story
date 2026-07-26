@@ -233,7 +233,7 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 export default function ChecklistPage() {
-  const { state, setDomainScore } = useAssessment();
+  const { state, setDomainScore, completeAssessment } = useAssessment();
   const router = useRouter();
 
   const group   = (state.ageGroup ?? 'preschool') as string;
@@ -259,7 +259,7 @@ export default function ChecklistPage() {
   const handleNext = () => {
     const score = domainAnswers.reduce((sum, a) => sum + (a ? SCORE[a] : 0), 0);
     setDomainScore(domain.key as 'reading' | 'writing' | 'communication' | 'math', score);
-    if (isLast) { router.push('/results'); } else { setStep(s => s + 1); }
+    if (isLast) { completeAssessment(); router.push('/results'); } else { setStep(s => s + 1); }
   };
 
   // For school-age parent report, use "My child..." phrasing; others use direct questions

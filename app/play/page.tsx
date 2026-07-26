@@ -14,6 +14,7 @@ import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/a
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
 import { isPremium } from '@/lib/premium';
 import BottomNav from '@/components/BottomNav';
+import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
 
@@ -103,7 +104,7 @@ export default function AdventureMap() {
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {} });
   const [showGuide, setShowGuide] = useState(false);
-  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
 
@@ -316,11 +317,7 @@ export default function AdventureMap() {
             )}
           </div>
           <div className="flex gap-1.5 flex-shrink-0">
-            <button onClick={toggleTheme} title={bright ? 'Switch to night map' : 'Switch to day map'}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-base transition-transform hover:scale-110"
-              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-              {bright ? '🌙' : '☀️'}
-            </button>
+            <ThemeToggle />
             <div className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText}`}
               style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
               ⭐ {stars}/{maxStars()}

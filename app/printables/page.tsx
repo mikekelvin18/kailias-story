@@ -7,6 +7,7 @@ import { WORKSHEETS, CATEGORY_INFO, WorksheetCategory } from '@/lib/worksheets';
 import { loadWorksheetProgress } from '@/lib/worksheetProgress';
 import { hasActiveConsent } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
 
 // ─── Printable Worksheets library ──────────────────────────────────────────────
@@ -22,7 +23,7 @@ const CATEGORIES = Object.keys(CATEGORY_INFO) as WorksheetCategory[];
 export default function PrintablesPage() {
   const [progress, setProgress] = useState<Record<string, { completedAt: string; hasPhoto: boolean }>>({});
   const [consented, setConsented] = useState(false);
-  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
 
   useEffect(() => {
@@ -39,11 +40,7 @@ export default function PrintablesPage() {
           <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
           <h1 className={`text-xl font-extrabold ${theme.title}`}>🖨️ Printables</h1>
           <div className="flex items-center gap-1.5">
-            <button onClick={toggleTheme} title={bright ? 'Switch to night theme' : 'Switch to day theme'}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-sm"
-              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-              {bright ? '🌙' : '☀️'}
-            </button>
+            <ThemeToggle />
             <span className={`text-xs font-bold ${theme.subtitle}`}>{doneCount}/{WORKSHEETS.length}</span>
           </div>
         </div>

@@ -33,15 +33,18 @@ export interface AssessmentState {
   fineMotorInputMethod: InputMethod;
   graspPattern: string | null;
   fineMotorSubScores: FineMotorSubScores | null;
+  assessmentCompleted: boolean;
 }
 
 interface AssessmentContextType {
   state: AssessmentState;
+  loaded: boolean;
   setChildInfo: (name: string, age: number) => void;
   setAssessmentType: (type: 'checklist' | 'games') => void;
   setDomainScore: (domain: keyof AssessmentState['scores'], score: number) => void;
   setSensoryScore: (pattern: keyof SensoryScores, score: number) => void;
   completeSensory: () => void;
+  completeAssessment: () => void;
   setFineMotorInputMethod: (method: InputMethod) => void;
   setGraspPattern: (pattern: string) => void;
   setFineMotorSubScores: (scores: FineMotorSubScores) => void;
@@ -68,6 +71,7 @@ const defaultState: AssessmentState = {
   fineMotorInputMethod: null,
   graspPattern: null,
   fineMotorSubScores: null,
+  assessmentCompleted: false,
 };
 
 function deriveAgeGroup(age: number): AgeGroup {
@@ -188,6 +192,11 @@ const STORAGE_KEY = 'kailia_assessment_v1';
 
 export function AssessmentProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AssessmentState>(defaultState);
+  // False until the first load-from-storage pass finishes — lets gates
+  // like app/play/layout.tsx tell "hasn't loaded yet" apart from
+  // "genuinely hasn't completed the assessment" (both look like
+  // assessmentCompleted === false otherwise).
+  const [loaded, setLoaded] = useState(false);
 
   // Remember assessment results on this device so games can adapt
   // to the child's developmental level even after a page reload. Reloads
@@ -199,6 +208,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
         setState(raw ? { ...defaultState, ...JSON.parse(raw) } : defaultState);
       } catch { /* start fresh if the saved copy is unreadable */ }
+      setLoaded(true);
     };
     load();
     window.addEventListener(ACTIVE_CHILD_CHANGED_EVENT, load);
@@ -230,6 +240,9 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const completeSensory = () =>
     setState(s => ({ ...s, sensoryCompleted: true }));
 
+  const completeAssessment = () =>
+    setState(s => ({ ...s, assessmentCompleted: true }));
+
   const setFineMotorInputMethod = (method: InputMethod) =>
     setState(s => ({ ...s, fineMotorInputMethod: method }));
 
@@ -248,11 +261,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   return (
     <AssessmentContext.Provider value={{
       state,
+      loaded,
       setChildInfo,
       setAssessmentType,
       setDomainScore,
       setSensoryScore,
       completeSensory,
+      completeAssessment,
       setFineMotorInputMethod,
       setGraspPattern,
       setFineMotorSubScores,
