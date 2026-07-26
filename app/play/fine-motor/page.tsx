@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import { usePlayCount } from '@/hooks/usePlayCount';
+import KailiaSprite from '@/components/characters/KailiaSprite';
+import PandaSprite from '@/components/characters/PandaSprite';
+import { loadRewards } from '@/lib/rewards';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +180,12 @@ export default function MazeRunnerPage() {
   const [started, setStarted]       = useState(false);
   const [drawing, setDrawing]       = useState(false);
   const [showReassess, setShowReassess] = useState(false);
+  // Snapshot at mount, before this play could change it — used to trigger
+  // a bigger, story-driven celebration the very first time any child ever
+  // finishes a quest, since a new player's first win is the moment that
+  // decides whether the app feels special enough to come back to.
+  const [isFirstEver, setIsFirstEver] = useState(false);
+  useEffect(() => { setIsFirstEver(loadRewards().starlight === 0); }, []);
   // snapshot values for levelcomplete display (avoids ref-in-render)
   const [snapLives, setSnapLives]   = useState(MAX_LIVES);
   const [snapStars, setSnapStars]   = useState(0);
@@ -423,15 +432,23 @@ export default function MazeRunnerPage() {
   const maxStars   = LEVELS.length*3;
 
   // ─ Intro ──────────────────────────────────────────────────────────────────────
+  // First quest of the whole adventure, so this is many players' very first
+  // impression — Kailia and Noel open it together (matching the story voice
+  // used everywhere else) instead of a bare title screen with no characters.
   if (phase==='intro') return (
     <main className="min-h-screen flex items-center justify-center px-4"
       style={{background:'linear-gradient(135deg,#050f05,#020510)'}}>
       <div className="max-w-sm w-full text-center">
-        <div className="text-8xl mb-3" style={{filter:'drop-shadow(0 0 28px #4ade80)'}}>🗺️</div>
-        <h1 className="text-4xl font-extrabold text-white mb-2" style={{textShadow:'0 0 20px #4ade80'}}>Maze Runner</h1>
-        <p className="text-green-300 text-sm mb-5">
-          Guide your character through 5 magical mazes.<br/>Collect stars — don&apos;t hit the walls!
-        </p>
+        <div className="flex items-end justify-center gap-1 mb-2">
+          <PandaSprite size={104} expression="excited" className="float" style={{ animationDelay: '0.2s' }} />
+          <KailiaSprite size={84} expression="excited" className="float" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-white mb-2" style={{textShadow:'0 0 20px #4ade80'}}>🗺️ Maze Runner</h1>
+        <div className="rounded-2xl px-4 py-3 mb-4 text-left" style={{background:'rgba(255,255,255,0.95)'}}>
+          <p className="text-gray-900 text-base font-bold leading-snug">
+            Ooh, the fireflies lost their way! Trace the glowing trail with your finger and don&apos;t touch the walls — grab every star you can find! ✨
+          </p>
+        </div>
         <div className="rounded-2xl p-4 mb-4 space-y-2"
           style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
           {LEVELS.map((l,i)=>(
@@ -462,13 +479,45 @@ export default function MazeRunnerPage() {
   if (phase==='levelcomplete') {
     const earned=levelStars[levelStars.length-1]??1;
     const label=earned===3?'🏆 Perfect Run!':earned===2?'🎯 Level Clear!':'✅ You made it!';
+    // A brand-new player's very first quest win gets a bigger celebration —
+    // confetti burst and Kailia + Noel on screen together — instead of the
+    // same modest card every level uses, since this exact moment decides
+    // whether the app feels worth coming back to.
+    const bigWin = isFirstEver && levelIdx===0;
     return (
-      <main className="min-h-screen flex items-center justify-center px-4"
+      <main className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
         style={{background:`linear-gradient(135deg,${lv.bg},${lv.wall})`}}>
-        <div className="max-w-sm w-full text-center">
-          <div className="text-7xl mb-3" style={{filter:`drop-shadow(0 0 22px ${lv.accent})`}}>{lv.emoji}</div>
-          <h2 className="text-3xl font-extrabold text-white mb-1">{label}</h2>
-          <p className="font-bold text-sm mb-5" style={{color:lv.accent}}>{lv.name} conquered!</p>
+        {bigWin && (
+          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+            {Array.from({ length: 24 }).map((_, i) => (
+              <span key={i} className="absolute confetti-fall" style={{
+                left: `${(i * 41) % 100}%`,
+                top: -40,
+                fontSize: 20 + (i % 3) * 8,
+                animationDelay: `${(i % 8) * 0.15}s`,
+                animationDuration: `${2.2 + (i % 5) * 0.3}s`,
+              }}>{['✨','⭐','🎉','💚'][i % 4]}</span>
+            ))}
+          </div>
+        )}
+        <style>{`@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(115vh) rotate(360deg);opacity:0.9}} .confetti-fall{animation:confettiFall linear forwards}`}</style>
+        <div className="max-w-sm w-full text-center relative" style={{ zIndex: 2 }}>
+          {bigWin ? (
+            <>
+              <div className="flex items-end justify-center gap-1 mb-2">
+                <PandaSprite size={100} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+                <KailiaSprite size={84} expression="excited" className="float" />
+              </div>
+              <h2 className="text-3xl font-extrabold text-white mb-1" style={{textShadow:`0 0 20px ${lv.accent}`}}>You did it, Kailia!</h2>
+              <p className="font-bold text-sm mb-5" style={{color:lv.accent}}>Your very first quest — {lv.name} conquered! 🎉</p>
+            </>
+          ) : (
+            <>
+              <div className="text-7xl mb-3" style={{filter:`drop-shadow(0 0 22px ${lv.accent})`}}>{lv.emoji}</div>
+              <h2 className="text-3xl font-extrabold text-white mb-1">{label}</h2>
+              <p className="font-bold text-sm mb-5" style={{color:lv.accent}}>{lv.name} conquered!</p>
+            </>
+          )}
           <div className="flex justify-center gap-4 mb-4">
             {[1,2,3].map(n=>(
               <span key={n} className="text-5xl"
