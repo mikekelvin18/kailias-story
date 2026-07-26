@@ -5,6 +5,15 @@ body {
   font-family: var(--font-baloo), 'Trebuchet MS', 'Comic Sans MS', sans-serif;
 }
 
+/* min-h-screen defaults to 100vh, which on mobile browsers is measured
+   against the LARGEST possible viewport (address bar hidden) — so a
+   fixed-position bar pinned to the bottom of a 100vh-tall page can end up
+   below the fold whenever the browser chrome (address bar, etc.) is
+   showing, reading as "cut off". 100dvh tracks the actual visible
+   viewport instead. This overrides Tailwind's utility (unlayered rules
+   win over Tailwind's @layer utilities regardless of source order). */
+.min-h-screen { min-height: 100dvh; }
+
 /* ── Accessibility: driven by data-* attributes AccessibilityProvider
    sets on <html> from lib/accessibility.ts. Plain CSS so it applies
    everywhere without every page needing to opt in. ── */
