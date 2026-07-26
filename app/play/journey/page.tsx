@@ -143,16 +143,21 @@ function buildWorld(tier: string, level: number) {
     grid[y][x] = Math.random() < 0.6 ? 'tree' : 'water';
     placed++;
   }
+  // decorEmoji is picked once here (not per-render) so each flower tile
+  // keeps the same emoji instead of re-rolling — a re-roll on every
+  // render read as flowers "flickering"/switching between renders.
+  const decorEmoji: Record<string, string> = {};
   let decor = 0; guard = 0;
   while (decor < decorTarget && guard++ < decorTarget * 30) {
     const x = 1 + Math.floor(Math.random() * (W - 2)), y = 1 + Math.floor(Math.random() * (H - 2));
     const p = { x, y };
     if (pathKeys.has(key(p)) || grid[y][x] !== 'grass') continue;
     grid[y][x] = 'flower';
+    decorEmoji[key(p)] = pick(biome.decor);
     decor++;
   }
 
-  return { biome, grid, encounters, required, start: path[0] };
+  return { biome, grid, encounters, required, start: path[0], decorEmoji };
 }
 
 const BLOCKED: TileType[] = ['tree', 'water'];
@@ -488,7 +493,7 @@ export default function JourneyPage() {
                 if (t === 'flag') bg = world.biome.path;
                 let emoji = '';
                 if (t === 'tree' || t === 'water') emoji = t === 'tree' ? world.biome.obstacles[0] : world.biome.obstacles[1];
-                if (t === 'flower') emoji = pick(world.biome.decor);
+                if (t === 'flower') emoji = world.decorEmoji[`${x},${y}`] ?? world.biome.decor[0];
                 if (t === 'tallgrass' && isEnc && !isEnc.solved) emoji = '🌾';
                 if (t === 'flag') emoji = '🚩';
                 return (
@@ -670,7 +675,7 @@ export default function JourneyPage() {
                         borderBottom: i < activeEncounter.challenge.options.length - 1 ? '2px solid #1a1a2e' : 'none', background: '#fdfdf8' }}>
                       <span>▶</span>
                       {(activeEncounter.challenge.type === 'memory' || activeEncounter.challenge.type === 'word')
-                        ? <Critter emoji={o.label} size={32} animate={false} />
+                        ? <Critter emoji={o.label} size={58} animate={false} />
                         : <span>{o.label}</span>}
                     </button>
                   ))}

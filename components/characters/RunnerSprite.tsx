@@ -50,11 +50,13 @@ export default function RunnerSprite({ character, action, width, height, fps = 8
     return () => clearInterval(id);
   }, [action, fps]);
 
-  // While the run frames are still preloading, hold on the idle portrait
-  // (already showing, already loaded) instead of cycling through frames
-  // that would each trigger a fresh, slow network fetch.
-  const src = action === 'run' && ready
-    ? `/characters/${character}/run-${frame + 1}.png`
+  // While the run frames are still preloading, hold on a STATIC run frame
+  // (run-1) rather than the idle portrait — the portrait is a tall
+  // full-body image, and squeezing it into this box's short/wide aspect
+  // via objectFit:contain leaves most of the box empty, which reads as a
+  // faded/translucent character rather than just "not animated yet".
+  const src = action === 'run'
+    ? `/characters/${character}/run-${ready ? frame + 1 : 1}.png`
     : `/characters/${character}/portrait-front.png`;
 
   return (

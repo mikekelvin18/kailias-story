@@ -14,6 +14,7 @@ import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/a
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
 import BottomNav from '@/components/BottomNav';
 import { scopedKey, activeChild } from '@/lib/family';
+import { useHubTheme } from '@/hooks/useHubTheme';
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 
@@ -48,14 +49,9 @@ const sfx = {
 
 // ── Map decorations (pure charm) ──────────────────────────────────────────────
 // Two skies to choose from — a bright daytime map (friendlier, easier to
-// read at a glance) or the original moonlit one, picked with the toggle
-// in the header and remembered per-device (not child data, just a
-// display preference, so it isn't consent-gated).
-
-const MAP_THEMES = {
-  bright: { background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 30%, #bef264 70%, #86efac 100%)' },
-  dark: { background: 'linear-gradient(180deg, #0b0b2a 0%, #1a1a3e 30%, #16324a 60%, #0f3d2e 100%)' },
-} as const;
+// read at a glance) or the original moonlit one, picked with the shared
+// hub theme toggle (lib/theme.ts, hooks/useHubTheme.ts) and remembered
+// per-device (not child data, just a display preference).
 
 const DECOR_BRIGHT = [
   { e: '☀️', x: 8,  y: 3,  s: 34 }, { e: '🌈', x: 55, y: 5,  s: 22 },
@@ -106,34 +102,19 @@ export default function AdventureMap() {
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {} });
   const [showGuide, setShowGuide] = useState(false);
-  const [bright, setBright] = useState(true);
+  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const bright = themeName === 'bright';
+  const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
+
+  // activeChild() reads localStorage, which doesn't exist during SSR —
+  // reading it directly in render would make the server-rendered HTML
+  // (no badge) mismatch the client's first paint (badge present).
+  // Loading it into state after mount keeps server and client in sync.
+  useEffect(() => { setChild(activeChild()); }, []);
 
   useEffect(() => { setRewards(loadRewards()); }, []);
 
-  // Bright/dark map toggle — a device display preference, not child data,
-  // so it's just remembered locally rather than consent-gated.
-  useEffect(() => {
-    const saved = localStorage.getItem('kailia_map_theme');
-    if (saved === 'dark') setBright(false);
-  }, []);
-  function toggleTheme() {
-    setBright(b => {
-      const next = !b;
-      localStorage.setItem('kailia_map_theme', next ? 'bright' : 'dark');
-      return next;
-    });
-  }
-  const theme = bright ? MAP_THEMES.bright : MAP_THEMES.dark;
   const DECOR = bright ? DECOR_BRIGHT : DECOR_DARK;
-  const tc = bright
-    ? { title: 'text-indigo-950', sub: 'text-indigo-900', badge: 'text-amber-800', badgeBg: 'rgba(255,255,255,0.75)',
-        badgeBorder: 'rgba(217,119,6,0.4)', link: 'text-indigo-900 font-semibold',
-        noelBar: 'rgba(255,255,255,0.55)', noelBarBorder: 'rgba(30,41,59,0.12)',
-        companionsBg: 'rgba(255,255,255,0.4)', companionsBorder: 'rgba(30,41,59,0.1)', companionsLabel: 'text-indigo-900' }
-    : { title: 'text-white drop-shadow-lg', sub: 'text-purple-200', badge: 'text-yellow-300', badgeBg: 'rgba(255,255,255,0.1)',
-        badgeBorder: 'rgba(253,224,71,0.4)', link: 'text-purple-300',
-        noelBar: 'rgba(255,255,255,0.08)', noelBarBorder: 'rgba(255,255,255,0.15)',
-        companionsBg: 'rgba(255,255,255,0.06)', companionsBorder: 'rgba(255,255,255,0.12)', companionsLabel: 'text-purple-300' };
 
   // Load saved progress + detect a land finished on the last game visit
   useEffect(() => {
@@ -215,27 +196,39 @@ export default function AdventureMap() {
     <main className="min-h-screen pb-24" style={{ background: theme.background }}>
       <div className="max-w-md mx-auto px-3">
 
-        {/* Header */}
-        <div className="flex items-center justify-between pt-5 pb-2 px-1">
-          <h1 className={`text-2xl font-extrabold ${tc.title}`}>🗺️ Kailia&apos;s World</h1>
-          <div className="flex gap-1.5">
+        {/* Header — wraps to a second row on narrow phones instead of
+            squeezing the title or badges into each other */}
+        <div className="flex items-center justify-between gap-2 flex-wrap pt-5 pb-2 px-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h1 className={`text-lg sm:text-2xl font-extrabold ${theme.title} truncate`}>
+              🗺️ Kailia&apos;s World
+            </h1>
+            {child && (
+              <Link href="/family" title={`Playing as ${child.nickname} — tap to switch`}
+                className="text-base rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0"
+                style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
+                {child.avatar}
+              </Link>
+            )}
+          </div>
+          <div className="flex gap-1.5 flex-shrink-0">
             <button onClick={toggleTheme} title={bright ? 'Switch to night map' : 'Switch to day map'}
               className="w-8 h-8 rounded-full flex items-center justify-center text-base transition-transform hover:scale-110"
-              style={{ background: tc.badgeBg, border: `1.5px solid ${tc.badgeBorder}` }}>
+              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
               {bright ? '🌙' : '☀️'}
             </button>
-            <div className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${tc.badge}`}
-              style={{ background: tc.badgeBg, border: `1.5px solid ${tc.badgeBorder}` }}>
+            <div className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText}`}
+              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
               ⭐ {stars}/{maxStars()}
             </div>
             <button onClick={() => setShowGuide(true)}
-              className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${tc.badge} transition-transform hover:scale-105`}
-              style={{ background: tc.badgeBg, border: `1.5px solid ${tc.badgeBorder}` }}>
+              className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText} transition-transform hover:scale-105`}
+              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
               ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
             </button>
           </div>
         </div>
-        <p className={`text-xs px-1 mb-3 font-semibold ${tc.sub}`}>
+        <p className={`text-xs px-1 mb-3 font-semibold ${theme.subtitle}`}>
           {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
         </p>
 
@@ -346,7 +339,7 @@ export default function AdventureMap() {
 
         {/* ── Noel's guide bar ── */}
         <div className="flex items-center gap-3 mt-4 rounded-2xl p-3"
-          style={{ background: tc.noelBar, border: `1.5px solid ${tc.noelBarBorder}` }}>
+          style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           <PandaSprite size={54} expression={noelMood} style={{ flexShrink: 0 }} />
           <div className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-800 relative"
             style={{ background: 'white' }}>
@@ -359,8 +352,8 @@ export default function AdventureMap() {
         {/* Companion collection — starlight milestones bring new friends */}
         <button onClick={() => setShowGuide(true)}
           className="w-full flex items-center justify-center gap-2 mt-4 rounded-2xl p-2.5 transition-transform hover:scale-[1.01]"
-          style={{ background: tc.companionsBg, border: `1.5px solid ${tc.companionsBorder}` }}>
-          <span className={`text-[11px] font-bold mr-1 ${tc.companionsLabel}`}>Companions:</span>
+          style={{ background: theme.cardBg, border: `1.5px solid ${theme.cardBorder}` }}>
+          <span className={`text-[11px] font-bold mr-1 ${theme.subtitle}`}>Companions:</span>
           {COMPANIONS.map(c => {
             const unlocked = rewards.starlight >= c.at;
             return (
@@ -371,13 +364,13 @@ export default function AdventureMap() {
               </span>
             );
           })}
-          <span className={`text-[10px] ml-1 ${tc.companionsLabel}`} style={{ opacity: 0.85 }}>ⓘ</span>
+          <span className={`text-[10px] ml-1 ${theme.subtitle}`} style={{ opacity: 0.85 }}>ⓘ</span>
         </button>
 
         {/* Quests and Printables now live in the bottom nav — only Results
             needs a footer link here since it isn't one of the four tabs. */}
         <div className="text-center mt-4">
-          <Link href="/results" className={`text-xs underline ${tc.link}`}>For grown-ups: progress &amp; results</Link>
+          <Link href="/results" className={`text-xs underline ${theme.link}`}>For grown-ups: progress &amp; results</Link>
         </div>
       </div>
 

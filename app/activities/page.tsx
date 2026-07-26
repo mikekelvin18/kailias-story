@@ -12,6 +12,7 @@ import {
   todaysQuests, dailyMinutes, getTodayReports, reportActivity, streakDays,
 } from '@/lib/activities';
 import BottomNav from '@/components/BottomNav';
+import { useHubTheme } from '@/hooks/useHubTheme';
 
 // ─── Parent & Baby Quest Library ──────────────────────────────────────────────
 // Daily real-world quests for the youngest adventurers, coached by Noel,
@@ -107,6 +108,8 @@ export default function ActivityLibraryPage() {
   const [streak, setStreak] = useState(0);
   const [showLibrary, setShowLibrary] = useState(false);
   const [consented, setConsented] = useState(true);
+  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const bright = themeName === 'bright';
 
   // follow the assessment once it loads from storage
   useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
@@ -128,18 +131,23 @@ export default function ActivityLibraryPage() {
   }
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #1e3a5f 100%)' }}>
-      <div className="max-w-md mx-auto px-3">
+    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+      <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-3">
 
         {/* Header */}
         <div className="flex items-center justify-between pt-5 pb-1 px-1">
-          <Link href="/play" className="text-sm font-bold text-purple-300">← Map</Link>
-          <h1 className="text-2xl font-extrabold text-white drop-shadow-lg">🎒 Quest Library</h1>
-          <span className="text-sm font-bold text-yellow-300 w-14 text-right">
-            {streak >= 2 ? `🔥 ${streak}d` : ''}
-          </span>
+          <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
+          <h1 className={`text-2xl font-extrabold ${theme.title}`}>🎒 Quest Library</h1>
+          <div className="flex items-center gap-1.5 w-14 justify-end">
+            <button onClick={toggleTheme} title={bright ? 'Switch to night theme' : 'Switch to day theme'}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-sm"
+              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
+              {bright ? '🌙' : '☀️'}
+            </button>
+            {streak >= 2 && <span className="text-sm font-bold text-yellow-500">🔥{streak}</span>}
+          </div>
         </div>
-        <p className="text-purple-200 text-xs text-center mb-4">
+        <p className={`text-xs text-center mb-4 ${theme.subtitle}`}>
           A pocket-sized adventure each day (~5 minutes), played <strong>together</strong> — new quests tomorrow!
         </p>
 

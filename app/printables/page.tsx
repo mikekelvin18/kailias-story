@@ -7,6 +7,7 @@ import { WORKSHEETS, CATEGORY_INFO, WorksheetCategory } from '@/lib/worksheets';
 import { loadWorksheetProgress } from '@/lib/worksheetProgress';
 import { hasActiveConsent } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
+import { useHubTheme } from '@/hooks/useHubTheme';
 
 // ─── Printable Worksheets library ──────────────────────────────────────────────
 // Real paper activities parents print at home: tracing sheets progressing
@@ -21,6 +22,8 @@ const CATEGORIES = Object.keys(CATEGORY_INFO) as WorksheetCategory[];
 export default function PrintablesPage() {
   const [progress, setProgress] = useState<Record<string, { completedAt: string; hasPhoto: boolean }>>({});
   const [consented, setConsented] = useState(false);
+  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const bright = themeName === 'bright';
 
   useEffect(() => {
     setProgress(loadWorksheetProgress());
@@ -30,18 +33,25 @@ export default function PrintablesPage() {
   const doneCount = Object.keys(progress).length;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%)' }}>
-      <div className="max-w-md mx-auto px-4 pt-5">
+    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+      <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4 pt-5">
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="text-sm font-bold text-purple-200">← Map</Link>
-          <h1 className="text-xl font-extrabold text-white">🖨️ Printables</h1>
-          <span className="text-xs font-bold text-purple-200">{doneCount}/{WORKSHEETS.length}</span>
+          <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
+          <h1 className={`text-xl font-extrabold ${theme.title}`}>🖨️ Printables</h1>
+          <div className="flex items-center gap-1.5">
+            <button onClick={toggleTheme} title={bright ? 'Switch to night theme' : 'Switch to day theme'}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-sm"
+              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
+              {bright ? '🌙' : '☀️'}
+            </button>
+            <span className={`text-xs font-bold ${theme.subtitle}`}>{doneCount}/{WORKSHEETS.length}</span>
+          </div>
         </div>
 
         <div className="flex items-start gap-2 rounded-2xl p-3 mb-4"
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
+          style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           <PandaSprite size={48} expression="happy" style={{ flexShrink: 0 }} />
-          <p className="text-sm font-semibold text-purple-100 pt-2">
+          <p className={`text-sm font-semibold pt-2 ${theme.subtitle}`}>
             Real paper, real pencils! Print a sheet, trace or play together, then come back and mark it done.
           </p>
         </div>
@@ -49,7 +59,7 @@ export default function PrintablesPage() {
         {!consented && (
           <Link href="/family" className="block rounded-2xl p-3 mb-4"
             style={{ background: 'rgba(253,224,71,0.14)', border: '1.5px solid rgba(253,224,71,0.4)' }}>
-            <p className="text-xs text-yellow-100">
+            <p className={bright ? 'text-xs text-amber-900' : 'text-xs text-yellow-100'}>
               ⚠️ <strong>Heads up:</strong> completed worksheets aren&apos;t being saved yet. Set up the
               free family account first — <span className="underline font-bold">tap here for the Parent Zone</span>.
             </p>
@@ -61,10 +71,10 @@ export default function PrintablesPage() {
           const info = CATEGORY_INFO[cat];
           return (
             <section key={cat} className="mb-5">
-              <h2 className="text-sm font-extrabold text-purple-200 uppercase tracking-wide mb-2 px-1">
+              <h2 className={`text-sm font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>
                 {info.emoji} {info.label}
               </h2>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {items.map(w => {
                   const done = !!progress[w.id];
                   return (

@@ -205,8 +205,10 @@ export function CritterSprite({ species, size = 64, className, style, animate = 
       )}
       {c.extra === 'antler' && (
         <>
-          <path d="M 40 16 L 32 2 M 32 2 L 26 4 M 32 2 L 30 8" fill="none" stroke={c.accent} strokeWidth="3" strokeLinecap="round" />
-          <path d="M 60 16 L 68 2 M 68 2 L 74 4 M 68 2 L 70 8" fill="none" stroke={c.accent} strokeWidth="3" strokeLinecap="round" />
+          <path d="M 41 20 L 34 -4 M 34 -4 L 24 0 M 34 -4 L 30 8 M 34 -4 L 40 4"
+            fill="none" stroke={c.accent} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M 59 20 L 66 -4 M 66 -4 L 76 0 M 66 -4 L 70 8 M 66 -4 L 60 4"
+            fill="none" stroke={c.accent} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
         </>
       )}
 

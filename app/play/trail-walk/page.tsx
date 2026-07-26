@@ -216,41 +216,49 @@ export default function TrailWalkPage() {
                 <span className="absolute" style={{ left: (STOPS + 1) * SEG + kailiaScreenX + 90, bottom: 40, fontSize: 44, pointerEvents: 'none' }}>🚩</span>
               </div>
 
-              <div className="absolute left-0 right-0" style={{ bottom: 0, height: 34, background: 'linear-gradient(180deg, #16a34a, #15803d)', pointerEvents: 'none' }} />
+              <div className="absolute left-0 right-0" style={{ bottom: 0, height: 40, background: 'linear-gradient(180deg, #16a34a, #15803d)', pointerEvents: 'none' }} />
 
               {/* Noel runs alongside Kailia — bigger, since he's a giant panda.
                   Positioned with a clear gap (no overlap) so neither sprite's
-                  body ever gets clipped by the other. */}
-              <div className="absolute" style={{ left: kailiaScreenX - 124, bottom: 18, zIndex: 4 }}>
+                  body ever gets clipped by the other. Lifted clear of the
+                  ground band so their feet plant ON the grass, not in it. */}
+              <div className="absolute" style={{ left: kailiaScreenX - 124, bottom: 26, zIndex: 4 }}>
                 <RunnerSprite character="noel" action={walking.current ? 'run' : 'idle'} width={88} height={57} />
               </div>
-              <div className="absolute" style={{ left: kailiaScreenX - 24, bottom: 22, zIndex: 5 }}>
+              <div className="absolute" style={{ left: kailiaScreenX - 24, bottom: 30, zIndex: 5 }}>
                 <RunnerSprite character="kailia" action={walking.current ? 'run' : 'idle'} width={58} height={57} />
               </div>
               {party.map((p, i) => (
-                <span key={i} className="absolute" style={{ left: kailiaScreenX - 150 - i * 30, bottom: 40, animation: walking.current ? `bob 0.5s ${i * 0.1}s infinite` : 'none', zIndex: 3 }}>
+                <span key={i} className="absolute" style={{ left: kailiaScreenX - 150 - i * 30, bottom: 46, animation: walking.current ? `bob 0.5s ${i * 0.1}s infinite` : 'none', zIndex: 3 }}>
                   <Critter emoji={p} size={30} />
                 </span>
               ))}
-
-              {phase === 'walking' && !walking.current && (
-                <button onClick={walk}
-                  className="absolute left-1/2 -translate-x-1/2 bottom-3 px-8 py-2.5 rounded-full text-base font-extrabold text-white shadow-xl pulse"
-                  style={{ background: '#0E7490', zIndex: 10 }}>
-                  Walk! 🥾▶
-                </button>
-              )}
             </div>
 
-            <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
-              style={{ background: 'rgba(255,255,255,0.6)', border: '1.5px solid rgba(14,116,144,0.2)' }}>
-              <PandaSprite size={46} expression={phase === 'challenge' ? 'thinking' : 'happy'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative shadow-sm">
+            {/* Noel's dialogue gets its own banner directly under the scene —
+                bigger and more prominent so it reads as "Noel is talking to
+                you", not a cramped caption strip. The Walk button now lives
+                in its own row below (never overlapping the running scene or
+                Noel's feet), so nothing fights for the same space. */}
+            <div className="flex items-center gap-3 mt-3 rounded-2xl p-3"
+              style={{ background: 'rgba(255,255,255,0.85)', border: '2px solid rgba(14,116,144,0.25)' }}>
+              <PandaSprite size={54} expression={phase === 'challenge' ? 'thinking' : 'happy'} style={{ flexShrink: 0 }} />
+              <div className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
-                  style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
+                  style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                 {noelLine}
               </div>
             </div>
+
+            {phase === 'walking' && !walking.current && (
+              <div className="flex justify-center mt-3">
+                <button onClick={walk}
+                  className="px-10 py-3 rounded-full text-lg font-extrabold text-white shadow-xl pulse"
+                  style={{ background: '#0E7490' }}>
+                  Walk! 🥾▶
+                </button>
+              </div>
+            )}
 
             {phase === 'memoryShow' && challenge?.memoryFull && (
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
@@ -284,7 +292,7 @@ export default function TrailWalkPage() {
                       className="px-6 py-3 rounded-2xl font-extrabold shadow transition-transform hover:scale-105 active:scale-95 flex items-center justify-center"
                       style={{ background: '#F0F9FF', border: '2.5px solid #7DD3FC', color: '#0c4a6e', fontSize: /\d/.test(o.label) ? 22 : 28 }}>
                       {(challenge.type === 'memory' || challenge.type === 'word')
-                        ? <Critter emoji={o.label} size={36} animate={false} />
+                        ? <Critter emoji={o.label} size={58} animate={false} />
                         : o.label}
                     </button>
                   ))}

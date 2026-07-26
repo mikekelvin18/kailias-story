@@ -9,6 +9,7 @@ import {
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
 import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
+import { useHubTheme } from '@/hooks/useHubTheme';
 
 // ── Parent Zone ──
 // Consent first, then a minimal child profile, then full parental rights:
@@ -39,6 +40,8 @@ export default function ParentZonePage() {
   const [deletedMsg, setDeletedMsg] = useState('');
   const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
   const [showAddChild, setShowAddChild] = useState(false);
+  const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
+  const bright = themeName === 'bright';
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); }, []);
 
@@ -94,56 +97,60 @@ export default function ParentZonePage() {
   if (!loaded) return null;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)' }}>
-      <div className="max-w-md mx-auto px-4">
+    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+      <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4">
 
         <div className="flex items-center justify-between pt-6 pb-1">
-          <Link href="/" className="text-sm font-bold text-sky-300">← Home</Link>
-          <h1 className="text-2xl font-extrabold text-white">👨‍👩‍👧 Parent Zone</h1>
-          <span className="w-12" />
+          <Link href="/" className={`text-sm font-bold ${theme.link}`}>← Home</Link>
+          <h1 className={`text-2xl font-extrabold ${theme.title}`}>👨‍👩‍👧 Parent Zone</h1>
+          <button onClick={toggleTheme} title={bright ? 'Switch to night theme' : 'Switch to day theme'}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-base"
+            style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
+            {bright ? '🌙' : '☀️'}
+          </button>
         </div>
-        <p className="text-slate-300 text-xs text-center mb-5">
+        <p className={`text-xs text-center mb-5 ${theme.subtitle}`}>
           For grown-ups: your account, your child&apos;s data, your controls.
         </p>
 
         {/* ── Accessibility settings — a device display preference, not
             child data, so it's always available regardless of consent ── */}
-        <div className="rounded-2xl p-4 mb-5" style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
-          <h2 className="text-sm font-extrabold text-white mb-3">♿ Accessibility</h2>
+        <div className="rounded-2xl p-4 mb-5" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
+          <h2 className={`text-sm font-extrabold mb-3 ${theme.title}`}>♿ Accessibility</h2>
 
           <div className="mb-3">
-            <p className="text-xs font-bold text-slate-300 mb-1.5">Text size</p>
+            <p className={`text-xs font-bold mb-1.5 ${theme.subtitle}`}>Text size</p>
             <div className="flex gap-2">
               {(['normal', 'large', 'xlarge'] as const).map(size => (
                 <button key={size} onClick={() => updateA11y({ textSize: size })}
                   className="flex-1 py-2 rounded-xl text-xs font-extrabold transition-transform hover:scale-105"
-                  style={{ background: a11y.textSize === size ? '#7C3AED' : 'rgba(255,255,255,0.08)', color: 'white' }}>
+                  style={{ background: a11y.textSize === size ? '#7C3AED' : theme.cardBg, color: a11y.textSize === size ? 'white' : (bright ? '#1e1b4b' : 'white') }}>
                   {size === 'normal' ? 'A' : size === 'large' ? 'A+' : 'A++'}
                 </button>
               ))}
             </div>
           </div>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <span className="text-xs font-semibold text-slate-200">🎬 Reduce motion &amp; animation</span>
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>🎬 Reduce motion &amp; animation</span>
             <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <span className="text-xs font-semibold text-slate-200">🔇 Reduce sound effects</span>
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>🔇 Reduce sound effects</span>
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <span className="text-xs font-semibold text-slate-200">📖 Dyslexia-friendly text spacing</span>
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>📖 Dyslexia-friendly text spacing</span>
             <input type="checkbox" checked={a11y.dyslexiaFriendly} onChange={e => updateA11y({ dyslexiaFriendly: e.target.checked })} className="w-5 h-5" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 cursor-pointer" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <span className="text-xs font-semibold text-slate-200">👁️ Colorblind-safe colors</span>
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>👁️ Colorblind-safe colors</span>
             <input type="checkbox" checked={a11y.colorblindSafe} onChange={e => updateA11y({ colorblindSafe: e.target.checked })} className="w-5 h-5" />
           </label>
-          <p className="text-[10px] text-slate-400 mt-2">
+          <p className={`text-[10px] mt-2 ${theme.subtitle}`} style={{ opacity: 0.75 }}>
             These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
           </p>
         </div>
@@ -213,20 +220,20 @@ export default function ParentZonePage() {
         {/* ── Child switcher — families can have more than one child; tap
             an avatar to make it active, or add another sibling ── */}
         {consented && family && family.children.length > 0 && (
-          <div className="rounded-2xl p-3 mb-4 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)' }}>
+          <div className="rounded-2xl p-3 mb-4 flex items-center gap-2 flex-wrap" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
             {family.children.map(c => (
               <button key={c.id} onClick={() => handleSwitchChild(c.id)}
                 className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition-transform hover:scale-105"
-                style={{ background: c.id === family.activeChildId ? '#7C3AED' : 'rgba(255,255,255,0.08)' }}>
+                style={{ background: c.id === family.activeChildId ? '#7C3AED' : theme.cardBg }}>
                 <span className="text-2xl">{c.avatar}</span>
-                <span className="text-[10px] font-extrabold text-white">{c.nickname}</span>
+                <span className={`text-[10px] font-extrabold ${c.id === family.activeChildId ? 'text-white' : theme.subtitle}`}>{c.nickname}</span>
               </button>
             ))}
             <button onClick={() => setShowAddChild(true)}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-transform hover:scale-105"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px dashed rgba(255,255,255,0.3)' }}>
-              <span className="text-2xl text-white">➕</span>
-              <span className="text-[10px] font-extrabold text-white">Add</span>
+              style={{ background: theme.cardBg, border: `1.5px dashed ${theme.panelBorder}` }}>
+              <span className={`text-2xl ${theme.subtitle}`}>➕</span>
+              <span className={`text-[10px] font-extrabold ${theme.subtitle}`}>Add</span>
             </button>
           </div>
         )}
