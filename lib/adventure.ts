@@ -19,8 +19,12 @@ export interface Land {
   color: string;           // main theme color
   glow: string;            // glow / accent
   sky: string;             // chip background on the map
-  x: number;               // map position, viewBox units (0-400)
-  y: number;               // map position, viewBox units (0-640)
+  x: number;               // mobile map position, portrait viewBox (0-400, 0-640)
+  y: number;
+  dx: number;              // tablet/desktop map position, landscape viewBox
+  dy: number;              // (0-1000, 0-380) — spreads left-to-right instead
+                           // of top-to-bottom, so the whole map fits without
+                           // scrolling on a wide screen.
   tagline: string;
   noelIntro: string;       // what Noel says when the land is opened
   quests: Quest[];
@@ -34,6 +38,7 @@ export const LANDS: Land[] = [
     emoji: '🌲',
     color: '#059669', glow: '#4ade80', sky: '#ECFDF5',
     x: 72, y: 556,
+    dx: 70, dy: 290,
     tagline: 'Glowing paths and busy little hands',
     noelIntro: "Ooh, the fireflies lost their way! Can you help Kailia trace the glowing trails? Steady hands, here we go!",
     quests: [
@@ -49,6 +54,7 @@ export const LANDS: Land[] = [
     emoji: '🐉',
     color: '#D97706', glow: '#FDE68A', sky: '#FFFBEB',
     x: 312, y: 474,
+    dx: 250, dy: 110,
     tagline: 'Count the gems, feed the dragons',
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
@@ -62,6 +68,7 @@ export const LANDS: Land[] = [
     emoji: '🪧',
     color: '#2563EB', glow: '#93C5FD', sky: '#EFF6FF',
     x: 84, y: 386,
+    dx: 430, dy: 290,
     tagline: 'Words that light the way',
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
@@ -77,6 +84,7 @@ export const LANDS: Land[] = [
     emoji: '🏘️',
     color: '#EC4899', glow: '#FBCFE8', sky: '#FDF2F8',
     x: 316, y: 296,
+    dx: 610, dy: 110,
     tagline: 'Every door opens with a story',
     noelIntro: "The Story Keepers mixed up all their tales! Put Kailia's adventure back in order and the village doors will open!",
     quests: [
@@ -90,6 +98,7 @@ export const LANDS: Land[] = [
     emoji: '🔮',
     color: '#0891B2', glow: '#A5F3FC', sky: '#ECFEFF',
     x: 88, y: 204,
+    dx: 790, dy: 290,
     tagline: 'Crystals, colors and curious sounds',
     noelIntro: "Shhh… hear that? The caves echo with colors and sounds! Find the ones that match and the crystals will glow!",
     quests: [
@@ -104,6 +113,7 @@ export const LANDS: Land[] = [
     emoji: '🦉',
     color: '#7C3AED', glow: '#DDD6FE', sky: '#F5F3FF',
     x: 290, y: 92,
+    dx: 930, dy: 110,
     tagline: 'Riddles at the top of the world',
     noelIntro: "The wise old owl only opens her tower for sharp eyes! Find every hidden star before her hourglass runs out!",
     quests: [

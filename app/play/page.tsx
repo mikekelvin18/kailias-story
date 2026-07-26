@@ -196,9 +196,104 @@ export default function AdventureMap() {
     setCelebrating(null);
   }
 
+  // Renders the map at either the phone (portrait, land.x/land.y) or
+  // tablet/desktop (landscape, land.dx/land.dy) coordinates — see the
+  // "The map" section below for why there are two.
+  function renderMap(mode: 'portrait' | 'landscape') {
+    const VBW = mode === 'portrait' ? 400 : 1000;
+    const VBH = mode === 'portrait' ? 640 : 380;
+    const gx = (land: Land) => mode === 'portrait' ? land.x : land.dx;
+    const gy = (land: Land) => mode === 'portrait' ? land.y : land.dy;
+    const cur = LANDS[curIdx];
+
+    return (
+      <div className={`relative w-full rounded-3xl overflow-hidden shadow-2xl ${mode === 'portrait' ? 'aspect-[400/640]' : 'aspect-[1000/380]'}`}
+        style={{ border: '3px solid rgba(255,255,255,0.15)' }}>
+
+        {/* Trail */}
+        <svg viewBox={`0 0 ${VBW} ${VBH}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          {LANDS.slice(0, -1).map((a, i) => {
+            const b = LANDS[i + 1];
+            const ax = gx(a), ay = gy(a), bx = gx(b), by = gy(b);
+            const midY = (ay + by) / 2;
+            const d = `M ${ax} ${ay} C ${ax} ${midY}, ${bx} ${midY}, ${bx} ${by}`;
+            const traveled = isLandUnlocked(progress, i + 1);
+            return (
+              <g key={a.id}>
+                <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="16" strokeLinecap="round" />
+                <path d={d} fill="none"
+                  stroke={traveled ? '#FBBF24' : 'rgba(255,255,255,0.45)'}
+                  strokeWidth={traveled ? 5 : 4}
+                  strokeLinecap="round"
+                  strokeDasharray={traveled ? undefined : '0.5 14'} />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Scenery */}
+        {DECOR.map((d, i) => (
+          <span key={i} className={i % 3 === 0 ? 'absolute float' : 'absolute sparkle'}
+            style={{ left: `${d.x}%`, top: `${d.y}%`, fontSize: d.s, opacity: 0.7, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
+            {d.e}
+          </span>
+        ))}
+
+        {/* Lands */}
+        {LANDS.map((land, idx) => {
+          const unlocked = hydrated && isLandUnlocked(progress, idx);
+          const complete = isLandComplete(progress, land);
+          const isCurrent = idx === curIdx;
+          const isFocus = focusLandId === land.id && unlocked && !complete;
+          return (
+            <button key={land.id} onClick={() => tapLand(land, idx)}
+              className={`absolute text-center ${shakeId === land.id ? 'shake' : ''}`}
+              style={{ left: `${(gx(land) / VBW) * 100}%`, top: `${(gy(land) / VBH) * 100}%`, transform: 'translate(-50%, -50%)', width: '25%' }}>
+              <span className={`inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
+                style={{
+                  background: unlocked ? land.sky : 'rgba(120,120,140,0.45)',
+                  border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,
+                  boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
+                  filter: unlocked ? 'none' : 'grayscale(0.9)',
+                }}>
+                {unlocked ? land.emoji : '🔒'}
+              </span>
+              <span className="block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold leading-tight px-1 py-0.5 rounded-lg mx-auto w-fit"
+                style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.45)', background: 'rgba(0,0,0,0.45)' }}>
+                {land.name}
+              </span>
+              {unlocked && (
+                <span className="block text-[11px] sm:text-sm mt-0.5" style={{ letterSpacing: 1 }}>
+                  {land.quests.map((q, qi) => (
+                    <span key={q.href} style={{ opacity: (progress.played[land.id] ?? []).length > qi ? 1 : 0.3 }}>⭐</span>
+                  ))}
+                </span>
+              )}
+              {isFocus && (
+                <span className="block text-[10px] sm:text-xs font-bold text-yellow-300 mt-0.5 sparkle">Noel&apos;s pick!</span>
+              )}
+            </button>
+          );
+        })}
+
+        {/* Kailia stands at the current land — offset kept proportional to
+            the viewBox so it looks right in both portrait and landscape */}
+        {hydrated && (
+          <div className="absolute float" style={{
+            left: `${((gx(cur) + VBW * 0.13) / VBW) * 100}%`,
+            top: `${((gy(cur) - VBH * 0.09) / VBH) * 100}%`,
+            transform: 'translate(-50%, -50%)', pointerEvents: 'none', transition: 'left 1s ease, top 1s ease',
+          }}>
+            <KailiaSprite size={44} expression="happy" />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
-      <div className="max-w-md mx-auto px-3">
+    <main className="min-h-screen pb-24 sm:pb-28 sm:flex sm:flex-col sm:justify-center" style={{ background: theme.background }}>
+      <div className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3">
 
         {/* Header — wraps to a second row on narrow phones instead of
             squeezing the title or badges into each other */}
@@ -259,87 +354,21 @@ export default function AdventureMap() {
           </Link>
         )}
 
-        {/* ── The map ── */}
-        <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl"
-          style={{ aspectRatio: '400 / 640', border: '3px solid rgba(255,255,255,0.15)' }}>
-
-          {/* Trail */}
-          <svg viewBox="0 0 400 640" className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            {LANDS.slice(0, -1).map((a, i) => {
-              const b = LANDS[i + 1];
-              const midY = (a.y + b.y) / 2;
-              const d = `M ${a.x} ${a.y} C ${a.x} ${midY}, ${b.x} ${midY}, ${b.x} ${b.y}`;
-              const traveled = isLandUnlocked(progress, i + 1);
-              return (
-                <g key={a.id}>
-                  <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="16" strokeLinecap="round" />
-                  <path d={d} fill="none"
-                    stroke={traveled ? '#FBBF24' : 'rgba(255,255,255,0.45)'}
-                    strokeWidth={traveled ? 5 : 4}
-                    strokeLinecap="round"
-                    strokeDasharray={traveled ? undefined : '0.5 14'} />
-                </g>
-              );
-            })}
-          </svg>
-
-          {/* Scenery */}
-          {DECOR.map((d, i) => (
-            <span key={i} className={i % 3 === 0 ? 'absolute float' : 'absolute sparkle'}
-              style={{ left: `${d.x}%`, top: `${d.y}%`, fontSize: d.s, opacity: 0.7, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
-              {d.e}
-            </span>
-          ))}
-
-          {/* Lands */}
-          {LANDS.map((land, idx) => {
-            const unlocked = hydrated && isLandUnlocked(progress, idx);
-            const complete = isLandComplete(progress, land);
-            const isCurrent = idx === curIdx;
-            const isFocus = focusLandId === land.id && unlocked && !complete;
-            return (
-              <button key={land.id} onClick={() => tapLand(land, idx)}
-                className={`absolute text-center ${shakeId === land.id ? 'shake' : ''}`}
-                style={{ left: `${(land.x / 400) * 100}%`, top: `${(land.y / 640) * 100}%`, transform: 'translate(-50%, -50%)', width: '25%' }}>
-                <span className={`inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
-                  style={{
-                    width: '4.2rem', height: '4.2rem', fontSize: '2rem',
-                    background: unlocked ? land.sky : 'rgba(120,120,140,0.45)',
-                    border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,
-                    boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
-                    filter: unlocked ? 'none' : 'grayscale(0.9)',
-                  }}>
-                  {unlocked ? land.emoji : '🔒'}
-                </span>
-                <span className="block mt-1 text-[11px] font-extrabold leading-tight px-1 py-0.5 rounded-lg mx-auto w-fit"
-                  style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.45)', background: 'rgba(0,0,0,0.45)' }}>
-                  {land.name}
-                </span>
-                {unlocked && (
-                  <span className="block text-[11px] mt-0.5" style={{ letterSpacing: 1 }}>
-                    {land.quests.map((q, qi) => (
-                      <span key={q.href} style={{ opacity: (progress.played[land.id] ?? []).length > qi ? 1 : 0.3 }}>⭐</span>
-                    ))}
-                  </span>
-                )}
-                {isFocus && (
-                  <span className="block text-[10px] font-bold text-yellow-300 mt-0.5 sparkle">Noel&apos;s pick!</span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Kailia stands at the current land */}
-          {hydrated && (
-            <div className="absolute float" style={{
-              left: `${((LANDS[curIdx].x + 52) / 400) * 100}%`,
-              top: `${((LANDS[curIdx].y - 58) / 640) * 100}%`,
-              transform: 'translate(-50%, -50%)', pointerEvents: 'none', transition: 'left 1s ease, top 1s ease',
-            }}>
-              <KailiaSprite size={44} expression="happy" />
-            </div>
-          )}
-        </div>
+        {/* ── The map ──
+            Two versions, toggled by CSS breakpoint (not JS), so there's no
+            hydration mismatch: a tall portrait map for phones (unchanged),
+            and a wide landscape map for tablet/desktop using each land's
+            dx/dy — spread left-to-right so the whole world fits without
+            scrolling instead of just being a wider version of the same
+            vertical scroll. */}
+        {/* The landscape map only replaces the portrait one when there's
+            actually more width than height to use (a real desktop monitor,
+            or a tablet turned sideways) — a tall narrow screen (a tablet
+            held upright) keeps the portrait map, which fills that shape
+            properly instead of leaving a short wide map stranded in a sea
+            of empty space above and below it. */}
+        <div className="sm:landscape:hidden">{renderMap('portrait')}</div>
+        <div className="hidden sm:landscape:block">{renderMap('landscape')}</div>
 
         {/* ── Noel's guide bar ── */}
         <div className="flex items-center gap-3 mt-4 rounded-2xl p-3"

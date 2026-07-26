@@ -24,20 +24,23 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 flex justify-center"
+      className="fixed bottom-0 left-0 right-0 z-40 flex justify-center px-0 sm:px-4 sm:pb-4"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="w-full max-w-md flex items-stretch"
+      {/* Phone: a flush full-width bar, unchanged. Tablet/desktop: a
+          floating rounded dock sized to the page content, not a mobile
+          bar stranded in the middle of a wide screen. */}
+      <div className="w-full max-w-md sm:max-w-xl lg:max-w-2xl flex items-stretch sm:rounded-2xl overflow-hidden"
         style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(10px)',
           borderTop: '1.5px solid rgba(30,41,59,0.1)', boxShadow: '0 -4px 16px rgba(0,0,0,0.08)' }}>
         {TABS.map(tab => {
           const active = pathname === tab.href || pathname?.startsWith(tab.href + '/');
           return (
             <Link key={tab.href} href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center py-2 transition-transform active:scale-95"
+              className="flex-1 flex flex-col items-center justify-center py-2 sm:py-3 transition-transform active:scale-95 hover:bg-black/[0.03]"
               style={{ color: active ? '#7C3AED' : '#94a3b8' }}>
-              <span className="text-2xl" style={{ transform: active ? 'translateY(-1px)' : 'none' }}>{tab.emoji}</span>
-              <span className="text-[10px] font-extrabold mt-0.5">{tab.label}</span>
+              <span className="text-2xl sm:text-3xl" style={{ transform: active ? 'translateY(-1px)' : 'none' }}>{tab.emoji}</span>
+              <span className="text-[10px] sm:text-xs font-extrabold mt-0.5">{tab.label}</span>
               {active && <span className="block rounded-full mt-0.5" style={{ width: 4, height: 4, background: '#7C3AED' }} />}
             </Link>
           );
