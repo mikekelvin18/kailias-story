@@ -207,7 +207,7 @@ export default function AdventureMap() {
     const cur = LANDS[curIdx];
 
     return (
-      <div className={`relative w-full rounded-3xl overflow-hidden shadow-2xl ${mode === 'portrait' ? 'aspect-[400/640]' : 'aspect-[1000/380]'}`}
+      <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl"
         style={{ border: '3px solid rgba(255,255,255,0.15)' }}>
 
         {/* Trail */}
@@ -292,12 +292,17 @@ export default function AdventureMap() {
   }
 
   return (
-    <main className="min-h-screen pb-24 sm:pb-28 sm:flex sm:flex-col sm:justify-center" style={{ background: theme.background }}>
-      <div className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3">
+    <main className="h-dvh overflow-hidden" style={{ background: theme.background }}>
+      {/* One flex column, exactly one screen tall, never scrolls — the map
+          (flex-1) is the only part that gives up space when the chrome
+          around it needs more, on any phone/tablet/desktop height. Bottom
+          padding reserves room for the fixed BottomNav so nothing sits
+          behind it. */}
+      <div className="w-full h-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3 flex flex-col pb-[76px] sm:pb-[112px]">
 
         {/* Header — wraps to a second row on narrow phones instead of
             squeezing the title or badges into each other */}
-        <div className="flex items-center justify-between gap-2 flex-wrap pt-5 pb-2 px-1">
+        <div className="flex items-center justify-between gap-2 flex-wrap pt-3 pb-1 sm:pt-5 sm:pb-2 px-1 flex-shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <h1 className={`text-lg sm:text-2xl font-extrabold ${theme.title} truncate`}>
               🗺️ Kailia&apos;s World
@@ -327,14 +332,14 @@ export default function AdventureMap() {
             </button>
           </div>
         </div>
-        <p className={`text-xs px-1 mb-3 font-semibold ${theme.subtitle}`}>
+        <p className={`text-xs px-1 mb-1 sm:mb-3 font-semibold flex-shrink-0 ${theme.subtitle}`}>
           {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
         </p>
 
         {/* For young explorers, today's together-quests are the MAIN course —
             so they come before the map, with a why note */}
         {band !== null && (
-          <Link href="/activities" className="block mb-3 rounded-2xl p-4 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          <Link href="/activities" className="block mb-2 sm:mb-3 rounded-2xl p-2.5 sm:p-4 transition-transform hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', boxShadow: '0 4px 18px rgba(251,191,36,0.35)' }}>
             <div className="flex items-center gap-3">
               <span className="text-4xl">{BAND_INFO[band].emoji}</span>
@@ -367,14 +372,16 @@ export default function AdventureMap() {
             held upright) keeps the portrait map, which fills that shape
             properly instead of leaving a short wide map stranded in a sea
             of empty space above and below it. */}
-        <div className="sm:landscape:hidden">{renderMap('portrait')}</div>
-        <div className="hidden sm:landscape:block">{renderMap('landscape')}</div>
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="sm:landscape:hidden flex-1 min-h-0">{renderMap('portrait')}</div>
+          <div className="hidden sm:landscape:flex flex-1 min-h-0">{renderMap('landscape')}</div>
+        </div>
 
         {/* ── Noel's guide bar ── */}
-        <div className="flex items-center gap-3 mt-4 rounded-2xl p-3"
+        <div className="flex items-center gap-3 mt-2 sm:mt-4 rounded-2xl p-2.5 sm:p-3 flex-shrink-0"
           style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
-          <PandaSprite size={54} expression={noelMood} style={{ flexShrink: 0 }} />
-          <div className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-gray-800 relative"
+          <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
+          <div className="rounded-2xl px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-800 relative"
             style={{ background: 'white' }}>
             <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
@@ -384,7 +391,7 @@ export default function AdventureMap() {
 
         {/* Companion collection — starlight milestones bring new friends */}
         <button onClick={() => setShowGuide(true)}
-          className="w-full flex items-center justify-center gap-2 mt-4 rounded-2xl p-2.5 transition-transform hover:scale-[1.01]"
+          className="w-full flex items-center justify-center gap-2 mt-2 sm:mt-4 rounded-2xl p-2 sm:p-2.5 transition-transform hover:scale-[1.01] flex-shrink-0"
           style={{ background: theme.cardBg, border: `1.5px solid ${theme.cardBorder}` }}>
           <span className={`text-[11px] font-bold mr-1 ${theme.subtitle}`}>Companions:</span>
           {COMPANIONS.map(c => {
@@ -402,7 +409,7 @@ export default function AdventureMap() {
 
         {/* Quests and Printables now live in the bottom nav — only Results
             needs a footer link here since it isn't one of the four tabs. */}
-        <div className="text-center mt-4">
+        <div className="text-center mt-2 sm:mt-4 flex-shrink-0">
           <Link href="/results" className={`text-xs underline ${theme.link}`}>For grown-ups: progress &amp; results</Link>
         </div>
       </div>
