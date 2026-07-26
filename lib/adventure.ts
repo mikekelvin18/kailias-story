@@ -193,3 +193,12 @@ export function totalStars(p: AdventureProgress): number {
 export function maxStars(): number {
   return LANDS.reduce((sum, land) => sum + land.quests.length, 0);
 }
+
+// ── Free trial ──
+// The first quest of every land is always free, so a family can try every
+// skill domain (fine motor, math, reading, communication, sensory,
+// processing) before upgrading — never just one skill forever. Everything
+// past that first quest is premium-gated (see lib/premium.ts).
+export function isQuestFree(questIndex: number): boolean {
+  return questIndex === 0;
+}

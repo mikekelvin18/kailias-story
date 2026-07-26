@@ -13,6 +13,12 @@ import {
 } from '@/lib/activities';
 import BottomNav from '@/components/BottomNav';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import { isPremium } from '@/lib/premium';
+
+// Free preview size for the browsable library (the 3 daily quests above
+// are always free — this only limits how much of the full 69-activity
+// library you can browse before Premium).
+const FREE_LIBRARY_PREVIEW = 4;
 
 // ─── Parent & Baby Quest Library ──────────────────────────────────────────────
 // Daily real-world quests for the youngest adventurers, coached by Noel,
@@ -108,12 +114,13 @@ export default function ActivityLibraryPage() {
   const [streak, setStreak] = useState(0);
   const [showLibrary, setShowLibrary] = useState(false);
   const [consented, setConsented] = useState(true);
+  const [premium, setPremiumState] = useState(false);
   const { theme, name: themeName, toggle: toggleTheme } = useHubTheme();
   const bright = themeName === 'bright';
 
   // follow the assessment once it loads from storage
   useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
-  useEffect(() => { setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent()); }, []);
+  useEffect(() => { setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent()); setPremiumState(isPremium()); }, []);
 
   const daily = useMemo(() => todaysQuests(band), [band]);
   const dailyIds = new Set(daily.map(a => a.id));
@@ -270,9 +277,16 @@ export default function ActivityLibraryPage() {
               ))}
             </div>
             <div className="space-y-3">
-              {library.map(a => (
+              {library.slice(0, premium ? library.length : FREE_LIBRARY_PREVIEW).map(a => (
                 <ActivityCard key={a.id} activity={a} report={reports[a.id]} onReport={handleReport} />
               ))}
+              {!premium && library.length > FREE_LIBRARY_PREVIEW && (
+                <Link href="/upgrade"
+                  className="block text-center rounded-2xl p-4 font-extrabold text-sm transition-transform hover:scale-[1.02]"
+                  style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.4)', color: '#FDE047' }}>
+                  🔒 {library.length - FREE_LIBRARY_PREVIEW} more activities — Unlock Premium
+                </Link>
+              )}
               {library.length === 0 && (
                 <p className="text-center text-purple-300 text-sm py-6">
                   Today&apos;s quests cover this one — check back tomorrow! 🌙

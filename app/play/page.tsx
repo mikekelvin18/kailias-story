@@ -7,11 +7,12 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
   LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
-  landStars, isLandComplete, isLandUnlocked, currentLandIndex, totalStars, maxStars,
+  landStars, isLandComplete, isLandUnlocked, currentLandIndex, totalStars, maxStars, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
+import { isPremium } from '@/lib/premium';
 import BottomNav from '@/components/BottomNav';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -113,6 +114,9 @@ export default function AdventureMap() {
   useEffect(() => { setChild(activeChild()); }, []);
 
   useEffect(() => { setRewards(loadRewards()); }, []);
+
+  const [premium, setPremiumState] = useState(false);
+  useEffect(() => { setPremiumState(isPremium()); }, []);
 
   const DECOR = bright ? DECOR_BRIGHT : DECOR_DARK;
 
@@ -490,21 +494,26 @@ export default function AdventureMap() {
             </div>
 
             <div className="space-y-3">
-              {openLand.quests.map(q => {
+              {openLand.quests.map((q, qi) => {
                 const done = (progress.played[openLand.id] ?? []).includes(q.href);
+                // First quest of every land stays free forever, so a family
+                // can try every skill before upgrading — the rest need Premium.
+                const locked = !premium && !isQuestFree(qi);
                 return (
-                  <Link key={q.href} href={q.href} onClick={() => startQuest(openLand, q.href)}
-                    className="flex items-center gap-3 rounded-2xl p-3 bg-white shadow transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                    <span className="text-4xl">{q.emoji}</span>
+                  <Link key={q.href} href={locked ? '/upgrade' : q.href}
+                    onClick={() => !locked && startQuest(openLand, q.href)}
+                    className="flex items-center gap-3 rounded-2xl p-3 bg-white shadow transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                    style={locked ? { opacity: 0.75 } : undefined}>
+                    <span className="text-4xl" style={locked ? { filter: 'grayscale(0.6)' } : undefined}>{q.emoji}</span>
                     <span className="flex-1">
                       <span className="block font-extrabold text-sm" style={{ color: openLand.color }}>
                         {q.title} {done && '⭐'}
                       </span>
                       <span className="block text-xs text-gray-600">{q.desc}</span>
                     </span>
-                    <span className="px-4 py-2 rounded-full font-extrabold text-white text-sm shadow"
-                      style={{ background: openLand.color }}>
-                      {done ? 'Again!' : 'Play!'}
+                    <span className="px-4 py-2 rounded-full font-extrabold text-white text-sm shadow whitespace-nowrap"
+                      style={{ background: locked ? '#9CA3AF' : openLand.color }}>
+                      {locked ? '🔒 Premium' : done ? 'Again!' : 'Play!'}
                     </span>
                   </Link>
                 );
