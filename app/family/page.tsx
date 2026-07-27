@@ -11,6 +11,8 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
+import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
 
 // ── Parent Zone ──
 // Consent first, then a minimal child profile, then full parental rights:
@@ -41,10 +43,23 @@ export default function ParentZonePage() {
   const [deletedMsg, setDeletedMsg] = useState('');
   const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
   const [showAddChild, setShowAddChild] = useState(false);
+  const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskDomain, setNewTaskDomain] = useState<ActivityDomain>('communication');
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
 
-  useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); }, []);
+  useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
+
+  function handleAddTask() {
+    if (!newTaskText.trim()) return;
+    setCustomTasks(addCustomTask(newTaskText, newTaskDomain));
+    setNewTaskText('');
+  }
+
+  function handleRemoveTask(id: string) {
+    setCustomTasks(removeCustomTask(id));
+  }
 
   function updateA11y(patch: Partial<AccessibilityPrefs>) {
     setA11y(prev => {
@@ -301,6 +316,46 @@ export default function ParentZonePage() {
                   ✅ Consent on file: agreed {new Date(family.consent!.agreedAt).toLocaleString()} ·
                   method: {family.consent!.method} · notice version {POLICY_VERSION}
                 </p>
+              </div>
+            </div>
+
+            {/* Custom Quests — a parent's own practice goals, woven into
+                Noel's daily quest screen alongside the built-in library. */}
+            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+              <h2 className="text-lg font-extrabold text-gray-800 mb-1">📝 {child.nickname}&apos;s Custom Quests</h2>
+              <p className="text-xs text-gray-500 mb-3">
+                Add your own goal — an OT/IEP goal, a manners practice, anything specific to{' '}
+                {child.nickname} — and Noel will fold it into the daily quest screen with the same
+                Did it / Tried with help / Not yet report.
+              </p>
+
+              {customTasks.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {customTasks.map(t => (
+                    <div key={t.id} className="flex items-center gap-2 rounded-xl p-2.5" style={{ background: '#F8FAFC' }}>
+                      <span className="text-lg">{DOMAIN_META[t.domain].emoji}</span>
+                      <p className="flex-1 text-sm text-gray-800 font-semibold">{t.text}</p>
+                      <button onClick={() => handleRemoveTask(t.id)} className="text-xs font-bold text-rose-500">Remove</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <label className="block text-xs font-bold text-gray-700 mb-1">New goal</label>
+              <input type="text" value={newTaskText} onChange={e => setNewTaskText(e.target.value)}
+                placeholder={`e.g. "Practice saying thank you"`} maxLength={80}
+                className="w-full border-2 border-slate-200 rounded-2xl px-4 py-2.5 text-gray-800 mb-2 focus:outline-none focus:border-blue-400" />
+              <div className="flex gap-2">
+                <select value={newTaskDomain} onChange={e => setNewTaskDomain(e.target.value as ActivityDomain)}
+                  className="flex-1 border-2 border-slate-200 rounded-2xl px-3 py-2.5 text-gray-800 bg-white text-sm">
+                  {(Object.keys(DOMAIN_META) as ActivityDomain[]).map(d => (
+                    <option key={d} value={d}>{DOMAIN_META[d].emoji} {DOMAIN_META[d].label}</option>
+                  ))}
+                </select>
+                <button onClick={handleAddTask}
+                  className="px-5 py-2.5 rounded-2xl font-extrabold text-white flex-shrink-0" style={{ background: '#2563EB' }}>
+                  Add
+                </button>
               </div>
             </div>
 

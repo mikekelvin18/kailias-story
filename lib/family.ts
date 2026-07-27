@@ -59,6 +59,7 @@ export const CHILD_DATA_KEYS = [
   'kailias_play_count',        // games played counter
   'kailia_rewards_v1',         // starlight points, game levels, companions
   'kailia_worksheet_progress_v1', // printable worksheet completion records
+  'kailia_custom_tasks_v1',    // parent-authored custom quest goals
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -297,6 +298,13 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '🖨️ Printable worksheets', items:
       Object.entries(worksheets as Record<string, { completedAt: string; hasPhoto: boolean }>).map(([id, rec]) =>
         `${id} — done ${new Date(rec.completedAt).toLocaleDateString()}${rec.hasPhoto ? ' (photo saved on this device only)' : ''}`),
+    });
+  }
+
+  const customTasks = read('kailia_custom_tasks_v1');
+  if (Array.isArray(customTasks) && customTasks.length) {
+    sections.push({ label: '📝 Custom quests (parent-authored)', items:
+      (customTasks as { text: string; domain: string }[]).map(t => `"${t.text}" (${t.domain})`),
     });
   }
 

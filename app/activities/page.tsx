@@ -15,6 +15,7 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import { isPremium } from '@/lib/premium';
+import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
 
 // Free preview size for the browsable library (the 3 daily quests above
 // are always free — this only limits how much of the full 69-activity
@@ -116,12 +117,16 @@ export default function ActivityLibraryPage() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [consented, setConsented] = useState(true);
   const [premium, setPremiumState] = useState(false);
+  const [customTasks, setCustomTasks] = useState<ReturnType<typeof loadCustomTasks>>([]);
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
 
   // follow the assessment once it loads from storage
   useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
-  useEffect(() => { setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent()); setPremiumState(isPremium()); }, []);
+  useEffect(() => {
+    setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent());
+    setPremiumState(isPremium()); setCustomTasks(loadCustomTasks());
+  }, []);
 
   const daily = useMemo(() => todaysQuests(band), [band]);
   const dailyIds = new Set(daily.map(a => a.id));
@@ -218,6 +223,20 @@ export default function ActivityLibraryPage() {
             <ActivityCard key={a.id} activity={a} report={reports[a.id]} onReport={handleReport} highlight />
           ))}
         </div>
+
+        {/* Custom quests — a parent's own goals, added in the Parent Zone,
+            always shown alongside (not instead of) today's picks. */}
+        {customTasks.length > 0 && (
+          <div className="mb-5">
+            <h2 className={`text-sm font-extrabold mb-2 px-1 ${theme.title}`}>📝 Special Quests from Home</h2>
+            <div className="space-y-3">
+              {customTasks.map(t => {
+                const a = customTaskAsActivity(t);
+                return <ActivityCard key={a.id} activity={a} report={reports[a.id]} onReport={handleReport} highlight />;
+              })}
+            </div>
+          </div>
+        )}
 
         {/* All done → the reason to come back tomorrow */}
         {allDone && (
