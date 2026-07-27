@@ -276,9 +276,12 @@ export default function AdventureMap() {
                 }}>
                 {unlocked ? land.emoji : '🔒'}
               </span>
-              <span className="block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold leading-tight px-1 py-0.5 rounded-lg mx-auto w-fit"
+              {/* mapLabel (a shorter name where needed) + whitespace-nowrap
+                  keep this to one line — a long full name wrapping to 2-3
+                  lines was tall enough to overlap the land below it. */}
+              <span className="block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold whitespace-nowrap px-1 py-0.5 rounded-lg mx-auto w-fit"
                 style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.45)', background: 'rgba(0,0,0,0.45)' }}>
-                {land.name}
+                {land.mapLabel ?? land.name}
               </span>
               {unlocked && (
                 <span className="block text-[11px] sm:text-sm mt-0.5" style={{ letterSpacing: 1 }}>

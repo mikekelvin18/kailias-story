@@ -14,6 +14,9 @@ export interface Quest {
 export interface Land {
   id: string;
   name: string;
+  mapLabel?: string;       // shorter name for the map pin (falls back to
+                           // `name`) — kept to one line so a long full name
+                           // never wraps into and overlaps the land below it
   domain: string;          // developmental domain (internal)
   emoji: string;
   color: string;           // main theme color
@@ -50,6 +53,7 @@ export const LANDS: Land[] = [
   {
     id: 'dragons-cave',
     name: "Dragon's Treasure Cave",
+    mapLabel: "Dragon's Cave",
     domain: 'math',
     emoji: '🐉',
     color: '#D97706', glow: '#FDE68A', sky: '#FFFBEB',
@@ -64,6 +68,7 @@ export const LANDS: Land[] = [
   {
     id: 'whispering-signposts',
     name: 'Whispering Signposts',
+    mapLabel: 'Signposts',
     domain: 'reading',
     emoji: '🪧',
     color: '#2563EB', glow: '#93C5FD', sky: '#EFF6FF',
@@ -80,6 +85,7 @@ export const LANDS: Land[] = [
   {
     id: 'story-keepers',
     name: 'Village of the Story Keepers',
+    mapLabel: 'Story Keepers',
     domain: 'communication',
     emoji: '🏘️',
     color: '#EC4899', glow: '#FBCFE8', sky: '#FDF2F8',
