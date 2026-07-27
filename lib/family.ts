@@ -60,6 +60,7 @@ export const CHILD_DATA_KEYS = [
   'kailia_rewards_v1',         // starlight points, game levels, companions
   'kailia_worksheet_progress_v1', // printable worksheet completion records
   'kailia_custom_tasks_v1',    // parent-authored custom quest goals
+  'kailia_daily_history_v1',   // no-repeat rotation history for daily quests
 ];
 
 // One-time migration for accounts created before multi-child support:

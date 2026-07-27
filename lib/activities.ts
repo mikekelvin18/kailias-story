@@ -964,16 +964,62 @@ export function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// ── No-repeat rotation ──
+// Rather than a plain per-day reshuffle (which can hand back an activity
+// the child saw last week purely by chance), each band keeps a small
+// history of recently-shown activity ids on this device. Today's pair is
+// chosen preferring ids NOT in that history, so nothing repeats until the
+// whole band's pool has been cycled through once — the history then
+// clears and a fresh cycle (in a different order) begins. A pool of ~20
+// gives ~10 repeat-free days; growing the pool is what stretches that
+// toward a full year, not writing 365 literal unique days by hand.
+const HISTORY_KEY = 'kailia_daily_history_v1';
+
+// seenBefore: ids shown on any PRIOR day, frozen until this function
+// itself advances it — never touched mid-day. cache: today's already-
+// resolved pick, so calling this 50 times in one day (re-renders, re-
+// navigations) always returns the exact same pair instead of drifting.
+interface BandHistory { seenBefore: string[]; cacheDate: string; cacheIds: string[] }
+
+function loadDailyHistory(): Record<string, BandHistory> {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(scopedKey(HISTORY_KEY)) ?? '{}'); } catch { return {}; }
+}
+
+function saveDailyHistory(h: Record<string, BandHistory>) {
+  try {
+    const fam = JSON.parse(localStorage.getItem('kailia_family_v1') ?? 'null');
+    if (!fam?.consent) return;
+    localStorage.setItem(scopedKey(HISTORY_KEY), JSON.stringify(h));
+  } catch { /* ignore */ }
+}
+
 // The free daily set is deliberately small: two quick quests, the shortest
 // good pair among the day's rotating candidates — so it always feels doable
 // and tomorrow is worth coming back for.
 export function todaysQuests(band: 1 | 2 | 3): ParentActivity[] {
-  const rand = seededRandom(todayKey() + '-band' + band);
   const pool = ACTIVITIES.filter(a => a.band === band);
+  const bandKey = String(band);
+  const history = loadDailyHistory();
+  const entry = history[bandKey];
+  const today = todayKey();
+
+  // Already resolved today — return the cached pair verbatim, no
+  // recomputation, so repeated calls the same day never drift.
+  if (entry?.cacheDate === today && entry.cacheIds.length) {
+    const cached = entry.cacheIds.map(id => pool.find(a => a.id === id)).filter(Boolean) as ParentActivity[];
+    if (cached.length === entry.cacheIds.length) return cached;
+  }
+
+  const seenBefore = new Set(entry?.seenBefore ?? []);
+  const rand = seededRandom(today + '-band' + band);
   const shuffled = [...pool].sort(() => rand() - 0.5);
-  // consider the first six of today's shuffle, keep the quickest
-  // two that exercise different skills
-  const candidates = shuffled.slice(0, 6);
+  // Prefer ids not shown on any prior day; once the pool is mostly
+  // exhausted, fall back to the full shuffle so there's always a pair.
+  const fresh = shuffled.filter(a => !seenBefore.has(a.id));
+  const ordered = fresh.length >= 2 ? fresh : shuffled;
+
+  const candidates = ordered.slice(0, 6);
   let best: ParentActivity[] = [];
   let bestTotal = Infinity;
   for (let i = 0; i < candidates.length; i++) {
@@ -983,7 +1029,24 @@ export function todaysQuests(band: 1 | 2 | 3): ParentActivity[] {
       if (a.minutes + b.minutes < bestTotal) { best = [a, b]; bestTotal = a.minutes + b.minutes; }
     }
   }
-  return best.length ? best : shuffled.slice(0, 2);
+  const picked = best.length ? best : ordered.slice(0, 2);
+
+  // Fold today's pair into seenBefore for TOMORROW's call; once
+  // everything in the pool has been seen, start the next cycle fresh
+  // instead of growing forever.
+  const nextSeen = new Set(seenBefore);
+  picked.forEach(a => nextSeen.add(a.id));
+  const rolledOver = pool.length > 0 && nextSeen.size >= pool.length;
+  saveDailyHistory({
+    ...history,
+    [bandKey]: {
+      seenBefore: rolledOver ? [] : Array.from(nextSeen),
+      cacheDate: today,
+      cacheIds: picked.map(a => a.id),
+    },
+  });
+
+  return picked;
 }
 
 export function dailyMinutes(quests: ParentActivity[]): number {
