@@ -362,10 +362,10 @@ export default function AdventureMap() {
               <span className="text-xl sm:text-4xl">{BAND_INFO[band].emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-base font-extrabold text-amber-950 leading-tight truncate">
-                  ☀️ Today&apos;s Quests for your {BAND_INFO[band].name}
+                  ☀️ Play Today&apos;s Quests →
                 </p>
                 <p className="hidden sm:block text-xs font-semibold text-amber-900 mt-0.5">
-                  ~5 minutes of real-world play together — start here! →
+                  for your {BAND_INFO[band].name} — ~5 minutes of real-world play together
                 </p>
               </div>
             </div>
