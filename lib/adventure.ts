@@ -72,7 +72,7 @@ export const LANDS: Land[] = [
     domain: 'reading',
     emoji: '🪧',
     color: '#2563EB', glow: '#93C5FD', sky: '#EFF6FF',
-    x: 84, y: 386,
+    x: 170, y: 386,
     dx: 430, dy: 290,
     tagline: 'Words that light the way',
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
