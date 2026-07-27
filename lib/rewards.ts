@@ -11,12 +11,14 @@
 export interface RewardsState {
   starlight: number;
   gameLevels: Record<string, number>; // gameId -> highest level beaten
+  celebratedCompanions: string[];     // companion names already revealed,
+                                       // so the reveal moment fires once
 }
 
 import { scopedKey } from './family';
 
 const KEY = 'kailia_rewards_v1';
-const empty: RewardsState = { starlight: 0, gameLevels: {} };
+const empty: RewardsState = { starlight: 0, gameLevels: {}, celebratedCompanions: [] };
 
 export const COMPANIONS: { at: number; emoji: string; name: string }[] = [
   { at: 30,  emoji: '🐢', name: 'Shelly' },
@@ -70,4 +72,19 @@ export function explorerLevel(starlight: number): number {
 
 export function unlockedCompanions(starlight: number) {
   return COMPANIONS.filter(c => starlight >= c.at);
+}
+
+// The one unlocked companion not yet shown as a celebration — a surprise
+// reveal moment instead of a permanent always-visible row. Only ever
+// returns one at a time even if several thresholds were crossed at once
+// (e.g. a big starlight award), so reveals queue up one-by-one.
+export function pendingCompanionReveal(r: RewardsState) {
+  return COMPANIONS.find(c => r.starlight >= c.at && !r.celebratedCompanions.includes(c.name)) ?? null;
+}
+
+export function markCompanionCelebrated(name: string): RewardsState {
+  const r = loadRewards();
+  if (!r.celebratedCompanions.includes(name)) r.celebratedCompanions = [...r.celebratedCompanions, name];
+  save(r);
+  return r;
 }

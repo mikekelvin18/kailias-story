@@ -7,11 +7,11 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
   LANDS, BONUS_LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
-  landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, currentLandIndex, totalStars, maxStars, isQuestFree,
+  landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, currentLandIndex, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
-import { loadRewards, explorerLevel, COMPANIONS, RewardsState } from '@/lib/rewards';
+import { loadRewards, explorerLevel, COMPANIONS, RewardsState, pendingCompanionReveal, markCompanionCelebrated } from '@/lib/rewards';
 import { isPremium } from '@/lib/premium';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -102,8 +102,9 @@ export default function AdventureMap() {
   const [noelLine, setNoelLine] = useState(IDLE_LINES[0]);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
-  const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {} });
+  const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {}, celebratedCompanions: [] });
   const [showGuide, setShowGuide] = useState(false);
+  const [newCompanion, setNewCompanion] = useState<(typeof COMPANIONS)[number] | null>(null);
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
@@ -114,7 +115,15 @@ export default function AdventureMap() {
   // Loading it into state after mount keeps server and client in sync.
   useEffect(() => { setChild(activeChild()); }, []);
 
-  useEffect(() => { setRewards(loadRewards()); }, []);
+  // A newly-unlocked companion is a one-time surprise reveal (the
+  // celebration modal below) instead of a permanent row on the map —
+  // pendingCompanionReveal only returns one not shown yet.
+  useEffect(() => {
+    const r = loadRewards();
+    setRewards(r);
+    const pending = pendingCompanionReveal(r);
+    if (pending) setNewCompanion(pending);
+  }, []);
 
   const [premium, setPremiumState] = useState(false);
   useEffect(() => { setPremiumState(isPremium()); }, []);
@@ -161,7 +170,6 @@ export default function AdventureMap() {
   }, []);
 
   const curIdx = useMemo(() => currentLandIndex(progress), [progress]);
-  const stars = totalStars(progress);
 
   // Gentle nudge toward the land matching the assessment's weakest domain
   const focusLandId = useMemo(() => {
@@ -338,10 +346,6 @@ export default function AdventureMap() {
           </div>
           <div className="flex gap-1.5 flex-shrink-0">
             <ThemeToggle />
-            <div className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText}`}
-              style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-              ⭐ {stars}/{maxStars()}
-            </div>
             <button onClick={() => setShowGuide(true)}
               className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText} transition-transform hover:scale-105`}
               style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
@@ -406,23 +410,9 @@ export default function AdventureMap() {
           </div>
         </div>
 
-        {/* Companion collection — starlight milestones bring new friends */}
-        <button onClick={() => setShowGuide(true)}
-          className="w-full flex items-center justify-center gap-2 mt-2 sm:mt-4 rounded-2xl p-2 sm:p-2.5 transition-transform hover:scale-[1.01] flex-shrink-0"
-          style={{ background: theme.cardBg, border: `1.5px solid ${theme.cardBorder}` }}>
-          <span className={`text-[11px] font-bold mr-1 ${theme.subtitle}`}>Companions:</span>
-          {COMPANIONS.map(c => {
-            const unlocked = rewards.starlight >= c.at;
-            return (
-              <span key={c.name} title={unlocked ? c.name : `✨${c.at} starlight`}
-                className={`text-xl ${unlocked ? 'sparkle' : ''}`}
-                style={{ filter: unlocked ? 'none' : 'grayscale(1) brightness(0.5)', opacity: unlocked ? 1 : 0.6 }}>
-                {c.emoji}
-              </span>
-            );
-          })}
-          <span className={`text-[10px] ml-1 ${theme.subtitle}`} style={{ opacity: 0.85 }}>ⓘ</span>
-        </button>
+        {/* Companions no longer sit in a permanent row here — unlocking one
+            is now a one-time surprise (the reveal modal below), and the
+            full collection is still viewable inside the ✨ Starlight panel. */}
 
         {/* Quests and Printables now live in the bottom nav — only Results
             needs a footer link here since it isn't one of the four tabs. */}
@@ -602,6 +592,28 @@ export default function AdventureMap() {
               className="px-10 py-4 rounded-full text-xl font-extrabold text-purple-800 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)' }}>
               Keep exploring! 🚀
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── New companion reveal — a one-time surprise instead of a
+          permanent row, so unlocking one actually feels like something. ── */}
+      {newCompanion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ background: 'linear-gradient(135deg, #667EEAee, #764BA2ee)' }}>
+          <div className="text-center bounce-in">
+            <div className="text-8xl mb-3 star-burst">{newCompanion.emoji}</div>
+            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">
+              {newCompanion.name} joined you!
+            </h2>
+            <p className="text-purple-100 font-semibold mb-6">
+              A new companion woke up, cheering you on from now on! ✨
+            </p>
+            <button onClick={() => { markCompanionCelebrated(newCompanion.name); setNewCompanion(null); }}
+              className="px-10 py-4 rounded-full text-xl font-extrabold text-purple-800 shadow-xl transition-transform hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)' }}>
+              Yay! 🎉
             </button>
           </div>
         </div>
