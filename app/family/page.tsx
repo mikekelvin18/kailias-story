@@ -13,6 +13,7 @@ import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from 
 import { useHubTheme } from '@/hooks/useHubTheme';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
 import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
+import { LANDS, recordQuestPlay } from '@/lib/adventure';
 
 // ── Parent Zone ──
 // Consent first, then a minimal child profile, then full parental rights:
@@ -357,6 +358,23 @@ export default function ParentZonePage() {
                   Add
                 </button>
               </div>
+            </div>
+
+            {/* (Preview only) Instantly finishes every main-land quest so
+                the just-added bonus realms (Space Outpost, Coral Reef) can
+                be previewed without playing all 13 quests first. Not a
+                real feature — remove once the design is confirmed. */}
+            <div className="rounded-3xl p-4 mb-4 text-center" style={{ background: '#FEF3C7', border: '2px dashed #D97706' }}>
+              <p className="text-xs font-bold text-amber-900 mb-2">🚧 (Preview only) Unlock the bonus realms instantly</p>
+              <button onClick={() => {
+                  LANDS.forEach(land => land.quests.forEach(q => recordQuestPlay(land.id, q.href)));
+                  setDeletedMsg('Bonus realms unlocked — check the world map!');
+                  setTimeout(() => setDeletedMsg(''), 4000);
+                }}
+                className="px-5 py-2.5 rounded-full font-extrabold text-white text-sm" style={{ background: '#D97706' }}>
+                Finish all 6 main lands
+              </button>
+              {deletedMsg && <p className="text-xs font-bold text-emerald-700 mt-2">{deletedMsg}</p>}
             </div>
 
             {/* View data */}
