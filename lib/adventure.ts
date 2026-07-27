@@ -124,6 +124,55 @@ export const LANDS: Land[] = [
   },
 ];
 
+// ── Bonus realms ──
+// Unlocked only after all six main lands are complete. These are extra
+// depth on an existing skill (see BONUS_REALMS below for which one),
+// not a new developmental domain — Space and Underwater are new
+// SCENERY wrapped around the same measured skills, reusing existing
+// quest engines rather than building new ones (per the library
+// strategy: new content/theme on an engine, not a new engine).
+// Positioned in a strip BELOW the main path's canvas (not woven into the
+// winding trail) so they read as standalone portals that appeared after
+// finishing the adventure, rather than two more stops that need a long
+// connecting line crossing back over the whole map. See PORTRAIT/LANDSCAPE
+// _BONUS_VBH in app/play/page.tsx for the extra canvas room this needs.
+export const BONUS_LANDS: Land[] = [
+  {
+    id: 'space-outpost',
+    name: 'Space Outpost',
+    domain: 'math',
+    emoji: '🚀',
+    color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
+    x: 140, y: 700,
+    dx: 820, dy: 420,
+    tagline: 'Counting cargo among the stars',
+    noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
+    quests: [
+      { href: '/play/snack-quest', emoji: '🛰️', title: 'Cargo Count', desc: 'Gather space snacks and load the shuttle with exactly what the crew ordered!' },
+    ],
+  },
+  {
+    id: 'coral-reef',
+    name: 'Coral Reef',
+    domain: 'sensory',
+    emoji: '🐠',
+    color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
+    x: 260, y: 700,
+    dx: 1010, dy: 420,
+    tagline: 'Colors, textures, and curious creatures',
+    noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
+    quests: [
+      { href: '/play/sensory', emoji: '🐚', title: 'Reef Explorer', desc: 'Match colors, sounds and patterns among the coral and curious sea creatures!' },
+    ],
+  },
+];
+
+// A bonus land is unlocked once every main land is complete — it isn't
+// mid-journey content, it's what's waiting after the main adventure.
+export function isBonusLandUnlocked(p: AdventureProgress): boolean {
+  return LANDS.every(land => isLandComplete(p, land));
+}
+
 // ── Progress (saved on this device) ──
 
 const KEY = 'kailia_adventure_v1';

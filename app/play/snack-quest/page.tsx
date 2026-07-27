@@ -230,8 +230,10 @@ export default function SnackQuestPage() {
     setCarried(0);
     setDelivered(0);
     setRevealed(0);
-    // slots teach the mechanic in round 1; the littlest ones keep them always
-    setShowSlots(idx === 0 || tierRef.current === 'tiny');
+    // Shown every round — now that empty slots are a clear dashed outline
+    // instead of dimmed bamboo, it's a helpful visual aid rather than
+    // clutter, so there's no reason to fade it out after round 1.
+    setShowSlots(true);
     firstPickupRef.current = false;
     setRoundIdx(idx);
     setGuideLine(round.intro);
@@ -420,9 +422,12 @@ export default function SnackQuestPage() {
                 <p className="text-lg font-semibold text-gray-600 mt-0.5">I already have {cfg.have}!</p>
               )}
               {showSlots && (
-                <p className="text-4xl leading-none mt-2" style={{ letterSpacing: 4 }}>
+                <p className="text-4xl leading-none mt-2 flex items-center justify-center gap-1">
                   {Array.from({ length: cfg.want }).map((_, i) => (
-                    <span key={i} style={{ opacity: i < cfg.have + revealed ? 1 : 0.22 }}>{skin.item}</span>
+                    i < cfg.have + revealed
+                      ? <span key={i}>{skin.item}</span>
+                      : <span key={i} className="inline-flex items-center justify-center rounded-full"
+                          style={{ width: '0.85em', height: '0.85em', border: '2.5px dashed #D1D5DB' }} />
                   ))}
                 </p>
               )}
@@ -444,14 +449,24 @@ export default function SnackQuestPage() {
                 </span>
               ))}
 
-              {/* dragon home (top-right) */}
+              {/* dragon home (top-right) — kept off the very top edge since
+                  the field is rounded+clipped and the dragon floats up to
+                  10px on its bob animation; flush against the edge sliced
+                  its ears/horns off mid-bounce. */}
               <div className="absolute text-center" style={{
-                left: `${(5 / COLS) * 100}%`, top: 0, width: `${(2 / COLS) * 100}%`, height: `${(2 / ROWS) * 100}%`,
+                left: `${(5 / COLS) * 100}%`, top: '8%', width: `${(2 / COLS) * 100}%`, height: `${(2 / ROWS) * 100}%`,
                 pointerEvents: 'none' }}>
                 <span className={`block ${phase === 'roundDone' ? 'star-burst' : 'float'}`} style={{ fontSize: tilePx * 1.4, lineHeight: 1.15 }}>🐲</span>
-                <span className="block leading-none" style={{ fontSize: tilePx * 0.42 }}>
-                  {Array.from({ length: cfg.have + revealed }).map((_, i) => <span key={i}>{skin.item}</span>)}
-                </span>
+                {/* The dragon's own stash sits in a little basket/box — a
+                    clearly different look from the sparkling loose snacks
+                    in the field, so it's obvious these aren't gatherable,
+                    they're what she already has. */}
+                {(cfg.have + revealed) > 0 && (
+                  <span className="inline-flex items-center justify-center leading-none rounded-xl"
+                    style={{ fontSize: tilePx * 0.4, padding: '0.15em 0.3em', background: 'rgba(255,255,255,0.85)', border: `2px solid ${skin.border}` }}>
+                    {Array.from({ length: cfg.have + revealed }).map((_, i) => <span key={i}>{skin.item}</span>)}
+                  </span>
+                )}
               </div>
 
               {/* snacks */}
@@ -465,9 +480,13 @@ export default function SnackQuestPage() {
                 </span>
               ))}
 
-              {/* the child's character */}
+              {/* the child's character — top is clamped so the -60%
+                  transform (plus the "carried" badge riding above it)
+                  never pushes the sprite's head above row 0, where the
+                  field's rounded+clipped edge would slice it off. This is
+                  exactly the dragon-delivery moment, so it happened often. */}
               <div className="absolute" style={{
-                left: `${((pos.c + 0.5) / COLS) * 100}%`, top: `${((pos.r + 0.5) / ROWS) * 100}%`,
+                left: `${((pos.c + 0.5) / COLS) * 100}%`, top: `${(Math.max(pos.r + 0.5, 1.1) / ROWS) * 100}%`,
                 transform: 'translate(-50%, -60%)', transition: 'left 0.16s linear, top 0.16s linear',
                 pointerEvents: 'none', zIndex: 5 }}>
                 {carried > 0 && (

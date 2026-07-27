@@ -6,8 +6,8 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
-  LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
-  landStars, isLandComplete, isLandUnlocked, currentLandIndex, totalStars, maxStars, isQuestFree,
+  LANDS, BONUS_LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
+  landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, currentLandIndex, totalStars, maxStars, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
@@ -186,6 +186,16 @@ export default function AdventureMap() {
     setNoelMood('excited');
   }
 
+  // Bonus realms (Space Outpost, Coral Reef) are only ever rendered once
+  // already unlocked, so opening one never needs the locked-check tapLand
+  // does for the main path.
+  function openBonusLand(land: Land) {
+    sfx.open();
+    setOpenLand(land);
+    setNoelLine(land.noelIntro);
+    setNoelMood('excited');
+  }
+
   function startQuest(land: Land, href: string) {
     sfx.play();
     setProgress(recordQuestPlay(land.id, href));
@@ -201,8 +211,13 @@ export default function AdventureMap() {
   // tablet/desktop (landscape, land.dx/land.dy) coordinates — see the
   // "The map" section below for why there are two.
   function renderMap(mode: 'portrait' | 'landscape') {
-    const VBW = mode === 'portrait' ? 400 : 1000;
-    const VBH = mode === 'portrait' ? 640 : 380;
+    const bonusUnlocked = hydrated && isBonusLandUnlocked(progress);
+    const allLands = bonusUnlocked ? [...LANDS, ...BONUS_LANDS] : LANDS;
+    // Bonus lands live in extra canvas room BELOW the main path (not woven
+    // into its winding trail) — a separate "new realms" strip, not two more
+    // stops needing a connector line drawn back across the whole map.
+    const VBW = mode === 'portrait' ? 400 : (bonusUnlocked ? 1180 : 1000);
+    const VBH = mode === 'portrait' ? (bonusUnlocked ? 800 : 640) : (bonusUnlocked ? 460 : 380);
     const gx = (land: Land) => mode === 'portrait' ? land.x : land.dx;
     const gy = (land: Land) => mode === 'portrait' ? land.y : land.dy;
     const cur = LANDS[curIdx];
@@ -211,7 +226,8 @@ export default function AdventureMap() {
       <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl"
         style={{ border: '3px solid rgba(255,255,255,0.15)' }}>
 
-        {/* Trail */}
+        {/* Trail — only the main 6 lands connect; bonus lands are
+            standalone portals, not stops on this path. */}
         <svg viewBox={`0 0 ${VBW} ${VBH}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
           {LANDS.slice(0, -1).map((a, i) => {
             const b = LANDS[i + 1];
@@ -241,13 +257,14 @@ export default function AdventureMap() {
         ))}
 
         {/* Lands */}
-        {LANDS.map((land, idx) => {
-          const unlocked = hydrated && isLandUnlocked(progress, idx);
+        {allLands.map((land, idx) => {
+          const unlocked = idx < LANDS.length ? (hydrated && isLandUnlocked(progress, idx)) : true;
           const complete = isLandComplete(progress, land);
           const isCurrent = idx === curIdx;
           const isFocus = focusLandId === land.id && unlocked && !complete;
           return (
-            <button key={land.id} onClick={() => tapLand(land, idx)}
+            <button key={land.id}
+              onClick={() => idx < LANDS.length ? tapLand(land, idx) : openBonusLand(land)}
               className={`absolute text-center ${shakeId === land.id ? 'shake' : ''}`}
               style={{ left: `${(gx(land) / VBW) * 100}%`, top: `${(gy(land) / VBH) * 100}%`, transform: 'translate(-50%, -50%)', width: '25%' }}>
               <span className={`inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
@@ -413,7 +430,7 @@ export default function AdventureMap() {
 
       {/* ── Starlight guide — explains the whole reward system ── */}
       {showGuide && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(10,8,40,0.85)' }} onClick={() => setShowGuide(false)}>
           <div className="w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl"
             style={{ background: 'linear-gradient(180deg, #1e1b4b, #312e81)', border: '2px solid rgba(253,224,71,0.35)' }}
@@ -466,7 +483,7 @@ export default function AdventureMap() {
 
       {/* ── Today's quests popup — the main event for little ones ── */}
       {dailyPrompt && band && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(10,8,40,0.85)' }} onClick={dismissDaily}>
           <div className="w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl text-center"
             style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)' }}
@@ -509,7 +526,7 @@ export default function AdventureMap() {
 
       {/* ── Land panel ── */}
       {openLand && (
-        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-4"
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setOpenLand(null)}>
           <div className="w-full max-w-md rounded-3xl p-5 slide-up shadow-2xl" style={{ background: openLand.sky }}
             onClick={e => e.stopPropagation()}>
