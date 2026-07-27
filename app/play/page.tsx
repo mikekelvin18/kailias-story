@@ -344,7 +344,7 @@ export default function AdventureMap() {
               </Link>
             )}
           </div>
-          <div className="flex gap-1.5 flex-shrink-0">
+          <div className="flex gap-1.5 flex-shrink-0 ml-auto">
             <ThemeToggle />
             <button onClick={() => setShowGuide(true)}
               className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText} transition-transform hover:scale-105`}
