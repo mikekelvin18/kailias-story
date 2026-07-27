@@ -150,7 +150,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🚀',
     color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
     x: 140, y: 700,
-    dx: 820, dy: 420,
+    dx: 820, dy: 370,
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
@@ -164,7 +164,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🐠',
     color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
     x: 260, y: 700,
-    dx: 1010, dy: 420,
+    dx: 1010, dy: 370,
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [

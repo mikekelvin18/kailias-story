@@ -220,12 +220,16 @@ export default function AdventureMap() {
   // "The map" section below for why there are two.
   function renderMap(mode: 'portrait' | 'landscape') {
     const bonusUnlocked = hydrated && isBonusLandUnlocked(progress);
-    const allLands = bonusUnlocked ? [...LANDS, ...BONUS_LANDS] : LANDS;
-    // Bonus lands live in extra canvas room BELOW the main path (not woven
-    // into its winding trail) — a separate "new realms" strip, not two more
+    // Bonus lands are always ON the map (even before they're unlocked) as
+    // a blurred, mysterious tease — Kailia can see a portal is forming
+    // out there, building anticipation, instead of them just materializing
+    // out of nowhere the moment the 6th land is finished.
+    const allLands = [...LANDS, ...BONUS_LANDS];
+    // They live in extra canvas room BELOW the main path (not woven into
+    // its winding trail) — a separate "new realms" strip, not two more
     // stops needing a connector line drawn back across the whole map.
-    const VBW = mode === 'portrait' ? 400 : (bonusUnlocked ? 1180 : 1000);
-    const VBH = mode === 'portrait' ? (bonusUnlocked ? 800 : 640) : (bonusUnlocked ? 460 : 380);
+    const VBW = mode === 'portrait' ? 400 : 1180;
+    const VBH = mode === 'portrait' ? 800 : 460;
     const gx = (land: Land) => mode === 'portrait' ? land.x : land.dx;
     const gy = (land: Land) => mode === 'portrait' ? land.y : land.dy;
     const cur = LANDS[curIdx];
@@ -266,40 +270,72 @@ export default function AdventureMap() {
 
         {/* Lands */}
         {allLands.map((land, idx) => {
-          const unlocked = idx < LANDS.length ? (hydrated && isLandUnlocked(progress, idx)) : true;
+          const isBonus = idx >= LANDS.length;
+          const unlocked = isBonus ? bonusUnlocked : (hydrated && isLandUnlocked(progress, idx));
           const complete = isLandComplete(progress, land);
           const isCurrent = idx === curIdx;
           const isFocus = focusLandId === land.id && unlocked && !complete;
+
+          function handleClick() {
+            if (isBonus) {
+              if (unlocked) openBonusLand(land);
+              else {
+                sfx.locked();
+                setShakeId(land.id);
+                setTimeout(() => setShakeId(null), 400);
+                setNoelLine("A new portal is forming out there... finish all six lands and let's see what it is!");
+                setNoelMood('thinking');
+              }
+              return;
+            }
+            tapLand(land, idx);
+          }
+
           return (
-            <button key={land.id}
-              onClick={() => idx < LANDS.length ? tapLand(land, idx) : openBonusLand(land)}
+            <button key={land.id} onClick={handleClick}
               className={`absolute text-center ${shakeId === land.id ? 'shake' : ''}`}
               style={{ left: `${(gx(land) / VBW) * 100}%`, top: `${(gy(land) / VBH) * 100}%`, transform: 'translate(-50%, -50%)', width: '25%' }}>
-              <span className={`inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
+              {/* Bonus lands get a spinning portal ring — dim while
+                  forming, vivid once unlocked — instead of the plain
+                  circle every main land uses, so finishing the adventure
+                  is rewarded with something that actually feels new. */}
+              {isBonus && (
+                <span className={`absolute left-1/2 top-1/2 rounded-full portal-ring ${unlocked ? 'portal-pulse' : ''}`}
+                  style={{
+                    width: '5.4rem', height: '5.4rem',
+                    background: unlocked
+                      ? `conic-gradient(from 0deg, ${land.color}, ${land.glow}, #FBBF24, ${land.color})`
+                      : 'conic-gradient(from 0deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05), rgba(255,255,255,0.35))',
+                    filter: unlocked ? 'blur(2px)' : 'blur(3px)',
+                    opacity: unlocked ? 0.9 : 0.5,
+                    zIndex: 0,
+                  }} />
+              )}
+              <span className={`relative inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
                 style={{
-                  background: unlocked ? land.sky : 'rgba(120,120,140,0.45)',
+                  background: unlocked ? land.sky : (isBonus ? 'rgba(80,70,120,0.55)' : 'rgba(120,120,140,0.45)'),
                   border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,
                   boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
-                  filter: unlocked ? 'none' : 'grayscale(0.9)',
+                  filter: unlocked ? 'none' : (isBonus ? 'blur(1.5px) grayscale(0.5)' : 'grayscale(0.9)'),
                 }}>
-                {unlocked ? land.emoji : '🔒'}
+                {unlocked ? land.emoji : (isBonus ? '✨' : '🔒')}
               </span>
               {/* mapLabel (a shorter name where needed) + whitespace-nowrap
                   keep this to one line — a long full name wrapping to 2-3
                   lines was tall enough to overlap the land below it. */}
-              <span className="block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold whitespace-nowrap px-1 py-0.5 rounded-lg mx-auto w-fit"
+              <span className="relative block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold whitespace-nowrap px-1 py-0.5 rounded-lg mx-auto w-fit"
                 style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.45)', background: 'rgba(0,0,0,0.45)' }}>
-                {land.mapLabel ?? land.name}
+                {unlocked ? (land.mapLabel ?? land.name) : (isBonus ? 'A new realm…' : (land.mapLabel ?? land.name))}
               </span>
               {unlocked && (
-                <span className="block text-[11px] sm:text-sm mt-0.5" style={{ letterSpacing: 1 }}>
+                <span className="relative block text-[11px] sm:text-sm mt-0.5" style={{ letterSpacing: 1 }}>
                   {land.quests.map((q, qi) => (
                     <span key={q.href} style={{ opacity: (progress.played[land.id] ?? []).length > qi ? 1 : 0.3 }}>⭐</span>
                   ))}
                 </span>
               )}
               {isFocus && (
-                <span className="block text-[10px] sm:text-xs font-bold text-yellow-300 mt-0.5 sparkle">Noel&apos;s pick!</span>
+                <span className="relative block text-[10px] sm:text-xs font-bold text-yellow-300 mt-0.5 sparkle">Noel&apos;s pick!</span>
               )}
             </button>
           );

@@ -120,6 +120,22 @@ button:active {
   50% { transform: scale(1.4) rotate(15deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
+/* Bonus-realm "portal" ring — a slowly spinning conic gradient behind the
+   land icon, for the Space Outpost / Coral Reef reveal moment. */
+@keyframes portal-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.portal-ring {
+  animation: portal-spin 4s linear infinite;
+}
+@keyframes portal-pulse {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.08); }
+}
+.portal-pulse {
+  animation: portal-pulse 2.6s ease-in-out infinite;
+}
 @keyframes slide-right {
   0% { transform: translateX(-30px); opacity: 0; }
   100% { transform: translateX(0); opacity: 1; }
