@@ -40,8 +40,8 @@ export default function PrintablesPage() {
           <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
           <h1 className={`text-xl font-extrabold ${theme.title}`}>🖨️ Printables</h1>
           <div className="flex items-center gap-1.5">
-            <ThemeToggle />
             <span className={`text-xs font-bold ${theme.subtitle}`}>{doneCount}/{WORKSHEETS.length}</span>
+            <ThemeToggle />
           </div>
         </div>
 

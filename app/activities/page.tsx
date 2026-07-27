@@ -152,8 +152,8 @@ export default function ActivityLibraryPage() {
           <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
           <h1 className={`text-2xl font-extrabold ${theme.title}`}>🎒 Quest Library</h1>
           <div className="flex items-center gap-1.5 justify-end">
-            <ThemeToggle />
             {streak >= 2 && <span className="text-sm font-bold text-yellow-500">🔥{streak}</span>}
+            <ThemeToggle />
           </div>
         </div>
         <p className={`text-xs text-center mb-4 ${theme.subtitle}`}>

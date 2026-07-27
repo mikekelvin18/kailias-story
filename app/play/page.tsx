@@ -345,12 +345,12 @@ export default function AdventureMap() {
             )}
           </div>
           <div className="flex gap-1.5 flex-shrink-0 ml-auto">
-            <ThemeToggle />
             <button onClick={() => setShowGuide(true)}
               className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText} transition-transform hover:scale-105`}
               style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
               ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
             </button>
+            <ThemeToggle />
           </div>
         </div>
         <p className={`text-xs px-1 mb-1 sm:mb-3 font-semibold flex-shrink-0 ${theme.subtitle}`}>
