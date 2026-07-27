@@ -216,6 +216,17 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Guard against the real bug this used to have: on mount, this effect
+    // and the load effect above both run in the same pass, in declaration
+    // order — but setState from the load effect hasn't committed yet, so
+    // this effect would fire first using the stale, pre-load `state`
+    // (defaultState) and overwrite the real saved data with it. That
+    // clobber briefly wrote assessmentCompleted:false over a real
+    // completed assessment, which is what caused /play's gate to
+    // intermittently bounce a child who'd already finished the assessment
+    // back to /setup. Skipping the save until the load has actually
+    // finished removes the window where that could happen.
+    if (!loaded) return;
     try {
       // COPPA: assessment results are child data — only saved once a
       // parent has consented in the Parent Zone.
@@ -223,7 +234,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       if (!fam?.consent) return;
       localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(state));
     } catch { /* ignore */ }
-  }, [state]);
+  }, [state, loaded]);
 
   const setChildInfo = (name: string, age: number) =>
     setState(s => ({ ...s, childName: name, childAge: age, ageGroup: deriveAgeGroup(age) }));
