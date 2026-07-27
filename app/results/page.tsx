@@ -138,6 +138,7 @@ export default function ResultsPage() {
   } = useAssessment();
   const router = useRouter();
   const [showCelebration, setShowCelebration] = useState(true);
+  const [confirmingRetake, setConfirmingRetake] = useState(false);
   const band = developmentalBand(state.ageGroup, totalScore);
 
   const sensoryMax = 6; // max per pattern = 3 questions × 2 pts
@@ -434,13 +435,38 @@ export default function ResultsPage() {
           >
             🎮 Play Learning Games!
           </button>
-          <button
-            onClick={handleStartOver}
-            className="w-full py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
-          >
-            Start a New Adventure! 🚀
-          </button>
+          {!confirmingRetake ? (
+            <button
+              onClick={() => setConfirmingRetake(true)}
+              className="w-full py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
+            >
+              🔄 Retake the Questionnaire
+            </button>
+          ) : (
+            <div className="w-full rounded-3xl p-5" style={{ background: 'rgba(124,58,237,0.15)', border: '2px solid rgba(236,72,153,0.5)' }}>
+              <p className="text-white font-bold mb-1">Are you sure?</p>
+              <p className="text-purple-100 text-sm mb-4">
+                This clears {state.childName || 'your child'}&apos;s current results and asks every
+                question again from scratch. Most families only see meaningful change if they wait
+                at least <strong>2–3 months</strong> between screenings — similar to how progress
+                notes are typically spaced in OT/EI practice. Retaking too soon won&apos;t show much
+                difference.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmingRetake(false)}
+                  className="flex-1 py-3 rounded-full font-bold text-white"
+                  style={{ border: '2px solid rgba(255,255,255,0.35)', background: 'transparent' }}>
+                  Cancel
+                </button>
+                <button onClick={handleStartOver}
+                  className="flex-1 py-3 rounded-full font-extrabold text-white"
+                  style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}>
+                  Yes, retake it
+                </button>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => window.print()}
             className="w-full py-3 rounded-full font-bold text-lg text-purple-200 transition-all hover:text-white"

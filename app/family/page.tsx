@@ -19,7 +19,10 @@ import { LANDS, recordQuestPlay } from '@/lib/adventure';
 // Consent first, then a minimal child profile, then full parental rights:
 // view every piece of stored data, delete the child profile, delete it all.
 
-const AVATARS = ['🦊', '🐰', '🐻', '🦉', '🐸', '🦄', '🐢', '🐝'];
+const AVATARS = [
+  '🐱', '🐶', '🦊', '🐰', '🐻', '🐼', '🦁', '🐯',
+  '🐨', '🐘', '🐧', '🦉', '🐸', '🦄', '🐢', '🐝', '🦋', '🐬',
+];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const COLLECTED = [
