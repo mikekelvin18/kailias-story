@@ -353,20 +353,20 @@ export default function AdventureMap() {
         {/* For young explorers, today's together-quests are the MAIN course —
             so they come before the map, with a why note */}
         {band !== null && (
-          <Link href="/activities" className="block mb-2 sm:mb-3 rounded-2xl p-2.5 sm:p-4 transition-transform hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
+          <Link href="/activities" className="block mb-1.5 sm:mb-3 rounded-xl sm:rounded-2xl p-1.5 sm:p-4 transition-transform hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', boxShadow: '0 4px 18px rgba(251,191,36,0.35)' }}>
-            <div className="flex items-center gap-3">
-              <span className="text-4xl">{BAND_INFO[band].emoji}</span>
-              <div className="flex-1">
-                <p className="font-extrabold text-amber-950 leading-tight">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-xl sm:text-4xl">{BAND_INFO[band].emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-base font-extrabold text-amber-950 leading-tight truncate">
                   ☀️ Today&apos;s Quests for your {BAND_INFO[band].name}
                 </p>
-                <p className="text-xs font-semibold text-amber-900 mt-0.5">
+                <p className="hidden sm:block text-xs font-semibold text-amber-900 mt-0.5">
                   ~5 minutes of real-world play together — start here! →
                 </p>
               </div>
             </div>
-            <p className="text-[11px] text-amber-900 mt-2 leading-snug" style={{ opacity: 0.85 }}>
+            <p className="hidden sm:block text-[11px] text-amber-900 mt-2 leading-snug" style={{ opacity: 0.85 }}>
               💡 Because {state.childName || 'your child'} is at the {BAND_INFO[band].name} stage,
               playing together with you helps most — the map games below are the fun extra.
             </p>

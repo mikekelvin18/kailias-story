@@ -63,6 +63,12 @@ export const HUB_THEMES: Record<HubThemeName, HubTheme> = {
 
 const KEY = 'kailia_hub_theme_v1';
 
+// Every hub page (and the standalone ThemeToggle button) calls useHubTheme()
+// independently — plain useState alone means toggling in one component
+// doesn't tell any other instance. This event lets every instance stay
+// in sync, the same pattern lib/family.ts uses for active-child changes.
+export const HUB_THEME_CHANGED_EVENT = 'kailia-hub-theme-changed';
+
 export function loadHubTheme(): HubThemeName {
   if (typeof window === 'undefined') return 'bright';
   const saved = localStorage.getItem(KEY);
@@ -70,5 +76,8 @@ export function loadHubTheme(): HubThemeName {
 }
 
 export function saveHubTheme(name: HubThemeName) {
-  try { localStorage.setItem(KEY, name); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(KEY, name);
+    window.dispatchEvent(new Event(HUB_THEME_CHANGED_EVENT));
+  } catch { /* ignore */ }
 }
