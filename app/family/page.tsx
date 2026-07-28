@@ -380,6 +380,22 @@ export default function ParentZonePage() {
               {deletedMsg && <p className="text-xs font-bold text-emerald-700 mt-2">{deletedMsg}</p>}
             </div>
 
+            {/* Progress report — printable rollup for the child's care team */}
+            <Link href="/progress"
+              className="block rounded-3xl p-5 mb-4 transition-transform hover:scale-[1.01]"
+              style={{ background: 'rgba(255,255,255,0.97)' }}>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">📋</span>
+                <div className="flex-1">
+                  <p className="font-extrabold text-gray-800">Progress Report</p>
+                  <p className="text-xs text-gray-500">
+                    A printable summary to share with an OT, PT, SLP, teacher, or pediatrician.
+                  </p>
+                </div>
+                <span className="text-gray-400">→</span>
+              </div>
+            </Link>
+
             {/* View data */}
             <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
               <button onClick={() => { setInventory(childDataInventory()); setShowData(s => !s); }}

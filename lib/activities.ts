@@ -1562,3 +1562,60 @@ export function streakDays(): number {
   }
   return streak;
 }
+
+// ── Progress report data (for the parent-facing /progress page) ──
+// Built for handing to a child's care team (OT/PT/SLP, teacher,
+// pediatrician) — a plain-language rollup of the same reports the
+// parent already gave with one tap each day, never anything new.
+
+export interface DomainSummary {
+  domain: ActivityDomain;
+  did: number;        // "Did it!" count
+  withHelp: number;   // "Tried with help" count
+  notYet: number;     // "Not yet" count
+  total: number;
+}
+
+export interface ReportEntry {
+  date: string;
+  activityId: string;
+  title: string;
+  domain: ActivityDomain;
+  score: ReportScore;
+}
+
+// Every report ever recorded, oldest first, with the activity's title
+// and domain resolved (custom-quest ids that no longer exist just fall
+// back to showing the raw id rather than being dropped).
+export function allReportEntries(): ReportEntry[] {
+  const log = loadReports();
+  const entries: ReportEntry[] = [];
+  for (const date of Object.keys(log).sort()) {
+    for (const [activityId, score] of Object.entries(log[date])) {
+      const activity = ACTIVITIES.find(a => a.id === activityId);
+      entries.push({
+        date,
+        activityId,
+        title: activity?.title ?? activityId,
+        domain: activity?.domain ?? 'communication',
+        score,
+      });
+    }
+  }
+  return entries;
+}
+
+export function domainSummaries(): DomainSummary[] {
+  const entries = allReportEntries();
+  const domains = Object.keys(DOMAIN_META) as ActivityDomain[];
+  return domains.map(domain => {
+    const forDomain = entries.filter(e => e.domain === domain);
+    return {
+      domain,
+      did: forDomain.filter(e => e.score === 2).length,
+      withHelp: forDomain.filter(e => e.score === 1).length,
+      notYet: forDomain.filter(e => e.score === 0).length,
+      total: forDomain.length,
+    };
+  }).filter(s => s.total > 0);
+}
