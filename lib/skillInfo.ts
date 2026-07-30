@@ -10,6 +10,11 @@ export interface SkillNote {
 }
 
 export const SKILL_INFO: Record<string, SkillNote> = {
+  'potion-sort': {
+    skills: ['🧠 Processing', '⚡ Sorting speed'],
+    builds: 'Sorting by category under time pressure, quick color/rule matching, and impulse control (waiting for the right bin).',
+    notices: 'Sorting accuracy, average decision speed, and how many colors your child can juggle at once.',
+  },
   'firefly-catch': {
     skills: ['🤲 Fine motor', '⚡ Reaction speed'],
     builds: 'Finger accuracy on moving targets, controlled dragging, and hand–eye coordination.',

@@ -126,6 +126,7 @@ export const LANDS: Land[] = [
       { href: '/play/hidden-friends', emoji: '🔍', title: "Where's Noel?", desc: 'Busy storybook scenes hide a napping panda and lost treasures — search every corner!' },
       { href: '/play/sky-mail', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
       { href: '/play/moonlight-match', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
+      { href: '/play/potion-sort', emoji: '🧪', title: 'Potion Sort', desc: 'The owl\'s shelf is full of falling potions! Drag each one into the cauldron with the matching color before it hits the floor!' },
     ],
   },
 ];
