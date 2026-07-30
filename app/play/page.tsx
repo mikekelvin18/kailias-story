@@ -17,6 +17,13 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import { Mountain, Volcano, PineTree, Cloud, Mushroom, Rainbow } from '@/components/scenery/Scenery';
+
+interface DecorItem {
+  e?: string;                                     // plain emoji fallback
+  C?: (props: { size?: number; className?: string }) => React.ReactElement; // illustrated SVG
+  x: number; y: number; s: number;
+}
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 
@@ -55,23 +62,27 @@ const sfx = {
 // hub theme toggle (lib/theme.ts, hooks/useHubTheme.ts) and remembered
 // per-device (not child data, just a display preference).
 
-const DECOR_BRIGHT = [
-  { e: '☀️', x: 8,  y: 3,  s: 34 }, { e: '🌈', x: 55, y: 5,  s: 22 },
-  { e: '✨', x: 40, y: 12, s: 14 }, { e: '☁️', x: 78, y: 20, s: 26 },
-  { e: '☁️', x: 12, y: 25, s: 22 }, { e: '🔮', x: 38, y: 33, s: 16 },
-  { e: '🏔️', x: 60, y: 40, s: 26 }, { e: '🌸', x: 8,  y: 48, s: 16 },
-  { e: '🌋', x: 62, y: 66, s: 24 }, { e: '🍄', x: 45, y: 78, s: 16 },
-  { e: '🌲', x: 33, y: 90, s: 22 }, { e: '🌲', x: 60, y: 93, s: 18 },
+// `C` (an illustrated SVG component) takes over from a plain emoji `e`
+// wherever we've built one — mountains, trees, clouds, mushrooms — so the
+// map background reads as one illustrated place instead of a scatter of
+// plain system emoji. Anything without a `C` still just renders its emoji.
+const DECOR_BRIGHT: DecorItem[] = [
+  { e: '☀️', x: 8,  y: 3,  s: 34 }, { C: Rainbow, x: 55, y: 5,  s: 46 },
+  { e: '✨', x: 40, y: 12, s: 14 }, { C: Cloud, x: 78, y: 20, s: 44 },
+  { C: Cloud, x: 12, y: 25, s: 36 }, { e: '🔮', x: 38, y: 33, s: 16 },
+  { C: Mountain, x: 60, y: 40, s: 52 }, { e: '🌸', x: 8,  y: 48, s: 16 },
+  { C: Volcano, x: 62, y: 66, s: 48 }, { C: Mushroom, x: 45, y: 78, s: 26 },
+  { C: PineTree, x: 33, y: 90, s: 32 }, { C: PineTree, x: 60, y: 93, s: 26 },
   { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
 ];
 
-const DECOR_DARK = [
+const DECOR_DARK: DecorItem[] = [
   { e: '🌙', x: 8,  y: 3,  s: 34 }, { e: '⭐', x: 55, y: 5,  s: 16 },
-  { e: '✨', x: 40, y: 12, s: 14 }, { e: '☁️', x: 78, y: 20, s: 26 },
-  { e: '☁️', x: 12, y: 25, s: 22 }, { e: '🔮', x: 38, y: 33, s: 16 },
-  { e: '🏔️', x: 60, y: 40, s: 26 }, { e: '🌸', x: 8,  y: 48, s: 16 },
-  { e: '🌋', x: 62, y: 66, s: 24 }, { e: '🍄', x: 45, y: 78, s: 16 },
-  { e: '🌲', x: 33, y: 90, s: 22 }, { e: '🌲', x: 60, y: 93, s: 18 },
+  { e: '✨', x: 40, y: 12, s: 14 }, { C: Cloud, x: 78, y: 20, s: 44 },
+  { C: Cloud, x: 12, y: 25, s: 36 }, { e: '🔮', x: 38, y: 33, s: 16 },
+  { C: Mountain, x: 60, y: 40, s: 52 }, { e: '🌸', x: 8,  y: 48, s: 16 },
+  { C: Volcano, x: 62, y: 66, s: 48 }, { C: Mushroom, x: 45, y: 78, s: 26 },
+  { C: PineTree, x: 33, y: 90, s: 32 }, { C: PineTree, x: 60, y: 93, s: 26 },
   { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
 ];
 
@@ -263,8 +274,8 @@ export default function AdventureMap() {
         {/* Scenery */}
         {DECOR.map((d, i) => (
           <span key={i} className={i % 3 === 0 ? 'absolute float' : 'absolute sparkle'}
-            style={{ left: `${d.x}%`, top: `${d.y}%`, fontSize: d.s, opacity: 0.7, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
-            {d.e}
+            style={{ left: `${d.x}%`, top: `${d.y}%`, opacity: 0.85, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
+            {d.C ? <d.C size={d.s} /> : <span style={{ fontSize: d.s }}>{d.e}</span>}
           </span>
         ))}
 
