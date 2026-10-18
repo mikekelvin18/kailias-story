@@ -13,7 +13,7 @@ Two characters appear throughout the whole adventure — every land, every quest
 - **Kailia** — the main character and the child's avatar on the adventure. A chibi-style girl, about 6 years old, with short brown hair and bangs. Brave, curious, and kind. She travels through the world map, and the child helps her complete quests.
 - **Noel** — a giant panda, Kailia's companion and adventure partner. Warm, gentle, a little goofy. Noel is the "guide" character: he explains every quest in short simple words, gives hints when the child struggles, celebrates every attempt with big reactions, and NEVER says anything is wrong — a miss is always "let's try again together!" Noel also appears in parent-assist moments.
 
-**Placeholder art today:** Kailia and Noel are currently drawn as code-based cartoon (SVG) sprites — no image files needed, so the app works right now without final artwork.
+**Art today:** Kailia and Noel use the real artwork in `public/characters/{kailia,noel}/` (shown in its brush-painted version, see "Art & motion style" below). The code-based SVG sprites remain as a fallback for any expression with no image.
 - All character art/code lives in one folder: `components/characters/`
 - All swap-in logic lives in one config file: `components/characters/characters.config.ts`
 
@@ -24,6 +24,12 @@ Two characters appear throughout the whole adventure — every land, every quest
 4. Save. The app automatically uses your image instead of the placeholder drawing for that expression — nothing else needs to change.
 
 Any expression you don't fill in keeps using the placeholder drawing, so you can swap art in gradually, one image at a time.
+
+## Art & motion style (hand-painted, bouncy)
+- **Painted characters.** Every Kailia/Noel picture is shown from `public/characters/painted/`, a brush-stroke repaint of the original art made by `scripts/paint-art.py` (needs Python 3 with Pillow + numpy). `PAINTED_ART` in `characters.config.ts` flips the whole app back to the originals. When new character art is added, repaint it: `python3 scripts/paint-art.py public/characters/kailia/new.png public/characters/painted/kailia/new.png`.
+- **Painted drawings.** `components/art/PaintKit.tsx` (mounted once in `app/layout.tsx`) defines shared SVG brush filters: `kp-brush` (static), `kp-boil` (edges re-wobble 8×/s like hand-drawn animation), `kp-edge`. New SVG illustrations wrap their contents in `<g filter="url(#kp-brush)">` or `kp-boil`, and use the warm brown outline `#3b2416`, not black. Every child-facing screen gets the `.kp-paper` grain overlay from `AssessmentGate`.
+- **Motion.** Idle loops (`float`, `wiggle`, `sparkle`, `critter-bob`) are animated "on twos" (12 fps, held frames) with squash & stretch; entrances (`bounce-in`, `drop-in`, `pop`, `star-burst`) overshoot and settle. Extra moves: `.kp-hop`, `.kp-jelly`. A miss uses `.shake`, which is a friendly jelly wobble, never a "no" head-shake. To retune the 12 fps loops, edit `scripts/motion-keyframes.mjs` and paste its output into `app/globals.css`. Everything respects Reduce motion.
+- **Grip hands.** Pencil-grip pictures are painted SVG hands in `components/art/GraspHand.tsx` (palmar, digital pronate, quadrupod, immature tripod, dynamic tripod), each finger a chain of joints so a pose is adjusted by moving a joint.
 
 ## The adventure structure
 The child travels with Kailia through a world map. Each region assesses one domain:

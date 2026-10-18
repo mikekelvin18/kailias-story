@@ -36,5 +36,11 @@ export default function AssessmentGate({ children }: { children: React.ReactNode
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {/* hand-painted paper grain over every child-facing screen (globals.css) */}
+      <div className="kp-paper" aria-hidden="true" />
+    </>
+  );
 }

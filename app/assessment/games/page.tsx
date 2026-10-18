@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
+import GraspHand, { type GripKey } from '@/components/art/GraspHand';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -130,85 +131,36 @@ const GRASP_PATTERNS = [
 ];
 
 // ─── Grasp Illustrations ──────────────────────────────────────────────────────
-// Tries /grasp/{key}.jpg first (drop your own photos in public/grasp/).
-// Falls back to a clean diagram showing which fingers are on the pencil.
-// Photo file names: palmar.jpg | digital_pronate.jpg | quadrupod.jpg
-//                   immature_tripod.jpg | dynamic_tripod.jpg
+// Painted drawing of a child's hand in each grip (components/art/GraspHand),
+// plus dots showing which fingers touch the pencil. Replaces the old stock
+// photos (a wrench for "palmar", an adult's hand for "quadrupod") which
+// didn't show the grips at all.
 
 function GraspIllustration({ graspKey, color }: { graspKey: string; color: string }) {
   // Finger labels: T=thumb, 1=index, 2=middle, 3=ring, 4=pinky
   // Which fingers are actively on the pencil for each grip:
   const FINGER_MAP: Record<string, boolean[]> = {
     palmar:          [true,  true,  true,  true,  true ],
-    digital_pronate: [false, true,  true,  true,  true ],
+    digital_pronate: [true,  true,  true,  true,  true ],
     quadrupod:       [true,  true,  true,  true,  false],
     immature_tripod: [true,  true,  true,  false, false],
     dynamic_tripod:  [true,  true,  true,  false, false],
   };
   const active = FINGER_MAP[graspKey] ?? FINGER_MAP.dynamic_tripod;
 
-  // Photo names match public/grasp/*.jpg — drop your photos in there
-  const [photoError, setPhotoError] = useState(false);
-  const photoSrc = `/grasp/${graspKey}.jpg`;
-
-  if (!photoError) {
-    return (
-      <div style={{ width: 72, flexShrink: 0 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photoSrc}
-          alt={graspKey.replace(/_/g, ' ')}
-          onError={() => setPhotoError(true)}
-          style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, display: 'block' }}
-        />
-        {/* finger indicator dots */}
-        <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
-          {['T','1','2','3','4'].map((lbl, i) => (
-            <div key={lbl} style={{
-              width: 16, height: 16, borderRadius: '50%',
-              background: active[i] ? color : '#D1D5DB',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 8, fontWeight: 'bold', color: active[i] ? 'white' : '#9CA3AF',
-            }}>{lbl}</div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Fallback diagram when no photo file is present ────────────────────────
-  // Shows a schematic top-view of a pencil with colored circles for each finger.
-  const fingerLabels = ['T', '1', '2', '3', '4'];
   return (
     <div style={{ width: 72, flexShrink: 0 }}>
-      <svg viewBox="0 0 72 72" width={72} height={72} style={{ borderRadius: 10, background: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
-        {/* pencil shaft diagonal */}
-        <line x1="8" y1="64" x2="60" y2="8" stroke="#FFD600" strokeWidth="10" strokeLinecap="round" />
-        <line x1="8" y1="64" x2="60" y2="8" stroke="#B8860B" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
-        <circle cx="60" cy="8"  r="5" fill="#FF9999" /> {/* eraser */}
-        <circle cx="8"  cy="64" r="4" fill="#444"    /> {/* tip */}
-        {/* finger circles along the pencil */}
-        {[
-          { x: 52, y: 16 }, // thumb position
-          { x: 44, y: 24 }, // index
-          { x: 36, y: 32 }, // middle
-          { x: 28, y: 40 }, // ring
-          { x: 20, y: 48 }, // pinky
-        ].map((pos, i) => (
-          <g key={i}>
-            <circle cx={pos.x} cy={pos.y} r="9"
-              fill={active[i] ? color : '#E5E7EB'}
-              opacity={active[i] ? 1 : 0.5} />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="8"
-              fontWeight="bold" fill={active[i] ? 'white' : '#9CA3AF'}>
-              {fingerLabels[i]}
-            </text>
-          </g>
+      <GraspHand grip={graspKey as GripKey} size={72} />
+      <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
+        {['T','1','2','3','4'].map((lbl, i) => (
+          <div key={lbl} style={{
+            width: 16, height: 16, borderRadius: '50%',
+            background: active[i] ? color : '#D1D5DB',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, fontWeight: 'bold', color: active[i] ? 'white' : '#9CA3AF',
+          }}>{lbl}</div>
         ))}
-      </svg>
-      <p style={{ fontSize: 8, color: '#9CA3AF', textAlign: 'center', marginTop: 2 }}>
-        add photo →<br />/public/grasp/{graspKey}.jpg
-      </p>
+      </div>
     </div>
   );
 }

@@ -20,18 +20,39 @@ export type CharacterExpression = 'happy' | 'excited' | 'thinking' | 'celebratin
 // we only have one smooth, non-pixelated pose per character (no separate
 // drawn expressions yet), so every KailiaSprite/PandaSprite instance across
 // the whole site renders the real art instead of the placeholder SVG.
+// ── Hand-painted look ──
+// true  = every Kailia/Noel picture uses the brush-painted versions in
+//         public/characters/painted/ (made by scripts/paint-art.py, which
+//         repaints the art with thousands of small oriented brush strokes).
+// false = go back to the original smooth art. Nothing else needs to change.
+export const PAINTED_ART = true;
+
+export type CharacterPose =
+  | 'portrait-front' | 'portrait-back' | 'portrait-left' | 'portrait-right'
+  | `run-${1 | 2 | 3 | 4 | 5}` | `jump-${1 | 2 | 3 | 4}`;
+
+// The one place every sprite gets its picture path from, so the switch
+// above flips the whole app at once.
+export function characterArt(character: 'kailia' | 'noel', pose: CharacterPose): string {
+  return PAINTED_ART
+    ? `/characters/painted/${character}/${pose}.png`
+    : `/characters/${character}/${pose}.png`;
+}
+
+const front = (c: 'kailia' | 'noel') => characterArt(c, 'portrait-front');
+
 export const CHARACTER_IMAGES: Record<'kailia' | 'noel', Partial<Record<CharacterExpression, string>>> = {
   kailia: {
-    happy: '/characters/kailia/portrait-front.png',
-    excited: '/characters/kailia/portrait-front.png',
-    thinking: '/characters/kailia/portrait-front.png',
-    celebrating: '/characters/kailia/portrait-front.png',
+    happy: front('kailia'),
+    excited: front('kailia'),
+    thinking: front('kailia'),
+    celebrating: front('kailia'),
   },
   noel: {
-    happy: '/characters/noel/portrait-front.png',
-    excited: '/characters/noel/portrait-front.png',
-    thinking: '/characters/noel/portrait-front.png',
-    celebrating: '/characters/noel/portrait-front.png',
-    sleepy: '/characters/noel/portrait-front.png',
+    happy: front('noel'),
+    excited: front('noel'),
+    thinking: front('noel'),
+    celebrating: front('noel'),
+    sleepy: front('noel'),
   },
 };

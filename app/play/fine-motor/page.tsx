@@ -7,6 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import { usePlayCount } from '@/hooks/usePlayCount';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import { characterArt } from '@/components/characters/characters.config';
 import { loadRewards } from '@/lib/rewards';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -211,7 +212,7 @@ export default function MazeRunnerPage() {
   // full-body portrait's squish/distortion.
   useEffect(() => {
     const img = new window.Image();
-    img.src = '/characters/kailia/run-3.png';
+    img.src = characterArt('kailia', 'run-3');
     img.onload = () => { headImgRef.current = img; };
   }, []);
 
