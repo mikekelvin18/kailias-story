@@ -8,7 +8,11 @@ import { usePlayCount } from '@/hooks/usePlayCount';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { characterArt } from '@/components/characters/characters.config';
-import { loadRewards } from '@/lib/rewards';
+import { loadRewards, awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { logQuestMetric } from '@/lib/metrics';
+import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
+import LevelPath from '@/components/LevelPath';
+import SkillIntro from '@/components/SkillIntro';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -163,8 +167,20 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CORRIDOR=28, W=600, H=320, MAX_LIVES=3, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
-type Phase='intro'|'playing'|'levelcomplete'|'gameover'|'done';
+const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+type Phase='intro'|'playing'|'levelcomplete';
+
+// Endless levels: the five mazes repeat, and each time round the
+// corridor gets a little narrower (steadier hands needed) and the maze
+// is mirrored so it never feels like the same walk twice.
+function mazeFor(level: number) {
+  const lap = Math.floor((level - 1) / LEVELS.length);
+  return {
+    maze: LEVELS[(level - 1) % LEVELS.length],
+    corridor: Math.max(13, 28 - lap * 3),
+    mirror: lap % 2 === 1,
+  };
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -174,10 +190,9 @@ export default function MazeRunnerPage() {
   const { increment } = usePlayCount();
 
   const [phase, setPhase]           = useState<Phase>('intro');
-  const [levelIdx, setLevelIdx]     = useState(0);
-  const [lives, setLives]           = useState(MAX_LIVES);
+  const [level, setLevel]           = useState(1);
   const [starCount, setStarCount]   = useState(0);
-  const [levelStars, setLevelStars] = useState<number[]>([]);
+  const [earnedLight, setEarnedLight] = useState(0);
   const [started, setStarted]       = useState(false);
   const [drawing, setDrawing]       = useState(false);
   const [showReassess, setShowReassess] = useState(false);
@@ -188,8 +203,8 @@ export default function MazeRunnerPage() {
   const [isFirstEver, setIsFirstEver] = useState(false);
   useEffect(() => { setIsFirstEver(loadRewards().starlight === 0); }, []);
   // snapshot values for levelcomplete display (avoids ref-in-render)
-  const [snapLives, setSnapLives]   = useState(MAX_LIVES);
   const [snapStars, setSnapStars]   = useState(0);
+  useEffect(() => { setLevel(nextGameLevel('fine-motor')); }, []);
 
   // Refs — canvas state, not needed for React renders
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -198,7 +213,10 @@ export default function MazeRunnerPage() {
   const charRef      = useRef<Pt|null>(null);
   const trailRef     = useRef<{x:number;y:number;ok:boolean}[]>([]);
   const collectedRef = useRef<Set<number>>(new Set());
-  const livesRef     = useRef(MAX_LIVES);
+  const touchesRef   = useRef(0);       // wall touches — measured, never punished
+  const startedAtRef = useRef(0);
+  const corridorRef  = useRef(28);
+  const levelNumRef  = useRef(1);
   const lastHitRef   = useRef(0);
   const hitFlashRef  = useRef(false);
   const doneRef      = useRef(false);
@@ -217,7 +235,8 @@ export default function MazeRunnerPage() {
   }, []);
 
   // Sync levelRef in effect (not during render)
-  useEffect(() => { levelRef.current = LEVELS[levelIdx]; }, [levelIdx]);
+  const { maze: lv, corridor, mirror } = mazeFor(level);
+  useEffect(() => { levelRef.current = lv; corridorRef.current = corridor; levelNumRef.current = level; }, [lv, corridor, level]);
 
   // ── Draw — reads everything from refs, empty deps = stable reference ──────────
 
@@ -225,6 +244,7 @@ export default function MazeRunnerPage() {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const lv   = levelRef.current;
+    const CORRIDOR = corridorRef.current;
     const path = pathRef.current;
     const trail = trailRef.current;
     const char  = charRef.current;
@@ -288,7 +308,7 @@ export default function MazeRunnerPage() {
 
     // Trail
     for (let i=1;i<trail.length;i++) {
-      const c=trail[i].ok?lv.accent:'#EF4444';
+      const c=trail[i].ok?lv.accent:'rgba(255,255,255,0.35)';
       ctx.beginPath(); ctx.moveTo(trail[i-1].x,trail[i-1].y); ctx.lineTo(trail[i].x,trail[i].y);
       ctx.shadowBlur=10; ctx.shadowColor=c; ctx.strokeStyle=c;
       ctx.lineWidth=4; ctx.lineCap='round'; ctx.stroke();
@@ -313,7 +333,8 @@ export default function MazeRunnerPage() {
     }
 
     // Hit flash
-    if (hitFlashRef.current) { ctx.fillStyle='rgba(239,68,68,0.28)'; ctx.fillRect(0,0,W,H); }
+    // touching a wall just dims the light a moment — no red, no penalty
+    if (hitFlashRef.current) { ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(0,0,W,H); }
   }, []); // stable — everything read from refs
 
   // ── Level setup ───────────────────────────────────────────────────────────────
@@ -321,30 +342,32 @@ export default function MazeRunnerPage() {
   const initLevelRefs = useCallback(() => {
     cancelAnimationFrame(animRef.current);
     const lv   = levelRef.current;
-    const path = lv.path(W,H);
+    const raw  = lv.path(W,H);
+    const path = mirror ? raw.map(p => ({ x: W - p.x, y: p.y })) : raw;
     pathRef.current    = path;
     starPosRef.current = lv.starFracs.map(f => {
       const i = Math.min(Math.floor(f*(path.length-1)), path.length-1);
       return path[i];
     });
     collectedRef.current = new Set();
-    livesRef.current     = MAX_LIVES;
+    touchesRef.current   = 0;
+    startedAtRef.current = Date.now();
     lastHitRef.current   = 0;
     hitFlashRef.current  = false;
     doneRef.current      = false;
     charRef.current      = null;
     trailRef.current     = [];
     setTimeout(drawCanvas, 30);
-  }, [drawCanvas]);
+  }, [drawCanvas, mirror]);
 
   useEffect(() => {
     if (phase === 'playing') {
       /* eslint-disable react-hooks/set-state-in-effect */
-      setLives(MAX_LIVES); setStarCount(0); setStarted(false); setDrawing(false);
+      setStarCount(0); setStarted(false); setDrawing(false);
       /* eslint-enable react-hooks/set-state-in-effect */
       initLevelRefs();
     }
-  }, [levelIdx, phase, initLevelRefs]);
+  }, [level, phase, initLevelRefs]);
 
   // ── Input ─────────────────────────────────────────────────────────────────────
 
@@ -368,7 +391,7 @@ export default function MazeRunnerPage() {
     const p=getPos(e); if(!p) return;
 
     const dist=closestOnPath(p,pathRef.current);
-    const ok=dist<=CORRIDOR;
+    const ok=dist<=corridorRef.current;
     trailRef.current=[...trailRef.current,{x:p.x,y:p.y,ok}];
     charRef.current=p;
 
@@ -377,11 +400,9 @@ export default function MazeRunnerPage() {
       const now=Date.now();
       if (now-lastHitRef.current>HIT_CD) {
         lastHitRef.current=now;
-        const nl=livesRef.current-1;
-        livesRef.current=nl; setLives(nl);
+        touchesRef.current+=1;
         hitFlashRef.current=true;
         setTimeout(()=>{hitFlashRef.current=false; drawCanvas();},320);
-        if (nl<=0){ doneRef.current=true; setTimeout(()=>setPhase('gameover'),250); }
       }
     }
 
@@ -398,10 +419,18 @@ export default function MazeRunnerPage() {
     const end=pathRef.current[pathRef.current.length-1];
     if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current) {
       doneRef.current=true;
-      const col=collectedRef.current.size, lv=livesRef.current;
-      const earned = col>=3&&lv>=2?3 : col>=2||lv>=2?2 : 1;
-      setSnapStars(col); setSnapLives(lv);
-      setLevelStars(prev=>[...prev,earned]);
+      const col=collectedRef.current.size;
+      setSnapStars(col);
+      const lvl=levelNumRef.current;
+      logQuestMetric('fine motor','fine-motor',{
+        level:lvl, corridorPx:corridorRef.current, wallTouches:touchesRef.current,
+        starsCollected:col, totalMs:Date.now()-startedAtRef.current,
+      });
+      // ✨ effort floor: wall touches reduce the glow, never to zero
+      const light=Math.max(10, 12+lvl*2+col*2-touchesRef.current);
+      awardStarlight(light); setEarnedLight(light);
+      recordGameLevel('fine-motor',lvl);
+      if (lvl%LEVELS_PER_CHAPTER===0 && increment()%10===0) setShowReassess(true);
       drawCanvas();
       setTimeout(()=>setPhase('levelcomplete'),300);
       return;
@@ -414,23 +443,9 @@ export default function MazeRunnerPage() {
 
   // ── Navigation ─────────────────────────────────────────────────────────────────
 
-  const nextLevel = () => {
-    if (levelIdx+1>=LEVELS.length) {
-      const count=increment();
-      if (count%10===0) setShowReassess(true);
-      setPhase('done');
-    } else {
-      setLevelIdx(i=>i+1);
-      setPhase('playing');
-    }
-  };
-
-  const retryLevel = () => { setLevelStars(p=>p.slice(0,-1)); setPhase('playing'); };
-  const playAgain  = () => { setLevelIdx(0); setLevelStars([]); setPhase('intro'); };
-
-  const lv         = LEVELS[levelIdx];
-  const totalStars = levelStars.reduce((a,b)=>a+b,0);
-  const maxStars   = LEVELS.length*3;
+  const nextLevel  = () => { setLevel(l => l + 1); setPhase('playing'); };
+  const retryLevel = () => setPhase('playing');
+  const chapter    = chapterFor(level);
 
   // ─ Intro ──────────────────────────────────────────────────────────────────────
   // First quest of the whole adventure, so this is many players' very first
@@ -450,41 +465,30 @@ export default function MazeRunnerPage() {
             Ooh, the fireflies lost their way! Trace the glowing trail with your finger and don&apos;t touch the walls — grab every star you can find! ✨
           </p>
         </div>
-        <div className="rounded-2xl p-4 mb-4 space-y-2"
-          style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)'}}>
-          {LEVELS.map((l,i)=>(
-            <div key={i} className="flex items-center gap-3 px-2 py-1.5 rounded-xl"
-              style={{background:'rgba(255,255,255,0.04)'}}>
-              <span className="text-lg" style={{filter:`drop-shadow(0 0 5px ${l.accent})`}}>{l.emoji}</span>
-              <span className="text-white font-semibold text-sm flex-1 text-left">{l.name}</span>
-              <span className="text-yellow-300 opacity-25 text-xs">⭐⭐⭐</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-center gap-5 mb-5 text-xs text-green-300">
-          <span>❤️ 3 lives per maze</span><span>⭐ Collect all 3 stars</span>
-        </div>
+        <LevelPath gameId="fine-motor" level={level} onPick={setLevel} />
+        <p className="mt-3 mb-4 text-sm font-bold text-green-200">{lv.emoji} Next up: {lv.name}{corridor < 28 ? ' — a narrower path!' : ''}</p>
         <button onClick={()=>setPhase('playing')}
           className="px-10 py-4 rounded-full font-extrabold text-white text-xl transition-all hover:scale-105 active:scale-95"
           style={{background:'linear-gradient(135deg,#059669,#2563eb)',boxShadow:'0 0 30px rgba(74,222,128,0.35)'}}>
-          Enter Maze! 🗺️
+          Play level {level} 🗺️
         </button>
         <div className="mt-4">
-          <Link href="/play" className="text-green-400 text-sm hover:text-green-200">← Back to Games</Link>
+          <Link href="/play" className="text-green-400 text-sm hover:text-green-200">← Back to the map</Link>
         </div>
+        <SkillIntro gameId="fine-motor" />
       </div>
     </main>
   );
 
   // ─ Level complete ──────────────────────────────────────────────────────────────
   if (phase==='levelcomplete') {
-    const earned=levelStars[levelStars.length-1]??1;
-    const label=earned===3?'🏆 Perfect Run!':earned===2?'🎯 Level Clear!':'✅ You made it!';
+    const earned=Math.max(1,snapStars);
+    const label=earned===3?'🏆 Every star!':'🎉 Level '+level+' complete!';
     // A brand-new player's very first quest win gets a bigger celebration —
     // confetti burst and Kailia + Noel on screen together — instead of the
     // same modest card every level uses, since this exact moment decides
     // whether the app feels worth coming back to.
-    const bigWin = isFirstEver && levelIdx===0;
+    const bigWin = isFirstEver && level===1;
     return (
       <main className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
         style={{background:`linear-gradient(135deg,${lv.bg},${lv.wall})`}}>
@@ -525,93 +529,19 @@ export default function MazeRunnerPage() {
                 style={{filter:n<=earned?'drop-shadow(0 0 14px #FFD700)':'grayscale(1) opacity(0.2)'}}>⭐</span>
             ))}
           </div>
-          <div className="flex justify-center gap-6 mb-6 text-sm text-white">
-            <span>Stars: <strong style={{color:'#FFD700'}}>{snapStars}/3</strong></span>
-            <span>Lives left: <strong style={{color:'#EF4444'}}>{snapLives}/{MAX_LIVES}</strong></span>
-          </div>
+          <p className="text-yellow-300 font-extrabold text-lg mb-2">✨ +{earnedLight} starlight</p>
+          <p className="text-white/80 text-sm mb-6">{chapter.emoji} {chapter.name} path-finder!</p>
+          {showReassess && <ReassessBanner onGo={()=>router.push('/assessment/games')} />}
           <div className="flex gap-3 justify-center">
             <button onClick={retryLevel}
               className="px-5 py-3 rounded-full font-bold text-sm transition-all hover:scale-105"
               style={{border:'2px solid rgba(255,255,255,0.25)',color:'rgba(255,255,255,0.7)',background:'transparent'}}>
-              🔄 Try Again
+              🔄 Play again
             </button>
             <button onClick={nextLevel}
               className="px-6 py-3 rounded-full font-extrabold text-white text-sm transition-all hover:scale-105"
               style={{background:`linear-gradient(135deg,${lv.accent},#7C3AED)`}}>
-              {levelIdx+1>=LEVELS.length?'🏆 Finish!':`Next: ${LEVELS[levelIdx+1].name} ${LEVELS[levelIdx+1].emoji}`}
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  // ─ Game over ───────────────────────────────────────────────────────────────────
-  if (phase==='gameover') return (
-    <main className="min-h-screen flex items-center justify-center px-4"
-      style={{background:'linear-gradient(135deg,#0f0202,#200808)'}}>
-      <div className="max-w-sm w-full text-center">
-        <div className="text-7xl mb-3">💔</div>
-        <h2 className="text-3xl font-extrabold text-white mb-2">Out of lives!</h2>
-        <p className="text-red-300 text-sm mb-6">
-          You hit the walls too many times in <strong>{lv.name}</strong>.<br/>Take a breath and try again!
-        </p>
-        <button onClick={retryLevel}
-          className="px-8 py-4 rounded-full font-extrabold text-white text-lg transition-all hover:scale-105"
-          style={{background:'linear-gradient(135deg,#EF4444,#7C3AED)',boxShadow:'0 0 20px rgba(239,68,68,0.4)'}}>
-          Try Again! 💪
-        </button>
-        <div className="mt-4">
-          <Link href="/play" className="text-red-400 text-sm hover:text-red-200">← All Games</Link>
-        </div>
-      </div>
-    </main>
-  );
-
-  // ─ Done ────────────────────────────────────────────────────────────────────────
-  if (phase==='done') {
-    const pct=totalStars/maxStars;
-    const [title,medal]=pct===1?['Maze Champion!','🏆']:pct>=0.8?['Maze Master!','🌟']:pct>=0.6?['Pathfinder!','🗺️']:['Explorer!','🧭'];
-    return (
-      <main className="min-h-screen flex items-center justify-center px-4"
-        style={{background:'linear-gradient(135deg,#050f05,#020510)'}}>
-        <div className="max-w-sm w-full text-center">
-          <div className="text-7xl mb-3">{medal}</div>
-          <h1 className="text-3xl font-extrabold text-white mb-1">{title}</h1>
-          <p className="text-green-300 text-sm mb-5">All 5 mazes conquered!</p>
-          {showReassess && <ReassessBanner onGo={()=>router.push('/assessment/games')} />}
-          <div className="rounded-3xl p-5 mb-5 shadow-xl" style={{background:'rgba(255,255,255,0.97)'}}>
-            <p className="text-5xl font-extrabold text-green-600 mb-1">
-              {totalStars}<span className="text-2xl text-gray-400">/{maxStars}</span>
-            </p>
-            <p className="text-gray-500 text-xs mb-3">total stars</p>
-            <div className="h-2.5 rounded-full mb-4" style={{background:'#E5E7EB'}}>
-              <div className="h-2.5 rounded-full transition-all duration-700"
-                style={{width:`${(totalStars/maxStars)*100}%`,background:'linear-gradient(90deg,#059669,#2563eb)'}}/>
-            </div>
-            <div className="space-y-2">
-              {LEVELS.map((l,i)=>(
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-lg">{l.emoji}</span>
-                  <span className="text-gray-700 text-sm flex-1 text-left">{l.name}</span>
-                  <span>
-                    {'⭐'.repeat(levelStars[i]??0)}
-                    <span style={{opacity:0.2}}>{'⭐'.repeat(3-(levelStars[i]??0))}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3 justify-center">
-            <Link href="/play"
-              className="px-5 py-3 rounded-full font-bold text-green-300 text-sm transition-all hover:scale-105"
-              style={{border:'2px solid rgba(74,222,128,0.35)'}}>
-              ← All Games
-            </Link>
-            <button onClick={playAgain}
-              className="px-5 py-3 rounded-full font-extrabold text-white text-sm transition-all hover:scale-105"
-              style={{background:'linear-gradient(135deg,#059669,#2563eb)'}}>
-              Play Again 🔄
+              Level {level+1} ▶
             </button>
           </div>
         </div>
@@ -626,31 +556,17 @@ export default function MazeRunnerPage() {
       <div className="max-w-2xl mx-auto">
 
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Games</Link>
-          <div className="flex items-center gap-2">
-            {LEVELS.map((_,i)=>(
-              <span key={i} className="text-base transition-all"
-                style={{opacity:i===levelIdx?1:i<levelIdx?0.85:0.22,
-                  filter:i===levelIdx?`drop-shadow(0 0 7px ${lv.accent})`:'none'}}>
-                {i<levelIdx?'✅':LEVELS[i].emoji}
-              </span>
-            ))}
-          </div>
+          <Link href="/play" className="font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.8)'}}>
-            {levelIdx+1}/{LEVELS.length}
+            style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.85)'}}>
+            {chapter.emoji} Lv {level}
           </span>
         </div>
 
         {/* HUD */}
         <div className="flex items-center justify-between mb-3 rounded-2xl px-4 py-2.5"
           style={{background:'rgba(0,0,0,0.35)',border:`1px solid ${lv.accent}30`}}>
-          <div className="flex gap-1">
-            {Array.from({length:MAX_LIVES},(_,i)=>(
-              <span key={i} className="text-xl"
-                style={{filter:i<lives?'drop-shadow(0 0 4px #EF4444)':'grayscale(1) opacity(0.25)'}}>❤️</span>
-            ))}
-          </div>
+          <span className="w-16" />
           <div className="text-center">
             <p className="text-white font-extrabold text-base leading-none">{lv.emoji} {lv.name}</p>
             <p className="text-xs mt-0.5" style={{color:lv.accent}}>{lv.tagline}</p>
@@ -680,7 +596,7 @@ export default function MazeRunnerPage() {
           </p>
         ) : (
           <p className="text-center text-xs opacity-60" style={{color:lv.accent}}>
-            Stay inside the corridor — hit the wall and lose a ❤️
+            Stay inside the glowing path — nice and steady!
           </p>
         )}
       </div>

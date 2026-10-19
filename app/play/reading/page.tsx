@@ -1,220 +1,402 @@
 'use client';
 
-import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
+import KailiaSprite from '@/components/characters/KailiaSprite';
+import PandaSprite from '@/components/characters/PandaSprite';
+import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
+import { logQuestMetric } from '@/lib/metrics';
+import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
+import { soundEnabled } from '@/lib/accessibility';
+import { speak, stopSpeaking } from '@/lib/speak';
 
-// ─── Reading question banks by level ─────────────────────────────────────────
+// ─── Word Wizard ──────────────────────────────────────────────────────────────
+// The Whispering Signposts lost their words — they floated away as word
+// balloons! The signpost shows a picture or a riddle; the child taps the
+// balloon carrying the right word, it pops into sparkles, and Kailia
+// walks one stone further down the path. Five words = level complete.
+//
+// Levels climb the reading ladder: each chapter of 5 levels is one word
+// bank (pictures → first letters & rhymes → blending & sight words →
+// sentence meaning → advanced vocabulary). Inside a chapter, the balloons
+// gain more choices and drift more. Older readers start further up.
+// A miss never says "wrong": the balloon wobbles, Noel reads what it
+// says, and after two tries the right balloon starts to glow.
+// Measures: accuracy by reading level, first-try reads, decoding speed.
 
 interface ReadingQ {
   prompt: string;
-  visual: string;     // emoji or image cue
+  visual: string;     // emoji or sentence shown on the signpost
   choices: string[];
   answer: string;
-  type: 'match'|'letter'|'word'|'sentence';
 }
 
 const BANKS: ReadingQ[][] = [
-  // Level 0: Picture → word match (3-4 year)
+  // Chapter 1: picture → word (about 3–4 years)
   [
-    { type:'match', visual:'🐱', prompt:'What is this?', choices:['cat','dog','bird'], answer:'cat' },
-    { type:'match', visual:'🍎', prompt:'What is this?', choices:['apple','orange','banana'], answer:'apple' },
-    { type:'match', visual:'🌙', prompt:'What is this?', choices:['sun','moon','star'], answer:'moon' },
-    { type:'match', visual:'🚗', prompt:'What is this?', choices:['car','bus','bike'], answer:'car' },
-    { type:'match', visual:'🌸', prompt:'What is this?', choices:['flower','tree','leaf'], answer:'flower' },
-    { type:'match', visual:'🐶', prompt:'What is this?', choices:['cat','dog','fish'], answer:'dog' },
-    { type:'match', visual:'⭐', prompt:'What is this?', choices:['moon','cloud','star'], answer:'star' },
-    { type:'match', visual:'🏠', prompt:'What is this?', choices:['house','school','shop'], answer:'house' },
+    { visual: '🐱', prompt: 'Which word says this?', choices: ['cat', 'dog', 'bird'], answer: 'cat' },
+    { visual: '🍎', prompt: 'Which word says this?', choices: ['apple', 'orange', 'banana'], answer: 'apple' },
+    { visual: '🌙', prompt: 'Which word says this?', choices: ['sun', 'moon', 'star'], answer: 'moon' },
+    { visual: '🚗', prompt: 'Which word says this?', choices: ['car', 'bus', 'bike'], answer: 'car' },
+    { visual: '🌸', prompt: 'Which word says this?', choices: ['flower', 'tree', 'leaf'], answer: 'flower' },
+    { visual: '🐶', prompt: 'Which word says this?', choices: ['cat', 'dog', 'fish'], answer: 'dog' },
+    { visual: '⭐', prompt: 'Which word says this?', choices: ['moon', 'cloud', 'star'], answer: 'star' },
+    { visual: '🏠', prompt: 'Which word says this?', choices: ['house', 'school', 'shop'], answer: 'house' },
+    { visual: '🐟', prompt: 'Which word says this?', choices: ['fish', 'frog', 'fox'], answer: 'fish' },
+    { visual: '🐸', prompt: 'Which word says this?', choices: ['frog', 'dog', 'log'], answer: 'frog' },
+    { visual: '☀️', prompt: 'Which word says this?', choices: ['sun', 'run', 'bun'], answer: 'sun' },
+    { visual: '🐝', prompt: 'Which word says this?', choices: ['bee', 'bed', 'bat'], answer: 'bee' },
   ],
-  // Level 1: Letter sound match (5-6 year)
+  // Chapter 2: first letters and rhymes (about 4–5 years)
   [
-    { type:'letter', visual:'🐱', prompt:'What letter does CAT start with?', choices:['C','D','B','F'], answer:'C' },
-    { type:'letter', visual:'🍎', prompt:'What letter does APPLE start with?', choices:['A','E','O','I'], answer:'A' },
-    { type:'letter', visual:'🐶', prompt:'What letter does DOG start with?', choices:['B','D','G','P'], answer:'D' },
-    { type:'letter', visual:'🌟', prompt:'What letter does STAR start with?', choices:['T','P','S','R'], answer:'S' },
-    { type:'letter', visual:'🦁', prompt:'What letter does LION start with?', choices:['N','M','L','K'], answer:'L' },
-    { type:'letter', visual:'🐘', prompt:'What letter does ELEPHANT start with?', choices:['E','A','I','O'], answer:'E' },
-    { type:'letter', visual:'🌈', prompt:'Which word rhymes with CAT?', choices:['bat','cup','pig','log'], answer:'bat' },
-    { type:'letter', visual:'🎈', prompt:'Which word rhymes with FUN?', choices:['sun','cat','dog','big'], answer:'sun' },
+    { visual: '🐱', prompt: 'CAT starts with…', choices: ['C', 'D', 'B', 'F'], answer: 'C' },
+    { visual: '🍎', prompt: 'APPLE starts with…', choices: ['A', 'E', 'O', 'I'], answer: 'A' },
+    { visual: '🐶', prompt: 'DOG starts with…', choices: ['B', 'D', 'G', 'P'], answer: 'D' },
+    { visual: '🌟', prompt: 'STAR starts with…', choices: ['T', 'P', 'S', 'R'], answer: 'S' },
+    { visual: '🦁', prompt: 'LION starts with…', choices: ['N', 'M', 'L', 'K'], answer: 'L' },
+    { visual: '🐘', prompt: 'ELEPHANT starts with…', choices: ['E', 'A', 'I', 'O'], answer: 'E' },
+    { visual: '🦇', prompt: 'Which word rhymes with CAT?', choices: ['bat', 'cup', 'pig', 'log'], answer: 'bat' },
+    { visual: '☀️', prompt: 'Which word rhymes with FUN?', choices: ['sun', 'cat', 'dog', 'big'], answer: 'sun' },
+    { visual: '🐷', prompt: 'Which word rhymes with PIG?', choices: ['wig', 'pot', 'hen', 'cup'], answer: 'wig' },
+    { visual: '🪵', prompt: 'Which word rhymes with LOG?', choices: ['frog', 'leg', 'bag', 'sun'], answer: 'frog' },
   ],
-  // Level 2: Sight word / CVC (6-8 year)
+  // Chapter 3: blending and sight words (about 5–6 years)
   [
-    { type:'word', visual:'The 🐶 is big.', prompt:'Find the describing word (adjective):', choices:['The','dog','is','big'], answer:'big' },
-    { type:'word', visual:'🏃 fast', prompt:'Which word means moving quickly?', choices:['slow','fast','jump','sit'], answer:'fast' },
-    { type:'word', visual:'🌙 + ight', prompt:'What word do you make?', choices:['night','might','light','right'], answer:'night' },
-    { type:'word', visual:'The cat SAT on the mat.', prompt:'What did the cat do?', choices:['ran','sat','ate','slept'], answer:'sat' },
-    { type:'word', visual:'sh + ip', prompt:'Blend these sounds — what word?', choices:['ship','shop','chip','drip'], answer:'ship' },
-    { type:'word', visual:'fl + ower', prompt:'What word do you make?', choices:['flower','flour','power','tower'], answer:'flower' },
-    { type:'word', visual:'un + happy', prompt:'What does UN- mean here?', choices:['very happy','not happy','a little happy','too happy'], answer:'not happy' },
-    { type:'word', visual:'She ____ to school.', prompt:'Which word best fills the blank?', choices:['went','go','goes','going'], answer:'went' },
+    { visual: 'sh + ip', prompt: 'Blend the sounds. What word?', choices: ['ship', 'shop', 'chip', 'drip'], answer: 'ship' },
+    { visual: 'fl + ower', prompt: 'Blend the sounds. What word?', choices: ['flower', 'flour', 'power', 'tower'], answer: 'flower' },
+    { visual: '🌙 n + ight', prompt: 'What word do you make?', choices: ['night', 'might', 'light', 'right'], answer: 'night' },
+    { visual: 'The cat SAT on the mat.', prompt: 'What did the cat do?', choices: ['ran', 'sat', 'ate', 'slept'], answer: 'sat' },
+    { visual: '🏃 zoom!', prompt: 'Which word means moving quickly?', choices: ['slow', 'fast', 'sit', 'nap'], answer: 'fast' },
+    { visual: 'The 🐶 is big.', prompt: 'Which word tells what the dog is like?', choices: ['The', 'dog', 'is', 'big'], answer: 'big' },
+    { visual: 'b + ug', prompt: 'Blend the sounds. What word?', choices: ['bug', 'bag', 'big', 'hug'], answer: 'bug' },
+    { visual: 'tr + ee', prompt: 'Blend the sounds. What word?', choices: ['tree', 'free', 'three', 'try'], answer: 'tree' },
   ],
-  // Level 3: Reading comprehension (8-10 year)
+  // Chapter 4: sentence meaning (about 6–8 years)
   [
-    { type:'sentence', visual:'"The sun sets in the WEST." ', prompt:'Where does the sun set?', choices:['East','West','North','South'], answer:'West' },
-    { type:'sentence', visual:'"Kailia was NERVOUS before her test."', prompt:'How was Kailia feeling?', choices:['happy','nervous','angry','bored'], answer:'nervous' },
-    { type:'sentence', visual:'"He ran SWIFTLY to catch the bus."', prompt:'What does SWIFTLY mean?', choices:['slowly','carefully','quickly','quietly'], answer:'quickly' },
-    { type:'sentence', visual:'"The enormous elephant splashed in the mud."', prompt:'What does ENORMOUS mean?', choices:['tiny','huge','fast','slow'], answer:'huge' },
-    { type:'sentence', visual:'"Every morning, she practices piano."', prompt:'How often does she practice?', choices:['never','once a week','daily','monthly'], answer:'daily' },
-    { type:'sentence', visual:'"The chef prepared a delicious meal."', prompt:'What did the chef do?', choices:['ate a meal','cooked a meal','served drinks','cleaned the table'], answer:'cooked a meal' },
+    { visual: 'She ____ to school yesterday.', prompt: 'Which word fits best?', choices: ['went', 'go', 'goes', 'going'], answer: 'went' },
+    { visual: 'un + happy', prompt: 'What does UNHAPPY mean?', choices: ['very happy', 'not happy', 'a bit happy', 'too happy'], answer: 'not happy' },
+    { visual: '"The sun sets in the WEST."', prompt: 'Where does the sun set?', choices: ['East', 'West', 'North', 'South'], answer: 'West' },
+    { visual: '"Kailia felt NERVOUS before the show."', prompt: 'How did Kailia feel?', choices: ['happy', 'nervous', 'angry', 'bored'], answer: 'nervous' },
+    { visual: '"Every morning, she plays piano."', prompt: 'How often does she play?', choices: ['never', 'once', 'every day', 'every year'], answer: 'every day' },
+    { visual: '"The chef made a yummy soup."', prompt: 'What did the chef do?', choices: ['ate soup', 'cooked soup', 'sold soup', 'spilled soup'], answer: 'cooked soup' },
+    { visual: '"Noel hid UNDER the big leaf."', prompt: 'Where did Noel hide?', choices: ['on top', 'under', 'behind', 'inside'], answer: 'under' },
   ],
-  // Level 4: Advanced (10-12 year)
+  // Chapter 5+: vocabulary and ideas (about 8–12 years)
   [
-    { type:'sentence', visual:'"Despite the rain, she persevered."', prompt:'What does PERSEVERED mean?', choices:['gave up','kept going','got wet','stayed home'], answer:'kept going' },
-    { type:'sentence', visual:'"The PROTAGONIST of the story was brave."', prompt:'What is a PROTAGONIST?', choices:['the villain','the main character','the author','a side character'], answer:'the main character' },
-    { type:'sentence', visual:'"She spoke in a MONOTONE voice."', prompt:'What does MONOTONE mean?', choices:['very loud','no expression','very quiet','very fast'], answer:'no expression' },
-    { type:'sentence', visual:'"The scientist hypothesized that plants grow faster in sunlight."', prompt:'What did the scientist do?', choices:['proved a fact','made a guess','ran an experiment','wrote a report'], answer:'made a guess' },
-    { type:'sentence', visual:'"The story\'s THEME was friendship."', prompt:'What is a THEME in a story?', choices:['the setting','the main message','the characters','the plot'], answer:'the main message' },
-    { type:'sentence', visual:'"The ANTONYM of happy is ___"', prompt:'Complete the sentence:', choices:['glad','joyful','sad','cheerful'], answer:'sad' },
+    { visual: '"He ran SWIFTLY to catch the bus."', prompt: 'What does SWIFTLY mean?', choices: ['slowly', 'carefully', 'quickly', 'quietly'], answer: 'quickly' },
+    { visual: '"The ENORMOUS elephant splashed."', prompt: 'What does ENORMOUS mean?', choices: ['tiny', 'huge', 'fast', 'slow'], answer: 'huge' },
+    { visual: '"Despite the rain, she persevered."', prompt: 'What does PERSEVERED mean?', choices: ['gave up', 'kept going', 'got wet', 'stayed home'], answer: 'kept going' },
+    { visual: '"The PROTAGONIST was brave."', prompt: 'Who is the PROTAGONIST?', choices: ['the villain', 'the main character', 'the author', 'a side character'], answer: 'the main character' },
+    { visual: '"She spoke in a MONOTONE voice."', prompt: 'What does MONOTONE mean?', choices: ['very loud', 'no expression', 'very quiet', 'very fast'], answer: 'no expression' },
+    { visual: '"The scientist HYPOTHESIZED…"', prompt: 'What did the scientist do?', choices: ['proved a fact', 'made a guess', 'broke a tool', 'wrote a song'], answer: 'made a guess' },
+    { visual: '"The story\'s THEME was friendship."', prompt: 'What is a THEME?', choices: ['the setting', 'the main message', 'the characters', 'the ending'], answer: 'the main message' },
+    { visual: 'happy ↔ ___', prompt: 'Which word is the OPPOSITE?', choices: ['glad', 'joyful', 'sad', 'cheerful'], answer: 'sad' },
   ],
 ];
 
-function shuffle<T>(arr: T[]): T[] { return [...arr].sort(() => Math.random() - 0.5); }
+const QUESTIONS_PER_LEVEL = 5;
+const BALLOON_COLORS = ['#F472B6', '#60A5FA', '#34D399', '#FBBF24'];
+const HAPPY_LINES = ['You read it! ✨', 'The signpost lit up!', 'Wizard reading!', 'Sparkly! Kailia steps ahead!', 'Yes! The path glows!'];
 
-function getLevelFromAge(stage: string, age: number | null): number {
-  const a = age ?? 8;
-  if (a <= 4) return 0;
-  if (a <= 6) return 1;
-  if (a <= 8) return 2;
-  if (a <= 10) return 3;
-  return 4;
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
 }
 
-const LEVEL_LABELS = ['Starter', 'Junior', 'Reader', 'Explorer', 'Wizard'];
-const COLORS = ['#2563EB','#7C3AED','#059669','#D97706','#EC4899'];
+// chapter n of the level ladder → word bank (the last bank repeats for Hero, Legend and Star levels)
+function bankFor(level: number) { return Math.min(BANKS.length - 1, Math.floor((level - 1) / LEVELS_PER_CHAPTER)); }
+// 0–4: how far into its chapter this level is
+function stepFor(level: number) { return (level - 1) % LEVELS_PER_CHAPTER; }
 
-export default function ReadingGamePage() {
-  const { state, learningStage } = useAssessment();
-  const defaultLevel = getLevelFromAge(learningStage, state.childAge);
-  const [level, setLevel] = useState(defaultLevel);
-  const [bank, setBank] = useState<ReadingQ[]>(() => shuffle(BANKS[defaultLevel]));
-  const [idx, setIdx] = useState(0);
-  const [selected, setSelected] = useState<string|null>(null);
-  const [phase, setPhase] = useState<'q'|'correct'|'wrong'>('q');
-  const [score, setScore] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [xp, setXp] = useState(0);
+// Older children start further up the ladder (but can always step back down on the level map)
+function startLevelForAge(age: number | null): number {
+  const a = age ?? 5;
+  const bank = a <= 4 ? 0 : a <= 5 ? 1 : a <= 6 ? 2 : a <= 8 ? 3 : 4;
+  return bank * LEVELS_PER_CHAPTER + 1;
+}
 
-  const question = bank[idx % bank.length];
-  const color = COLORS[level];
+function buildRound(level: number): ReadingQ[] {
+  const bank = BANKS[bankFor(level)];
+  const step = stepFor(level);
+  // early steps of a chapter offer fewer balloons, later ones all of them
+  const nChoices = step <= 1 ? 3 : 4;
+  return shuffle(bank).slice(0, QUESTIONS_PER_LEVEL).map(q => {
+    const wrong = shuffle(q.choices.filter(c => c !== q.answer)).slice(0, Math.max(1, nChoices - 1));
+    return { ...q, choices: shuffle([q.answer, ...wrong]) };
+  });
+}
 
-  const handleAnswer = (choice: string) => {
-    if (phase !== 'q') return;
-    setSelected(choice);
-    const correct = choice === question.answer;
-    setTotal(t => t + 1);
-    if (correct) { setScore(s => s + 1); setXp(x => x + 10); setPhase('correct'); }
-    else { setPhase('wrong'); }
-    setTimeout(() => {
-      setIdx(i => i + 1);
-      setSelected(null);
-      setPhase('q');
-    }, 1500);
-  };
+function chime(freqs: number[]) {
+  if (!soundEnabled()) return;
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = f;
+      const t = ctx.currentTime + i * 0.09;
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.3);
+    });
+  } catch { /* sound optional */ }
+}
 
-  const handleLevel = (l: number) => {
-    setLevel(l); setBank(shuffle(BANKS[l]));
-    setIdx(0); setSelected(null); setPhase('q');
-    setScore(0); setTotal(0); setXp(0);
-  };
+export default function WordWizardPage() {
+  const { state } = useAssessment();
+  const startLevel = startLevelForAge(state.childAge);
 
-  const accuracy = total > 0 ? Math.round((score / total) * 100) : 100;
-  const stars = xp >= 100 ? 3 : xp >= 50 ? 2 : xp >= 20 ? 1 : 0;
+  const [level, setLevel] = useState(1);
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
+  const [round, setRound] = useState<ReadingQ[]>([]);
+  const [qIdx, setQIdx] = useState(0);
+  const [popped, setPopped] = useState<string | null>(null);
+  const [wobble, setWobble] = useState<string | null>(null);
+  const [triesThisQ, setTriesThisQ] = useState(0);
+  const [noelLine, setNoelLine] = useState('Tap the balloon with the right word!');
+  const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
+  const [earned, setEarned] = useState(0);
+
+  const statsRef = useRef({ firstTry: 0, misses: 0, startedAt: 0, qStartedAt: 0, readMs: 0 });
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    setLevel(Math.max(nextGameLevel('word-wizard'), startLevel));
+    const timers = timersRef.current;
+    return () => { timers.forEach(clearTimeout); stopSpeaking(); };
+  }, [startLevel]);
+
+  const q = round[qIdx];
+  const chapter = chapterFor(level);
+  const step = stepFor(level);
+
+  // Noel reads the riddle aloud, never the signpost words or the balloons —
+  // reading those is the child's job
+  const readSign = useCallback((question: ReadingQ | undefined) => {
+    if (question) speak(question.prompt);
+  }, []);
+
+  const begin = useCallback(() => {
+    const r = buildRound(level);
+    setRound(r);
+    setQIdx(0);
+    setPopped(null); setWobble(null); setTriesThisQ(0);
+    const now = Date.now();
+    statsRef.current = { firstTry: 0, misses: 0, startedAt: now, qStartedAt: now, readMs: 0 };
+    setNoelLine('Tap the balloon with the right word!');
+    setNoelMood('happy');
+    setPhase('playing');
+    readSign(r[0]);
+  }, [level, readSign]);
+
+  function tapBalloon(choice: string) {
+    if (!q || popped) return;
+    if (choice === q.answer) {
+      const s = statsRef.current;
+      s.readMs += Date.now() - s.qStartedAt;
+      if (triesThisQ === 0) s.firstTry += 1;
+      setPopped(choice);
+      chime([659, 784, 1047]);
+      setNoelLine(HAPPY_LINES[qIdx % HAPPY_LINES.length]);
+      setNoelMood('excited');
+      timersRef.current.push(setTimeout(() => {
+        if (qIdx + 1 >= round.length) { finish(); return; }
+        setQIdx(i => i + 1);
+        setPopped(null); setTriesThisQ(0);
+        statsRef.current.qStartedAt = Date.now();
+        setNoelLine('Here comes the next one!');
+        setNoelMood('happy');
+        readSign(round[qIdx + 1]);
+      }, 1100));
+    } else {
+      statsRef.current.misses += 1;
+      setTriesThisQ(t => t + 1);
+      setWobble(choice);
+      chime([392]);
+      timersRef.current.push(setTimeout(() => setWobble(null), 600));
+      // Noel reads the word that was tapped — real reading support, never "wrong"
+      const line = triesThisQ + 1 >= 2
+        ? `That one says "${choice}". Look, one balloon is glowing!`
+        : `That one says "${choice}". Let's look again together!`;
+      setNoelLine(line);
+      setNoelMood('thinking');
+      speak(`That one says ${choice}. Let's look again!`);
+    }
+  }
+
+  function finish() {
+    const s = statsRef.current;
+    const bank = bankFor(level);
+    logQuestMetric('reading', 'word-wizard', {
+      level, readingBank: bank, questions: round.length,
+      firstTryCorrect: s.firstTry, misses: s.misses,
+      avgReadMs: Math.round(s.readMs / Math.max(1, round.length)),
+      totalMs: Date.now() - s.startedAt,
+    });
+    const stars = Math.max(10, 14 + level * 2 - s.misses * 2);
+    awardStarlight(stars);
+    recordGameLevel('word-wizard', level);
+    setEarned(stars);
+    chime([523, 659, 784, 1047]);
+    setPhase('levelDone');
+  }
+
+  const lit = popped ? qIdx + 1 : qIdx;  // stones Kailia has walked
+  const hintOn = triesThisQ >= 2;
+  const isWordVisual = q ? !/^\p{Extended_Pictographic}️?$/u.test(q.visual) : false;
 
   return (
-    <main className="min-h-screen px-4 py-8" style={{ background: `linear-gradient(135deg, #1e3a8a, ${color}66, #1e3a8a)` }}>
-      <div className="max-w-lg mx-auto">
+    <main className="min-h-screen pb-8 overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 55%, #93c5fd 120%)' }}>
+      <div className="max-w-md mx-auto px-3 relative">
+        {/* drifting background clouds */}
+        {[0, 1, 2].map(i => (
+          <span key={i} className="absolute rise-fade pointer-events-none" aria-hidden
+            style={{ left: `${[10, 62, 36][i]}%`, top: [260, 340, 420][i], fontSize: [30, 22, 26][i], animationDuration: `${9 + i * 3}s`, animationDelay: `${i * 2}s` }}>☁️</span>
+        ))}
 
-        <div className="flex items-center justify-between mb-4">
-          <Link href="/play" className="text-blue-200 text-sm font-bold hover:text-white">← Games</Link>
-          <h1 className="text-2xl font-extrabold text-white">📖 Word Wizard</h1>
-          <div className="text-yellow-300 text-xl">{'⭐'.repeat(stars)}{'☆'.repeat(3-stars)}</div>
+        <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
+          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+            style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
+          <h1 className="text-xl font-extrabold text-white drop-shadow">
+            📖 Word Wizard <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+          </h1>
+          {phase === 'playing'
+            ? <button onClick={() => readSign(q)} aria-label="Read it to me"
+                className="w-11 h-11 rounded-full text-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>🔊</button>
+            : <span className="w-11" />}
         </div>
 
-        {/* Level tabs */}
-        <div className="flex gap-2 mb-4 justify-center flex-wrap">
-          {LEVEL_LABELS.map((l, i) => (
-            <button key={i} onClick={() => handleLevel(i)}
-              className="px-3 py-1 rounded-full text-xs font-bold transition-all hover:scale-105"
-              style={{
-                background: i === level ? color : 'rgba(255,255,255,0.15)',
-                color: i === level ? 'white' : 'rgba(255,255,255,0.7)',
-                border: `1.5px solid ${i === level ? color : 'rgba(255,255,255,0.2)'}`,
-              }}>
-              {l}
+        {/* ── Intro ── */}
+        {phase === 'intro' && (
+          <div className="text-center mt-4 bounce-in relative z-10">
+            <div className="flex items-end justify-center gap-1 mb-3">
+              <PandaSprite size={112} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+              <KailiaSprite size={88} expression="excited" className="float" />
+            </div>
+            <div className="rounded-3xl p-5 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+              <p className="text-gray-900 text-xl font-bold leading-snug">
+                Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons! 🎈
+                Tap the balloon with the right word to bring it home.
+              </p>
+            </div>
+            <LevelPath gameId="word-wizard" level={level} onPick={setLevel} startLevel={startLevel} />
+            <button onClick={begin}
+              className="mt-5 px-12 py-4 rounded-full text-xl font-extrabold text-blue-950 shadow-xl transition-transform hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
+              Play level {level} 🎈
             </button>
-          ))}
-        </div>
-
-        {/* XP bar */}
-        <div className="rounded-2xl p-3 mb-4 flex items-center gap-4"
-          style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
-          <div className="text-center">
-            <p className="text-xl font-extrabold text-yellow-300">{xp} XP</p>
-            <p className="text-white text-xs">Points</p>
+            <SkillIntro gameId="word-wizard" />
           </div>
-          <div className="flex-1">
-            <div className="h-3 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
-              <div className="h-3 rounded-full transition-all" style={{ width: `${Math.min(xp, 100)}%`, background: 'linear-gradient(90deg, #F59E0B, #EC4899)' }} />
+        )}
+
+        {/* ── Playing ── */}
+        {phase === 'playing' && q && (
+          <div className="relative z-10">
+            {/* the signpost */}
+            <div key={qIdx} className="mx-auto mt-1 drop-in" style={{ maxWidth: 320 }}>
+              <div className="rounded-2xl px-4 py-3 text-center shadow-lg"
+                style={{ background: 'linear-gradient(180deg,#fde68a,#f59e0b)', border: '4px solid #92400e' }}>
+                <p className={`font-extrabold text-amber-950 leading-tight ${isWordVisual ? 'text-xl' : 'text-6xl'}`}>{q.visual}</p>
+                <p className="mt-1 text-base font-bold text-amber-900">{q.prompt}</p>
+              </div>
+              <div className="mx-auto w-3 h-6" style={{ background: '#92400e' }} />
+            </div>
+
+            {/* the balloons */}
+            <div key={`b${qIdx}`} className="flex flex-wrap justify-center gap-y-5 px-2 mt-2" style={{ minHeight: 230 }}>
+              {q.choices.map((c, i) => {
+                const isPopped = popped === c;
+                const glow = hintOn && c === q.answer && !popped;
+                const long = c.length > 9;
+                return (
+                  <div key={c} className="float-up-in flex justify-center w-1/2" style={{ animationDelay: `${i * 120}ms` }}>
+                    <div className="bob-drift relative" style={{
+                      animationDuration: `${3.4 + i * 0.7}s`, animationDelay: `${i * -0.9}s`,
+                      ['--dx' as string]: `${4 + step * 3}px`, ['--dy' as string]: `${6 + step * 2}px`,
+                    } as React.CSSProperties}>
+                      <button onClick={() => tapBalloon(c)} aria-label={c}
+                        className={`relative flex flex-col items-center ${isPopped ? 'pop' : ''} ${wobble === c ? 'soft-wobble' : ''} ${glow ? 'hint-glow' : ''}`}>
+                        <span className="flex items-center justify-center text-center font-extrabold text-white shadow-lg"
+                          style={{
+                            minWidth: 104, minHeight: 92, padding: '10px 14px',
+                            borderRadius: '50% 50% 48% 48% / 56% 56% 44% 44%',
+                            background: `radial-gradient(circle at 32% 28%, #ffffffaa 0 10%, ${BALLOON_COLORS[i % 4]} 38%)`,
+                            fontSize: long ? 16 : c.length > 5 ? 20 : 28,
+                            textShadow: '0 2px 3px rgba(0,0,0,0.25)',
+                          }}>
+                          {c}
+                        </span>
+                        <span className="w-0.5 h-7" style={{ background: 'rgba(255,255,255,0.6)' }} aria-hidden />
+                      </button>
+                      {isPopped && <span className="absolute left-1/2 top-[40%] w-24 h-24 rounded-full burst-ring pointer-events-none" aria-hidden
+                        style={{ border: '4px solid #FDE047' }} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Kailia's path of stepping stones */}
+            <div className="relative mx-3 mt-3 h-16">
+              <div className="absolute left-0 right-0 bottom-2 flex justify-between px-2">
+                {Array.from({ length: round.length }, (_, i) => (
+                  <span key={i} className="w-9 h-4 rounded-full transition-all duration-500"
+                    style={{ background: i < lit ? '#FDE047' : 'rgba(255,255,255,0.25)', boxShadow: i < lit ? '0 0 12px #FDE047' : 'none' }} />
+                ))}
+                <span className="text-2xl -mt-3" aria-hidden>🏁</span>
+              </div>
+              <div className="absolute bottom-4 transition-all duration-700 ease-out"
+                style={{ left: `calc(${(Math.min(lit, round.length) / (round.length + 0.4)) * 100}% - 4px)` }}>
+                <div className={popped ? 'walk-bounce' : ''}><KailiaSprite size={44} expression={popped ? 'excited' : 'happy'} /></div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mt-2 rounded-2xl p-2.5"
+              style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
+              <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
+              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
             </div>
           </div>
-          <div className="text-center">
-            <p className="text-xl font-extrabold text-green-300">{accuracy}%</p>
-            <p className="text-white text-xs">Accuracy</p>
-          </div>
-        </div>
-
-        {/* Question card */}
-        <div key={idx} className="rounded-3xl p-7 shadow-2xl drop-in"
-          style={{ background: 'rgba(255,255,255,0.95)', border: `3px solid ${color}` }}>
-
-          {/* Visual / prompt */}
-          <div className="text-center mb-4">
-            <div className="inline-block px-4 py-2 rounded-2xl mb-3" style={{ background: `${color}15`, border: `2px solid ${color}33` }}>
-              <p className="text-lg font-bold text-gray-800 leading-relaxed">{question.visual}</p>
-            </div>
-            <p className="text-gray-700 font-bold text-base">{question.prompt}</p>
-          </div>
-
-          {/* Choices */}
-          <div className="grid grid-cols-2 gap-3">
-            {question.choices.map(ch => {
-              let bg = '#F9FAFB', border = '#E5E7EB', textCol = '#374151';
-              if (selected !== null) {
-                if (ch === question.answer) { bg = '#D1FAE5'; border = '#059669'; textCol = '#065F46'; }
-                else if (ch === selected) { bg = '#FEE2E2'; border = '#DC2626'; textCol = '#991B1B'; }
-              } else if (selected === ch) { bg = `${color}15`; border = color; textCol = color; }
-              return (
-                <button key={ch} onClick={() => handleAnswer(ch)} disabled={phase !== 'q'}
-                  className="py-4 px-3 rounded-2xl font-bold text-sm text-center transition-all hover:scale-105 disabled:opacity-80"
-                  style={{ background: bg, border: `2px solid ${border}`, color: textCol }}>
-                  {ch}
-                  {selected !== null && ch === question.answer && ' ✅'}
-                  {selected === ch && ch !== question.answer && ' ❌'}
-                </button>
-              );
-            })}
-          </div>
-
-          {phase === 'correct' && <p className="text-center mt-4 font-extrabold text-green-600 text-lg bounce-in">Magical! ✨ +10 XP</p>}
-          {phase === 'wrong' && (
-            <p className="text-center mt-4 font-bold text-red-500 text-sm bounce-in">
-              The answer is <strong style={{ color }}>{question.answer}</strong>. Keep practicing! 💪
-            </p>
-          )}
-        </div>
-
-        {/* Question counter */}
-        <div className="flex gap-1.5 mt-4 justify-center">
-          {bank.slice(0, 8).map((_, i) => (
-            <div key={i} className="h-2 rounded-full transition-all"
-              style={{ width: 20, background: i < idx % bank.length ? color : 'rgba(255,255,255,0.2)' }} />
-          ))}
-        </div>
-
-        <p className="text-center text-blue-200 text-xs mt-3">
-          💡 Read each word carefully — take your time!
-        </p>
+        )}
       </div>
+
+      {/* ── Level complete ── */}
+      {phase === 'levelDone' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ background: 'linear-gradient(135deg, #1e3a8aee, #2563ebee)' }}>
+          <div className="text-center bounce-in">
+            <span className="block text-7xl mb-3 star-burst">🪧</span>
+            <div className="flex items-end justify-center gap-2 mb-4">
+              <PandaSprite size={140} expression="celebrating" className="float" />
+              <KailiaSprite size={100} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+            </div>
+            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
+            <p className="text-blue-100 font-semibold mb-1">
+              {chapter.emoji} {chapter.name} reader! Every signpost is glowing again.
+            </p>
+            <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{earned} starlight</p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
+                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-blue-900 shadow-xl transition-transform hover:scale-105"
+                style={{ background: 'white' }}>
+                Level {level + 1} ▶
+              </button>
+              <Link href="/play"
+                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-blue-950 shadow-xl transition-transform hover:scale-105 inline-block"
+                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
+                Back to the map 🗺️
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

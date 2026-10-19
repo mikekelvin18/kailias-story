@@ -6,6 +6,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
@@ -180,6 +181,7 @@ export default function WheresNoelPage() {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{scene.emoji} Chapter {level}: {scene.name}</p>
               <p className="text-gray-900 text-2xl font-bold leading-snug">{scene.story}</p>
             </div>
+            <LevelPath gameId="hidden-friends" level={level} onPick={setLevel} />
             <button onClick={startLevel}
               className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>

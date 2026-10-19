@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
@@ -379,6 +380,7 @@ export default function FireflyCatchPage() {
                 Noel says the <strong>fireflies</strong> can light it again. Catch them with your finger — gently! ✨
               </p>
             </div>
+            <LevelPath gameId="firefly-catch" level={level} onPick={setLevel} />
             <button onClick={startGame}
               className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>

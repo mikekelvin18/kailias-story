@@ -6,6 +6,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
@@ -179,6 +180,7 @@ export default function TrailWalkPage() {
                 riddle — every solved friend <strong>joins your party</strong> until you reach the flag! 🚩
               </p>
             </div>
+            <LevelPath gameId="trail-walk" level={level} onPick={setLevel} />
             <button onClick={startWalk}
               className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-sky-950 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>

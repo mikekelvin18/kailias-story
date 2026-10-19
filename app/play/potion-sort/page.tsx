@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
@@ -295,6 +296,7 @@ export default function PotionSortPage() {
             <span key={c.key} className="w-9 h-9 rounded-full" style={{ background: c.hex, border: `3px solid ${c.dark}` }} />
           ))}
         </div>
+        <LevelPath gameId="potion-sort" level={level} onPick={setLevel} />
         <button onClick={() => { setPhase('playing'); startGame(); }}
           className="px-10 py-4 rounded-full font-extrabold text-white text-xl transition-transform hover:scale-105"
           style={{ background: 'linear-gradient(135deg,#A855F7,#7C3AED)', boxShadow: '0 0 30px rgba(168,85,247,0.4)' }}>

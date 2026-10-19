@@ -10,6 +10,16 @@ export interface SkillNote {
 }
 
 export const SKILL_INFO: Record<string, SkillNote> = {
+  'word-wizard': {
+    skills: ['📖 Reading', '🔤 Phonics'],
+    builds: 'Climbs the reading ladder: picture words, first letters and rhymes, blending sounds, then sentence meaning and vocabulary.',
+    notices: 'Which reading chapter your child is on, first-try reads, and how long each word takes to read.',
+  },
+  'sense-explorer': {
+    skills: ['👀 Visual discrimination', '🌈 Sorting'],
+    builds: 'Spotting and sorting by color, shape and kind among moving things, and noticing small color differences.',
+    notices: 'Accuracy in each kind of round and the smallest color difference your child can spot.',
+  },
   'potion-sort': {
     skills: ['🧠 Processing', '⚡ Sorting speed'],
     builds: 'Sorting by category under time pressure, quick color/rule matching, and impulse control (waiting for the right bin).',

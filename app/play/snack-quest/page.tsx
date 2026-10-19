@@ -8,7 +8,8 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import LevelPath from '@/components/LevelPath';
 
 // ─── Snack Quest ──────────────────────────────────────────────────────────────
 // Embodied math: the child walks their character around a little field,
@@ -134,6 +135,8 @@ function findPath(from: Tile, to: Tile, walls: Tile[]): Tile[] | null {
 export default function SnackQuestPage() {
   const { state, totalScore } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
+  const [level, setLevel] = useState(1);
+  useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
   const [phase, setPhase] = useState<'select' | 'playing' | 'checking' | 'roundDone' | 'done'>('select');
   const [roundIdx, setRoundIdx] = useState(0);
   const [rounds, setRounds] = useState<RoundCfg[]>([]);
@@ -180,7 +183,10 @@ export default function SnackQuestPage() {
   const cfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '' };
 
   // ── Round plans, scaled to the child's developmental level ──
-  const buildRounds = useCallback((): RoundCfg[] => {
+  // Every 3 levels the dragon's wishes grow by one (capped per tier so
+  // the field never overflows), and "how many more?" rounds start from a
+  // bigger pile — counting, then adding, with ever-larger numbers.
+  const buildRounds = useCallback((lvl: number): RoundCfg[] => {
     const tier = difficultyTier(state.ageGroup, totalScore);
     tierRef.current = tier;
     const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
@@ -189,13 +195,19 @@ export default function SnackQuestPage() {
       big:   { w: [4, 6, 6, 9], h: [0, 0, 2, 3] },
     };
     const { w, h } = plans[tier];
+    const bump = Math.floor((lvl - 1) / 3);
+    const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
     const intros = [
       `The baby dragon is hungry! Walk to a snack to pick it up, then bring it to her!`,
       `She's still hungry — and this time it's a bigger wish!`,
       `Look — she already has some! How many MORE does she need?`,
       `One last feast! Count carefully — you've got this!`,
     ];
-    return w.map((want, i) => ({ want, have: h[i], intro: intros[i] }));
+    return w.map((base, i) => {
+      const want = Math.min(cap, base + bump);
+      const have = h[i] > 0 ? Math.min(want - 1, h[i] + Math.floor(bump / 2)) : 0;
+      return { want, have, intro: intros[i] };
+    });
   }, [state.ageGroup, totalScore]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
@@ -241,8 +253,8 @@ export default function SnackQuestPage() {
     setPhase('playing');
   }, []);
 
-  function choose(which: 'kailia' | 'noel') {
-    const plan = buildRounds();
+  function choose(which: 'kailia' | 'noel', lvl = level) {
+    const plan = buildRounds(lvl);
     metricsRef.current = { attempts: 0, firstTry: 0, deliverMs: [], maxNumber: plan[plan.length - 1].want, startedAt: Date.now() };
     setSkin(SKINS[which]);
     setRounds(plan);
@@ -342,6 +354,7 @@ export default function SnackQuestPage() {
     const m = metricsRef.current;
     const avg = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
     logQuestMetric('math', 'snack-quest', {
+      level,
       firstTryRounds: m.firstTry,
       wrongDeliveries: m.attempts,
       avgRoundMs: Math.round(avg(m.deliverMs)),
@@ -349,11 +362,11 @@ export default function SnackQuestPage() {
       totalMs: Date.now() - m.startedAt,
     });
     // ✨ starlight for the feast: perfect first tries shine extra
-    awardStarlight(15 + m.firstTry * 3);
-    recordGameLevel('snack-quest', rounds.length);
+    awardStarlight(15 + level * 2 + m.firstTry * 3);
+    recordGameLevel('snack-quest', level);
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
-  }, [phase, roundIdx, rounds, startRound]);
+  }, [phase, roundIdx, rounds, startRound, level]);
 
   const Sprite = skin?.id === 'noel' ? PandaSprite : KailiaSprite;
   const Guide = skin?.id === 'noel' ? KailiaSprite : PandaSprite;
@@ -367,7 +380,9 @@ export default function SnackQuestPage() {
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="text-sm font-bold" style={{ color: skin?.accent ?? '#FDBA74' }}>← Map</Link>
-          <h1 className="text-xl font-extrabold text-white drop-shadow">🐲 Snack Quest</h1>
+          <h1 className="text-xl font-extrabold text-white drop-shadow">
+            🐲 Snack Quest <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+          </h1>
           <span className="text-sm w-14 text-right">
             {rounds.map((_, i) => (
               <span key={i} style={{ opacity: i <= roundIdx && phase !== 'select' ? 1 : 0.25 }}>✨</span>
@@ -402,6 +417,7 @@ export default function SnackQuestPage() {
                 <span className="block text-xs text-gray-600 mt-1">Gather bamboo 🎋 in the forest!</span>
               </button>
             </div>
+            <LevelPath gameId="snack-quest" level={level} onPick={setLevel} />
             <SkillIntro gameId="snack-quest" />
           </div>
         )}
@@ -537,15 +553,16 @@ export default function SnackQuestPage() {
               <PandaSprite size={145} expression="celebrating" className="float" />
               <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">The dragon is full and happy!</h2>
+            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
+            <p className="text-white font-bold text-lg mb-1">The dragon is full and happy!</p>
             <p className="text-amber-100 font-semibold mb-6">
               She gives you a treasure from her cave — you earned it! 💎
             </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => { setPhase('select'); setSkin(null); setRoundIdx(0); }}
+              <button onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-amber-900 shadow-xl transition-transform hover:scale-105"
                 style={{ background: 'white' }}>
-                Play again!
+                Level {level + 1} ▶
               </button>
               <Link href="/play"
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-amber-950 shadow-xl transition-transform hover:scale-105 inline-block"
