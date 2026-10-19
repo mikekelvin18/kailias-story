@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import WorksheetSheet from '@/components/worksheets/WorksheetSheet';
-import { findWorksheet } from '@/lib/worksheets';
+import { findWorksheet, effectiveVerifyMethod } from '@/lib/worksheets';
 import { markWorksheetDone, isWorksheetDone } from '@/lib/worksheetProgress';
 import { hasActiveConsent, hasPhotoConsent, recordPhotoConsent, activeChild } from '@/lib/family';
 import { savePhoto, getPhoto, deletePhoto } from '@/lib/photos';
@@ -16,6 +16,8 @@ import { awardStarlight } from '@/lib/rewards';
 // CLAUDE.md Privacy & COPPA rule 4. The upload control below is a plain
 // <input type="file"> the PARENT taps; nothing here ever opens a camera
 // automatically, and the photo never leaves this device (lib/photos.ts).
+// It is currently switched off for launch (PHOTO_VERIFY_ENABLED in
+// lib/worksheets.ts), so every sheet shows the "We did it!" tap.
 
 export default function PrintableDetailPage() {
   const params = useParams<{ id: string }>();
@@ -32,13 +34,14 @@ export default function PrintableDetailPage() {
   // Photos are stored under a childId-prefixed key so siblings' completed
   // sheets for the same worksheet never collide (see lib/photos.ts).
   const photoKey = worksheet ? `${activeChild()?.id ?? 'default'}:${worksheet.id}` : '';
+  const verifyMethod = worksheet ? effectiveVerifyMethod(worksheet) : 'tap';
 
   useEffect(() => {
     if (!worksheet) return;
     setConsented(hasActiveConsent());
     setPhotoConsentGiven(hasPhotoConsent());
     setDone(isWorksheetDone(worksheet.id));
-    if (worksheet.verifyMethod === 'photo') {
+    if (verifyMethod === 'photo') {
       getPhoto(photoKey).then(p => { if (p) setPhotoUrl(URL.createObjectURL(p.blob)); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,7 +154,7 @@ export default function PrintableDetailPage() {
           🖨️ Print this page
         </button>
 
-        {worksheet.verifyMethod === 'tap' ? (
+        {verifyMethod === 'tap' ? (
           <button onClick={markTapDone} disabled={!consented}
             className="w-full py-3.5 rounded-full text-lg font-extrabold transition-transform hover:scale-105"
             style={{ background: done ? '#059669' : '#FBBF24', color: done ? 'white' : '#1e1b4b', opacity: consented ? 1 : 0.5 }}>
