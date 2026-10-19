@@ -348,3 +348,39 @@ button:active {
   70% { transform: scale(0.96, 1.04); }
 }
 .kp-jelly { animation: kp-jelly 0.7s ease-out; }
+
+/* ── Live characters (components/characters/LiveCharacter.tsx) ──
+   Game-style idle motion for the Kailia/Noel portraits. */
+@keyframes live-breathe {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); }
+  25%      { transform: scale(0.992, 1.018) rotate(-0.8deg); }
+  50%      { transform: scale(1, 1.024) rotate(0deg); }
+  75%      { transform: scale(0.994, 1.012) rotate(0.8deg); }
+}
+.live-breathe { animation: live-breathe 3.4s ease-in-out infinite; }
+
+@keyframes live-hop {
+  0%, 100% { transform: translateY(0) scale(1.06, 0.94); }
+  12%      { transform: translateY(0) scale(1.12, 0.88); }
+  35%      { transform: translateY(-16%) scale(0.92, 1.1) rotate(-3deg); }
+  55%      { transform: translateY(-19%) scale(1, 1) rotate(3deg); }
+  80%      { transform: translateY(0) scale(1.1, 0.9); }
+  90%      { transform: translateY(0) scale(0.98, 1.02); }
+}
+.live-hop { animation: live-hop 0.9s ease-in-out infinite; }
+
+@keyframes live-poke {
+  0%   { transform: scale(1, 1); }
+  15%  { transform: scale(1.18, 0.82); }
+  40%  { transform: translateY(-14%) scale(0.88, 1.14) rotate(-4deg); }
+  65%  { transform: translateY(0) scale(1.1, 0.9) rotate(2deg); }
+  82%  { transform: scale(0.96, 1.04); }
+  100% { transform: scale(1, 1); }
+}
+.live-poke { animation: live-poke 0.7s ease-out; }
+
+@keyframes live-lid {
+  0%, 90%, 100% { transform: scaleY(0); }
+  93%, 95%      { transform: scaleY(1); }
+}
+.live-lid { animation: live-lid 4.2s linear infinite; transform: scaleY(0); }

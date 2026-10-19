@@ -1,87 +1,156 @@
 // ── Grasp-pattern hands ──
-// Painted illustrations of a child's right hand holding a pencil in each
-// of the five pencil grips the parent quick-check asks about (palmar,
-// digital pronate, quadrupod, static/immature tripod, dynamic tripod).
-// Drawn side-on from the thumb side, pencil tip down on the paper, so the
-// five pictures can be compared at a glance: what changes is which
-// fingers touch the pencil, where, and how open the thumb-index "O" is.
+// Realistic, textbook-style drawings of a young child's right hand
+// holding a pencil in each of the five pencil grips the parent
+// quick-check asks about (palmar, digital pronate, quadrupod, static/
+// immature tripod, dynamic tripod), drawn like an OT handout: natural
+// child proportions (big palm, short fingers), smooth tapered fingers
+// that bend at real joints, soft shading, a thin line, short nails, and
+// a sleeve so the hand is attached to an arm. Side view from the thumb
+// side with the pencil tip on the paper, so the five can be compared:
+// which fingers touch the pencil, where, and how open the thumb–index
+// "O" (the web space) is.
 //
-// Each finger is a chain of joints (knuckle → middle joint → top joint →
-// fingertip) drawn as a rounded painted stroke, so poses are easy to
-// adjust: move a joint, the finger follows. Uses the shared brush filter
-// from components/art/PaintKit.tsx.
+// Each finger is a centre line through its joints (knuckle → middle
+// joint → top joint → fingertip) plus a width at each joint; the outline
+// is generated from that, so a pose is adjusted by moving a joint.
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 export type GripKey = 'palmar' | 'digital_pronate' | 'quadrupod' | 'immature_tripod' | 'dynamic_tripod';
 
-const OUT = '#8a4e34';   // warm painted contour
-const SKIN = '#F7CBA6';
-const SKIN_FAR = '#E9AE88'; // fingers on the far side of the pencil
-const SKIN_HI = '#FDE2CB';
-const NAIL = '#FCE6DA';
+const LINE = '#7a4a36';
+const SKIN = '#F3C6A5';
+const SKIN_FAR = '#DFA585';   // fingers on the far side of the pencil
+const SHADE = '#C98466';
+const LIGHT = '#FCE1CC';
+const NAIL = '#F9DAD2';
 
 type P = [number, number];
 
-// One finger (or thumb): rounded segments through its joints, outline
-// first then fill, plus a nail on the tip facing the viewer when `nail`.
-function Finger({ pts, w, far = false, nail = true }: { pts: P[]; w: number; far?: boolean; nail?: boolean }) {
-  // Each segment a little thinner than the one before, so fingers taper
-  // toward the tip like a real (chubby, little) hand instead of tubes.
-  const segs = pts.slice(1).map((p, i) => ({ a: pts[i], b: p, sw: w * (1 - 0.07 * i) }));
-  const seg = (a: P, b: P) => `M ${a[0]} ${a[1]} L ${b[0]} ${b[1]}`;
-  const [a, b] = [pts[pts.length - 2], pts[pts.length - 1]];
-  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
-  const tipW = segs[segs.length - 1].sw;
+// Catmull-Rom through the joints → a smooth bending centre line.
+function sample(pts: P[], widths: number[], steps = 10) {
+  const out: { p: P; w: number }[] = [];
+  const at = (i: number) => pts[Math.max(0, Math.min(pts.length - 1, i))];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+    for (let k = 0; k < steps; k++) {
+      const t = k / steps, t2 = t * t, t3 = t2 * t;
+      const f = (a: number, b: number, c: number, d: number) =>
+        0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      const e = t * t * (3 - 2 * t);
+      out.push({ p: [f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])], w: widths[i] + (widths[i + 1] - widths[i]) * e });
+    }
+  }
+  out.push({ p: pts[pts.length - 1], w: widths[widths.length - 1] });
+  return out;
+}
+
+function fingerGeometry(pts: P[], widths: number[]) {
+  const s = sample(pts, widths);
+  const n = s.length;
+  const L: P[] = [], R: P[] = [];
+  s.forEach((q, i) => {
+    const a = s[Math.max(0, i - 1)].p, b = s[Math.min(n - 1, i + 1)].p;
+    const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    L.push([q.p[0] + nx * q.w / 2, q.p[1] + ny * q.w / 2]);
+    R.push([q.p[0] - nx * q.w / 2, q.p[1] - ny * q.w / 2]);
+  });
+  // rounded fingertip cap
+  const e = s[n - 1], pe = s[n - 2].p;
+  const tl = Math.hypot(e.p[0] - pe[0], e.p[1] - pe[1]) || 1;
+  const tx = (e.p[0] - pe[0]) / tl, ty = (e.p[1] - pe[1]) / tl, k = e.w * 0.62;
+  const lE = L[n - 1], rE = R[n - 1];
+  const f = (v: number) => v.toFixed(2);
+  const d = `M ${L.map(q => q.map(f).join(' ')).join(' L ')} C ${f(lE[0] + tx * k)} ${f(lE[1] + ty * k)} ${f(rE[0] + tx * k)} ${f(rE[1] + ty * k)} ${f(rE[0])} ${f(rE[1])} L ${R.slice().reverse().map(q => q.map(f).join(' ')).join(' L ')} Z`;
+  // which side faces down (gets the shadow)
+  const avg = (A: P[]) => A.reduce((t, q) => t + q[1], 0) / A.length;
+  const down = avg(L) > avg(R) ? L : R, up = down === L ? R : L;
+  return { d, down, up, s };
+}
+
+const poly = (A: P[]) => 'M ' + A.map(q => `${q[0].toFixed(2)} ${q[1].toFixed(2)}`).join(' L ');
+
+// One finger or thumb. `nail`: draw the nail on the upper (+1) or lower
+// (-1) edge near the tip, or not at all (0) when the tip faces away.
+function Finger({ pts, w, far = false, nail = 1 }: { pts: P[]; w: number[]; far?: boolean; nail?: -1 | 0 | 1 }) {
+  const id = useId().replace(/:/g, '');
+  const g = fingerGeometry(pts, w);
+  const n = g.s.length;
+  const edge = nail === 1 ? g.up : g.down;
+  const tipW = w[w.length - 1];
+  // The finger fades in from its knuckle, so it grows out of the hand
+  // instead of being a separate piece laid on top of it.
+  const [b0, b1] = [pts[0], pts[1]];
+  const fade: P = [b0[0] + (b1[0] - b0[0]) * 0.55, b0[1] + (b1[1] - b0[1]) * 0.55];
   return (
-    <g>
-      {segs.map((s, i) => (
-        <path key={`o${i}`} d={seg(s.a, s.b)} stroke={OUT} strokeWidth={s.sw + 3} strokeLinecap="round" />
-      ))}
-      {segs.map((s, i) => (
-        <path key={`f${i}`} d={seg(s.a, s.b)} stroke={far ? SKIN_FAR : SKIN} strokeWidth={s.sw} strokeLinecap="round" />
-      ))}
-      {/* soft light along the top of each finger */}
-      {segs.map((s, i) => (
-        <path key={`h${i}`} d={seg(s.a, s.b)} stroke={SKIN_HI} strokeWidth={s.sw * 0.26} strokeLinecap="round"
-          opacity={far ? 0.2 : 0.5} transform={`translate(${-s.sw * 0.1} ${-s.sw * 0.17})`} />
-      ))}
-      {/* knuckle creases: a short line across the finger at each joint */}
-      {pts.slice(1, -1).map((p, i) => {
-        const [q, r] = [pts[i], pts[i + 2]];
-        const n = Math.atan2(r[1] - q[1], r[0] - q[0]) + Math.PI / 2;
-        const h = w * 0.22;
-        return (
-          <path key={`k${i}`} d={`M ${p[0] - Math.cos(n) * h} ${p[1] - Math.sin(n) * h} L ${p[0] + Math.cos(n) * h * 0.3} ${p[1] + Math.sin(n) * h * 0.3}`}
-            stroke={OUT} strokeWidth="0.9" strokeLinecap="round" opacity="0.4" />
-        );
-      })}
-      {nail && (
-        <ellipse cx={b[0] - Math.cos(ang) * tipW * 0.16} cy={b[1] - Math.sin(ang) * tipW * 0.16}
-          rx={tipW * 0.3} ry={tipW * 0.22} transform={`rotate(${(ang * 180) / Math.PI} ${b[0]} ${b[1]})`}
-          fill={NAIL} stroke={OUT} strokeWidth="0.8" opacity={far ? 0.6 : 1} />
-      )}
+    <g mask={`url(#m${id})`}>
+      <defs>
+        <clipPath id={`c${id}`}><path d={g.d} /></clipPath>
+        <linearGradient id={`g${id}`} gradientUnits="userSpaceOnUse" x1={b0[0]} y1={b0[1]} x2={fade[0]} y2={fade[1]}>
+          <stop offset="0" stopColor="#000" />
+          <stop offset="1" stopColor="#fff" />
+        </linearGradient>
+        <mask id={`m${id}`} maskUnits="userSpaceOnUse" x="0" y="0" width="160" height="160">
+          <rect x="0" y="0" width="160" height="160" fill={`url(#g${id})`} />
+        </mask>
+      </defs>
+      <path d={g.d} fill={far ? SKIN_FAR : SKIN} />
+      <g clipPath={`url(#c${id})`}>
+        <path d={poly(g.down)} fill="none" stroke={SHADE} strokeWidth={tipW * 0.9} opacity={far ? 0.5 : 0.55} filter="url(#gh-soft)" />
+        <path d={poly(g.up.slice(2, -3))} fill="none" stroke={LIGHT} strokeWidth={tipW * 0.35} opacity={far ? 0.25 : 0.7} filter="url(#gh-soft)" />
+        {/* faint skin creases across the back of each bent joint */}
+        {pts.slice(1, -1).map((q, i) => (
+          <circle key={i} cx={q[0]} cy={q[1]} r={w[i + 1] * 0.55} fill="none" stroke={LINE} strokeWidth="0.5" opacity="0.22"
+            strokeDasharray={`${w[i + 1] * 0.5} 99`} />
+        ))}
+      </g>
+      {nail !== 0 && (() => {
+        const a = edge[n - 6], b = edge[n - 1];
+        const c = g.s[n - 1].p;
+        const mx = (a[0] + b[0]) / 2 * 0.7 + c[0] * 0.3, my = (a[1] + b[1]) / 2 * 0.7 + c[1] * 0.3;
+        return <path d={`M ${a[0]} ${a[1]} Q ${mx} ${my} ${b[0]} ${b[1]}`} fill="none" stroke={NAIL} strokeWidth={tipW * 0.32}
+          strokeLinecap="round" opacity="0.95" />;
+      })()}
+      <path d={g.d} fill="none" stroke={LINE} strokeWidth="1.1" strokeLinejoin="round" />
     </g>
   );
 }
 
-function Blob({ d, far = false }: { d: string; far?: boolean }) {
-  return <path d={d} fill={far ? SKIN_FAR : SKIN} stroke={OUT} strokeWidth="1.6" strokeLinejoin="round" />;
+// The body of the hand (palm/back of hand + wrist), drawn by hand per grip.
+function HandBody({ d, shade }: { d: string; shade?: string }) {
+  return (
+    <g>
+      <path d={d} fill={SKIN} />
+      {shade && <path d={shade} fill={SHADE} opacity="0.35" filter="url(#gh-soft)" />}
+      <path d={d} fill="none" stroke={LINE} strokeWidth="1.1" strokeLinejoin="round" />
+    </g>
+  );
 }
 
-// A pencil from tip to end, `w` thick.
-function Pencil({ tip, end, w = 7 }: { tip: P; end: P; w?: number }) {
+// A soft cotton sleeve over the forearm, entering from the right edge.
+function Sleeve({ d }: { d: string }) {
+  return (
+    <g>
+      <path d={d} fill="#BFD7F2" stroke={LINE} strokeWidth="1.1" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke="#E8F1FB" strokeWidth="3" opacity="0.5" strokeDasharray="2 9" />
+    </g>
+  );
+}
+
+function Pencil({ tip, end, w = 8 }: { tip: P; end: P; w?: number }) {
   const dx = end[0] - tip[0], dy = end[1] - tip[1];
   const len = Math.hypot(dx, dy);
   const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
   return (
     <g transform={`translate(${tip[0]} ${tip[1]}) rotate(${ang})`}>
-      <path d={`M 0 0 L 10 ${-w / 2} L 10 ${w / 2} Z`} fill="#F2D3A1" stroke={OUT} strokeWidth="1" strokeLinejoin="round" />
-      <path d={`M 0 0 L 3.4 ${-w / 6} L 3.4 ${w / 6} Z`} fill="#3b2416" />
-      <rect x="10" y={-w / 2} width={len - 16} height={w} fill="#FFC23C" stroke={OUT} strokeWidth="1" />
-      <rect x="10" y={-w / 2 + 1} width={len - 16} height={w * 0.28} fill="#FFE08A" />
-      <rect x={len - 6} y={-w / 2} width="6" height={w} rx="2" fill="#F48FA8" stroke={OUT} strokeWidth="1" />
-      <rect x={len - 8} y={-w / 2} width="3" height={w} fill="#C9CED6" stroke={OUT} strokeWidth="0.8" />
+      <path d={`M 0 0 L 13 ${-w / 2} L 13 ${w / 2} Z`} fill="#EBCB9B" stroke={LINE} strokeWidth="0.9" strokeLinejoin="round" />
+      <path d={`M 0 0 L 4 ${-w / 7} L 4 ${w / 7} Z`} fill="#3d3a3a" />
+      <rect x="13" y={-w / 2} width={len - 22} height={w} fill="#F5B731" stroke={LINE} strokeWidth="0.9" />
+      <rect x="13" y={-w / 2 + 1} width={len - 22} height={w * 0.25} fill="#FBD978" />
+      <rect x="13" y={w / 2 - w * 0.28} width={len - 22} height={w * 0.26} fill="#D89515" opacity="0.6" />
+      <rect x={len - 9} y={-w / 2 - 0.3} width="3.5" height={w + 0.6} fill="#BFC5CC" stroke={LINE} strokeWidth="0.7" />
+      <rect x={len - 5.5} y={-w / 2} width="5.5" height={w} rx="2" fill="#EE9AA9" stroke={LINE} strokeWidth="0.9" />
     </g>
   );
 }
@@ -89,8 +158,9 @@ function Pencil({ tip, end, w = 7 }: { tip: P; end: P; w?: number }) {
 function Paper() {
   return (
     <g>
-      <path d="M 4 108 Q 60 104 116 109 L 116 120 L 4 120 Z" fill="#FFFDF7" stroke={OUT} strokeWidth="1" opacity="0.9" />
-      <path d="M 14 106.5 Q 22 103 30 106" fill="none" stroke="#7C9CF5" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="0" y="138" width="160" height="22" fill="#FFFFFF" />
+      <line x1="0" y1="138" x2="160" y2="138" stroke={LINE} strokeWidth="1" opacity="0.5" />
+      <path d="M 36 147 q 6 -5 12 0 t 12 0" fill="none" stroke="#6E8FE0" strokeWidth="1.6" strokeLinecap="round" />
     </g>
   );
 }
@@ -98,102 +168,115 @@ function Paper() {
 // ─── The five grips ──────────────────────────────────────────────────────
 
 // Mature, dynamic tripod: pencil pinched between the PADS of thumb and
-// index, resting on the side of the middle finger; ring and pinky curled
-// into the palm for stability; a round open "O" between thumb and index.
+// index, resting on the side of the middle finger near its tip; ring and
+// little finger curled into the palm; a round open "O" between thumb and
+// index; the side of the hand rests on the paper.
 function DynamicTripod() {
   return (
     <>
-      {/* ring & little finger tucked into the palm (far side) */}
-      <Finger far pts={[[88, 84], [82, 95], [74, 98]]} w={9} nail={false} />
-      <Finger far pts={[[84, 79], [76, 91], [66, 95], [60, 92]]} w={9.5} nail={false} />
-      {/* middle finger: pencil rests on its side, near the last joint */}
-      <Finger far pts={[[80, 72], [68, 84], [55, 92], [45, 91]]} w={10} />
-      <Blob d="M 74 60 Q 96 52 112 66 L 120 72 L 120 104 L 104 104 Q 92 100 84 90 Q 72 76 74 60 Z" />
-      <Pencil tip={[24, 106]} end={[98, 26]} />
-      {/* index finger arches over the pencil, pad on top */}
-      <Finger pts={[[80, 64], [67, 58], [57, 66], [50, 76]]} w={10.5} />
-      {/* thumb: pad pressing from the near side, web space open */}
-      <Finger pts={[[92, 90], [77, 94], [64, 90], [55, 82]]} w={12} />
-      <path d="M 62 76 Q 66 82 72 80" fill="none" stroke={OUT} strokeWidth="1" opacity="0.4" />
+      <Sleeve d="M 136 84 L 160 86 L 160 132 L 134 130 Q 128 108 136 84 Z" />
+      {/* little and ring finger curled under (far side) */}
+      <Finger far nail={0} pts={[[110, 118], [104, 130], [96, 132]]} w={[9, 8, 7]} />
+      <Finger far nail={0} pts={[[104, 112], [96, 126], [86, 130]]} w={[9.5, 8.5, 7.5]} />
+      {/* middle finger: pencil lies on its side near the tip */}
+      <Finger far nail={-1} pts={[[102, 104], [88, 113], [74, 120], [62, 122]]} w={[10, 9.5, 8.6, 7.8]} />
+      <HandBody
+        d="M 92 97 C 98 86 116 82 138 86 L 138 128 C 128 134 116 136 106 132 C 100 128 96 124 94 120 C 98 112 98 104 92 97 Z"
+        shade="M 100 128 C 112 134 128 132 138 126 L 138 132 L 104 134 Z" />
+      <Pencil tip={[40, 138]} end={[128, 32]} />
+      {/* index finger arches over the pencil, its pad on top */}
+      <Finger nail={1} pts={[[98, 96], [83, 90], [71, 98], [63, 106]]} w={[10.5, 10, 9, 8.2]} />
+      {/* thumb: pad on the near side of the pencil; web space open */}
+      <Finger nail={1} pts={[[100, 122], [88, 119], [76, 116], [67, 110]]} w={[12.5, 11.5, 10.5, 9.4]} />
     </>
   );
 }
 
-// Static / immature tripod: the same three fingers, but the thumb wraps
-// ACROSS the pencil and over the index (web space closed), fingers held
-// stiff, grip higher up the pencil — movement comes from the wrist/arm.
+// Static / immature tripod: the same three fingers, but held stiffly
+// higher up the pencil, and the thumb wraps ACROSS the pencil over the
+// index finger, so the web space is closed (no "O").
 function ImmatureTripod() {
   return (
     <>
-      <Finger far pts={[[90, 80], [86, 92], [78, 96]]} w={9} nail={false} />
-      <Finger far pts={[[86, 74], [80, 86], [70, 92]]} w={9.5} nail={false} />
-      <Finger far pts={[[82, 66], [70, 76], [58, 82], [50, 80]]} w={10} />
-      <Blob d="M 78 52 Q 100 46 114 60 L 120 66 L 120 100 L 106 100 Q 92 94 86 84 Q 76 70 78 52 Z" />
-      <Pencil tip={[34, 106]} end={[94, 18]} />
-      {/* index pressed flat along the pencil */}
-      <Finger pts={[[82, 56], [70, 56], [60, 62], [54, 70]]} w={10.5} />
-      {/* thumb crosses OVER the pencil and the index — closed web space */}
-      <Finger pts={[[98, 78], [80, 78], [64, 70], [54, 62]]} w={11.5} />
+      <Sleeve d="M 136 84 L 160 86 L 160 132 L 134 130 Q 128 108 136 84 Z" />
+      <Finger far nail={0} pts={[[110, 118], [104, 130], [96, 132]]} w={[9, 8, 7]} />
+      <Finger far nail={0} pts={[[104, 112], [96, 126], [86, 130]]} w={[9.5, 8.5, 7.5]} />
+      <Finger far nail={-1} pts={[[102, 104], [90, 114], [78, 120], [68, 120]]} w={[10, 9.5, 8.6, 7.8]} />
+      <HandBody
+        d="M 92 97 C 98 86 116 82 138 86 L 138 128 C 128 134 116 136 106 132 C 100 128 96 124 94 120 C 98 112 98 104 92 97 Z"
+        shade="M 100 128 C 112 134 128 132 138 126 L 138 132 L 104 134 Z" />
+      <Pencil tip={[52, 138]} end={[120, 26]} />
+      {/* index lies flat along the pencil */}
+      <Finger nail={1} pts={[[100, 94], [88, 89], [78, 92], [70, 99]]} w={[10.5, 10, 9, 8.2]} />
+      {/* thumb crosses over the pencil and the index: web space closed */}
+      <Finger nail={1} pts={[[102, 122], [90, 114], [80, 104], [74, 94]]} w={[12.5, 11.5, 10.5, 9.4]} />
     </>
   );
 }
 
-// Quadrupod: thumb, index, middle AND ring finger on the pencil — the
-// pencil rests on the ring finger instead of the middle finger.
+// Quadrupod: thumb, index, middle AND ring finger on the pencil; only
+// the little finger is curled away.
 function Quadrupod() {
   return (
     <>
-      <Finger far pts={[[88, 86], [82, 97], [74, 100]]} w={9} nail={false} />
-      {/* ring finger now reaches the pencil too */}
-      <Finger far pts={[[84, 80], [72, 92], [58, 98], [46, 97]]} w={9.5} />
-      <Finger far pts={[[80, 72], [68, 82], [56, 88], [46, 88]]} w={10} />
-      <Blob d="M 74 60 Q 96 52 112 66 L 120 72 L 120 106 L 104 106 Q 92 102 84 92 Q 72 76 74 60 Z" />
-      <Pencil tip={[26, 108]} end={[96, 26]} />
-      <Finger pts={[[80, 64], [67, 60], [57, 68], [50, 78]]} w={10.5} />
-      <Finger pts={[[92, 92], [77, 96], [64, 92], [55, 84]]} w={12} />
+      <Sleeve d="M 136 84 L 160 86 L 160 132 L 134 130 Q 128 108 136 84 Z" />
+      <Finger far nail={0} pts={[[110, 120], [104, 132], [96, 134]]} w={[9, 8, 7]} />
+      {/* ring finger reaches the pencil under the middle finger */}
+      <Finger far nail={-1} pts={[[106, 114], [92, 124], [76, 130], [60, 128]]} w={[9.5, 9, 8.2, 7.4]} />
+      <Finger far nail={-1} pts={[[102, 104], [88, 111], [74, 116], [62, 118]]} w={[10, 9.5, 8.6, 7.8]} />
+      <HandBody
+        d="M 92 97 C 98 86 116 82 138 86 L 138 128 C 128 134 116 136 106 132 C 100 128 96 124 94 120 C 98 112 98 104 92 97 Z"
+        shade="M 100 128 C 112 134 128 132 138 126 L 138 132 L 104 134 Z" />
+      <Pencil tip={[40, 138]} end={[128, 32]} />
+      <Finger nail={1} pts={[[98, 96], [83, 90], [71, 98], [63, 106]]} w={[10.5, 10, 9, 8.2]} />
+      <Finger nail={1} pts={[[100, 122], [88, 119], [76, 116], [67, 110]]} w={[12.5, 11.5, 10.5, 9.4]} />
     </>
   );
 }
 
-// Digital pronate: palm faces DOWN; all fingers wrap the pencil from
-// above with the index stretched along it toward the tip; the end of the
-// pencil sits in the palm. The whole forearm moves to draw.
+// Digital pronate: palm faces DOWN with the back of the hand on top; the
+// fingers wrap down over the pencil, the index stretched along it toward
+// the tip, and the end of the pencil sits in the palm. The whole forearm
+// moves to draw.
 function DigitalPronate() {
   return (
     <>
-      {/* fingers curl down around the pencil from above (far side) */}
-      <Finger far pts={[[86, 50], [84, 62], [78, 70]]} w={9} nail={false} />
-      <Finger far pts={[[78, 48], [74, 62], [68, 70]]} w={9.5} nail={false} />
-      <Pencil tip={[22, 108]} end={[104, 52]} w={7} />
-      {/* back of the hand on top, knuckles up */}
-      <Blob d="M 60 52 Q 66 34 88 34 Q 108 34 118 46 L 120 50 L 120 76 L 100 76 Q 88 78 76 76 Q 62 72 60 52 Z" />
-      <path d="M 70 42 Q 74 38 80 40 M 82 38 Q 86 35 92 37 M 94 37 Q 98 35 104 38" fill="none" stroke={OUT} strokeWidth="1" opacity="0.45" />
-      {/* middle finger wraps over the pencil */}
-      <Finger pts={[[70, 50], [62, 62], [58, 74], [62, 80]]} w={10} nail={false} />
-      {/* index stretched down along the top of the pencil, pointing to the tip */}
-      <Finger pts={[[64, 54], [52, 72], [42, 84], [36, 92]]} w={10.5} />
-      {/* thumb presses the pencil from the side */}
-      <Finger pts={[[92, 72], [78, 82], [66, 86], [58, 84]]} w={11.5} />
+      <Sleeve d="M 138 70 L 160 72 L 160 110 L 136 108 Q 132 90 138 70 Z" />
+      <Finger far nail={0} pts={[[118, 102], [116, 114], [110, 119]]} w={[9, 8, 7]} />
+      <Finger far nail={0} pts={[[110, 104], [106, 116], [98, 121]]} w={[9.5, 8.5, 7.5]} />
+      <Pencil tip={[40, 138]} end={[132, 83]} />
+      <HandBody
+        d="M 76 100 C 80 80 104 70 130 72 L 140 72 L 140 108 L 130 108 C 116 110 100 112 90 112 C 84 110 78 106 76 100 Z"
+        shade="M 82 108 C 100 112 124 110 140 104 L 140 110 L 86 114 Z" />
+      {/* middle finger curls over the front of the pencil */}
+      <Finger nail={0} pts={[[98, 104], [92, 116], [82, 122], [76, 118]]} w={[10, 9.5, 8.6, 7.8]} />
+      {/* index stretched down along the top of the pencil */}
+      <Finger nail={1} pts={[[86, 100], [72, 108], [60, 116], [50, 124]]} w={[10.5, 10, 9, 8.2]} />
+      {/* thumb presses the pencil from below on the near side */}
+      <Finger nail={0} pts={[[102, 112], [90, 120], [80, 125]]} w={[12, 11, 10]} />
     </>
   );
 }
 
-// Palmar (fisted) grasp: the pencil is held in a fist like a dagger, tip
-// coming out the LITTLE-FINGER side down to the paper, thumb wrapped over
-// the curled fingers on top. The whole arm moves from the shoulder.
+// Palmar (fisted) grasp: the pencil is held in a closed fist like a
+// dagger, the tip coming out the LITTLE-FINGER side down to the paper and
+// the thumb wrapped over the curled fingers. The whole arm moves from the
+// shoulder.
 function Palmar() {
   return (
     <>
-      <Pencil tip={[50, 108]} end={[70, 10]} w={8} />
-      {/* the fist: palm block */}
-      <Blob d="M 66 30 Q 92 26 110 40 L 120 46 L 120 84 L 106 84 Q 90 88 76 84 Q 66 70 66 30 Z" />
-      {/* four curled fingers stacked down the front of the fist */}
-      <Finger pts={[[80, 38], [62, 36], [54, 42], [58, 50]]} w={11} nail={false} />
-      <Finger pts={[[80, 50], [62, 49], [54, 55], [58, 62]]} w={11} nail={false} />
-      <Finger pts={[[80, 62], [62, 62], [55, 68], [59, 74]]} w={10.5} nail={false} />
-      <Finger pts={[[80, 73], [64, 74], [58, 79], [62, 84]]} w={9.5} nail={false} />
-      {/* thumb wrapped over the top of the fingers */}
-      <Finger pts={[[96, 36], [80, 28], [66, 30], [58, 38]]} w={11.5} />
+      <Sleeve d="M 136 54 L 160 56 L 160 106 L 134 104 Q 130 80 136 54 Z" />
+      <Pencil tip={[70, 138]} end={[84, 26]} w={8.5} />
+      <HandBody
+        d="M 84 52 C 100 46 122 50 138 56 L 138 104 C 120 112 100 112 88 106 C 82 92 80 66 84 52 Z"
+        shade="M 88 100 C 104 108 124 106 138 100 L 138 106 L 90 108 Z" />
+      {/* four curled fingers, nails tucked toward the palm */}
+      <Finger nail={0} pts={[[104, 60], [88, 58], [79, 63], [82, 71]]} w={[10.5, 10, 9.2, 8.4]} />
+      <Finger nail={0} pts={[[104, 73], [87, 72], [78, 77], [81, 85]]} w={[10.5, 10, 9.2, 8.4]} />
+      <Finger nail={0} pts={[[104, 86], [88, 86], [80, 91], [83, 98]]} w={[10, 9.5, 8.8, 8]} />
+      <Finger nail={0} pts={[[102, 98], [90, 99], [84, 103], [86, 109]]} w={[9, 8.5, 8, 7.2]} />
+      {/* thumb wrapped across the top of the fist */}
+      <Finger nail={1} pts={[[116, 66], [104, 54], [90, 50], [80, 54]]} w={[12.5, 11.5, 10.5, 9.4]} />
     </>
   );
 }
@@ -206,15 +289,16 @@ const GRIPS: Record<GripKey, () => ReactNode> = {
   dynamic_tripod: DynamicTripod,
 };
 
-export default function GraspHand({ grip, size = 72, background = '#FFF7EC' }: { grip: GripKey; size?: number; background?: string }) {
+export default function GraspHand({ grip, size = 72, background = '#FBF6EE' }: { grip: GripKey; size?: number; background?: string }) {
   const Grip = GRIPS[grip] ?? DynamicTripod;
   return (
-    <svg viewBox="0 0 120 120" width={size} height={size} role="img"
-      aria-label={`${grip.replace(/_/g, ' ')} pencil grip`} style={{ display: 'block', borderRadius: 12, background }}>
-      <g filter="url(#kp-brush)">
-        <Paper />
-        <Grip />
-      </g>
+    <svg viewBox="28 22 132 132" width={size} height={size} role="img"
+      aria-label={`${grip.replace(/_/g, ' ')} pencil grip`} style={{ display: 'block', borderRadius: 12, background, overflow: 'hidden' }}>
+      <defs>
+        <filter id="gh-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6" /></filter>
+      </defs>
+      <Paper />
+      <Grip />
     </svg>
   );
 }
