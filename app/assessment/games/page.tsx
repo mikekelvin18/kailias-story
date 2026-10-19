@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
+import StepGuide from '@/components/ui/StepGuide';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -803,6 +804,7 @@ export default function GamesPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-start px-0 py-10" style={{ background: '#FFF9F0' }}>
         <div className="max-w-2xl w-full px-4">
+          <StepGuide step={3} className="mb-6" />
           <div className="flex gap-2 mb-6">
             {stepLabels.map((l, i) => (
               <div key={i} className="flex-1 h-3 rounded-full transition-all"
@@ -811,7 +813,7 @@ export default function GamesPage() {
           </div>
         </div>
         <TracingGame age={state.childAge ?? 8} onComplete={handleTracingComplete} />
-        <p className="text-center text-gray-400 text-xs mt-4">Step {gameStep + 1} of {totalSteps}</p>
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">Game {gameStep + 1} of {totalSteps}</p>
       </main>
     );
   }
@@ -823,6 +825,7 @@ export default function GamesPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-10" style={{ background: '#FFF9F0' }}>
       <div className="max-w-2xl w-full">
+        <StepGuide step={3} className="mb-6" />
 
         <div className="rounded-3xl p-5 mb-5 text-center shadow-lg"
           style={{ background: game.light, border: `3px solid ${game.color}` }}>
@@ -909,8 +912,8 @@ export default function GamesPage() {
           )}
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-4">
-          Step {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">
+          Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
           {!isTracingStep && ` • Question ${questionIdx + 1}/${game.questions.length}`}
         </p>
       </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { AgeGroup, SensoryScores } from '@/context/AssessmentContext';
+import StepGuide from '@/components/ui/StepGuide';
 
 // Internal framework: Dunn's Sensory Processing Model (published academic theory)
 // Questions are original; patterns align with Dunn's 4-quadrant model
@@ -140,6 +141,7 @@ export default function SensoryPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-10" style={{ background: '#FFF9F0' }}>
       <div className="max-w-2xl w-full">
+        <StepGuide step={3} className="mb-6" />
 
         {/* Header */}
         <div className="text-center mb-6">
@@ -225,13 +227,13 @@ export default function SensoryPage() {
           <button onClick={handleNext} disabled={!allDone}
             className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: allDone ? `linear-gradient(135deg, ${pattern.color}, #EC4899)` : '#D1D5DB' }}>
-            {isLast ? 'See My Sensory Profile! 🎉' : 'Next Pattern →'}
+            {isLast ? 'See My Sensory Profile! 🎉' : 'Next part →'}
           </button>
           {!allDone && <p className="text-gray-400 text-sm mt-3">Answer all 3 questions to continue</p>}
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-4">
-          Pattern {step + 1} of {PATTERNS.length} • {pattern.label}
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">
+          Part {step + 1} of {PATTERNS.length} • {pattern.label}
         </p>
       </div>
     </main>

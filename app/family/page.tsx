@@ -14,6 +14,9 @@ import { useHubTheme } from '@/hooks/useHubTheme';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
 import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { LANDS, recordQuestPlay } from '@/lib/adventure';
+import { useAssessment } from '@/context/AssessmentContext';
+import BackButton from '@/components/ui/BackButton';
+import StepGuide from '@/components/ui/StepGuide';
 
 // ── Parent Zone ──
 // Consent first, then a minimal child profile, then full parental rights:
@@ -52,6 +55,7 @@ export default function ParentZonePage() {
   const [newTaskDomain, setNewTaskDomain] = useState<ActivityDomain>('communication');
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
+  const { state: assessment, loaded: assessmentLoaded } = useAssessment();
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
 
@@ -116,60 +120,30 @@ export default function ParentZonePage() {
 
   if (!loaded) return null;
 
+  // First-time setup: until the active child has finished the adventure
+  // check, this page is step 2 of the four setup steps, so it shows the
+  // step strip and a clear "next step" button instead of looking like a
+  // settings page with no way forward.
+  const onboarding = assessmentLoaded && !assessment.assessmentCompleted;
+
   return (
     <main className="min-h-screen pb-24" style={{ background: theme.background }}>
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4">
 
-        <div className="flex items-center justify-between pt-6 pb-1">
-          <Link href="/" className={`text-sm font-bold ${theme.link}`}>← Home</Link>
-          <h1 className={`text-2xl font-extrabold ${theme.title}`}>👨‍👩‍👧 Parent Zone</h1>
+        <div className="flex items-center justify-between gap-2 pt-5 pb-1">
+          {onboarding ? <BackButton href="/story" label="Story" /> : <BackButton href="/play" label="Map" />}
+          <h1 className={`text-xl sm:text-2xl font-extrabold text-center ${theme.title}`}>👨‍👩‍👧 Parent Zone</h1>
           <ThemeToggle />
         </div>
-        <p className={`text-xs text-center mb-5 ${theme.subtitle}`}>
+        <p className={`text-sm text-center mb-4 ${theme.subtitle}`}>
           For grown-ups: your account, your child&apos;s data, your controls.
         </p>
 
-        {/* ── Accessibility settings — a device display preference, not
-            child data, so it's always available regardless of consent ── */}
-        <div className="rounded-2xl p-4 mb-5" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
-          <h2 className={`text-sm font-extrabold mb-3 ${theme.title}`}>♿ Accessibility</h2>
-
-          <div className="mb-3">
-            <p className={`text-xs font-bold mb-1.5 ${theme.subtitle}`}>Text size</p>
-            <div className="flex gap-2">
-              {(['normal', 'large', 'xlarge'] as const).map(size => (
-                <button key={size} onClick={() => updateA11y({ textSize: size })}
-                  className="flex-1 py-2 rounded-xl text-xs font-extrabold transition-transform hover:scale-105"
-                  style={{ background: a11y.textSize === size ? '#7C3AED' : theme.cardBg, color: a11y.textSize === size ? 'white' : (bright ? '#1e1b4b' : 'white') }}>
-                  {size === 'normal' ? 'A' : size === 'large' ? 'A+' : 'A++'}
-                </button>
-              ))}
-            </div>
+        {onboarding && (
+          <div className="rounded-2xl px-4 py-3 mb-4" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
+            <StepGuide step={2} tone={bright ? 'light' : 'dark'} />
           </div>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>🎬 Reduce motion &amp; animation</span>
-            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
-          </label>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>🔇 Reduce sound effects</span>
-            <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
-          </label>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>📖 Dyslexia-friendly text spacing</span>
-            <input type="checkbox" checked={a11y.dyslexiaFriendly} onChange={e => updateA11y({ dyslexiaFriendly: e.target.checked })} className="w-5 h-5" />
-          </label>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>👁️ Colorblind-safe colors</span>
-            <input type="checkbox" checked={a11y.colorblindSafe} onChange={e => updateA11y({ colorblindSafe: e.target.checked })} className="w-5 h-5" />
-          </label>
-          <p className={`text-[10px] mt-2 ${theme.subtitle}`} style={{ opacity: 0.75 }}>
-            These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
-          </p>
-        </div>
+        )}
 
         {deletedMsg && (
           <div className="rounded-2xl p-4 mb-5 text-center" style={{ background: '#ECFDF5', border: '2px solid #34D399' }}>
@@ -179,7 +153,8 @@ export default function ParentZonePage() {
 
         {/* ── STEP 1: Consent ── */}
         {!consented && (
-          <div className="rounded-3xl p-5" style={{ background: 'rgba(255,255,255,0.97)' }}>
+          <div className="rounded-3xl p-5" style={{ background: theme.surface }}>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-violet-700 mb-1">Part 1 of 2 · Privacy</p>
             <h2 className="text-lg font-extrabold text-gray-800 mb-1">Before we begin</h2>
             <p className="text-sm text-gray-600 mb-3">
               Kailia&apos;s Story is made for children, so <strong>you</strong> — the parent or
@@ -257,7 +232,8 @@ export default function ParentZonePage() {
         {/* ── STEP 2: Add child profile (always for the first child; a
             toggled form for adding a sibling afterward) ── */}
         {consented && (!child || showAddChild) && (
-          <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+          <div className="rounded-3xl p-5 mb-4" style={{ background: theme.surface }}>
+            {!child && <p className="text-xs font-extrabold uppercase tracking-wide text-violet-700 mb-1">Part 2 of 2 · Your child</p>}
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-extrabold text-gray-800">{child ? 'Add another child' : 'Add your child'}</h2>
               {child && (
@@ -305,7 +281,17 @@ export default function ParentZonePage() {
         {/* ── STEP 3: Manage ── */}
         {consented && child && family && (
           <>
-            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+            {/* The one obvious way forward during first-time setup */}
+            {onboarding && !showAddChild && (
+              <Link href="/setup"
+                className="block rounded-3xl p-5 mb-4 text-center shadow-lg transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #7C3AED, #6366F1)' }}>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-violet-100">All set! Next step</p>
+                <p className="text-xl font-extrabold text-white mt-0.5">🧭 Start {child.nickname}&apos;s adventure check →</p>
+                <p className="text-sm text-violet-100 mt-1">A few minutes of play so Kailia can pick the right path.</p>
+              </Link>
+            )}
+            <div className="rounded-3xl p-5 mb-4" style={{ background: theme.surface }}>
               <div className="flex items-center gap-3">
                 <span className="text-5xl">{child.avatar}</span>
                 <div>
@@ -325,7 +311,7 @@ export default function ParentZonePage() {
 
             {/* Custom Quests — a parent's own practice goals, woven into
                 Noel's daily quest screen alongside the built-in library. */}
-            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+            <div className="rounded-3xl p-5 mb-4" style={{ background: theme.surface }}>
               <h2 className="text-lg font-extrabold text-gray-800 mb-1">📝 {child.nickname}&apos;s Custom Quests</h2>
               <p className="text-xs text-gray-500 mb-3">
                 Add your own goal — an OT/IEP goal, a manners practice, anything specific to{' '}
@@ -380,10 +366,26 @@ export default function ParentZonePage() {
               {deletedMsg && <p className="text-xs font-bold text-emerald-700 mt-2">{deletedMsg}</p>}
             </div>
 
+            {/* Results — the assessment summary (also reachable from the map) */}
+            {!onboarding && (
+              <Link href="/results"
+                className="block rounded-3xl p-5 mb-4 transition-transform hover:scale-[1.01]"
+                style={{ background: theme.surface }}>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🌟</span>
+                  <div className="flex-1">
+                    <p className="font-extrabold text-gray-800">{child.nickname}&apos;s Results</p>
+                    <p className="text-sm text-gray-500">Learning level, skill breakdown and ideas to try next.</p>
+                  </div>
+                  <span className="text-gray-400 text-xl">→</span>
+                </div>
+              </Link>
+            )}
+
             {/* Progress report — printable rollup for the child's care team */}
             <Link href="/progress"
               className="block rounded-3xl p-5 mb-4 transition-transform hover:scale-[1.01]"
-              style={{ background: 'rgba(255,255,255,0.97)' }}>
+              style={{ background: theme.surface }}>
               <div className="flex items-center gap-3">
                 <span className="text-3xl">📋</span>
                 <div className="flex-1">
@@ -397,7 +399,7 @@ export default function ParentZonePage() {
             </Link>
 
             {/* View data */}
-            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+            <div className="rounded-3xl p-5 mb-4" style={{ background: theme.surface }}>
               <button onClick={() => { setInventory(childDataInventory()); setShowData(s => !s); }}
                 className="w-full py-3 rounded-full font-extrabold text-white" style={{ background: '#0891B2' }}>
                 {showData ? 'Hide my child\'s data ▴' : '🔎 View my child\'s data'}
@@ -422,7 +424,7 @@ export default function ParentZonePage() {
             </div>
 
             {/* Danger zone */}
-            <div className="rounded-3xl p-5" style={{ background: 'rgba(255,255,255,0.97)', border: '2px solid #FECACA' }}>
+            <div className="rounded-3xl p-5" style={{ background: theme.surface, border: '2px solid #FECACA' }}>
               <h2 className="text-sm font-extrabold text-rose-700 mb-3">Delete controls</h2>
               {!confirmingChild ? (
                 <button onClick={() => setConfirmingChild(true)}
@@ -452,7 +454,7 @@ export default function ParentZonePage() {
         {/* Account deletion — always available once an account exists,
             even after the child profile is gone (full consent withdrawal) */}
         {consented && (
-          <div className="rounded-3xl p-5 mt-4" style={{ background: 'rgba(255,255,255,0.97)', border: '2px solid #FECACA' }}>
+          <div className="rounded-3xl p-5 mt-4" style={{ background: theme.surface, border: '2px solid #FECACA' }}>
             {!confirmingAll ? (
               <button onClick={() => setConfirmingAll(true)}
                 className="w-full py-3 rounded-full font-bold text-rose-700" style={{ border: '2px solid #FCA5A5' }}>
@@ -476,6 +478,48 @@ export default function ParentZonePage() {
             )}
           </div>
         )}
+
+        {/* ── Accessibility settings — a device display preference, not
+            child data, so it's always available regardless of consent ── */}
+        <div className="rounded-3xl p-5 mt-4" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
+          <h2 className={`text-base font-extrabold mb-3 ${theme.title}`}>♿ Display &amp; accessibility</h2>
+
+          <div className="mb-3">
+            <p className={`text-xs font-bold mb-1.5 ${theme.subtitle}`}>Text size</p>
+            <div className="flex gap-2">
+              {(['normal', 'large', 'xlarge'] as const).map(size => (
+                <button key={size} onClick={() => updateA11y({ textSize: size })}
+                  className="flex-1 py-2 rounded-xl text-xs font-extrabold transition-transform hover:scale-105"
+                  style={{ background: a11y.textSize === size ? '#7C3AED' : theme.cardBg, color: a11y.textSize === size ? 'white' : (bright ? '#1e1b4b' : 'white') }}>
+                  {size === 'normal' ? 'A' : size === 'large' ? 'A+' : 'A++'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>🎬 Reduce motion &amp; animation</span>
+            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>🔇 Reduce sound effects</span>
+            <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>📖 Dyslexia-friendly text spacing</span>
+            <input type="checkbox" checked={a11y.dyslexiaFriendly} onChange={e => updateA11y({ dyslexiaFriendly: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 cursor-pointer" style={{ background: theme.cardBg }}>
+            <span className={`text-xs font-semibold ${theme.subtitle}`}>👁️ Colorblind-safe colors</span>
+            <input type="checkbox" checked={a11y.colorblindSafe} onChange={e => updateA11y({ colorblindSafe: e.target.checked })} className="w-5 h-5" />
+          </label>
+          <p className={`text-[10px] mt-2 ${theme.subtitle}`} style={{ opacity: 0.75 }}>
+            These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
+          </p>
+        </div>
 
         {/* Footer */}
         <div className="flex items-center justify-center gap-2 mt-8">

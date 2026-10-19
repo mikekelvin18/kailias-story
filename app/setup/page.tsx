@@ -7,6 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { ChildProfile, activeChild, childAgeYears } from '@/lib/family';
+import StepGuide from '@/components/ui/StepGuide';
 
 // COPPA: children never type personal information anywhere in the app.
 // The child's nickname and birth month/year come from the profile the
@@ -74,6 +75,7 @@ export default function SetupPage() {
       </div>
 
       <div className="relative z-10 max-w-lg w-full">
+        <StepGuide step={loaded && !child ? 2 : 3} tone="dark" className="mb-6" />
         <div className="text-center mb-6">
           <div className="float inline-block mb-3"><KailiaAvatar size={80} /></div>
           <h1 className="text-4xl font-extrabold text-white drop-shadow-md mb-1">Ready for the Adventure?</h1>

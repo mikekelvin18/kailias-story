@@ -2,10 +2,17 @@
 
 import Link from 'next/link';
 import KailiaAvatar from '@/components/KailiaAvatar';
+import { useAssessment } from '@/context/AssessmentContext';
+import { SETUP_STEPS } from '@/components/ui/StepGuide';
 
 const STARS = ['⭐', '🌟', '✨', '💫', '🌠'];
 
 export default function LandingPage() {
+  // A family that already finished setup goes straight back to the map
+  // instead of being sent through the story intro again.
+  const { state, loaded } = useAssessment();
+  const returning = loaded && state.assessmentCompleted;
+
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
@@ -77,22 +84,34 @@ export default function LandingPage() {
         </div>
 
         <Link
-          href="/story"
+          href={returning ? '/play' : '/story'}
           className="inline-block text-2xl font-bold text-purple-800 px-12 py-5 rounded-full shadow-xl transition-transform hover:scale-105 hover:shadow-2xl"
           style={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)' }}
         >
-          Start the Adventure! 🚀
+          {returning ? `Continue the Adventure${state.childName ? `, ${state.childName}` : ''}! 🗺️` : 'Start the Adventure! 🚀'}
         </Link>
+
+        {/* What happens next, so the first tap isn't a leap into the unknown */}
+        {!returning && (
+          <ol className="mt-6 flex flex-wrap justify-center gap-2" aria-label="How it works">
+            {SETUP_STEPS.map((s, i) => (
+              <li key={s.label} className="text-sm font-bold text-white rounded-full px-3 py-1.5"
+                style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)' }}>
+                <span style={{ opacity: 0.8 }}>{i + 1}.</span> {s.emoji} {s.label}
+              </li>
+            ))}
+          </ol>
+        )}
 
         <p className="mt-6 text-purple-200 text-sm">
           Free to start • Parents stay in charge • For ages 0–12
         </p>
 
         {/* Footer: privacy links (parent-facing) */}
-        <p className="mt-8 text-xs text-purple-200">
-          <Link href="/family" className="underline mr-3">👨‍👩‍👧 Parent Zone</Link>
-          <Link href="/privacy" className="underline mr-3">Privacy Policy</Link>
-          <Link href="/retention" className="underline">Data Retention</Link>
+        <p className="mt-8 text-sm text-white flex flex-wrap justify-center gap-x-5 gap-y-2">
+          <Link href="/family" className="underline underline-offset-4 py-1">👨‍👩‍👧 Parent Zone</Link>
+          <Link href="/privacy" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Privacy Policy</Link>
+          <Link href="/retention" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Data Retention</Link>
         </p>
       </div>
     </main>

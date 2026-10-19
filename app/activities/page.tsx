@@ -16,6 +16,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import { isPremium } from '@/lib/premium';
 import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
+import BackButton from '@/components/ui/BackButton';
 
 // Free preview size for the browsable library (the 3 daily quests above
 // are always free — this only limits how much of the full 69-activity
@@ -41,12 +42,13 @@ function ActivityCard({ activity, report, onReport, highlight }: {
   highlight?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const { theme } = useHubTheme();
   const meta = DOMAIN_META[activity.domain];
   const done = report !== undefined;
 
   return (
     <div className="rounded-2xl overflow-hidden transition-all"
-      style={{ background: 'rgba(255,255,255,0.97)', border: highlight ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.2)',
+      style={{ background: theme.surface, border: highlight ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.2)',
         boxShadow: highlight ? '0 0 18px rgba(251,191,36,0.35)' : '0 2px 10px rgba(0,0,0,0.25)' }}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-3.5 text-left">
         <span className="text-4xl" style={{ flexShrink: 0 }}>{activity.emoji}</span>
@@ -149,7 +151,7 @@ export default function ActivityLibraryPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between pt-5 pb-1 px-1">
-          <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
+          <BackButton href="/play" label="Map" />
           <h1 className={`text-2xl font-extrabold ${theme.title}`}>🎒 Quest Library</h1>
           <div className="flex items-center gap-1.5 justify-end">
             {streak >= 2 && <span className="text-sm font-bold text-yellow-500">🔥{streak}</span>}
@@ -161,7 +163,7 @@ export default function ActivityLibraryPage() {
         </p>
 
         {/* Band banner */}
-        <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.95)' }}>
+        <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={{ background: theme.surface }}>
           <span className="text-5xl">{info.emoji}</span>
           <div className="flex-1">
             <p className="font-extrabold text-gray-800 leading-tight">

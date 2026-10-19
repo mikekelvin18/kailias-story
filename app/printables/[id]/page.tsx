@@ -10,6 +10,7 @@ import { markWorksheetDone, isWorksheetDone } from '@/lib/worksheetProgress';
 import { hasActiveConsent, hasPhotoConsent, recordPhotoConsent, activeChild } from '@/lib/family';
 import { savePhoto, getPhoto, deletePhoto } from '@/lib/photos';
 import { awardStarlight } from '@/lib/rewards';
+import BackButton from '@/components/ui/BackButton';
 
 // ─── One printable worksheet: print it, do it, mark it done ──────────────────
 // Photo verification is the ONE narrow photo exception in this app — see
@@ -115,7 +116,7 @@ export default function PrintableDetailPage() {
 
       <div className="max-w-md mx-auto px-4 pt-5 no-print">
         <div className="flex items-center justify-between mb-3">
-          <Link href="/printables" className="text-sm font-bold text-purple-200">← Printables</Link>
+          <BackButton href="/printables" label="Printables" />
           <span className="text-xs font-bold text-purple-200">{worksheet.emoji} {worksheet.title}</span>
         </div>
 

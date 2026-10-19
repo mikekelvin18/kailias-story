@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import StepGuide from '@/components/ui/StepGuide';
 
 const PANELS = [
   {
@@ -50,8 +51,10 @@ export default function StoryPage() {
       style={{ background: current.bg }}
     >
       <div className="max-w-lg w-full text-center">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-3 mb-10">
+        <StepGuide step={1} tone="dark" className="mb-8" />
+
+        {/* Story page dots */}
+        <div className="flex justify-center gap-3 mb-8" aria-label={`Story page ${panel + 1} of ${PANELS.length}`}>
           {PANELS.map((_, i) => (
             <div
               key={i}
@@ -87,6 +90,11 @@ export default function StoryPage() {
         >
           {isLast ? "Let's Begin! 🚀" : 'Next →'}
         </button>
+        {isLast && (
+          <p className="mt-4 text-sm font-semibold text-white" style={{ opacity: 0.9 }}>
+            Next: a grown-up sets up a little profile (about 1 minute).
+          </p>
+        )}
       </div>
     </main>
   );
