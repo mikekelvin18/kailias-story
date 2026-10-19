@@ -1,11 +1,10 @@
 // ── Grasp-pattern hands ──
-// Realistic, textbook-style drawings of a young child's right hand
+// Friendly picture-book drawings of a young child's (Kailia's) right hand
 // holding a pencil in each of the five pencil grips the parent
 // quick-check asks about (palmar, digital pronate, quadrupod, static/
-// immature tripod, dynamic tripod), drawn like an OT handout: natural
-// child proportions (big palm, short fingers), smooth tapered fingers
-// that bend at real joints, soft shading, a thin line, short nails, and
-// a sleeve so the hand is attached to an arm. Side view from the thumb
+// immature tripod, dynamic tripod). Cartoon-soft (chubby fingers, flat
+// colour, clean outline, no nails or creases) but with real anatomy:
+// fingers bend at the real joints and sit where they do in each grip. Side view from the thumb
 // side with the pencil tip on the paper, so the five can be compared:
 // which fingers touch the pencil, where, and how open the thumb–index
 // "O" (the web space) is.
@@ -18,12 +17,10 @@ import { useId, type ReactNode } from 'react';
 
 export type GripKey = 'palmar' | 'digital_pronate' | 'quadrupod' | 'immature_tripod' | 'dynamic_tripod';
 
-const LINE = '#7a4a36';
-const SKIN = '#F3C6A5';
-const SKIN_FAR = '#DFA585';   // fingers on the far side of the pencil
+const LINE = '#8a5a44';
+const SKIN = '#FFDCC2';
+const SKIN_FAR = '#F5BFA0';   // fingers on the far side of the pencil
 const SHADE = '#C98466';
-const LIGHT = '#FCE1CC';
-const NAIL = '#F9DAD2';
 
 type P = [number, number];
 
@@ -71,48 +68,31 @@ function fingerGeometry(pts: P[], widths: number[]) {
 
 const poly = (A: P[]) => 'M ' + A.map(q => `${q[0].toFixed(2)} ${q[1].toFixed(2)}`).join(' L ');
 
-// One finger or thumb. `nail`: draw the nail on the upper (+1) or lower
-// (-1) edge near the tip, or not at all (0) when the tip faces away.
-function Finger({ pts, w, far = false, nail = 1 }: { pts: P[]; w: number[]; far?: boolean; nail?: -1 | 0 | 1 }) {
+// Picture-book chubbiness: fingers are drawn this much wider than an
+// adult-proportioned hand so they read as a little kid's soft hand.
+const CHUBBY = 1.3;
+
+// One finger or thumb, picture-book style: flat skin, one soft shadow
+// band on the underside, a small shine on top, a clean outline. No nails
+// or creases (those details are what made earlier versions look creepy).
+// A near finger's knuckle is covered by a skin patch so it grows out of
+// the hand instead of looking stuck on.
+function Finger({ pts, w, far = false }: { pts: P[]; w: number[]; far?: boolean; nail?: -1 | 0 | 1 }) {
   const id = useId().replace(/:/g, '');
-  const g = fingerGeometry(pts, w);
-  const n = g.s.length;
-  const edge = nail === 1 ? g.up : g.down;
-  const tipW = w[w.length - 1];
-  // The finger fades in from its knuckle, so it grows out of the hand
-  // instead of being a separate piece laid on top of it.
-  const [b0, b1] = [pts[0], pts[1]];
-  const fade: P = [b0[0] + (b1[0] - b0[0]) * 0.55, b0[1] + (b1[1] - b0[1]) * 0.55];
+  const ww = w.map(v => v * CHUBBY);
+  const g = fingerGeometry(pts, ww);
+  const tipW = ww[ww.length - 1];
   return (
-    <g mask={`url(#m${id})`}>
-      <defs>
-        <clipPath id={`c${id}`}><path d={g.d} /></clipPath>
-        <linearGradient id={`g${id}`} gradientUnits="userSpaceOnUse" x1={b0[0]} y1={b0[1]} x2={fade[0]} y2={fade[1]}>
-          <stop offset="0" stopColor="#000" />
-          <stop offset="1" stopColor="#fff" />
-        </linearGradient>
-        <mask id={`m${id}`} maskUnits="userSpaceOnUse" x="0" y="0" width="160" height="160">
-          <rect x="0" y="0" width="160" height="160" fill={`url(#g${id})`} />
-        </mask>
-      </defs>
+    <g>
+      <defs><clipPath id={`c${id}`}><path d={g.d} /></clipPath></defs>
       <path d={g.d} fill={far ? SKIN_FAR : SKIN} />
       <g clipPath={`url(#c${id})`}>
-        <path d={poly(g.down)} fill="none" stroke={SHADE} strokeWidth={tipW * 0.9} opacity={far ? 0.5 : 0.55} filter="url(#gh-soft)" />
-        <path d={poly(g.up.slice(2, -3))} fill="none" stroke={LIGHT} strokeWidth={tipW * 0.35} opacity={far ? 0.25 : 0.7} filter="url(#gh-soft)" />
-        {/* faint skin creases across the back of each bent joint */}
-        {pts.slice(1, -1).map((q, i) => (
-          <circle key={i} cx={q[0]} cy={q[1]} r={w[i + 1] * 0.55} fill="none" stroke={LINE} strokeWidth="0.5" opacity="0.22"
-            strokeDasharray={`${w[i + 1] * 0.5} 99`} />
-        ))}
+        <path d={poly(g.down)} fill="none" stroke={far ? SHADE : SKIN_FAR} strokeWidth={tipW * 0.55} opacity={far ? 0.45 : 0.9} />
+        {!far && <path d={poly(g.up.slice(-12, -3))} fill="none" stroke="#fff" strokeWidth={tipW * 0.16} strokeLinecap="round"
+          opacity="0.6" transform={`translate(${(g.s[g.s.length - 1].p[0] - g.up[g.up.length - 1][0]) * 0.35} ${(g.s[g.s.length - 1].p[1] - g.up[g.up.length - 1][1]) * 0.35})`} />}
       </g>
-      {nail !== 0 && (() => {
-        const a = edge[n - 6], b = edge[n - 1];
-        const c = g.s[n - 1].p;
-        const mx = (a[0] + b[0]) / 2 * 0.7 + c[0] * 0.3, my = (a[1] + b[1]) / 2 * 0.7 + c[1] * 0.3;
-        return <path d={`M ${a[0]} ${a[1]} Q ${mx} ${my} ${b[0]} ${b[1]}`} fill="none" stroke={NAIL} strokeWidth={tipW * 0.32}
-          strokeLinecap="round" opacity="0.95" />;
-      })()}
-      <path d={g.d} fill="none" stroke={LINE} strokeWidth="1.1" strokeLinejoin="round" />
+      <path d={g.d} fill="none" stroke={LINE} strokeWidth="1.8" strokeLinejoin="round" />
+      {!far && <circle cx={pts[0][0]} cy={pts[0][1]} r={ww[0] * 0.62} fill={SKIN} />}
     </g>
   );
 }
@@ -122,18 +102,22 @@ function HandBody({ d, shade }: { d: string; shade?: string }) {
   return (
     <g>
       <path d={d} fill={SKIN} />
-      {shade && <path d={shade} fill={SHADE} opacity="0.35" filter="url(#gh-soft)" />}
-      <path d={d} fill="none" stroke={LINE} strokeWidth="1.1" strokeLinejoin="round" />
+      {shade && <path d={shade} fill={SKIN_FAR} opacity="0.8" />}
+      <path d={d} fill="none" stroke={LINE} strokeWidth="1.8" strokeLinejoin="round" />
     </g>
   );
 }
 
-// A soft cotton sleeve over the forearm, entering from the right edge.
+// Kailia's sleeve (white with a purple cuff) over the forearm, entering
+// from the right edge, so the hand is clearly hers and attached to an arm.
 function Sleeve({ d }: { d: string }) {
+  const id = `sl${useId().replace(/:/g, '')}`;
   return (
     <g>
-      <path d={d} fill="#BFD7F2" stroke={LINE} strokeWidth="1.1" strokeLinejoin="round" />
-      <path d={d} fill="none" stroke="#E8F1FB" strokeWidth="3" opacity="0.5" strokeDasharray="2 9" />
+      <path d={d} fill="#FFFFFF" stroke={LINE} strokeWidth="1.8" strokeLinejoin="round" />
+      <clipPath id={id}><path d={d} /></clipPath>
+      <rect x="0" y="0" width="146" height="160" fill="#8B5CF6" clipPath={`url(#${id})`} />
+      <path d={d} fill="none" stroke={LINE} strokeWidth="1.8" strokeLinejoin="round" />
     </g>
   );
 }
@@ -294,9 +278,6 @@ export default function GraspHand({ grip, size = 72, background = '#FBF6EE' }: {
   return (
     <svg viewBox="28 22 132 132" width={size} height={size} role="img"
       aria-label={`${grip.replace(/_/g, ' ')} pencil grip`} style={{ display: 'block', borderRadius: 12, background, overflow: 'hidden' }}>
-      <defs>
-        <filter id="gh-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6" /></filter>
-      </defs>
       <Paper />
       <Grip />
     </svg>
