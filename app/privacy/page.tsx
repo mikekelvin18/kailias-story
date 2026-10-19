@@ -21,6 +21,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
       'Parent reports: your one-tap answers about daily activities (did it / tried with help / not yet) and assessment questionnaire answers.',
       'Reward progress: starlight points, game levels reached, and companion creatures unlocked — used only to celebrate effort in the story.',
       'Consent record: the date, time, and method of your agreement.',
+      'Printable worksheets: when you tap "We did it!" we save only which sheet was finished and the date. You never upload a photo of the finished sheet.',
       'We never record audio, video, or photos of your child. The microphone and camera are never used.',
     ],
   },

@@ -18,6 +18,20 @@ export type Domain = 'fine-motor' | 'math' | 'reading' | 'communication' | 'sens
 // prompt cards) so a simple "we did it!" tap is all that makes sense.
 export type VerifyMethod = 'photo' | 'tap';
 
+// Photo verification is switched OFF for the first public launch: it is
+// the app's biggest legal surface (photos of children) and still needs a
+// privacy lawyer's review. While false, every worksheet is marked done
+// with the "We did it!" tap instead, and no screen offers a photo
+// upload. The photo code (lib/photos.ts) and its deletion coverage stay
+// in place so the feature can come back by flipping this to true —
+// re-read CLAUDE.md Privacy & COPPA rule 4 before doing that.
+export const PHOTO_VERIFY_ENABLED = false;
+
+// The method a worksheet actually uses today, after the launch switch.
+export function effectiveVerifyMethod(w: Worksheet): VerifyMethod {
+  return PHOTO_VERIFY_ENABLED ? w.verifyMethod : 'tap';
+}
+
 export interface TracingShape {
   kind: 'tracing';
   // a simple path descriptor rendered big on a printable page — see

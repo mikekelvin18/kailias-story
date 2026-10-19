@@ -200,9 +200,8 @@ export default function ParentZonePage() {
               <p className="text-xs text-amber-900">
                 <strong>Where it lives:</strong> only on this device. Nothing is uploaded, sold, or
                 shared. <strong>Never collected:</strong> audio, video, location, email, or a last
-                name. The one exception is Printable Worksheets, where a parent may optionally
-                photograph a completed paper sheet — that photo stays on this device only and has
-                its own separate consent, asked the first time you try it. <strong>How long:</strong>{' '}
+                name, and never photos — printable worksheets are marked done with a simple tap.{' '}
+                <strong>How long:</strong>{' '}
                 only while the profile exists — deleting it erases everything (within 30 days on
                 any future servers).
               </p>
