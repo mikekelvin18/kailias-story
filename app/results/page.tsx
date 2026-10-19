@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
-import GraspHand, { type GripKey } from '@/components/art/GraspHand';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 
 function getFineMotorStage(score: number) {
@@ -262,10 +261,10 @@ export default function ResultsPage() {
                     </p>
                   )}
                   {isWriting && graspInfo && (
-                    <p className="text-purple-200 text-xs mt-1 flex items-center gap-2">
-                      <GraspHand grip={state.graspPattern as GripKey} size={40} />
+                    <p className="text-purple-200 text-xs mt-1">
+                      {graspInfo.emoji}{' '}
                       <span className="font-semibold" style={{ color: graspInfo.color }}>{graspInfo.label}</span>
-                      <span>{' — '}typical at {graspInfo.milestone}</span>
+                      {' — '}typical at {graspInfo.milestone}
                     </p>
                   )}
                   {isWriting && state.fineMotorSubScores && (() => {
