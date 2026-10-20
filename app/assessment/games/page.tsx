@@ -123,11 +123,11 @@ const GAMES: DomainGame[] = [
 // ─── Grasp Patterns ───────────────────────────────────────────────────────────
 
 const GRASP_PATTERNS = [
-  { key: 'palmar',          label: 'Palmar / Fist Grip',      description: 'Whole hand wraps the pencil — thumb may fold over fingers',      milestone: '~1–2 years',  color: '#EC4899' },
-  { key: 'digital_pronate', label: 'Digital Pronate',          description: 'Fingers point downward, whole arm moves to draw',                milestone: '~2–3 years',  color: '#F97316' },
-  { key: 'quadrupod',       label: 'Quadrupod (4 fingers)',    description: '4 fingers on pencil with thumb, wrist starting to stabilise',    milestone: '~3.5–4 yrs', color: '#F59E0B' },
-  { key: 'immature_tripod', label: 'Immature Tripod',          description: '3-finger hold but rests on ring finger — less precise',          milestone: '~4–5 years',  color: '#3B82F6' },
-  { key: 'dynamic_tripod',  label: 'Dynamic Tripod (mature)',  description: 'Thumb, index & middle finger — precise wrist-driven movement',   milestone: '~5–6+ yrs',  color: '#059669' },
+  { key: 'palmar',          label: 'Palmar / Fist Grip',      description: 'A fist around the pencil, thumb on top. The whole arm moves.',      milestone: '~1–2 years',  color: '#EC4899' },
+  { key: 'digital_pronate', label: 'Digital Pronate',          description: 'Palm faces down, pointer finger points along the pencil. The arm moves.',                milestone: '~2–3 years',  color: '#F97316' },
+  { key: 'quadrupod',       label: 'Quadrupod (4 fingers)',    description: 'Thumb + 3 fingers touch the pencil (count 4 fingertips). The hand moves.',    milestone: '~3.5–4 yrs', color: '#F59E0B' },
+  { key: 'immature_tripod', label: 'Immature Tripod',          description: 'Thumb + 2 fingers, but the thumb presses flat: no open circle. The hand moves.',          milestone: '~4–5 years',  color: '#3B82F6' },
+  { key: 'dynamic_tripod',  label: 'Dynamic Tripod (mature)',  description: 'Thumb + 2 fingers make an open circle (an "O"). Only the fingers move.',   milestone: '~5–6+ yrs',  color: '#059669' },
 ];
 
 // ─── Grasp Illustrations ──────────────────────────────────────────────────────
@@ -596,7 +596,7 @@ function TracingGame({
                   <GraspIllustration graspKey={gp.key} color={gp.color} />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-800 text-sm">{gp.label}</p>
-                    <p className="text-gray-500 text-xs truncate">{gp.description}</p>
+                    <p className="text-gray-600 text-xs leading-snug mt-0.5">{gp.description}</p>
                   </div>
                   <span className="text-xs font-bold px-2 py-1 rounded-full text-white flex-shrink-0" style={{ background:gp.color }}>{gp.milestone}</span>
                 </div>
