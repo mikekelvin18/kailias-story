@@ -7,6 +7,11 @@
 //   • blinking: real eyelids close over the eyes every few seconds
 //   • excited/celebrating: a happy hop loop with squash & stretch
 //   • tap/click: a jelly squish and a hop, so kids can poke them
+//   • depth: soft light from the upper left and shade on the lower right,
+//     painted only inside the character's own outline (a mask made from
+//     the same picture), a soft ground shadow that shrinks when they hop,
+//     and a slow, small body turn — so the flat picture reads as a
+//     rounded figure standing in the scene, not a sticker on top of it
 // Each character blinks on its own rhythm (derived from useId, not
 // Math.random, so server and browser agree). "Reduce motion" turns it
 // all off via globals.css.
@@ -47,20 +52,36 @@ export default function LiveCharacter({ character, src, size, mood, className, s
   const blinkDelay = `${(seed % 37) / 10}s`;
   const breathDelay = `${-(seed % 23) / 10}s`;
 
+  const anim = poked ? 'live-poke' : mood === 'excited' ? 'live-hop' : 'live-breathe';
+  const mask: React.CSSProperties = {
+    position: 'absolute', inset: 0, pointerEvents: 'none',
+    WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`,
+    WebkitMaskSize: 'contain', maskSize: 'contain',
+    WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+    WebkitMaskPosition: 'center', maskPosition: 'center',
+  };
+
   return (
     <span
       className={className}
       style={{ display: 'inline-block', position: 'relative', width: size, height: size * rig.aspect, cursor: 'pointer', ...style }}
       onClick={() => setPoked(p => p + 1)}
     >
+      {/* ground shadow: stays on the floor, shrinks and fades as they rise */}
+      <span key={`s${poked}`} className={`${anim}-shadow live-ground`} aria-hidden="true"
+        style={{ animationDelay: poked ? undefined : breathDelay }} />
+      <span className="live-turn" style={{ display: 'block', position: 'absolute', inset: 0, animationDelay: breathDelay }}>
       <span
         key={poked}
-        className={poked ? 'live-poke' : mood === 'excited' ? 'live-hop' : 'live-breathe'}
+        className={anim}
         onAnimationEnd={e => { if (e.animationName === 'live-poke') setPoked(0); }}
         style={{ display: 'block', position: 'absolute', inset: 0, transformOrigin: '50% 100%', animationDelay: poked ? undefined : breathDelay }}
       >
         <Image src={src} alt={character === 'kailia' ? 'Kailia' : 'Noel'} width={size} height={size * rig.aspect}
-          draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          draggable={false} className="live-art" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        {/* light and shade, clipped to the character's outline */}
+        <span aria-hidden="true" className="live-shade" style={mask} />
+        <span aria-hidden="true" className="live-light" style={mask} />
         <svg viewBox={`0 0 ${rig.w} ${rig.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
           {rig.eyes.map(([cx, cy]) => (
@@ -71,6 +92,7 @@ export default function LiveCharacter({ character, src, size, mood, className, s
             </g>
           ))}
         </svg>
+      </span>
       </span>
     </span>
   );

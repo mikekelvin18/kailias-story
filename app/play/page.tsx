@@ -17,12 +17,14 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
-import { Mountain, Volcano, PineTree, Cloud, Mushroom, Rainbow } from '@/components/scenery/Scenery';
+import { Mountain, Volcano, PineTree, Mushroom, Rainbow } from '@/components/scenery/Scenery';
+import { Sun, Moon, Sparkle, Butterfly, Flower, Birds } from '@/components/scenery/SkyDecor';
+import LivingSky from '@/components/scenery/LivingSky';
 
 interface DecorItem {
-  e?: string;                                     // plain emoji fallback
-  C?: (props: { size?: number; className?: string }) => React.ReactElement; // illustrated SVG
+  C: (props: { size?: number; className?: string }) => React.ReactElement; // illustrated SVG
   x: number; y: number; s: number;
+  still?: boolean;   // has no motion of its own, so give it a gentle float
 }
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
@@ -62,28 +64,30 @@ const sfx = {
 // hub theme toggle (lib/theme.ts, hooks/useHubTheme.ts) and remembered
 // per-device (not child data, just a display preference).
 
-// `C` (an illustrated SVG component) takes over from a plain emoji `e`
-// wherever we've built one — mountains, trees, clouds, mushrooms — so the
-// map background reads as one illustrated place instead of a scatter of
-// plain system emoji. Anything without a `C` still just renders its emoji.
+// Every decoration is a drawn illustration with its own motion — the sun
+// turns, sparkles twinkle, the butterfly flaps, the flower sways
+// (components/scenery/SkyDecor.tsx). The clouds are no longer decorations
+// here: real-looking clouds drift across the whole map behind everything
+// (components/scenery/LivingSky.tsx). `still` scenery (mountains, trees)
+// gets the gentle float it always had.
 const DECOR_BRIGHT: DecorItem[] = [
-  { e: '☀️', x: 8,  y: 3,  s: 34 }, { C: Rainbow, x: 55, y: 5,  s: 46 },
-  { e: '✨', x: 40, y: 12, s: 14 }, { C: Cloud, x: 78, y: 20, s: 44 },
-  { C: Cloud, x: 12, y: 25, s: 36 }, { e: '🔮', x: 38, y: 33, s: 16 },
-  { C: Mountain, x: 60, y: 40, s: 52 }, { e: '🌸', x: 8,  y: 48, s: 16 },
-  { C: Volcano, x: 62, y: 66, s: 48 }, { C: Mushroom, x: 45, y: 78, s: 26 },
-  { C: PineTree, x: 33, y: 90, s: 32 }, { C: PineTree, x: 60, y: 93, s: 26 },
-  { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
+  { C: Sun, x: 6,  y: 2,  s: 44 }, { C: Rainbow, x: 55, y: 5,  s: 46, still: true },
+  { C: Sparkle, x: 40, y: 12, s: 16 }, { C: Birds, x: 70, y: 27, s: 34 },
+  { C: Sparkle, x: 36, y: 34, s: 13 },
+  { C: Mountain, x: 60, y: 40, s: 52, still: true }, { C: Flower, x: 8,  y: 47, s: 20 },
+  { C: Volcano, x: 62, y: 66, s: 48, still: true }, { C: Mushroom, x: 45, y: 78, s: 26, still: true },
+  { C: PineTree, x: 33, y: 90, s: 32, still: true }, { C: PineTree, x: 60, y: 93, s: 26, still: true },
+  { C: Sparkle, x: 20, y: 95, s: 14 }, { C: Butterfly, x: 66, y: 54, s: 22 },
 ];
 
 const DECOR_DARK: DecorItem[] = [
-  { e: '🌙', x: 8,  y: 3,  s: 34 }, { e: '⭐', x: 55, y: 5,  s: 16 },
-  { e: '✨', x: 40, y: 12, s: 14 }, { C: Cloud, x: 78, y: 20, s: 44 },
-  { C: Cloud, x: 12, y: 25, s: 36 }, { e: '🔮', x: 38, y: 33, s: 16 },
-  { C: Mountain, x: 60, y: 40, s: 52 }, { e: '🌸', x: 8,  y: 48, s: 16 },
-  { C: Volcano, x: 62, y: 66, s: 48 }, { C: Mushroom, x: 45, y: 78, s: 26 },
-  { C: PineTree, x: 33, y: 90, s: 32 }, { C: PineTree, x: 60, y: 93, s: 26 },
-  { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
+  { C: Moon, x: 6,  y: 2,  s: 44 }, { C: Sparkle, x: 55, y: 5,  s: 18 },
+  { C: Sparkle, x: 40, y: 12, s: 14 }, { C: Sparkle, x: 82, y: 14, s: 12 },
+  { C: Sparkle, x: 36, y: 34, s: 13 },
+  { C: Mountain, x: 60, y: 40, s: 52, still: true }, { C: Flower, x: 8,  y: 47, s: 20 },
+  { C: Volcano, x: 62, y: 66, s: 48, still: true }, { C: Mushroom, x: 45, y: 78, s: 26, still: true },
+  { C: PineTree, x: 33, y: 90, s: 32, still: true }, { C: PineTree, x: 60, y: 93, s: 26, still: true },
+  { C: Sparkle, x: 20, y: 95, s: 14 }, { C: Butterfly, x: 66, y: 54, s: 22 },
 ];
 
 const IDLE_LINES = [
@@ -273,9 +277,9 @@ export default function AdventureMap() {
 
         {/* Scenery */}
         {DECOR.map((d, i) => (
-          <span key={i} className={i % 3 === 0 ? 'absolute float' : 'absolute sparkle'}
-            style={{ left: `${d.x}%`, top: `${d.y}%`, opacity: 0.85, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
-            {d.C ? <d.C size={d.s} /> : <span style={{ fontSize: d.s }}>{d.e}</span>}
+          <span key={i} className={d.still ? 'absolute float' : 'absolute'}
+            style={{ left: `${d.x}%`, top: `${d.y}%`, opacity: d.still ? 0.85 : 1, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
+            <d.C size={d.s} />
           </span>
         ))}
 
@@ -385,7 +389,8 @@ export default function AdventureMap() {
   }
 
   return (
-    <main className="h-dvh overflow-hidden" style={{ background: theme.background }}>
+    <main className="h-dvh overflow-hidden" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       {/* One flex column, exactly one screen tall, never scrolls — the map
           (flex-1) is the only part that gives up space when the chrome
           around it needs more, on any phone/tablet/desktop height. Bottom

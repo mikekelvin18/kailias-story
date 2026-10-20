@@ -1,11 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import KailiaAvatar from '@/components/KailiaAvatar';
+import KailiaSprite from '@/components/characters/KailiaSprite';
+import PandaSprite from '@/components/characters/PandaSprite';
+import LivingSky from '@/components/scenery/LivingSky';
+import { Sparkle } from '@/components/scenery/SkyDecor';
 import { useAssessment } from '@/context/AssessmentContext';
 import { SETUP_STEPS } from '@/components/ui/StepGuide';
 
-const STARS = ['⭐', '🌟', '✨', '💫', '🌠'];
+const SPARKLE_COLORS = ['#FFF3B0', '#FFE08A', '#FFFFFF', '#F5D0FE', '#FDE68A'];
 
 export default function LandingPage() {
   // A family that already finished setup goes straight back to the map
@@ -18,30 +21,28 @@ export default function LandingPage() {
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #667EEA 0%, #764BA2 50%, #F093FB 100%)' }}
     >
-      {/* Floating decorations */}
+      {/* Soft dusk clouds drifting behind everything, with drawn sparkles
+          twinkling between them (no emoji). */}
+      <LivingSky mood="dusk" placement="absolute" opacity={0.7} />
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(12)].map((_, i) => (
           <span
             key={i}
-            className="absolute text-2xl float sparkle"
-            style={{
-              left: `${(i * 17 + 5) % 95}%`,
-              top: `${(i * 23 + 8) % 90}%`,
-              animationDelay: `${i * 0.3}s`,
-              fontSize: `${16 + (i % 3) * 8}px`,
-            }}
+            className="absolute"
+            style={{ left: `${(i * 17 + 5) % 95}%`, top: `${(i * 23 + 8) % 90}%` }}
           >
-            {STARS[i % STARS.length]}
+            <Sparkle size={14 + (i % 3) * 7} color={SPARKLE_COLORS[i % SPARKLE_COLORS.length]}
+              style={{ animationDelay: `${i * 0.37}s` }} />
           </span>
         ))}
       </div>
 
       <div className="relative z-10 max-w-2xl w-full text-center">
-        {/* Kailia character (emoji-based, no licensing needed) */}
-        <div className="float mb-6">
-          <div className="inline-flex items-center justify-center" style={{ width: 150, height: 150 }}>
-            <KailiaAvatar size={150} />
-          </div>
+        {/* Kailia and Noel, standing together and breathing, blinking and
+            turning a little; tap either one and they hop. */}
+        <div className="flex items-end justify-center gap-2 mb-6" style={{ minHeight: 150 }}>
+          <KailiaSprite size={112} expression="happy" />
+          <PandaSprite size={122} expression="happy" />
         </div>
 
         <h1
@@ -50,7 +51,7 @@ export default function LandingPage() {
         >
           Kailia's Story
         </h1>
-        <p className="text-2xl text-purple-100 mb-8 font-semibold">
+        <p className="text-2xl text-purple-100 mb-8 font-semibold" style={{ textShadow: '0 2px 6px rgba(60,20,110,0.55)' }}>
           A Magical Learning Adventure
         </p>
 
