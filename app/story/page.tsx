@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StepGuide from '@/components/ui/StepGuide';
+import { activeChild } from '@/lib/family';
 
 const PANELS = [
   {
@@ -39,7 +40,9 @@ export default function StoryPage() {
 
   const next = () => {
     if (isLast) {
-      router.push('/setup');
+      // Step 2 is the grown-up setup: go straight there unless a child
+      // profile already exists (then on to the adventure check).
+      router.push(activeChild() ? '/setup' : '/family');
     } else {
       setPanel(p => p + 1);
     }

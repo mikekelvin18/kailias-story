@@ -97,6 +97,9 @@ export default function ParentZonePage() {
   function handleConsent() {
     if (!agreeChecked) return;
     setFamily(recordConsent('checkbox'));
+    // The next part replaces this one, so bring the parent back to the top
+    // instead of leaving them scrolled down past where it starts.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleAddChild() {
@@ -106,6 +109,7 @@ export default function ParentZonePage() {
     setFormError('');
     setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(AVATARS[0]);
     setShowAddChild(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleSwitchChild(childId: string) {
@@ -547,7 +551,9 @@ export default function ParentZonePage() {
           </p>
         </div>
       </div>
-      <BottomNav />
+      {/* During first-time setup the tabs would only lead off the path
+          (none of them open until setup is done), so hide them. */}
+      {!onboarding && <BottomNav />}
     </main>
   );
 }
