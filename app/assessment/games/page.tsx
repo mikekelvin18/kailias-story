@@ -771,7 +771,7 @@ export default function GamesPage() {
     const domainKey = game.key as 'reading' | 'writing' | 'communication' | 'math';
     if (isLastQ) {
       setDomainScore(domainKey, domainScore);
-      if (isLastStep) { completeAssessment(); router.push('/results'); }
+      if (isLastStep) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); }
       else {
         setGameStep(s => s + 1);
         setQuestionIdx(0); setLocalScore(0);
@@ -907,7 +907,7 @@ export default function GamesPage() {
             <button onClick={handleNext}
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
-              {isLastQ && isLastStep ? 'See My Results! 🎉' : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
+              {isLastQ && isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
             </button>
           )}
         </div>

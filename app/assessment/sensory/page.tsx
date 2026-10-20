@@ -148,10 +148,13 @@ export default function SensoryPage() {
           <div className="float inline-block mb-2">
             <span style={{ fontSize: 56 }}>🧠</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-800">Sensory Style Profile</h1>
-          <p className="text-gray-500 text-sm mt-1 max-w-md mx-auto">
-            Understanding how your child experiences the world through their senses.
-            Answer based on what you observe most of the time.
+          <p className="inline-block text-xs font-extrabold uppercase tracking-wide text-violet-700 rounded-full px-3 py-1 mb-2" style={{ background: '#EDE9FE' }}>
+            👪 For a grown-up · last part · about 3 minutes
+          </p>
+          <h1 className="text-3xl font-extrabold text-gray-800">How {state.childName || 'your child'} senses the world</h1>
+          <p className="text-gray-600 text-base mt-2 max-w-md mx-auto">
+            How a child handles sounds, touch, movement and busy places shapes how they play,
+            learn and stay calm, so this part matters a lot. Answer from what you usually see.
           </p>
         </div>
 

@@ -260,7 +260,7 @@ export default function ChecklistPage() {
   const handleNext = () => {
     const score = domainAnswers.reduce((sum, a) => sum + (a ? SCORE[a] : 0), 0);
     setDomainScore(domain.key as 'reading' | 'writing' | 'communication' | 'math', score);
-    if (isLast) { completeAssessment(); router.push('/results'); } else { setStep(s => s + 1); }
+    if (isLast) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); } else { setStep(s => s + 1); }
   };
 
   // For school-age parent report, use "My child..." phrasing; others use direct questions
@@ -343,7 +343,7 @@ export default function ChecklistPage() {
             className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: allAnswered ? `linear-gradient(135deg, ${domain.color}, #EC4899)` : '#D1D5DB' }}
           >
-            {isLast ? 'See Results! 🎉' : 'Next part →'}
+            {isLast ? (state.sensoryCompleted ? 'See Results! 🎉' : 'Next: senses →') : 'Next part →'}
           </button>
           {!allAnswered && <p className="text-gray-400 text-sm mt-3">Answer all questions to continue</p>}
         </div>

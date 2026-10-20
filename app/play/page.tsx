@@ -352,15 +352,18 @@ export default function AdventureMap() {
           );
         })}
 
-        {/* Kailia stands at the current land — offset kept proportional to
-            the viewBox so it looks right in both portrait and landscape */}
+        {/* Kailia stands right on top of the current land, like a "you are
+            here" pin. She used to stand out on the trail beside it, where she
+            covered the path and made the first land look cut off. */}
         {hydrated && (
-          <div className="absolute float" style={{
-            left: `${((gx(cur) + VBW * 0.13) / VBW) * 100}%`,
-            top: `${((gy(cur) - VBH * 0.09) / VBH) * 100}%`,
+          <div className="absolute" style={{
+            left: `${(gx(cur) / VBW) * 100}%`,
+            top: `${((gy(cur) - (mode === 'portrait' ? 58 : 72)) / VBH) * 100}%`,
             transform: 'translate(-50%, -50%)', pointerEvents: 'none', transition: 'left 1s ease, top 1s ease',
           }}>
-            <KailiaSprite size={44} expression="happy" />
+            {/* the bob animation lives on an inner wrapper: on the outer one
+                it replaced the centering transform and shifted her sideways */}
+            <div className="float"><KailiaSprite size={44} expression="happy" /></div>
           </div>
         )}
       </div>
