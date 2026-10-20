@@ -587,20 +587,25 @@ function TracingGame({
 
           {/* Grasp pattern selector */}
           <p className="text-center font-bold text-gray-700 text-sm mb-3">👀 Parent quick-check: Which grip does your child use?</p>
-          <div className="space-y-2 mb-4">
+          <div className="space-y-3 mb-4">
             {GRASP_PATTERNS.map(gp=>(
-              <button key={gp.key} onClick={()=>setGraspKey(gp.key)}
-                className="w-full text-left p-3 rounded-xl transition-all hover:scale-[1.01]"
-                style={{ background:graspKey===gp.key?`${gp.color}18`:'#F9FAFB', border:`2px solid ${graspKey===gp.key?gp.color:'#E5E7EB'}` }}>
-                <div className="flex items-center gap-3">
-                  <GraspIllustration graspKey={gp.key} color={gp.color} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-800 text-sm">{gp.label}</p>
-                    <p className="text-gray-600 text-xs leading-snug mt-0.5">{gp.description}</p>
+              // Picture + name in the tappable card; the "what to look for"
+              // line sits outside it in plain text: beside it on wider
+              // screens, under it on phones.
+              <div key={gp.key} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+                <button onClick={()=>setGraspKey(gp.key)}
+                  className="w-full sm:w-72 flex-shrink-0 text-left p-3 rounded-xl transition-all hover:scale-[1.01]"
+                  style={{ background:graspKey===gp.key?`${gp.color}18`:'#F9FAFB', border:`2px solid ${graspKey===gp.key?gp.color:'#E5E7EB'}` }}>
+                  <div className="flex items-center gap-3">
+                    <GraspIllustration graspKey={gp.key} color={gp.color} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 text-sm">{gp.label}</p>
+                      <span className="inline-block mt-1 text-xs font-bold px-2 py-1 rounded-full text-white" style={{ background:gp.color }}>{gp.milestone}</span>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold px-2 py-1 rounded-full text-white flex-shrink-0" style={{ background:gp.color }}>{gp.milestone}</span>
-                </div>
-              </button>
+                </button>
+                <p className="text-gray-700 text-sm sm:text-base leading-snug px-1 sm:px-0 sm:flex-1">{gp.description}</p>
+              </div>
             ))}
             <button onClick={()=>setGraspKey('skip')}
               className="w-full text-center py-2 rounded-xl text-gray-400 text-sm transition-all"
