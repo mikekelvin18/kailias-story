@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
+import StepGuide from '@/components/ui/StepGuide';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -757,7 +758,7 @@ export default function GamesPage() {
     const domainKey = game.key as 'reading' | 'writing' | 'communication' | 'math';
     if (isLastQ) {
       setDomainScore(domainKey, domainScore);
-      if (isLastStep) { completeAssessment(); router.push('/results'); }
+      if (isLastStep) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); }
       else {
         setGameStep(s => s + 1);
         setQuestionIdx(0); setLocalScore(0);
@@ -790,6 +791,7 @@ export default function GamesPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-start px-0 py-10" style={{ background: '#FFF9F0' }}>
         <div className="max-w-2xl w-full px-4">
+          <StepGuide step={3} className="mb-6" />
           <div className="flex gap-2 mb-6">
             {stepLabels.map((l, i) => (
               <div key={i} className="flex-1 h-3 rounded-full transition-all"
@@ -798,7 +800,7 @@ export default function GamesPage() {
           </div>
         </div>
         <TracingGame age={state.childAge ?? 8} onComplete={handleTracingComplete} />
-        <p className="text-center text-gray-400 text-xs mt-4">Step {gameStep + 1} of {totalSteps}</p>
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">Game {gameStep + 1} of {totalSteps}</p>
       </main>
     );
   }
@@ -810,6 +812,7 @@ export default function GamesPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-10" style={{ background: '#FFF9F0' }}>
       <div className="max-w-2xl w-full">
+        <StepGuide step={3} className="mb-6" />
 
         <div className="rounded-3xl p-5 mb-5 text-center shadow-lg"
           style={{ background: game.light, border: `3px solid ${game.color}` }}>
@@ -891,13 +894,13 @@ export default function GamesPage() {
             <button onClick={handleNext}
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
-              {isLastQ && isLastStep ? 'See My Results! 🎉' : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
+              {isLastQ && isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
             </button>
           )}
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-4">
-          Step {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">
+          Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
           {!isTracingStep && ` • Question ${questionIdx + 1}/${game.questions.length}`}
         </p>
       </div>

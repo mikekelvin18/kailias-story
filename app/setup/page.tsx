@@ -7,6 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { ChildProfile, activeChild, childAgeYears } from '@/lib/family';
+import StepGuide from '@/components/ui/StepGuide';
 
 // COPPA: children never type personal information anywhere in the app.
 // The child's nickname and birth month/year come from the profile the
@@ -51,11 +52,11 @@ export default function SetupPage() {
 
   const pathLabel = () => {
     if (!group) return null;
-    if (group === 'infant')    return { icon: '📋', text: 'Parent Questionnaire — Infant (6–11 months)', note: 'You answer on behalf of your baby. Takes about 3 minutes.', color: '#EC4899' };
-    if (group === 'toddler')   return { icon: '📋', text: 'Parent Questionnaire — Toddler (12–23 months)', note: 'You answer on behalf of your toddler. Takes about 3 minutes.', color: '#F97316' };
-    if (group === 'preschool') return { icon: '📋', text: 'Parent Questionnaire — Preschool (2–4 years)', note: 'You answer for your child. Takes about 4 minutes.', color: '#F59E0B' };
-    if (preferParent)          return { icon: '📋', text: 'Parent Questionnaire — School Age (5–12 years)', note: 'You answer on behalf of your child.', color: '#059669' };
-    return { icon: '🎮', text: 'Fun Placement Games — School Age (5–12 years)', note: 'Your child plays 4 short mini-games with Kailia. Takes about 8 minutes.', color: '#7C3AED' };
+    if (group === 'infant')    return { icon: '📋', text: 'Parent Questionnaire — Infant (6–11 months)', note: 'You answer on behalf of your baby, then a few questions about their senses. About 6 minutes.', color: '#EC4899' };
+    if (group === 'toddler')   return { icon: '📋', text: 'Parent Questionnaire — Toddler (12–23 months)', note: 'You answer on behalf of your toddler, then a few questions about their senses. About 6 minutes.', color: '#F97316' };
+    if (group === 'preschool') return { icon: '📋', text: 'Parent Questionnaire — Preschool (2–4 years)', note: 'You answer for your child, then a few questions about their senses. About 7 minutes.', color: '#F59E0B' };
+    if (preferParent)          return { icon: '📋', text: 'Parent Questionnaire — School Age (5–12 years)', note: 'You answer on behalf of your child, then a few questions about their senses.', color: '#059669' };
+    return { icon: '🎮', text: 'Fun Placement Games — School Age (5–12 years)', note: 'Your child plays 4 short mini-games with Kailia (about 8 minutes), then you answer a few questions about their senses (about 3 minutes).', color: '#7C3AED' };
   };
 
   const path = pathLabel();
@@ -74,6 +75,7 @@ export default function SetupPage() {
       </div>
 
       <div className="relative z-10 max-w-lg w-full">
+        <StepGuide step={loaded && !child ? 2 : 3} tone="dark" className="mb-6" />
         <div className="text-center mb-6">
           <div className="float inline-block mb-3"><KailiaAvatar size={80} /></div>
           <h1 className="text-4xl font-extrabold text-white drop-shadow-md mb-1">Ready for the Adventure?</h1>

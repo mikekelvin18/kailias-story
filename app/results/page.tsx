@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { loadProgress } from '@/lib/adventure';
+import StepGuide from '@/components/ui/StepGuide';
+import BackButton from '@/components/ui/BackButton';
 
 function getFineMotorStage(score: number) {
   if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', color: '#059669' };
@@ -140,6 +143,14 @@ export default function ResultsPage() {
   const [showCelebration, setShowCelebration] = useState(true);
   const [confirmingRetake, setConfirmingRetake] = useState(false);
   const band = developmentalBand(state.ageGroup, totalScore);
+  // Right after the first adventure check (nothing played on the map
+  // yet) this is the last of the four setup steps; afterwards it's a
+  // regular results page reached from the map or the Parent Zone.
+  const [firstVisit, setFirstVisit] = useState(false);
+  useEffect(() => {
+    const p = loadProgress();
+    setFirstVisit(Object.keys(p.played).length === 0);
+  }, []);
 
   const sensoryMax = 6; // max per pattern = 3 questions × 2 pts
 
@@ -156,8 +167,8 @@ export default function ResultsPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-12"
-      style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+      className="min-h-screen flex flex-col items-center justify-start px-4 py-8"
+      style={{ background: 'linear-gradient(180deg, #1A2238 0%, #222849 60%, #1E2F4D 100%)' }}
     >
       {/* Celebration burst */}
       {showCelebration && (
@@ -172,6 +183,9 @@ export default function ResultsPage() {
       )}
 
       <div className="max-w-2xl w-full relative z-10">
+        {firstVisit
+          ? <StepGuide step={4} tone="dark" className="mb-8" />
+          : <div className="mb-6 print:hidden"><BackButton href="/play" label="Map" /></div>}
         {/* Header */}
         <div className="text-center mb-8">
           <div className="float inline-block"><KailiaAvatar size={90} /></div>
@@ -220,8 +234,8 @@ export default function ResultsPage() {
           className="rounded-3xl p-6 mb-6 shadow-xl"
           style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
         >
-          <h3 className="text-xl font-bold text-white mb-1">Domain Breakdown</h3>
-          <p className="text-purple-300 text-sm mb-5">Estimated developmental level per area</p>
+          <h3 className="text-xl font-bold text-white mb-1">Skill Breakdown</h3>
+          <p className="text-slate-300 text-sm mb-5">Estimated developmental level for each skill area</p>
           <div className="space-y-5">
             {DOMAIN_INFO.map(d => {
               const score = state.scores[d.key as keyof typeof state.scores];
@@ -243,7 +257,7 @@ export default function ResultsPage() {
                       >
                         {age}
                       </span>
-                      <span className="text-purple-300 text-xs">{score}/{d.max}</span>
+                      <span className="text-slate-300 text-xs">{score}/{d.max}</span>
                     </div>
                   </div>
                   <div className="h-3 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
@@ -252,7 +266,7 @@ export default function ResultsPage() {
                       style={{ width: `${pct}%`, background: d.color, minWidth: 8 }}
                     />
                   </div>
-                  <p className="text-purple-400 text-xs italic">{DOMAIN_BASIS[d.key]}</p>
+                  <p className="text-slate-300 text-xs italic">{DOMAIN_BASIS[d.key]}</p>
                   {isWriting && inputMethod && (
                     <p className="text-purple-300 text-xs mt-0.5">
                       {inputMethod === 'touch'
@@ -277,7 +291,7 @@ export default function ResultsPage() {
                         <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
                           <div className="h-1.5 rounded-full" style={{ width: `${state.fineMotorSubScores!.composite}%`, background: fm.color }} />
                         </div>
-                        <span className="text-purple-300 text-xs">{state.fineMotorSubScores!.composite}%</span>
+                        <span className="text-slate-300 text-xs">{state.fineMotorSubScores!.composite}%</span>
                       </div>
                     );
                   })()}
@@ -294,7 +308,7 @@ export default function ResultsPage() {
             style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
           >
             <h3 className="text-xl font-bold text-white mb-1">🧠 Sensory Style Profile</h3>
-            <p className="text-purple-300 text-sm mb-5">How your child processes sensory information</p>
+            <p className="text-slate-300 text-sm mb-5">How your child processes sensory information</p>
 
             {/* 4-pattern bars */}
             <div className="space-y-4 mb-5">
@@ -324,7 +338,7 @@ export default function ResultsPage() {
                           </span>
                         )}
                       </span>
-                      <span className="text-purple-300 text-xs">{score}/{sensoryMax}</span>
+                      <span className="text-slate-300 text-xs">{score}/{sensoryMax}</span>
                     </div>
                     <div className="h-2.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
                       <div
@@ -350,7 +364,7 @@ export default function ResultsPage() {
               </div>
             )}
 
-            <p className="text-purple-400 text-xs italic mt-4">
+            <p className="text-slate-300 text-xs italic mt-4">
               Based on Dunn's Sensory Processing Model (published academic framework). This is a style profile, not a clinical diagnosis.
             </p>
           </div>
@@ -433,13 +447,13 @@ export default function ResultsPage() {
             className="w-full py-5 rounded-full font-extrabold text-xl text-white shadow-2xl transition-all hover:scale-105 pulse"
             style={{ background: 'linear-gradient(135deg, #059669, #2563EB, #7C3AED)' }}
           >
-            🎮 Play Learning Games!
+            {firstVisit ? '🗺️ Open Kailia’s World →' : '🗺️ Back to Kailia’s World'}
           </button>
           {!confirmingRetake ? (
             <button
               onClick={() => setConfirmingRetake(true)}
-              className="w-full py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
+              className="w-full py-3 rounded-full font-bold text-lg text-slate-100 transition-all hover:bg-white/10"
+              style={{ border: '2px solid rgba(255,255,255,0.3)', background: 'transparent' }}
             >
               🔄 Retake the Questionnaire
             </button>
@@ -469,7 +483,7 @@ export default function ResultsPage() {
           )}
           <button
             onClick={() => window.print()}
-            className="w-full py-3 rounded-full font-bold text-lg text-purple-200 transition-all hover:text-white"
+            className="w-full py-3 rounded-full font-bold text-lg text-slate-100 transition-all hover:bg-white/10"
             style={{ border: '2px solid rgba(255,255,255,0.3)', background: 'transparent' }}
           >
             🖨️ Print These Results

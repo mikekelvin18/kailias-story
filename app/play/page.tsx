@@ -260,9 +260,9 @@ export default function AdventureMap() {
             const traveled = isLandUnlocked(progress, i + 1);
             return (
               <g key={a.id}>
-                <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="16" strokeLinecap="round" />
+                <path d={d} fill="none" stroke={bright ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.07)'} strokeWidth="16" strokeLinecap="round" />
                 <path d={d} fill="none"
-                  stroke={traveled ? '#FBBF24' : 'rgba(255,255,255,0.45)'}
+                  stroke={traveled ? '#F59E0B' : (bright ? 'rgba(71,85,105,0.45)' : 'rgba(255,255,255,0.45)')}
                   strokeWidth={traveled ? 5 : 4}
                   strokeLinecap="round"
                   strokeDasharray={traveled ? undefined : '0.5 14'} />
@@ -335,7 +335,7 @@ export default function AdventureMap() {
                   keep this to one line — a long full name wrapping to 2-3
                   lines was tall enough to overlap the land below it. */}
               <span className="relative block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold whitespace-nowrap px-1 py-0.5 rounded-lg mx-auto w-fit"
-                style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.45)', background: 'rgba(0,0,0,0.45)' }}>
+                style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.85)', background: unlocked ? 'rgba(15,23,42,0.62)' : 'rgba(51,65,85,0.55)' }}>
                 {unlocked ? (land.mapLabel ?? land.name) : (isBonus ? 'A new realm…' : (land.mapLabel ?? land.name))}
               </span>
               {unlocked && (
@@ -346,21 +346,24 @@ export default function AdventureMap() {
                 </span>
               )}
               {isFocus && (
-                <span className="relative block text-[10px] sm:text-xs font-bold text-yellow-300 mt-0.5 sparkle">Noel&apos;s pick!</span>
+                <span className={`relative block text-[10px] sm:text-xs font-extrabold mt-0.5 sparkle ${bright ? 'text-amber-700' : 'text-yellow-300'}`}>Noel&apos;s pick!</span>
               )}
             </button>
           );
         })}
 
-        {/* Kailia stands at the current land — offset kept proportional to
-            the viewBox so it looks right in both portrait and landscape */}
+        {/* Kailia stands right on top of the current land, like a "you are
+            here" pin. She used to stand out on the trail beside it, where she
+            covered the path and made the first land look cut off. */}
         {hydrated && (
-          <div className="absolute float" style={{
-            left: `${((gx(cur) + VBW * 0.13) / VBW) * 100}%`,
-            top: `${((gy(cur) - VBH * 0.09) / VBH) * 100}%`,
+          <div className="absolute" style={{
+            left: `${(gx(cur) / VBW) * 100}%`,
+            top: `${((gy(cur) - (mode === 'portrait' ? 58 : 72)) / VBH) * 100}%`,
             transform: 'translate(-50%, -50%)', pointerEvents: 'none', transition: 'left 1s ease, top 1s ease',
           }}>
-            <KailiaSprite size={44} expression="happy" />
+            {/* the bob animation lives on an inner wrapper: on the outer one
+                it replaced the centering transform and shifted her sideways */}
+            <div className="float"><KailiaSprite size={44} expression="happy" /></div>
           </div>
         )}
       </div>
@@ -464,7 +467,11 @@ export default function AdventureMap() {
         {/* Quests and Printables now live in the bottom nav — only Results
             needs a footer link here since it isn't one of the four tabs. */}
         <div className="text-center mt-2 sm:mt-4 flex-shrink-0">
-          <Link href="/results" className={`text-xs underline ${theme.link}`}>For grown-ups: progress &amp; results</Link>
+          <Link href="/results"
+            className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-full text-xs sm:text-sm font-extrabold shadow-sm"
+            style={{ background: theme.backBg, color: theme.backText, border: `1px solid ${theme.navBorder}` }}>
+            👪 For grown-ups: progress &amp; results
+          </Link>
         </div>
       </div>
 
@@ -611,7 +618,7 @@ export default function AdventureMap() {
             </div>
 
             <button onClick={() => setOpenLand(null)}
-              className="mt-4 w-full py-2.5 rounded-full font-bold text-sm text-gray-500"
+              className="mt-4 w-full min-h-[48px] rounded-full font-extrabold text-base text-slate-700 bg-white/80"
               style={{ border: '2px solid rgba(0,0,0,0.12)' }}>
               ← Back to the map
             </button>
