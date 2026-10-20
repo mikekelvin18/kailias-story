@@ -330,6 +330,20 @@ export default function AdventureMap() {
                   filter: unlocked ? 'none' : (isBonus ? 'blur(1.5px) grayscale(0.5)' : 'grayscale(0.9)'),
                 }}>
                 {unlocked ? land.emoji : (isBonus ? '✨' : '🔒')}
+                {/* Done / not-done corner badge, so it's clear at a glance
+                    which lands are finished even though the next land
+                    opens after just one quest. */}
+                {unlocked && !isBonus && complete && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center rounded-full w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm font-extrabold text-white"
+                    style={{ background: '#16A34A', border: '2px solid white' }} aria-label="Finished">✓</span>
+                )}
+                {unlocked && !isBonus && !complete && landStars(progress, land) > 0 && (
+                  <span className="absolute -top-2 -right-4 rounded-full px-1.5 py-0.5 text-[11px] sm:text-sm font-extrabold whitespace-nowrap wiggle"
+                    style={{ background: '#F59E0B', color: '#3B1F00', border: '2px solid white' }}
+                    aria-label={`${landStars(progress, land)} of ${land.quests.length} quests done`}>
+                    {landStars(progress, land)}/{land.quests.length}
+                  </span>
+                )}
               </span>
               {/* mapLabel (a shorter name where needed) + whitespace-nowrap
                   keep this to one line — a long full name wrapping to 2-3
@@ -589,6 +603,29 @@ export default function AdventureMap() {
               <PandaSprite size={42} expression="excited" style={{ flexShrink: 0 }} />
               <p className="text-sm text-gray-700 font-medium pt-1">{openLand.noelIntro}</p>
             </div>
+
+            {/* Lands open early (one quest is enough), so a child can wander
+                ahead with an earlier land half-done. A friendly nudge back to
+                the first unfinished land — never a wall, just a reminder. */}
+            {(() => {
+              const idx = LANDS.findIndex(l => l.id === openLand.id);
+              const unfinished = idx > 0 ? LANDS.slice(0, idx).find(l => !isLandComplete(progress, l)) : undefined;
+              if (!unfinished) return null;
+              const left = unfinished.quests.length - landStars(progress, unfinished);
+              return (
+                <button onClick={() => { sfx.open(); setOpenLand(unfinished); setNoelLine(unfinished.noelIntro); }}
+                  className="w-full flex items-center gap-2 mb-3 rounded-2xl p-3 text-left transition-transform hover:scale-[1.02]"
+                  style={{ background: '#FEF3C7', border: '2px solid #F59E0B' }}>
+                  <span className="text-3xl">{unfinished.emoji}</span>
+                  <span className="flex-1 text-sm font-bold text-amber-900">
+                    {unfinished.name} isn&apos;t finished yet! {left} {left === 1 ? 'quest is' : 'quests are'} still waiting there.
+                  </span>
+                  <span className="px-3 py-1.5 rounded-full font-extrabold text-white text-xs whitespace-nowrap" style={{ background: '#D97706' }}>
+                    Finish it →
+                  </span>
+                </button>
+              );
+            })()}
 
             <div className="space-y-3">
               {openLand.quests.map((q, qi) => {
