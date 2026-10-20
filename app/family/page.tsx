@@ -309,6 +309,21 @@ export default function ParentZonePage() {
               </Link>
             )}
 
+            {/* A quiet preview of what the parent gets later, so Results and
+                the Progress report aren't a surprise. Not tappable: the
+                start button above stays the one main action. */}
+            {onboarding && !showAddChild && (
+              <div className="rounded-3xl p-4 mb-4" aria-label="Unlocks after the adventure check"
+                style={{ background: theme.panelBg, border: `1.5px dashed ${theme.panelBorder}` }}>
+                <p className={`text-sm font-extrabold mb-2 ${theme.subtitle}`}>✨ What you&apos;ll get</p>
+                <ul className={`space-y-1.5 text-sm ${theme.subtitle}`} style={{ opacity: 0.85 }}>
+                  <li>🌟 <strong>Results:</strong> see how {child.nickname} is doing in each skill</li>
+                  <li>📋 <strong>Progress report:</strong> a printable summary for {child.nickname}&apos;s therapist or teacher</li>
+                </ul>
+                <p className={`text-xs font-bold mt-3 ${theme.subtitle}`} style={{ opacity: 0.7 }}>🔒 Unlocks after the adventure check</p>
+              </div>
+            )}
+
             {/* The two things parents come here for most, as big tiles */}
             {!onboarding && (
               <div className="grid grid-cols-2 gap-3 mb-5">
