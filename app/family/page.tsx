@@ -344,7 +344,7 @@ export default function ParentZonePage() {
 
             {/* Custom Quests — a parent's own practice goals, woven into
                 Noel's daily quest screen alongside the built-in library. */}
-            <Section icon="🎯" title="Your own practice goals"
+            <Section icon="🎯" title={`${child.nickname}'s goal`}
               hint={`Add something for ${child.nickname} to practice in Today's Quests`}>
               <p className="text-sm text-gray-600 mb-3">
                 Is there something you or {child.nickname}&apos;s therapist or teacher want to work on,
