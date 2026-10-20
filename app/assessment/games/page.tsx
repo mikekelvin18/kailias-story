@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
 
@@ -130,10 +131,9 @@ const GRASP_PATTERNS = [
 ];
 
 // ─── Grasp Illustrations ──────────────────────────────────────────────────────
-// A simple pencil diagram with a dot for each finger on the pencil.
-// (The old stock photos, a wrench for "palmar" and an adult's hand for
-// "quadrupod", didn't show the grips, so they're no longer used. Hand
-// drawings are waiting on real photos or an illustrator.)
+// Kelvin's cartoon picture of a child's hand in each grip
+// (public/grasp/{key}.webp, cropped from his labelled originals), plus a
+// dot for each finger on the pencil.
 
 function GraspIllustration({ graspKey, color }: { graspKey: string; color: string }) {
   // Finger labels: T=thumb, 1=index, 2=middle, 3=ring, 4=pinky
@@ -148,32 +148,19 @@ function GraspIllustration({ graspKey, color }: { graspKey: string; color: strin
   const active = FINGER_MAP[graspKey] ?? FINGER_MAP.dynamic_tripod;
 
   return (
-    <div style={{ width: 72, flexShrink: 0 }}>
-      <svg viewBox="0 0 72 72" width={72} height={72} style={{ borderRadius: 10, background: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
-        {/* pencil shaft diagonal */}
-        <line x1="8" y1="64" x2="60" y2="8" stroke="#FFD600" strokeWidth="10" strokeLinecap="round" />
-        <line x1="8" y1="64" x2="60" y2="8" stroke="#B8860B" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
-        <circle cx="60" cy="8"  r="5" fill="#FF9999" /> {/* eraser */}
-        <circle cx="8"  cy="64" r="4" fill="#444"    /> {/* tip */}
-        {/* finger circles along the pencil */}
-        {[
-          { x: 52, y: 16 }, // thumb position
-          { x: 44, y: 24 }, // index
-          { x: 36, y: 32 }, // middle
-          { x: 28, y: 40 }, // ring
-          { x: 20, y: 48 }, // pinky
-        ].map((pos, i) => (
-          <g key={i}>
-            <circle cx={pos.x} cy={pos.y} r="9"
-              fill={active[i] ? color : '#E5E7EB'}
-              opacity={active[i] ? 1 : 0.5} />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="8"
-              fontWeight="bold" fill={active[i] ? 'white' : '#9CA3AF'}>
-              {['T', '1', '2', '3', '4'][i]}
-            </text>
-          </g>
+    <div style={{ width: 88, flexShrink: 0 }}>
+      <Image src={`/grasp/${graspKey}.webp`} alt="" width={88} height={88}
+        style={{ width: 88, height: 88, borderRadius: 12, display: 'block', border: '1.5px solid #E5E7EB' }} />
+      <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
+        {['T', '1', '2', '3', '4'].map((lbl, i) => (
+          <div key={lbl} style={{
+            width: 16, height: 16, borderRadius: '50%',
+            background: active[i] ? color : '#D1D5DB',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, fontWeight: 'bold', color: active[i] ? 'white' : '#9CA3AF',
+          }}>{lbl}</div>
         ))}
-      </svg>
+      </div>
     </div>
   );
 }
