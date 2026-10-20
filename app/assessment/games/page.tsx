@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
 
@@ -122,93 +123,44 @@ const GAMES: DomainGame[] = [
 // ─── Grasp Patterns ───────────────────────────────────────────────────────────
 
 const GRASP_PATTERNS = [
-  { key: 'palmar',          label: 'Palmar / Fist Grip',      description: 'Whole hand wraps the pencil — thumb may fold over fingers',      milestone: '~1–2 years',  color: '#EC4899' },
-  { key: 'digital_pronate', label: 'Digital Pronate',          description: 'Fingers point downward, whole arm moves to draw',                milestone: '~2–3 years',  color: '#F97316' },
-  { key: 'quadrupod',       label: 'Quadrupod (4 fingers)',    description: '4 fingers on pencil with thumb, wrist starting to stabilise',    milestone: '~3.5–4 yrs', color: '#F59E0B' },
-  { key: 'immature_tripod', label: 'Immature Tripod',          description: '3-finger hold but rests on ring finger — less precise',          milestone: '~4–5 years',  color: '#3B82F6' },
-  { key: 'dynamic_tripod',  label: 'Dynamic Tripod (mature)',  description: 'Thumb, index & middle finger — precise wrist-driven movement',   milestone: '~5–6+ yrs',  color: '#059669' },
+  { key: 'palmar',          label: 'Palmar / Fist Grip',      description: 'A fist around the pencil, thumb on top. The whole arm moves.',      milestone: '~1–2 years',  color: '#EC4899' },
+  { key: 'digital_pronate', label: 'Digital Pronate',          description: 'Palm faces down, pointer finger points along the pencil. The arm moves.',                milestone: '~2–3 years',  color: '#F97316' },
+  { key: 'quadrupod',       label: 'Quadrupod (4 fingers)',    description: 'Thumb + 3 fingers touch the pencil (count 4 fingertips). The hand moves.',    milestone: '~3.5–4 yrs', color: '#F59E0B' },
+  { key: 'immature_tripod', label: 'Immature Tripod',          description: 'Thumb + 2 fingers, but the thumb presses flat: no open circle. The hand moves.',          milestone: '~4–5 years',  color: '#3B82F6' },
+  { key: 'dynamic_tripod',  label: 'Dynamic Tripod (mature)',  description: 'Thumb + 2 fingers make an open circle (an "O"). Only the fingers move.',   milestone: '~5–6+ yrs',  color: '#059669' },
 ];
 
 // ─── Grasp Illustrations ──────────────────────────────────────────────────────
-// Tries /grasp/{key}.jpg first (drop your own photos in public/grasp/).
-// Falls back to a clean diagram showing which fingers are on the pencil.
-// Photo file names: palmar.jpg | digital_pronate.jpg | quadrupod.jpg
-//                   immature_tripod.jpg | dynamic_tripod.jpg
+// Kelvin's cartoon picture of a child's hand in each grip
+// (public/grasp/{key}.webp, cropped from his labelled originals), plus a
+// dot for each finger on the pencil.
 
 function GraspIllustration({ graspKey, color }: { graspKey: string; color: string }) {
   // Finger labels: T=thumb, 1=index, 2=middle, 3=ring, 4=pinky
   // Which fingers are actively on the pencil for each grip:
   const FINGER_MAP: Record<string, boolean[]> = {
     palmar:          [true,  true,  true,  true,  true ],
-    digital_pronate: [false, true,  true,  true,  true ],
+    digital_pronate: [true,  true,  true,  true,  true ],
     quadrupod:       [true,  true,  true,  true,  false],
     immature_tripod: [true,  true,  true,  false, false],
     dynamic_tripod:  [true,  true,  true,  false, false],
   };
   const active = FINGER_MAP[graspKey] ?? FINGER_MAP.dynamic_tripod;
 
-  // Photo names match public/grasp/*.jpg — drop your photos in there
-  const [photoError, setPhotoError] = useState(false);
-  const photoSrc = `/grasp/${graspKey}.jpg`;
-
-  if (!photoError) {
-    return (
-      <div style={{ width: 72, flexShrink: 0 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photoSrc}
-          alt={graspKey.replace(/_/g, ' ')}
-          onError={() => setPhotoError(true)}
-          style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, display: 'block' }}
-        />
-        {/* finger indicator dots */}
-        <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
-          {['T','1','2','3','4'].map((lbl, i) => (
-            <div key={lbl} style={{
-              width: 16, height: 16, borderRadius: '50%',
-              background: active[i] ? color : '#D1D5DB',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 8, fontWeight: 'bold', color: active[i] ? 'white' : '#9CA3AF',
-            }}>{lbl}</div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Fallback diagram when no photo file is present ────────────────────────
-  // Shows a schematic top-view of a pencil with colored circles for each finger.
-  const fingerLabels = ['T', '1', '2', '3', '4'];
   return (
-    <div style={{ width: 72, flexShrink: 0 }}>
-      <svg viewBox="0 0 72 72" width={72} height={72} style={{ borderRadius: 10, background: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
-        {/* pencil shaft diagonal */}
-        <line x1="8" y1="64" x2="60" y2="8" stroke="#FFD600" strokeWidth="10" strokeLinecap="round" />
-        <line x1="8" y1="64" x2="60" y2="8" stroke="#B8860B" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
-        <circle cx="60" cy="8"  r="5" fill="#FF9999" /> {/* eraser */}
-        <circle cx="8"  cy="64" r="4" fill="#444"    /> {/* tip */}
-        {/* finger circles along the pencil */}
-        {[
-          { x: 52, y: 16 }, // thumb position
-          { x: 44, y: 24 }, // index
-          { x: 36, y: 32 }, // middle
-          { x: 28, y: 40 }, // ring
-          { x: 20, y: 48 }, // pinky
-        ].map((pos, i) => (
-          <g key={i}>
-            <circle cx={pos.x} cy={pos.y} r="9"
-              fill={active[i] ? color : '#E5E7EB'}
-              opacity={active[i] ? 1 : 0.5} />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="8"
-              fontWeight="bold" fill={active[i] ? 'white' : '#9CA3AF'}>
-              {fingerLabels[i]}
-            </text>
-          </g>
+    <div style={{ width: 88, flexShrink: 0 }}>
+      <Image src={`/grasp/${graspKey}.webp`} alt="" width={88} height={88}
+        style={{ width: 88, height: 88, borderRadius: 12, display: 'block', border: '1.5px solid #E5E7EB' }} />
+      <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
+        {['T', '1', '2', '3', '4'].map((lbl, i) => (
+          <div key={lbl} style={{
+            width: 16, height: 16, borderRadius: '50%',
+            background: active[i] ? color : '#D1D5DB',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, fontWeight: 'bold', color: active[i] ? 'white' : '#9CA3AF',
+          }}>{lbl}</div>
         ))}
-      </svg>
-      <p style={{ fontSize: 8, color: '#9CA3AF', textAlign: 'center', marginTop: 2 }}>
-        add photo →<br />/public/grasp/{graspKey}.jpg
-      </p>
+      </div>
     </div>
   );
 }
@@ -635,20 +587,25 @@ function TracingGame({
 
           {/* Grasp pattern selector */}
           <p className="text-center font-bold text-gray-700 text-sm mb-3">👀 Parent quick-check: Which grip does your child use?</p>
-          <div className="space-y-2 mb-4">
+          <div className="space-y-3 mb-4">
             {GRASP_PATTERNS.map(gp=>(
-              <button key={gp.key} onClick={()=>setGraspKey(gp.key)}
-                className="w-full text-left p-3 rounded-xl transition-all hover:scale-[1.01]"
-                style={{ background:graspKey===gp.key?`${gp.color}18`:'#F9FAFB', border:`2px solid ${graspKey===gp.key?gp.color:'#E5E7EB'}` }}>
-                <div className="flex items-center gap-3">
-                  <GraspIllustration graspKey={gp.key} color={gp.color} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-800 text-sm">{gp.label}</p>
-                    <p className="text-gray-500 text-xs truncate">{gp.description}</p>
+              // Picture + name in the tappable card; the "what to look for"
+              // line sits outside it in plain text: beside it on wider
+              // screens, under it on phones.
+              <div key={gp.key} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+                <button onClick={()=>setGraspKey(gp.key)}
+                  className="w-full sm:w-72 flex-shrink-0 text-left p-3 rounded-xl transition-all hover:scale-[1.01]"
+                  style={{ background:graspKey===gp.key?`${gp.color}18`:'#F9FAFB', border:`2px solid ${graspKey===gp.key?gp.color:'#E5E7EB'}` }}>
+                  <div className="flex items-center gap-3">
+                    <GraspIllustration graspKey={gp.key} color={gp.color} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 text-sm">{gp.label}</p>
+                      <span className="inline-block mt-1 text-xs font-bold px-2 py-1 rounded-full text-white" style={{ background:gp.color }}>{gp.milestone}</span>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold px-2 py-1 rounded-full text-white flex-shrink-0" style={{ background:gp.color }}>{gp.milestone}</span>
-                </div>
-              </button>
+                </button>
+                <p className="text-gray-700 text-sm sm:text-base leading-snug px-1 sm:px-0 sm:flex-1">{gp.description}</p>
+              </div>
             ))}
             <button onClick={()=>setGraspKey('skip')}
               className="w-full text-center py-2 rounded-xl text-gray-400 text-sm transition-all"

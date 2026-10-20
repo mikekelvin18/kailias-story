@@ -8,6 +8,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { characterArt } from './characters.config';
 
 const RUN_FRAMES = 5;
 
@@ -32,7 +33,7 @@ export default function RunnerSprite({ character, action, width, height, fps = 8
   useEffect(() => {
     let cancelled = false;
     let loaded = 0;
-    const urls = Array.from({ length: RUN_FRAMES }, (_, i) => `/characters/${character}/run-${i + 1}.png`);
+    const urls = Array.from({ length: RUN_FRAMES }, (_, i) => characterArt(character, `run-${(i + 1) as 1 | 2 | 3 | 4 | 5}`));
     urls.forEach(url => {
       const img = new window.Image();
       img.onload = img.onerror = () => {
@@ -56,8 +57,8 @@ export default function RunnerSprite({ character, action, width, height, fps = 8
   // via objectFit:contain leaves most of the box empty, which reads as a
   // faded/translucent character rather than just "not animated yet".
   const src = action === 'run'
-    ? `/characters/${character}/run-${ready ? frame + 1 : 1}.png`
-    : `/characters/${character}/portrait-front.png`;
+    ? characterArt(character, `run-${(ready ? frame + 1 : 1) as 1 | 2 | 3 | 4 | 5}`)
+    : characterArt(character, 'portrait-front');
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
