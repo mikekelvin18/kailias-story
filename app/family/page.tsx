@@ -343,6 +343,9 @@ export default function ParentZonePage() {
 
             {/* Custom Quests — a parent's own practice goals, woven into
                 Noel's daily quest screen alongside the built-in library. */}
+            {/* Hidden during first-time setup so it doesn't read as a required
+                step next to the "Start the adventure check" button. */}
+            {!onboarding && (
             <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
               <h2 className="text-lg font-extrabold text-gray-800">🎯 {child.nickname}&apos;s goal</h2>
               <p className="text-sm text-gray-600 mb-3">
@@ -386,8 +389,9 @@ export default function ParentZonePage() {
                 Add goal
               </button>
             </div>
+            )}
 
-            <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>More options</p>
+            <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>{onboarding ? 'Optional · you can skip these' : 'More options'}</p>
           </>
         )}
 
