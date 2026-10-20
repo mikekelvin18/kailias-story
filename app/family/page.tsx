@@ -340,16 +340,13 @@ export default function ParentZonePage() {
               </div>
             )}
 
-            <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>More options</p>
 
             {/* Custom Quests — a parent's own practice goals, woven into
                 Noel's daily quest screen alongside the built-in library. */}
-            <Section icon="🎯" title={`${child.nickname}'s goal`}
-              hint={`Add something for ${child.nickname} to practice in Today's Quests`}>
+            <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
+              <h2 className="text-lg font-extrabold text-gray-800">🎯 {child.nickname}&apos;s goal</h2>
               <p className="text-sm text-gray-600 mb-3">
-                Is there something you or {child.nickname}&apos;s therapist or teacher want to work on,
-                like saying &ldquo;thank you&rdquo; or buttoning a coat? Write it here and Noel will add
-                it to Today&apos;s Quests, where you can tap Did it, Tried with help or Not yet.
+                {`Something ${child.nickname} is working on, like saying “thank you” or buttoning a coat. Noel adds it to Today's Quests.`}
               </p>
 
               {customTasks.length > 0 && (
@@ -368,19 +365,29 @@ export default function ParentZonePage() {
               <input id="goal-text" type="text" value={newTaskText} onChange={e => setNewTaskText(e.target.value)}
                 placeholder={`e.g. "Say thank you at dinner"`} maxLength={80}
                 className="w-full border-2 border-slate-200 rounded-2xl px-4 py-2.5 text-gray-800 bg-white mb-3 focus:outline-none focus:border-violet-400" />
-              <label htmlFor="goal-area" className="block text-sm font-bold text-gray-700 mb-1">2. Which skill is it?</label>
-              <select id="goal-area" value={newTaskDomain} onChange={e => setNewTaskDomain(e.target.value as ActivityDomain)}
-                className="w-full border-2 border-slate-200 rounded-2xl px-3 py-2.5 text-gray-800 bg-white mb-3">
-                {(Object.keys(DOMAIN_META) as ActivityDomain[]).map(d => (
-                  <option key={d} value={d}>{DOMAIN_META[d].emoji} {DOMAIN_META[d].label}</option>
-                ))}
-              </select>
+              <p id="goal-area" className="text-sm font-bold text-gray-700 mb-1.5">2. Which skill is it?</p>
+              {/* Tap buttons instead of a dropdown: every choice is visible at once */}
+              <div role="radiogroup" aria-labelledby="goal-area" className="grid grid-cols-2 gap-2 mb-4">
+                {(Object.keys(DOMAIN_META) as ActivityDomain[]).map(d => {
+                  const on = newTaskDomain === d;
+                  return (
+                    <button key={d} role="radio" aria-checked={on} onClick={() => setNewTaskDomain(d)}
+                      className="flex items-center gap-1.5 min-h-[44px] px-3 rounded-2xl text-sm font-bold text-left transition-colors"
+                      style={{ background: on ? '#EDE9FE' : '#F1F5F9', color: on ? '#5B21B6' : '#334155',
+                        border: on ? '2px solid #7C3AED' : '2px solid transparent' }}>
+                      <span>{DOMAIN_META[d].emoji}</span> <span className="leading-tight">{DOMAIN_META[d].label}</span>
+                    </button>
+                  );
+                })}
+              </div>
               <button onClick={handleAddTask} disabled={!newTaskText.trim()}
                 className="w-full min-h-[48px] rounded-full font-extrabold text-white transition-colors"
                 style={{ background: newTaskText.trim() ? '#7C3AED' : '#CBD5E1' }}>
                 Add goal
               </button>
-            </Section>
+            </div>
+
+            <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>More options</p>
           </>
         )}
 
