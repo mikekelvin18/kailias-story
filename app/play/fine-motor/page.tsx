@@ -170,6 +170,75 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
 type Phase='intro'|'playing'|'levelcomplete';
 
+// ─── Living background ───────────────────────────────────────────────────────
+// Drawn every frame under the maze: a soft glow, drifting mist, a row of
+// swaying trees (or crystal spires / rocks, per maze) and wandering
+// fireflies. Calm, slow motion only — nothing flashes. `t` is 0 when the
+// grown-ups turned on Reduce motion, which freezes the scene.
+
+const FIREFLIES = Array.from({ length: 22 }, (_, i) => ({
+  x: (i * 137.5) % W, y: 20 + ((i * 89) % (H - 40)),
+  ax: 18 + (i % 5) * 7, ay: 10 + (i % 4) * 6, sp: 0.00025 + (i % 7) * 0.00006, ph: i * 1.7,
+}));
+
+function drawScenery(ctx: CanvasRenderingContext2D, lv: Level, t: number) {
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, lv.bg); sky.addColorStop(1, lv.wall);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W * 0.82, 30, 4, W * 0.82, 30, 150);
+  glow.addColorStop(0, `${lv.accent}40`); glow.addColorStop(1, `${lv.accent}00`);
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+  // drifting mist bands (wrap around)
+  for (let i = 0; i < 3; i++) {
+    const x = ((t * (0.008 + i * 0.004) + i * 260) % (W + 300)) - 150;
+    ctx.beginPath(); ctx.ellipse(x, 70 + i * 90, 150, 22, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `${lv.accent}10`; ctx.fill();
+  }
+
+  // swaying silhouettes along the top and bottom edges
+  const kind = lv.emoji === '💎' ? 'spire' : lv.emoji === '🐉' ? 'rock' : 'pine';
+  const row = (baseY: number, flip: boolean, n: number, size: number, color: string, speed: number) => {
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) * (W / n) + ((i * 37) % 23) - 11;
+      const hgt = size * (0.75 + ((i * 53) % 10) / 20);
+      const sway = Math.sin(t * speed + i * 1.3) * 0.06;
+      ctx.save();
+      ctx.translate(x, baseY);
+      if (flip) ctx.scale(1, -1);
+      ctx.transform(1, 0, sway, 1, 0, 0);   // shear = sway from the base
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (kind === 'pine') {
+        for (let k = 0; k < 3; k++) {
+          const w = hgt * (0.42 - k * 0.1), y0 = -hgt * k * 0.28;
+          ctx.moveTo(-w, y0); ctx.lineTo(0, y0 - hgt * 0.5); ctx.lineTo(w, y0);
+        }
+      } else if (kind === 'spire') {
+        ctx.moveTo(-hgt * 0.16, 0); ctx.lineTo(0, -hgt); ctx.lineTo(hgt * 0.16, 0);
+      } else {
+        ctx.ellipse(0, 0, hgt * 0.5, hgt * 0.42, 0, Math.PI, 0);
+      }
+      ctx.fill();
+      ctx.restore();
+    }
+  };
+  row(H + 4, false, 9, 70, `${lv.floor}55`, 0.0011);
+  row(-4, true, 7, 48, `${lv.floor}33`, 0.0009);
+
+  // fireflies
+  FIREFLIES.forEach((f, i) => {
+    const x = f.x + Math.sin(t * f.sp + f.ph) * f.ax;
+    const y = f.y + Math.cos(t * f.sp * 1.3 + f.ph) * f.ay;
+    const a = 0.35 + 0.35 * Math.sin(t * 0.002 + i);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
+    g.addColorStop(0, `rgba(253,230,138,${a.toFixed(3)})`); g.addColorStop(1, 'rgba(253,230,138,0)');
+    ctx.fillStyle = g; ctx.fillRect(x - 9, y - 9, 18, 18);
+  });
+}
+
+
 // Endless levels: the five mazes repeat, and each time round the
 // corridor gets a little narrower (steadier hands needed) and the maze
 // is mirrored so it never feels like the same walk twice.
@@ -222,16 +291,20 @@ export default function MazeRunnerPage() {
   const doneRef      = useRef(false);
   const levelRef     = useRef(LEVELS[0]);
   const animRef      = useRef(0);
-  const headImgRef   = useRef<HTMLImageElement | null>(null);
+  // Kailia on the canvas: a 5-frame run cycle while she follows the
+  // finger, a standing pose (breathing) while she waits on GO
+  const runImgsRef   = useRef<HTMLImageElement[]>([]);
+  const standImgRef  = useRef<HTMLImageElement | null>(null);
+  const shownRef     = useRef<Pt|null>(null);   // where Kailia is drawn (eases toward the finger)
+  const facingRef    = useRef(1);               // 1 = facing right, -1 = left
+  const lastStepRef  = useRef(0);
 
-  // Load one of Kailia's running poses once — drawn into the maze player
-  // token instead of a plain blank circle-face. The run frames are close
-  // to square, so they drop into the round token without the tall
-  // full-body portrait's squish/distortion.
   useEffect(() => {
-    const img = new window.Image();
-    img.src = characterArt('kailia', 'run-3');
-    img.onload = () => { headImgRef.current = img; };
+    const load = (pose: Parameters<typeof characterArt>[1]) => {
+      const img = new window.Image(); img.src = characterArt('kailia', pose); return img;
+    };
+    runImgsRef.current = (['run-1', 'run-2', 'run-3', 'run-4', 'run-5'] as const).map(load);
+    standImgRef.current = load('portrait-right');
   }, []);
 
   // Sync levelRef in effect (not during render)
@@ -247,15 +320,12 @@ export default function MazeRunnerPage() {
     const CORRIDOR = corridorRef.current;
     const path = pathRef.current;
     const trail = trailRef.current;
-    const char  = charRef.current;
+    const still = typeof document !== 'undefined' && document.documentElement.dataset.reducedMotion === 'true';
+    const now = performance.now();
+    const t = still ? 0 : now;
 
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = lv.bg; ctx.fillRect(0,0,W,H);
-
-    // Wall grid texture
-    ctx.strokeStyle=`${lv.wall}ee`; ctx.lineWidth=1;
-    for(let x=0;x<W;x+=22){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-    for(let y=0;y<H;y+=22){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    drawScenery(ctx, lv, t);
 
     if (!path.length) return;
 
@@ -285,8 +355,13 @@ export default function MazeRunnerPage() {
     ctx.strokeStyle=lv.floor; ctx.lineWidth=(CORRIDOR-5)*2;
     ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
 
-    // Start marker
+    // Start marker — a soft pulsing ring until the child starts
     const s=path[0];
+    if (!charRef.current) {
+      const r = 16 + Math.sin(t/260)*4;
+      ctx.beginPath(); ctx.arc(s.x,s.y,r+6,0,Math.PI*2);
+      ctx.strokeStyle='rgba(16,185,129,0.55)'; ctx.lineWidth=3; ctx.stroke();
+    }
     ctx.shadowBlur=14; ctx.shadowColor='#10B981';
     ctx.beginPath(); ctx.arc(s.x,s.y,11,0,Math.PI*2); ctx.fillStyle='#10B981'; ctx.fill();
     ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.font='bold 8px sans-serif';
@@ -295,7 +370,7 @@ export default function MazeRunnerPage() {
     // End marker
     const e=path[path.length-1];
     ctx.shadowBlur=14; ctx.shadowColor='#EC4899';
-    ctx.beginPath(); ctx.arc(e.x,e.y,13,0,Math.PI*2); ctx.fillStyle='#EC4899'; ctx.fill();
+    ctx.beginPath(); ctx.arc(e.x,e.y,13+Math.sin(t/300)*1.5,0,Math.PI*2); ctx.fillStyle='#EC4899'; ctx.fill();
     ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.font='bold 8px sans-serif';
     ctx.fillText('END',e.x,e.y);
     ctx.textAlign='start'; ctx.textBaseline='alphabetic';
@@ -303,7 +378,8 @@ export default function MazeRunnerPage() {
     // Stars
     starPosRef.current.forEach((sp,i)=>{
       if (collectedRef.current.has(i)) return;
-      drawStar(ctx,sp.x,sp.y,11,'#FFD700');
+      // stars bob and twinkle so they read as treasure, not decoration
+      drawStar(ctx,sp.x,sp.y+Math.sin(t/380+i*2)*3,11+Math.sin(t/220+i)*1.6,'#FFD700');
     });
 
     // Trail
@@ -315,24 +391,39 @@ export default function MazeRunnerPage() {
     }
     ctx.shadowBlur=0;
 
-    // Character — the whole running pose, full size, instead of a blank
-    // face or a tiny circle-cropped sliver of one
-    if (char) {
-      const head = headImgRef.current;
-      if (head) {
-        ctx.shadowBlur=18; ctx.shadowColor=lv.accent;
-        const dh = 34, dw = dh * (head.naturalWidth / head.naturalHeight);
-        ctx.drawImage(head, char.x - dw/2, char.y - dh/2 + 2, dw, dh);
-        ctx.shadowBlur=0;
-      } else {
-        ctx.shadowBlur=24; ctx.shadowColor=lv.accent;
-        ctx.beginPath(); ctx.arc(char.x,char.y,15,0,Math.PI*2); ctx.fillStyle=lv.accent; ctx.fill();
-        ctx.shadowBlur=0;
-        ctx.beginPath(); ctx.arc(char.x,char.y,8,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
-      }
+    // Kailia — stands on GO until the child starts, then runs after the
+    // finger (eased, so she runs rather than teleports), flipping to face
+    // the way she's heading. Standing still she breathes and bobs.
+    const target = charRef.current ?? path[0];
+    const shown = shownRef.current ?? { ...target };
+    const dx = target.x - shown.x, dy = target.y - shown.y;
+    shown.x += dx * 0.35; shown.y += dy * 0.35;
+    shownRef.current = shown;
+    if (Math.abs(dx) > 0.8) facingRef.current = dx > 0 ? 1 : -1;
+    if (Math.hypot(dx, dy) > 1.2) lastStepRef.current = now;
+    const running = now - lastStepRef.current < 140;
+    const runImgs = runImgsRef.current;
+    const img = running && runImgs.length ? runImgs[Math.floor(now / 85) % runImgs.length] : standImgRef.current;
+    // soft ground shadow
+    ctx.beginPath(); ctx.ellipse(shown.x, shown.y + 4, 14, 4.5, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+    if (img && img.complete && img.naturalWidth) {
+      const dh = running ? 60 : 66;
+      const breathe = running ? 1 : 1 + Math.sin(t/420) * 0.025;
+      const bob = running ? -Math.abs(Math.sin(now/85*Math.PI/2)) * 3 : Math.sin(t/700) * 1.5;
+      const dw = dh * (img.naturalWidth / img.naturalHeight);
+      ctx.save();
+      ctx.translate(shown.x, shown.y + 4 + bob);
+      ctx.scale(facingRef.current / breathe, breathe);
+      ctx.shadowBlur = 16; ctx.shadowColor = lv.accent;
+      ctx.drawImage(img, -dw/2, -dh, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.shadowBlur=24; ctx.shadowColor=lv.accent;
+      ctx.beginPath(); ctx.arc(shown.x,shown.y,15,0,Math.PI*2); ctx.fillStyle=lv.accent; ctx.fill();
+      ctx.shadowBlur=0;
     }
 
-    // Hit flash
     // touching a wall just dims the light a moment — no red, no penalty
     if (hitFlashRef.current) { ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(0,0,W,H); }
   }, []); // stable — everything read from refs
@@ -356,6 +447,7 @@ export default function MazeRunnerPage() {
     hitFlashRef.current  = false;
     doneRef.current      = false;
     charRef.current      = null;
+    shownRef.current     = null;
     trailRef.current     = [];
     setTimeout(drawCanvas, 30);
   }, [drawCanvas, mirror]);
@@ -368,6 +460,16 @@ export default function MazeRunnerPage() {
       initLevelRefs();
     }
   }, [level, phase, initLevelRefs]);
+
+  // Run the scene continuously while playing — fireflies drift, trees
+  // sway, stars twinkle and Kailia breathes even when nobody is touching.
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    let id = 0;
+    const loop = () => { drawCanvas(); id = requestAnimationFrame(loop); };
+    id = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(id);
+  }, [phase, drawCanvas]);
 
   // ── Input ─────────────────────────────────────────────────────────────────────
 
