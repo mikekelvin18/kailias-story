@@ -604,7 +604,7 @@ function Lantern({ glow, size, gulp = 0 }: { glow: number; size: number; gulp?: 
         <g filter="url(#kp-brush)">
           <path d="M18 14 Q30 -2 42 14" stroke={sk} strokeWidth="3" fill="none" strokeLinecap="round" />
           <rect x="14" y="13" width="32" height="8" rx="3" fill="#C9822F" stroke={sk} strokeWidth="2.4" />
-          <path d="M16 21 H44 L47 60 H13z" fill={`rgb(${120 + glow * 135}, ${90 + glow * 140}, ${60 + glow * 40})`} stroke={sk} strokeWidth="2.6" strokeLinejoin="round" style={{ transition: 'fill 0.6s' }} />
+          <path d="M16 21 H44 L47 60 H13z" fill={`rgb(${205 + glow * 50}, ${165 + glow * 65}, ${115 + glow * 0})`} stroke={sk} strokeWidth="2.6" strokeLinejoin="round" style={{ transition: 'fill 0.6s' }} />
           <path d="M23 22 L21 59 M37 22 L39 59" stroke={sk} strokeWidth="1.6" opacity="0.6" />
           <ellipse cx="30" cy={50 - glow * 6} rx={3 + glow * 4} ry={5 + glow * 7} fill="#FFFBE0" opacity={0.25 + glow * 0.75} className="gb-pulse" style={{ transition: 'all 0.6s' }} />
           <rect x="11" y="59" width="38" height="8" rx="3" fill="#C9822F" stroke={sk} strokeWidth="2.4" />
