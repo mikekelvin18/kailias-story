@@ -10,13 +10,15 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import LiveArt from '@/components/characters/LiveArt';
+import Stage, { type World } from './kit/Stage';
+import Actor, { usePetMood } from './kit/Actor';
+import { useBursts } from './kit/Burst';
 import SkillIntro from '@/components/SkillIntro';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, nextGameLevel, recordGameLevel, COMPANIONS } from '@/lib/rewards';
 import { logQuestMetric } from '@/lib/metrics';
-import { findTrail, petWidth } from '@/lib/companionTrails';
+import { findTrail } from '@/lib/companionTrails';
 import { clearReturnPath } from '@/lib/returnTo';
 import { speak, chime } from './voice';
 
@@ -33,6 +35,11 @@ export interface RoundProps {
   /** the friend says a line (shown and read aloud) */
   say: (line: string) => void;
   onDone: (r: RoundResult) => void;
+  /** the friend, who plays inside the round */
+  pet: { art: string; name: string };
+  world: World;
+  /** set for a moment after the round ends, so the friend can react */
+  reaction: 'win' | 'miss' | null;
 }
 
 export interface FriendGameDef {
@@ -44,6 +51,8 @@ export interface FriendGameDef {
   rounds?: number;       // per level, default 5
   cheers: string[];
   tryAgain: string[];
+  /** what the friend says when tickled */
+  giggles?: string[];
 }
 
 const MAX_D = 10;
@@ -68,7 +77,10 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
   const [results, setResults] = useState<boolean[]>([]);
   const [difficulty, setDifficulty] = useState(1);
   const [line, setLine] = useState(game.intro);
-  const [between, setBetween] = useState(false);
+  const [between, setBetween] = useState<'win' | 'miss' | null>(null);
+  const [mood, moodKey, setMood] = usePetMood('idle');
+  const tickles = useRef(0);
+  const { layer: bursts, fire } = useBursts();
   const stats = useRef({ startD: 1, startedAt: 0, data: {} as Record<string, number> });
 
   useEffect(() => { clearReturnPath(); setLevel(nextGameLevel(game.id)); }, [game.id]);
@@ -94,13 +106,13 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
     if (r.ok) { chime.good(); say(pick(game.cheers, next.length)); }
     else { chime.soft(); say(pick(game.tryAgain, next.length)); }
     const d = Math.max(1, Math.min(MAX_D, difficulty + (r.ok ? 1 : -1)));
-    setBetween(true);
+    setBetween(r.ok ? 'win' : 'miss');
     setTimeout(() => {
-      setBetween(false);
+      setBetween(null);
       if (next.length >= rounds) return finish(next, d);
       setDifficulty(d);
       setRound(n => n + 1);
-    }, 1400);
+    }, 1700);
   }
 
   function finish(res: boolean[], endD: number) {
@@ -115,7 +127,16 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
     recordGameLevel(game.id, level);
     chime.fanfare();
     setPhase('done');
+    [0, 350, 700, 1100].forEach((t, i) => setTimeout(() => fire(20 + (i % 2) * 60, 30 + i * 8, undefined, 16, 110), t));
     say(`Level ${level} done! You were amazing. Want to keep going?`);
+  }
+
+  function tickle() {
+    tickles.current++;
+    setMood('cheer');
+    chime.tap();
+    fire(50, 45, [trail.color, '#FFFFFF'], 8, 50);
+    say(pick(game.giggles ?? ['Hee hee! That tickles!', 'Again, again!', 'You found my giggle spot!'], tickles.current));
   }
 
   function again() {
@@ -125,6 +146,8 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
   }
 
   const back = `/play/friends/${trail.slug}`;
+  const world = trail.slug as World;
+  const petInfo = { art: pet.art, name: trail.pet };
 
   return (
     <div className="min-h-screen px-4 pt-5 pb-8" style={{ background: trail.sky, color: trail.ink }}>
@@ -136,35 +159,41 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
           </Link>
           <h1 className="text-2xl font-extrabold leading-tight flex-1 min-w-0">{game.title}</h1>
           {phase === 'play' && (
-            // round dots: how far along this level is, no scores
-            <div className="flex gap-1.5" aria-label={`Round ${round + 1} of ${rounds}`}>
+            // round stars fill in as the level goes: how far along, no scores
+            <div className="flex gap-1" aria-label={`Round ${round + 1} of ${rounds}`}>
               {Array.from({ length: rounds }, (_, i) => (
-                <span key={i} className="w-3 h-3 rounded-full"
-                  style={{ background: i < results.length ? trail.color : i === round ? '#FFFFFF' : 'rgba(255,255,255,0.22)' }} />
+                <svg key={`${i}-${i < results.length}`} width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
+                  className={i < results.length ? 'bounce-in' : i === round ? 'fg-bob' : undefined}>
+                  <path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z"
+                    fill={i < results.length ? trail.color : 'rgba(255,255,255,0.18)'} stroke={i === round || i < results.length ? '#FFFFFF' : 'rgba(255,255,255,0.35)'} strokeWidth="1.4" strokeLinejoin="round" />
+                </svg>
               ))}
             </div>
           )}
         </div>
 
-        {/* the friend talks */}
-        <div className="mt-3 flex items-end gap-2">
-          <span className="flex-shrink-0">
-            <LiveArt src={pet.art} alt={`${trail.pet} the ${pet.kind}`} size={petWidth(pet.art, phase === 'play' ? 76 : 130)} kind="pet" />
-          </span>
-          <div className="flex-1 flex items-start gap-2 rounded-3xl bg-white px-3.5 py-2.5 mb-1" style={{ color: '#1F2A44' }}>
-            <p className="flex-1 text-[15px] font-bold leading-snug" aria-live="polite">{line}</p>
-            <button onClick={() => speak(line)} aria-label="Hear it again"
-              className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: `${trail.color}66` }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F2A44" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></svg>
-            </button>
-          </div>
+        {/* what the friend says (the friend itself is in the scene below) */}
+        <div key={line} className="relative mt-3 flex items-start gap-2 rounded-3xl bg-white px-3.5 py-2.5 bounce-in" style={{ color: '#1F2A44' }}>
+          <p className="flex-1 text-[15px] font-bold leading-snug" aria-live="polite">
+            <span className="font-extrabold" style={{ color: '#8A5A00' }}>{trail.pet}: </span>{line}
+          </p>
+          <button onClick={() => speak(line)} aria-label="Hear it again"
+            className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: `${trail.color}88` }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F2A44" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></svg>
+          </button>
+          <span aria-hidden="true" className="absolute -bottom-2 left-10 w-5 h-5 bg-white rotate-45 rounded-[4px]" />
         </div>
 
         {phase === 'intro' && (
-          <div className="flex-1 flex flex-col justify-end gap-3 mt-6">
+          <div className="flex-1 flex flex-col gap-3 mt-4">
+            <Stage world={world} className="aspect-[4/3.4]">
+              <Actor art={pet.art} name={trail.pet} x={50} y={88} h={190} mood={mood} moodKey={moodKey} onTap={tickle} />
+              {bursts}
+            </Stage>
+            <div className="flex-1" />
             <button onClick={start}
-              className="w-full h-16 rounded-full text-2xl font-extrabold transition-transform active:scale-[0.98]"
-              style={{ background: trail.color, color: '#1F2A44', boxShadow: '0 5px 0 rgba(0,0,0,0.25)' }}>
+              className="w-full h-16 rounded-full text-2xl font-extrabold transition-transform active:scale-[0.98] fg-bob"
+              style={{ background: trail.color, color: '#1F2A44', boxShadow: '0 6px 0 rgba(0,0,0,0.25)' }}>
               Let&apos;s play!
             </button>
             <SkillIntro gameId={game.id} />
@@ -172,23 +201,29 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
         )}
 
         {phase === 'play' && (
-          <div className="flex-1 mt-3" style={{ pointerEvents: between ? 'none' : undefined }}>
-            <game.Round key={round} difficulty={difficulty} accent={trail.color} say={say} onDone={onDone} />
+          <div className="relative flex-1 mt-4" style={{ pointerEvents: between ? 'none' : undefined }}>
+            <game.Round key={round} difficulty={difficulty} accent={trail.color} say={say} onDone={onDone}
+              pet={petInfo} world={world} reaction={between} />
           </div>
         )}
 
         {phase === 'done' && (
-          <div className="flex-1 flex flex-col justify-end gap-3 mt-6">
-            <div className="flex justify-center gap-2 mb-2" aria-hidden="true">
-              {results.map((_, i) => (
-                <svg key={i} width="34" height="34" viewBox="0 0 24 24" className="bounce-in" style={{ animationDelay: `${i * 0.12}s`, animationFillMode: 'both' }}>
-                  <path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z" fill={trail.color} stroke="#FFFFFF" strokeWidth="1.2" strokeLinejoin="round" />
-                </svg>
-              ))}
-            </div>
+          <div className="flex-1 flex flex-col gap-3 mt-4">
+            <Stage world={world} className="aspect-[4/3.4]">
+              <Actor art={pet.art} name={trail.pet} x={50} y={88} h={190} mood={mood === 'idle' ? 'dance' : mood} moodKey={moodKey} onTap={tickle} />
+              <div className="absolute inset-x-0 top-3 flex justify-center gap-1.5" aria-hidden="true">
+                {results.map((_, i) => (
+                  <svg key={i} width="36" height="36" viewBox="0 0 24 24" className="bounce-in" style={{ animationDelay: `${0.3 + i * 0.15}s`, animationFillMode: 'both' }}>
+                    <path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z" fill={trail.color} stroke="#FFFFFF" strokeWidth="1.4" strokeLinejoin="round" />
+                  </svg>
+                ))}
+              </div>
+              {bursts}
+            </Stage>
+            <div className="flex-1" />
             <button onClick={again}
-              className="w-full h-16 rounded-full text-2xl font-extrabold transition-transform active:scale-[0.98]"
-              style={{ background: trail.color, color: '#1F2A44', boxShadow: '0 5px 0 rgba(0,0,0,0.25)' }}>
+              className="w-full h-16 rounded-full text-2xl font-extrabold transition-transform active:scale-[0.98] fg-bob"
+              style={{ background: trail.color, color: '#1F2A44', boxShadow: '0 6px 0 rgba(0,0,0,0.25)' }}>
               Next level
             </button>
             <Link href={back} className="w-full h-14 rounded-full text-lg font-extrabold flex items-center justify-center"
