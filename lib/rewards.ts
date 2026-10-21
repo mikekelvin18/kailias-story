@@ -13,6 +13,9 @@ export interface RewardsState {
   gameLevels: Record<string, number>; // gameId -> highest level beaten
   celebratedCompanions: string[];     // companion names already revealed,
                                        // so the reveal moment fires once
+  focusCompanion?: string | null;      // the friend (= skill) a parent or
+                                       // child picked to practice; shared by
+                                       // friends' adventures and the care pet
 }
 
 import { scopedKey } from './family';
@@ -91,6 +94,21 @@ export function pendingCompanionReveal(r: RewardsState) {
 export function markCompanionCelebrated(name: string): RewardsState {
   const r = loadRewards();
   if (!r.celebratedCompanions.includes(name)) r.celebratedCompanions = [...r.celebratedCompanions, name];
+  save(r);
+  return r;
+}
+
+// The friend picked as the practice focus (a COMPANIONS name), or null.
+// One source of truth: friends' adventures and the daily care pet both
+// read and write it through these two helpers.
+export function getFocusCompanion(): string | null {
+  const name = loadRewards().focusCompanion ?? null;
+  return COMPANIONS.some(c => c.name === name) ? name : null;
+}
+
+export function setFocusCompanion(name: string | null): RewardsState {
+  const r = loadRewards();
+  r.focusCompanion = name && COMPANIONS.some(c => c.name === name) ? name : null;
   save(r);
   return r;
 }
