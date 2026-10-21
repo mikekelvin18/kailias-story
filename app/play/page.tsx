@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
+import LiveArt from '@/components/characters/LiveArt';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
   LANDS, BONUS_LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
@@ -17,12 +18,14 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
-import { Mountain, Volcano, PineTree, Cloud, Mushroom, Rainbow } from '@/components/scenery/Scenery';
+import { PineTree, Mushroom, Rainbow } from '@/components/scenery/Scenery';
+import { Sun, Moon, Sparkle, Butterfly, Flower, Birds, StarIcon, LockIcon } from '@/components/scenery/SkyDecor';
+import LivingSky from '@/components/scenery/LivingSky';
 
 interface DecorItem {
-  e?: string;                                     // plain emoji fallback
-  C?: (props: { size?: number; className?: string }) => React.ReactElement; // illustrated SVG
+  C: (props: { size?: number; className?: string }) => React.ReactElement; // illustrated SVG
   x: number; y: number; s: number;
+  still?: boolean;   // has no motion of its own, so give it a gentle float
 }
 
 const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
@@ -62,28 +65,29 @@ const sfx = {
 // hub theme toggle (lib/theme.ts, hooks/useHubTheme.ts) and remembered
 // per-device (not child data, just a display preference).
 
-// `C` (an illustrated SVG component) takes over from a plain emoji `e`
-// wherever we've built one — mountains, trees, clouds, mushrooms — so the
-// map background reads as one illustrated place instead of a scatter of
-// plain system emoji. Anything without a `C` still just renders its emoji.
+// Every decoration is a drawn illustration with its own motion — the sun
+// turns, sparkles twinkle, the butterfly flaps, the flower sways
+// (components/scenery/SkyDecor.tsx). The clouds are no longer decorations
+// here: real-looking clouds drift across the whole map behind everything
+// (components/scenery/LivingSky.tsx). `still` scenery (mountains, trees)
+// gets the gentle float it always had. The mountain and volcano were
+// dropped once the lands became painted islands: they crowded the labels.
 const DECOR_BRIGHT: DecorItem[] = [
-  { e: '☀️', x: 8,  y: 3,  s: 34 }, { C: Rainbow, x: 55, y: 5,  s: 46 },
-  { e: '✨', x: 40, y: 12, s: 14 }, { C: Cloud, x: 78, y: 20, s: 44 },
-  { C: Cloud, x: 12, y: 25, s: 36 }, { e: '🔮', x: 38, y: 33, s: 16 },
-  { C: Mountain, x: 60, y: 40, s: 52 }, { e: '🌸', x: 8,  y: 48, s: 16 },
-  { C: Volcano, x: 62, y: 66, s: 48 }, { C: Mushroom, x: 45, y: 78, s: 26 },
-  { C: PineTree, x: 33, y: 90, s: 32 }, { C: PineTree, x: 60, y: 93, s: 26 },
-  { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
+  { C: Sun, x: 6,  y: 2,  s: 44 }, { C: Rainbow, x: 34, y: 6,  s: 46, still: true },
+  { C: Sparkle, x: 40, y: 12, s: 16 }, { C: Birds, x: 70, y: 27, s: 34 },
+  { C: Sparkle, x: 36, y: 34, s: 13 },
+  { C: Flower, x: 8,  y: 47, s: 20 }, { C: Mushroom, x: 45, y: 78, s: 26, still: true },
+  { C: PineTree, x: 33, y: 90, s: 32, still: true }, { C: PineTree, x: 60, y: 93, s: 26, still: true },
+  { C: Sparkle, x: 20, y: 95, s: 14 }, { C: Butterfly, x: 66, y: 54, s: 22 },
 ];
 
 const DECOR_DARK: DecorItem[] = [
-  { e: '🌙', x: 8,  y: 3,  s: 34 }, { e: '⭐', x: 55, y: 5,  s: 16 },
-  { e: '✨', x: 40, y: 12, s: 14 }, { C: Cloud, x: 78, y: 20, s: 44 },
-  { C: Cloud, x: 12, y: 25, s: 36 }, { e: '🔮', x: 38, y: 33, s: 16 },
-  { C: Mountain, x: 60, y: 40, s: 52 }, { e: '🌸', x: 8,  y: 48, s: 16 },
-  { C: Volcano, x: 62, y: 66, s: 48 }, { C: Mushroom, x: 45, y: 78, s: 26 },
-  { C: PineTree, x: 33, y: 90, s: 32 }, { C: PineTree, x: 60, y: 93, s: 26 },
-  { e: '✨', x: 20, y: 95, s: 13 }, { e: '🦋', x: 70, y: 55, s: 15 },
+  { C: Moon, x: 6,  y: 2,  s: 44 }, { C: Sparkle, x: 55, y: 5,  s: 18 },
+  { C: Sparkle, x: 40, y: 12, s: 14 }, { C: Sparkle, x: 82, y: 14, s: 12 },
+  { C: Sparkle, x: 36, y: 34, s: 13 },
+  { C: Flower, x: 8,  y: 47, s: 20 }, { C: Mushroom, x: 45, y: 78, s: 26, still: true },
+  { C: PineTree, x: 33, y: 90, s: 32, still: true }, { C: PineTree, x: 60, y: 93, s: 26, still: true },
+  { C: Sparkle, x: 20, y: 95, s: 14 }, { C: Butterfly, x: 66, y: 54, s: 22 },
 ];
 
 const IDLE_LINES = [
@@ -273,9 +277,9 @@ export default function AdventureMap() {
 
         {/* Scenery */}
         {DECOR.map((d, i) => (
-          <span key={i} className={i % 3 === 0 ? 'absolute float' : 'absolute sparkle'}
-            style={{ left: `${d.x}%`, top: `${d.y}%`, opacity: 0.85, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
-            {d.C ? <d.C size={d.s} /> : <span style={{ fontSize: d.s }}>{d.e}</span>}
+          <span key={i} className={d.still ? 'absolute float' : 'absolute'}
+            style={{ left: `${d.x}%`, top: `${d.y}%`, opacity: d.still ? 0.85 : 1, animationDelay: `${i * 0.5}s`, pointerEvents: 'none' }}>
+            <d.C size={d.s} />
           </span>
         ))}
 
@@ -322,29 +326,61 @@ export default function AdventureMap() {
                     zIndex: 0,
                   }} />
               )}
+              {land.art ? (
+                // Kelvin's painted island for this land, floating gently.
+                // Locked lands show the island faded with a small lock, so
+                // kids can already see where they're heading.
+                <span className={`relative inline-block w-20 sm:w-28 lg:w-32 transition-transform hover:scale-110`}>
+                  {unlocked && isCurrent && !complete && (
+                    <span aria-hidden="true" className="absolute left-1/2 top-1/2 rounded-full pulse"
+                      style={{ width: '82%', height: '72%', transform: 'translate(-50%, -45%)', background: `radial-gradient(circle, ${land.glow}66, transparent 70%)` }} />
+                  )}
+                  <LiveArt src={land.art} alt={land.name} size="100%" kind="land" pokeable={false}
+                    style={{ filter: unlocked ? (complete ? 'drop-shadow(0 0 6px #FBBF24)' : 'none') : 'grayscale(0.85) opacity(0.6)' }} />
+                  {!unlocked && (
+                    <span className="absolute left-1/2 top-1/2 flex items-center justify-center rounded-full w-8 h-8 sm:w-10 sm:h-10 text-base sm:text-xl"
+                      style={{ transform: 'translate(-50%, -50%)', background: 'rgba(255,255,255,0.85)', border: '2px solid rgba(100,116,139,0.5)' }} aria-label="Locked"><LockIcon size={20} /></span>
+                  )}
+                  {/* Done / not-done corner badge, so it's clear at a glance
+                      which lands are finished even though the next land
+                      opens after just one quest. */}
+                  {unlocked && !isBonus && complete && (
+                    <span className="absolute top-0 right-0 flex items-center justify-center rounded-full w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm font-extrabold text-white"
+                      style={{ background: '#16A34A', border: '2px solid white' }} aria-label="Finished">✓</span>
+                  )}
+                  {unlocked && !isBonus && !complete && landStars(progress, land) > 0 && (
+                    <span className="absolute top-0 -right-3 rounded-full px-1.5 py-0.5 text-[11px] sm:text-sm font-extrabold whitespace-nowrap wiggle"
+                      style={{ background: '#F59E0B', color: '#3B1F00', border: '2px solid white' }}
+                      aria-label={`${landStars(progress, land)} of ${land.quests.length} quests done`}>
+                      {landStars(progress, land)}/{land.quests.length}
+                    </span>
+                  )}
+                </span>
+              ) : (
               <span className={`relative inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
-                style={{
-                  background: unlocked ? land.sky : (isBonus ? 'rgba(80,70,120,0.55)' : 'rgba(120,120,140,0.45)'),
-                  border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,
-                  boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
-                  filter: unlocked ? 'none' : (isBonus ? 'blur(1.5px) grayscale(0.5)' : 'grayscale(0.9)'),
-                }}>
-                {unlocked ? land.emoji : (isBonus ? '✨' : '🔒')}
-                {/* Done / not-done corner badge, so it's clear at a glance
-                    which lands are finished even though the next land
-                    opens after just one quest. */}
-                {unlocked && !isBonus && complete && (
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center rounded-full w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm font-extrabold text-white"
-                    style={{ background: '#16A34A', border: '2px solid white' }} aria-label="Finished">✓</span>
-                )}
-                {unlocked && !isBonus && !complete && landStars(progress, land) > 0 && (
-                  <span className="absolute -top-2 -right-4 rounded-full px-1.5 py-0.5 text-[11px] sm:text-sm font-extrabold whitespace-nowrap wiggle"
-                    style={{ background: '#F59E0B', color: '#3B1F00', border: '2px solid white' }}
-                    aria-label={`${landStars(progress, land)} of ${land.quests.length} quests done`}>
-                    {landStars(progress, land)}/{land.quests.length}
-                  </span>
-                )}
-              </span>
+                  style={{
+                    background: unlocked ? land.sky : (isBonus ? 'rgba(80,70,120,0.55)' : 'rgba(120,120,140,0.45)'),
+                    border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,
+                    boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
+                    filter: unlocked ? 'none' : (isBonus ? 'blur(1.5px) grayscale(0.5)' : 'grayscale(0.9)'),
+                  }}>
+                  {unlocked ? land.emoji : (isBonus ? '✨' : '🔒')}
+                  {/* Done / not-done corner badge, so it's clear at a glance
+                      which lands are finished even though the next land
+                      opens after just one quest. */}
+                  {unlocked && !isBonus && complete && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center rounded-full w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm font-extrabold text-white"
+                      style={{ background: '#16A34A', border: '2px solid white' }} aria-label="Finished">✓</span>
+                  )}
+                  {unlocked && !isBonus && !complete && landStars(progress, land) > 0 && (
+                    <span className="absolute -top-2 -right-4 rounded-full px-1.5 py-0.5 text-[11px] sm:text-sm font-extrabold whitespace-nowrap wiggle"
+                      style={{ background: '#F59E0B', color: '#3B1F00', border: '2px solid white' }}
+                      aria-label={`${landStars(progress, land)} of ${land.quests.length} quests done`}>
+                      {landStars(progress, land)}/{land.quests.length}
+                    </span>
+                  )}
+                </span>
+              )}
               {/* mapLabel (a shorter name where needed) + whitespace-nowrap
                   keep this to one line — a long full name wrapping to 2-3
                   lines was tall enough to overlap the land below it. */}
@@ -355,7 +391,7 @@ export default function AdventureMap() {
               {unlocked && (
                 <span className="relative block text-[11px] sm:text-sm mt-0.5" style={{ letterSpacing: 1 }}>
                   {land.quests.map((q, qi) => (
-                    <span key={q.href} style={{ opacity: (progress.played[land.id] ?? []).length > qi ? 1 : 0.3 }}>⭐</span>
+                    <StarIcon key={q.href} size={13} dim={(progress.played[land.id] ?? []).length <= qi} />
                   ))}
                 </span>
               )}
@@ -371,13 +407,15 @@ export default function AdventureMap() {
             covered the path and made the first land look cut off. */}
         {hydrated && (
           <div className="absolute" style={{
-            left: `${(gx(cur) / VBW) * 100}%`,
-            top: `${((gy(cur) - (mode === 'portrait' ? 58 : 72)) / VBH) * 100}%`,
+            // on a painted island she stands on its front-left grass, so the
+            // land's own picture (signpost, tower door) stays visible
+            left: `${((gx(cur) - (cur.art ? (mode === 'portrait' ? 24 : 34) : 0)) / VBW) * 100}%`,
+            top: `${((gy(cur) - (cur.art ? (mode === 'portrait' ? 26 : 30) : (mode === 'portrait' ? 58 : 72))) / VBH) * 100}%`,
             transform: 'translate(-50%, -50%)', pointerEvents: 'none', transition: 'left 1s ease, top 1s ease',
           }}>
             {/* the bob animation lives on an inner wrapper: on the outer one
                 it replaced the centering transform and shifted her sideways */}
-            <div className="float"><KailiaSprite size={44} expression="happy" /></div>
+            <div className="float"><KailiaSprite size={mode === 'portrait' ? 44 : 56} expression="happy" /></div>
           </div>
         )}
       </div>
@@ -385,7 +423,8 @@ export default function AdventureMap() {
   }
 
   return (
-    <main className="h-dvh overflow-hidden" style={{ background: theme.background }}>
+    <main className="h-dvh overflow-hidden" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       {/* One flex column, exactly one screen tall, never scrolls — the map
           (flex-1) is the only part that gives up space when the chrome
           around it needs more, on any phone/tablet/desktop height. Bottom
@@ -516,7 +555,8 @@ export default function AdventureMap() {
                   const unlocked = rewards.starlight >= c.at;
                   return (
                     <p key={c.name} className="flex items-center gap-2 py-0.5">
-                      <span className="text-xl" style={{ filter: unlocked ? 'none' : 'grayscale(1) brightness(0.6)' }}>{c.emoji}</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.art} alt="" width={32} height={32} style={{ width: 32, height: 32, objectFit: 'contain', filter: unlocked ? 'none' : 'grayscale(1) brightness(0.6)' }} />
                       <span className={unlocked ? 'text-emerald-300' : 'text-indigo-300'}>
                         {c.name} — {unlocked ? 'awake! ✓' : `sleeps until ✨${c.at}`}
                       </span>
@@ -527,7 +567,7 @@ export default function AdventureMap() {
                   const next = COMPANIONS.find(c => rewards.starlight < c.at);
                   return next ? (
                     <p className="mt-2 text-yellow-200">
-                      Only ✨{next.at - rewards.starlight} more until {next.name} the {next.emoji} wakes up!
+                      Only ✨{next.at - rewards.starlight} more until {next.name} the {next.kind} wakes up!
                     </p>
                   ) : <p className="mt-2 text-yellow-200">Every companion is awake — amazing! 🎉</p>;
                 })()}
@@ -592,7 +632,10 @@ export default function AdventureMap() {
           <div className="w-full max-w-md rounded-3xl p-5 slide-up shadow-2xl" style={{ background: openLand.sky }}
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-1">
-              <span className="text-5xl">{openLand.emoji}</span>
+              {openLand.art
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={openLand.art} alt="" width={72} height={72} style={{ width: 72, height: 72, objectFit: 'contain', flexShrink: 0 }} />
+                : <span className="text-5xl">{openLand.emoji}</span>}
               <div>
                 <h2 className="text-xl font-extrabold leading-tight" style={{ color: openLand.color }}>{openLand.name}</h2>
                 <p className="text-xs font-semibold text-gray-500">{openLand.tagline}</p>
@@ -616,7 +659,10 @@ export default function AdventureMap() {
                 <button onClick={() => { sfx.open(); setOpenLand(unfinished); setNoelLine(unfinished.noelIntro); }}
                   className="w-full flex items-center gap-2 mb-3 rounded-2xl p-3 text-left transition-transform hover:scale-[1.02]"
                   style={{ background: '#FEF3C7', border: '2px solid #F59E0B' }}>
-                  <span className="text-3xl">{unfinished.emoji}</span>
+                  {unfinished.art
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={unfinished.art} alt="" width={44} height={44} style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
+                    : <span className="text-3xl">{unfinished.emoji}</span>}
                   <span className="flex-1 text-sm font-bold text-amber-900">
                     {unfinished.name} isn&apos;t finished yet! {left} {left === 1 ? 'quest is' : 'quests are'} still waiting there.
                   </span>
@@ -672,7 +718,11 @@ export default function AdventureMap() {
               <PandaSprite size={145} expression="celebrating" className="float" />
               <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
             </div>
-            <div className="text-6xl mb-2 star-burst">{celebrating.emoji}</div>
+            <div className="mb-2 star-burst">
+              {celebrating.art
+                ? <LiveArt src={celebrating.art} alt={celebrating.name} size={130} kind="land" />
+                : <span className="text-6xl">{celebrating.emoji}</span>}
+            </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">
               You lit up {celebrating.name}!
             </h2>
@@ -694,7 +744,9 @@ export default function AdventureMap() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
           style={{ background: 'linear-gradient(135deg, #667EEAee, #764BA2ee)' }}>
           <div className="text-center bounce-in">
-            <div className="text-8xl mb-3 star-burst">{newCompanion.emoji}</div>
+            <div className="mb-3 star-burst">
+              <LiveArt src={newCompanion.art} alt={newCompanion.name} size={170} kind="pet" />
+            </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">
               {newCompanion.name} joined you!
             </h2>

@@ -14,6 +14,7 @@ import {
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import LivingSky from '@/components/scenery/LivingSky';
 import { isPremium } from '@/lib/premium';
 import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
 import BackButton from '@/components/ui/BackButton';
@@ -146,7 +147,8 @@ export default function ActivityLibraryPage() {
   }
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-3">
 
         {/* Header */}
