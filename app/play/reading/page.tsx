@@ -12,6 +12,13 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
+import Stage from '@/components/friends/kit/Stage';
+import Actor, { usePetMood } from '@/components/friends/kit/Actor';
+import { useBursts } from '@/components/friends/kit/Burst';
+import KailiaActor from '@/components/games/KailiaActor';
+import { usePlayPet } from '@/components/games/playPet';
+import LiveArt from '@/components/characters/LiveArt';
+import { petWidth } from '@/lib/companionTrails';
 
 // ─── Word Wizard ──────────────────────────────────────────────────────────────
 // The Whispering Signposts lost their words — they floated away as word
@@ -99,7 +106,16 @@ const BANKS: ReadingQ[][] = [
 
 const QUESTIONS_PER_LEVEL = 5;
 const BALLOON_COLORS = ['#F472B6', '#60A5FA', '#34D399', '#FBBF24'];
-const HAPPY_LINES = ['You read it! ✨', 'The signpost lit up!', 'Wizard reading!', 'Sparkly! Kailia steps ahead!', 'Yes! The path glows!'];
+const HAPPY_LINES = ['You read it!', 'The signpost lit up!', 'Wizard reading!', 'Sparkly! Kailia steps ahead!', 'Yes! The path glows!'];
+
+// where the balloons float in the scene (centre of each balloon, % of the scene)
+const SPOTS: Record<number, [number, number][]> = {
+  2: [[30, 40], [70, 38]],
+  3: [[19, 40], [50, 35], [81, 41]],
+  4: [[25, 36], [74, 34], [29, 59], [70, 61]],
+};
+// Kailia's stepping stones along the meadow floor, then the finish flag
+const stoneX = (i: number) => 10 + i * 15;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -161,6 +177,12 @@ export default function WordWizardPage() {
   const [noelLine, setNoelLine] = useState('Tap the balloon with the right word!');
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [earned, setEarned] = useState(0);
+  // the friend plays along: follows Kailia, cheers, wobbles with her on a
+  // miss and, after two tries, flies up to sit under the right balloon
+  const pet = usePlayPet();
+  const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
+  const [kailiaHop, setKailiaHop] = useState(0);
+  const { layer: burstLayer, fire } = useBursts();
 
   const statsRef = useRef({ firstTry: 0, misses: 0, startedAt: 0, qStartedAt: 0, readMs: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -194,9 +216,12 @@ export default function WordWizardPage() {
     readSign(r[0]);
   }, [level, readSign]);
 
-  function tapBalloon(choice: string) {
+  function tapBalloon(choice: string, spot: [number, number]) {
     if (!q || popped) return;
     if (choice === q.answer) {
+      fire(spot[0], spot[1], ['#FFE066', '#FFFFFF', BALLOON_COLORS[q.choices.indexOf(choice) % 4]], 14, 80);
+      setKailiaHop(n => n + 1);
+      setPetMood('cheer');
       const s = statsRef.current;
       s.readMs += Date.now() - s.qStartedAt;
       if (triesThisQ === 0) s.firstTry += 1;
@@ -217,11 +242,12 @@ export default function WordWizardPage() {
       statsRef.current.misses += 1;
       setTriesThisQ(t => t + 1);
       setWobble(choice);
+      setPetMood('oops');
       chime([392]);
       timersRef.current.push(setTimeout(() => setWobble(null), 600));
       // Noel reads the word that was tapped — real reading support, never "wrong"
       const line = triesThisQ + 1 >= 2
-        ? `That one says "${choice}". Look, one balloon is glowing!`
+        ? `That one says "${choice}". Look, ${pet.name} found the glowing one!`
         : `That one says "${choice}". Let's look again together!`;
       setNoelLine(line);
       setNoelMood('thinking');
@@ -248,23 +274,19 @@ export default function WordWizardPage() {
 
   const lit = popped ? qIdx + 1 : qIdx;  // stones Kailia has walked
   const hintOn = triesThisQ >= 2;
+  // Kailia stands on the last stone she lit, and runs to the flag at the end
+  const kailiaX = lit === 0 ? 4 : lit >= round.length ? stoneX(round.length) - 6 : stoneX(lit - 1);
   const isWordVisual = q ? !/^\p{Extended_Pictographic}️?$/u.test(q.visual) : false;
 
   return (
     <main className="min-h-screen pb-8 overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 55%, #93c5fd 120%)' }}>
       <div className="max-w-md mx-auto px-3 relative">
-        {/* drifting background clouds */}
-        {[0, 1, 2].map(i => (
-          <span key={i} className="absolute rise-fade pointer-events-none" aria-hidden
-            style={{ left: `${[10, 62, 36][i]}%`, top: [260, 340, 420][i], fontSize: [30, 22, 26][i], animationDuration: `${9 + i * 3}s`, animationDelay: `${i * 2}s` }}>☁️</span>
-        ))}
-
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
           <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
-            📖 Word Wizard <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
+            Word Wizard <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
           {phase === 'playing'
@@ -279,10 +301,11 @@ export default function WordWizardPage() {
             <div className="flex items-end justify-center gap-1 mb-3">
               <PandaSprite size={112} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
               <KailiaSprite size={88} expression="excited" className="float" />
+              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 64)} kind="pet" />
             </div>
             <div className="rounded-3xl p-5 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-900 text-xl font-bold leading-snug">
-                Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons! 🎈
+                Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons!
                 Tap the balloon with the right word to bring it home.
               </p>
             </div>
@@ -290,7 +313,7 @@ export default function WordWizardPage() {
             <button onClick={begin}
               className="mt-5 px-12 py-4 rounded-full text-xl font-extrabold text-blue-950 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Play level {level} 🎈
+              Play level {level}
             </button>
             <SkillIntro gameId="word-wizard" />
           </div>
@@ -305,58 +328,86 @@ export default function WordWizardPage() {
                 style={{ background: 'linear-gradient(180deg,#fde68a,#f59e0b)', border: '4px solid #92400e' }}>
                 <p className={`font-extrabold text-amber-950 leading-tight ${isWordVisual ? 'text-xl' : 'text-6xl'}`}>{q.visual}</p>
                 <p className="mt-1 text-base font-bold text-amber-900">{q.prompt}</p>
+                {popped && (
+                  <p className="bounce-in mt-1 inline-block px-3 py-0.5 rounded-full text-lg font-extrabold text-amber-950"
+                    style={{ background: '#FEF3C7', border: '2px solid #92400e' }}>{popped}</p>
+                )}
               </div>
               <div className="mx-auto w-3 h-6" style={{ background: '#92400e' }} />
             </div>
 
-            {/* the balloons */}
-            <div key={`b${qIdx}`} className="flex flex-wrap justify-center gap-y-5 px-2 mt-2" style={{ minHeight: 230 }}>
+            {/* the meadow: balloons in the sky, Kailia and the friend on the stepping stones */}
+            <Stage world="flick" className="mt-2" style={{ aspectRatio: '3 / 3.4' }}>
+              {/* stepping stones and the finish flag */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {Array.from({ length: round.length }, (_, i) => (
+                  <ellipse key={i} cx={stoneX(i)} cy="94" rx="5.6" ry="2.6" filter="url(#kp-brush)"
+                    fill={i < lit ? '#FFE27A' : '#C9C2B4'} stroke="#3b2416" strokeWidth="0.5"
+                    style={{ transition: 'fill 0.5s', filter: i < lit ? 'drop-shadow(0 0 2px #FDE047)' : undefined }} />
+                ))}
+              </svg>
+              <div className="absolute pointer-events-none" style={{ left: `${stoneX(round.length) - 2}%`, top: '72%' }} aria-hidden="true">
+                <svg width="30" height="56" viewBox="0 0 30 56" className="fg-sway" style={{ transformOrigin: '3px 56px' }}>
+                  <path d="M3 4 V56" stroke="#3b2416" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M4 5 Q16 1 28 7 Q16 12 4 18z" fill={lit >= round.length ? '#FDE047' : '#F87171'} stroke="#3b2416" strokeWidth="1.6" strokeLinejoin="round" />
+                </svg>
+              </div>
+
+              {/* balloons */}
               {q.choices.map((c, i) => {
+                const spot = (SPOTS[q.choices.length] ?? SPOTS[4])[i];
                 const isPopped = popped === c;
                 const glow = hintOn && c === q.answer && !popped;
                 const long = c.length > 9;
                 return (
-                  <div key={c} className="float-up-in flex justify-center w-1/2" style={{ animationDelay: `${i * 120}ms` }}>
-                    <div className="bob-drift relative" style={{
-                      animationDuration: `${3.4 + i * 0.7}s`, animationDelay: `${i * -0.9}s`,
-                      ['--dx' as string]: `${4 + step * 3}px`, ['--dy' as string]: `${6 + step * 2}px`,
-                    } as React.CSSProperties}>
-                      <button onClick={() => tapBalloon(c)} aria-label={c}
-                        className={`relative flex flex-col items-center ${isPopped ? 'pop' : ''} ${wobble === c ? 'soft-wobble' : ''} ${glow ? 'hint-glow' : ''}`}>
-                        <span className="flex items-center justify-center text-center font-extrabold text-white shadow-lg"
-                          style={{
-                            minWidth: 104, minHeight: 92, padding: '10px 14px',
-                            borderRadius: '50% 50% 48% 48% / 56% 56% 44% 44%',
-                            background: `radial-gradient(circle at 32% 28%, #ffffffaa 0 10%, ${BALLOON_COLORS[i % 4]} 38%)`,
-                            fontSize: long ? 16 : c.length > 5 ? 20 : 28,
-                            textShadow: '0 2px 3px rgba(0,0,0,0.25)',
-                          }}>
-                          {c}
-                        </span>
-                        <span className="w-0.5 h-7" style={{ background: 'rgba(255,255,255,0.6)' }} aria-hidden />
-                      </button>
-                      {isPopped && <span className="absolute left-1/2 top-[40%] w-24 h-24 rounded-full burst-ring pointer-events-none" aria-hidden
-                        style={{ border: '4px solid #FDE047' }} />}
+                  <div key={`${qIdx}-${c}`} className="absolute" style={{ left: `${spot[0]}%`, top: `${spot[1]}%`, width: 112, marginLeft: -56, marginTop: -50, zIndex: 8 }}>
+                    <div className="float-up-in" style={{ animationDelay: `${i * 120}ms` }}>
+                      <div className="bob-drift relative" style={{
+                        animationDuration: `${3.4 + i * 0.7}s`, animationDelay: `${i * -0.9}s`,
+                        ['--dx' as string]: `${4 + step * 3}px`, ['--dy' as string]: `${6 + step * 2}px`,
+                      } as React.CSSProperties}>
+                        <button onClick={() => tapBalloon(c, spot)} aria-label={c}
+                          className={`relative flex flex-col items-center w-full ${isPopped ? 'pop' : ''} ${wobble === c ? 'soft-wobble' : ''} ${glow ? 'hint-glow' : ''}`}>
+                          <span className="flex items-center justify-center text-center font-extrabold text-white leading-tight"
+                            style={{
+                              width: 104, minHeight: 94, padding: '10px 12px',
+                              borderRadius: '50% 50% 48% 48% / 56% 56% 44% 44%',
+                              background: `radial-gradient(circle at 32% 26%, #ffffffcc 0 9%, ${BALLOON_COLORS[i % 4]} 34%, ${BALLOON_COLORS[i % 4]} 70%, #00000022 100%)`,
+                              border: '3px solid #3b2416',
+                              fontSize: long ? 15 : c.length > 5 ? 20 : 28,
+                              textShadow: '0 2px 0 rgba(59,36,22,0.55)',
+                              boxShadow: '0 6px 0 rgba(0,0,0,0.12)',
+                            }}>
+                            {c}
+                          </span>
+                          <svg width="20" height="34" viewBox="0 0 20 34" aria-hidden="true" style={{ marginTop: -3 }}>
+                            <path d="M6 0 L14 0 L10 6z" fill={BALLOON_COLORS[i % 4]} stroke="#3b2416" strokeWidth="1.6" strokeLinejoin="round" />
+                            <path d="M10 6 q-6 6 0 11 q6 5 0 10 q-4 4 -1 7" stroke="#3b2416" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
               })}
-            </div>
 
-            {/* Kailia's path of stepping stones */}
-            <div className="relative mx-3 mt-3 h-16">
-              <div className="absolute left-0 right-0 bottom-2 flex justify-between px-2">
-                {Array.from({ length: round.length }, (_, i) => (
-                  <span key={i} className="w-9 h-4 rounded-full transition-all duration-500"
-                    style={{ background: i < lit ? '#FDE047' : 'rgba(255,255,255,0.25)', boxShadow: i < lit ? '0 0 12px #FDE047' : 'none' }} />
-                ))}
-                <span className="text-2xl -mt-3" aria-hidden>🏁</span>
+              <KailiaActor x={kailiaX} y={95} h={78} hop={kailiaHop} />
+              <div data-pet>
+                {(() => {
+                  // after two tries the friend flies up under the right balloon
+                  const hintSpot = hintOn && !popped ? (SPOTS[q.choices.length] ?? SPOTS[4])[q.choices.indexOf(q.answer)] : null;
+                  const kx = kailiaX;
+                  const px = hintSpot ? hintSpot[0] + (hintSpot[0] > 50 ? -16 : 16) : kx > 70 ? kx - 13 : kx + 13;
+                  const py = hintSpot ? hintSpot[1] + 20 : 95;
+                  return (
+                    <Actor art={pet.art} name={pet.name} x={px} y={py} h={56}
+                      mood={hintSpot ? 'fly' : petMood} moodKey={petMoodKey} moveMs={900}
+                      onTap={() => { setPetMood('dance'); timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300)); }} z={9} />
+                  );
+                })()}
               </div>
-              <div className="absolute bottom-4 transition-all duration-700 ease-out"
-                style={{ left: `calc(${(Math.min(lit, round.length) / (round.length + 0.4)) * 100}% - 4px)` }}>
-                <div className={popped ? 'walk-bounce' : ''}><KailiaSprite size={44} expression={popped ? 'excited' : 'happy'} /></div>
-              </div>
-            </div>
+              {burstLayer}
+            </Stage>
 
             <div className="flex items-center gap-3 mt-2 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
@@ -391,7 +442,7 @@ export default function WordWizardPage() {
               <Link href="/play"
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-blue-950 shadow-xl transition-transform hover:scale-105 inline-block"
                 style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                Back to the map 🗺️
+                Back to the map
               </Link>
             </div>
           </div>

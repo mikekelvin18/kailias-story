@@ -751,3 +751,27 @@ button:active {
   .fg-cheer, .fg-oops, .fg-fly, .fg-talk, .fg-dance, .fg-twinkle, .fg-drift, .fg-rise, .fg-fall,
   .fg-sway, .fg-bob, .fg-glow, .fg-swim { animation: none; }
 }
+
+/* ── Game-feel kit (components/games) ── */
+@keyframes nf-sway { 0%, 100% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.6deg); } }
+.nf-sway-far { animation: nf-sway 7s ease-in-out infinite; }
+.nf-sway-mid { animation: nf-sway 4.6s ease-in-out infinite; }
+@keyframes gb-wing { 0%, 100% { transform: rotate(0deg) scaleY(1); } 50% { transform: rotate(-28deg) scaleY(0.55); } }
+.gb-wing { animation: gb-wing 0.16s linear infinite; }
+.gb-wing-slow { animation: gb-wing 0.9s ease-in-out infinite; }
+@keyframes gb-pulse { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+.gb-pulse { animation: gb-pulse 1.4s ease-in-out infinite; }
+/* a caught firefly zooms in an arc into the lantern: --fx/--fy = start offset from the lantern */
+@keyframes ff-home {
+  0%   { transform: translate(var(--fx), var(--fy)) scale(1); opacity: 1; }
+  55%  { transform: translate(calc(var(--fx) * 0.35), calc(var(--fy) * 0.35 - 40px)) scale(0.8); opacity: 1; }
+  100% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+}
+.ff-home { animation: ff-home 0.7s cubic-bezier(.5,0,.6,1) forwards; }
+@keyframes lantern-swing { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.lantern-swing { animation: lantern-swing 2.6s ease-in-out infinite; transform-origin: 50% 0; }
+@keyframes lantern-gulp { 0% { transform: scale(1); } 35% { transform: scale(1.18, 0.88); } 70% { transform: scale(0.94, 1.08); } 100% { transform: scale(1); } }
+.lantern-gulp { animation: lantern-gulp 0.45s ease-out; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .nf-sway-far, .nf-sway-mid, .gb-wing, .gb-wing-slow, .gb-pulse, .lantern-swing, .lantern-gulp { animation: none; }
+}
