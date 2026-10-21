@@ -56,3 +56,19 @@ export const CHARACTER_IMAGES: Record<'kailia' | 'noel', Partial<Record<Characte
     sleepy: front('noel'),
   },
 };
+
+// ── Child avatars (Parent Zone profile picture) ──
+// Six curated buddies a parent picks from. Until real pictures exist, each
+// one shows the matching drawn critter from CritterSprite.tsx. To swap in
+// a real picture: drop e.g. `avatar-fox.png` into `public/avatars/` and fill
+// in its `image` line below — nothing else changes.
+export type AvatarId = 'turtle' | 'fox' | 'owl' | 'rabbit' | 'koala' | 'dragon';
+
+export const CHILD_AVATARS: { id: AvatarId; name: string; tint: string; image?: string }[] = [
+  { id: 'fox',    name: 'Fox',    tint: '#FFE8D6' /* image: '/avatars/avatar-fox.png' */ },
+  { id: 'rabbit', name: 'Bunny',  tint: '#FCE7F3' /* image: '/avatars/avatar-bunny.png' */ },
+  { id: 'owl',    name: 'Owl',    tint: '#EDE9FE' /* image: '/avatars/avatar-owl.png' */ },
+  { id: 'turtle', name: 'Turtle', tint: '#DCFCE7' /* image: '/avatars/avatar-turtle.png' */ },
+  { id: 'koala',  name: 'Koala',  tint: '#E0F2FE' /* image: '/avatars/avatar-koala.png' */ },
+  { id: 'dragon', name: 'Dragon', tint: '#FEF9C3' /* image: '/avatars/avatar-dragon.png' */ },
+];

@@ -19,6 +19,9 @@ import { useAssessment } from '@/context/AssessmentContext';
 import BackButton from '@/components/ui/BackButton';
 import StepGuide from '@/components/ui/StepGuide';
 import Section from '@/components/ui/Section';
+import AvatarPicker from '@/components/ui/AvatarPicker';
+import ChildAvatar from '@/components/characters/ChildAvatar';
+import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -27,10 +30,6 @@ const DEV_TOOLS = process.env.NODE_ENV === 'development';
 // Consent first, then a minimal child profile, then full parental rights:
 // view every piece of stored data, delete the child profile, delete it all.
 
-const AVATARS = [
-  '🐱', '🐶', '🦊', '🐰', '🐻', '🐼', '🦁', '🐯',
-  '🐨', '🐘', '🐧', '🦉', '🐸', '🦄', '🐢', '🐝', '🦋', '🐬',
-];
 // "Age 4", or "14 months" for little ones (childAgeYears rounds those to 0.5/1).
 function ageLabel(c: { birthYear: number; birthMonth: number }) {
   const now = new Date();
@@ -53,7 +52,7 @@ export default function ParentZonePage() {
   const [nickname, setNickname] = useState('');
   const [birthMonth, setBirthMonth] = useState(0);
   const [birthYear, setBirthYear] = useState(0);
-  const [avatar, setAvatar] = useState(AVATARS[0]);
+  const [avatar, setAvatar] = useState<string>(CHILD_AVATARS[0].id);
   const [formError, setFormError] = useState('');
   const [showData, setShowData] = useState(false);
   const [inventory, setInventory] = useState<DataSection[]>([]);
@@ -108,7 +107,7 @@ export default function ParentZonePage() {
     if (!birthMonth || !birthYear) { setFormError('Please pick the birth month and year.'); return; }
     setFamily(addChild({ nickname, birthYear, birthMonth, avatar }));
     setFormError('');
-    setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(AVATARS[0]);
+    setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(CHILD_AVATARS[0].id);
     setShowAddChild(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -229,7 +228,7 @@ export default function ParentZonePage() {
         {consented && family && child && (
           <div className="rounded-3xl p-4 mb-4" style={{ background: theme.surface }}>
             <div className="flex items-center gap-3">
-              <span className="text-5xl" aria-hidden="true">{child.avatar}</span>
+              <ChildAvatar avatar={child.avatar} size={56} />
               <div className="flex-1 min-w-0">
                 <p className="text-xl font-extrabold text-gray-800 truncate">{child.nickname}</p>
                 <p className="text-sm text-gray-500">{ageLabel(child)} · born {MONTHS[child.birthMonth - 1]} {child.birthYear}</p>
@@ -241,7 +240,7 @@ export default function ParentZonePage() {
                 <button key={c.id} onClick={() => handleSwitchChild(c.id)} aria-pressed={c.id === family.activeChildId}
                   className="flex items-center gap-1.5 min-h-[40px] px-3 rounded-full text-sm font-extrabold transition-transform active:scale-95"
                   style={{ background: c.id === family.activeChildId ? '#7C3AED' : '#F1F5F9', color: c.id === family.activeChildId ? 'white' : '#334155' }}>
-                  <span>{c.avatar}</span> {c.nickname}
+                  <ChildAvatar avatar={c.avatar} size={26} /> {c.nickname}
                 </button>
               ))}
               <button onClick={() => setShowAddChild(true)}
@@ -285,15 +284,8 @@ export default function ParentZonePage() {
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5">Pick an avatar</label>
-            <div className="flex gap-2 flex-wrap mb-4">
-              {AVATARS.map(a => (
-                <button key={a} onClick={() => setAvatar(a)} className="w-12 h-12 rounded-2xl text-2xl transition-transform hover:scale-110"
-                  style={{ background: avatar === a ? '#DBEAFE' : '#F8FAFC', border: avatar === a ? '2.5px solid #2563EB' : '2px solid #E2E8F0' }}>
-                  {a}
-                </button>
-              ))}
-            </div>
+            <p className="block text-sm font-bold text-gray-700 mb-3">Pick an avatar</p>
+            <div className="mb-6"><AvatarPicker value={avatar} onChange={setAvatar} /></div>
             {formError && <p className="text-sm font-bold text-rose-600 mb-2">{formError}</p>}
             <button onClick={handleAddChild}
               className="w-full py-3.5 rounded-full text-lg font-extrabold text-white" style={{ background: '#2563EB' }}>
