@@ -38,6 +38,11 @@ export interface RigEye {
 export interface PetRig {
   /** empty margin around the picture so a part can move past its edge (fraction of width) */
   pad: number;
+  /** for a drawn cycle (e.g. run-1…run-5): pictures per second */
+  fps?: number;
+  /** soft light from the upper left and shade toward the lower right, so a
+      flat picture reads as rounded (as LiveCharacter's overlays did) */
+  shade?: boolean;
   bones: RigBone[];
   eyes: RigEye[];
 }
@@ -62,8 +67,14 @@ const VERT = `
 attribute vec2 aPos; attribute vec2 aUv; varying vec2 vUv;
 void main() { vUv = aUv; gl_Position = vec4(aPos, 0.0, 1.0); }`;
 const FRAG = `
-precision mediump float; varying vec2 vUv; uniform sampler2D uTex;
-void main() { gl_FragColor = texture2D(uTex, vUv); }`;
+precision mediump float; varying vec2 vUv; uniform sampler2D uTex; uniform float uShade;
+void main() {
+  vec4 c = texture2D(uTex, vUv);
+  float light = (1.0 - smoothstep(0.0, 0.75, distance(vUv, vec2(0.28, 0.18)))) * 0.10;
+  float shade = smoothstep(0.45, 1.1, vUv.x * 0.45 + vUv.y * 0.75) * 0.14;
+  c.rgb = min(c.rgb * (1.0 + uShade * (light - shade)), vec3(c.a));
+  gl_FragColor = c;
+}`;
 
 export interface RigPlayer {
   /** bigger moves for a moment, e.g. on tap */
@@ -76,11 +87,17 @@ export interface RigPlayer {
  * the caller keeps showing the plain picture. With `still` it draws one
  * resting frame and never animates (Reduce motion).
  */
-export function startRig(canvas: HTMLCanvasElement, img: HTMLImageElement, rig: PetRig, still: boolean, seed = 0): RigPlayer | null {
+export function startRig(canvas: HTMLCanvasElement, pictures: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement)[], rig: PetRig, still: boolean, seed = 0): RigPlayer | null {
   const gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: true });
   if (!gl) return null;
 
-  const W = img.naturalWidth, H = img.naturalHeight;
+  // several pictures (all the same size) = a drawn cycle, played at rig.fps
+  // with the same bends on top, e.g. Kailia's run frames with her hair and
+  // cape streaming behind her
+  const frames = Array.isArray(pictures) ? pictures : [pictures];
+  const img = frames[0];
+  const W = img instanceof HTMLImageElement ? img.naturalWidth : img.width;
+  const H = img instanceof HTMLImageElement ? img.naturalHeight : img.height;
   const padX = rig.pad * W, padY = rig.pad * W;     // same margin on every side
   const CW = W + 2 * padX, CH = H + 2 * padY;
 
@@ -95,6 +112,7 @@ export function startRig(canvas: HTMLCanvasElement, img: HTMLImageElement, rig: 
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
   gl.useProgram(prog);
+  gl.uniform1f(gl.getUniformLocation(prog, 'uShade'), rig.shade ? 1 : 0);
 
   // grid: rest positions (picture pixels), texture coords, triangles
   const n = GRID + 1;
@@ -136,14 +154,18 @@ export function startRig(canvas: HTMLCanvasElement, img: HTMLImageElement, rig: 
   const aPos = gl.getAttribLocation(prog, 'aPos');
   gl.enableVertexAttribArray(aPos);
 
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const textures = frames.map(f => {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, f);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return tex;
+  });
+  const fps = rig.fps ?? 10;
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -207,6 +229,7 @@ export function startRig(canvas: HTMLCanvasElement, img: HTMLImageElement, rig: 
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
     gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW);
     gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.bindTexture(gl.TEXTURE_2D, textures[still ? 0 : Math.floor(t * fps) % textures.length]);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
   };
