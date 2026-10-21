@@ -1,5 +1,6 @@
 'use client';
 
+import ChildAvatar from '@/components/characters/ChildAvatar';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -441,9 +442,9 @@ export default function AdventureMap() {
             </h1>
             {child && (
               <Link href="/family" title={`Playing as ${child.nickname} — tap to switch`}
-                className="text-base rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0"
-                style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-                {child.avatar}
+                className="rounded-full flex-shrink-0 flex"
+                style={{ border: `1.5px solid ${theme.badgeBorder}` }}>
+                <ChildAvatar avatar={child.avatar} size={28} />
               </Link>
             )}
           </div>

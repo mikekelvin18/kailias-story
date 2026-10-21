@@ -1,6 +1,6 @@
 // ── Family account (parent-first, COPPA-aligned) ──
 // Parents own the account and create child profiles. A child profile holds
-// the ABSOLUTE MINIMUM: nickname, birth month/year, avatar emoji. Nothing
+// the ABSOLUTE MINIMUM: nickname, birth month/year, avatar pick. Nothing
 // else — no photos, no email, no location, no last name.
 //
 // Everything lives on this device (localStorage). When cloud sync is added
@@ -9,6 +9,7 @@
 // verification via the payment system) plugs in.
 
 import { deleteAllPhotos, deletePhotosForChild } from './photos';
+import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 export interface ParentConsent {
   agreedAt: string;               // ISO timestamp of active agreement
@@ -21,7 +22,7 @@ export interface ChildProfile {
   nickname: string;               // first name or nickname ONLY
   birthYear: number;              // for developmental-age comparison
   birthMonth: number;             // 1–12
-  avatar: string;                 // emoji chosen by the parent
+  avatar: string;                 // buddy id chosen by the parent (older profiles: an emoji)
   createdAt: string;
 }
 
@@ -248,7 +249,7 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '👤 Profile', items: [
       `Nickname: ${child.nickname}`,
       `Born: ${String(child.birthMonth).padStart(2, '0')}/${child.birthYear}`,
-      `Avatar: ${child.avatar}`,
+      `Avatar: ${CHILD_AVATARS.find(a => a.id === child.avatar)?.name ?? child.avatar}`,
       `Profile created: ${new Date(child.createdAt).toLocaleDateString()}`,
     ]});
   }
