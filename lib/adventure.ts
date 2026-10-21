@@ -19,6 +19,8 @@ export interface Land {
                            // never wraps into and overlaps the land below it
   domain: string;          // developmental domain (internal)
   emoji: string;
+  art?: string;            // Kelvin's painted island picture (public/art/lands/),
+                           // shown on the map instead of the emoji
   color: string;           // main theme color
   glow: string;            // glow / accent
   sky: string;             // chip background on the map
@@ -36,6 +38,7 @@ export interface Land {
 export const LANDS: Land[] = [
   {
     id: 'firefly-forest',
+    art: '/art/lands/firefly-forest.webp',
     name: 'Firefly Forest',
     domain: 'fine motor',
     emoji: '🌲',
@@ -52,6 +55,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'dragons-cave',
+    art: '/art/lands/dragons-cave.webp',
     name: "Dragon's Treasure Cave",
     mapLabel: "Dragon's Cave",
     domain: 'math',
@@ -67,6 +71,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'whispering-signposts',
+    art: '/art/lands/whispering-signposts.webp',
     name: 'Whispering Signposts',
     mapLabel: 'Signposts',
     domain: 'reading',
@@ -84,6 +89,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'story-keepers',
+    art: '/art/lands/story-keepers.webp',
     name: 'Village of the Story Keepers',
     mapLabel: 'Story Keepers',
     domain: 'communication',
@@ -99,6 +105,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'echo-caves',
+    art: '/art/lands/echo-caves.webp',
     name: 'Echo Caves',
     domain: 'sensory',
     emoji: '🔮',
@@ -114,6 +121,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'owls-tower',
+    art: '/art/lands/owls-tower.webp',
     name: "Owl's Tower",
     domain: 'processing',
     emoji: '🦉',
@@ -151,7 +159,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🚀',
     color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
     x: 140, y: 700,
-    dx: 820, dy: 370,
+    dx: 1090, dy: 215,
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
@@ -165,7 +173,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🐠',
     color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
     x: 260, y: 700,
-    dx: 1010, dy: 370,
+    dx: 1090, dy: 385,
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [

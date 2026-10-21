@@ -231,6 +231,17 @@ button:active {
 .portal-pulse {
   animation: portal-pulse 2.6s ease-in-out infinite;
 }
+/* Same gentle pulse without the centering translate, for SVG shapes and
+   icons that are already positioned (vine tips, the next star to tap). */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+.soft-pulse {
+  animation: soft-pulse 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
 /* Slow rising bubbles/motes for game backgrounds that want more "life"
    than static decoration — loops forever, drifting up and fading. */
 @keyframes rise-fade {
@@ -304,7 +315,9 @@ button:active {
 }
 .overworld-bob { animation: overworld-bob 0.28s ease-in-out infinite; }
 .character-art-shadow {
-  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.30));
+  /* thin light rim + a soft shadow cast down-right, matching the light
+     direction LiveCharacter uses, so game sprites look rounded too */
+  filter: drop-shadow(0 0 0.6px rgba(255,255,255,0.85)) drop-shadow(2px 4px 3px rgba(30,20,50,0.28));
 }
 
 /* ── Hand-painted paper ──
@@ -443,3 +456,298 @@ button:active {
   50%      { transform: translateY(-5px); }
 }
 .walk-bounce { animation: walk-bounce 0.35s ease-in-out infinite; }
+
+/* ── Living sky (components/scenery/LivingSky.tsx) ──
+   Each cloud rides a full-width "lane" that slides from just off the left
+   edge to just off the right edge; the cloud itself never repaints, so
+   this is a cheap, smooth GPU slide even on old tablets. */
+.sky-lane {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  animation-name: sky-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes sky-drift {
+  from { transform: translateX(calc(-1 * var(--cw))); }
+  to   { transform: translateX(100%); }
+}
+@keyframes sky-twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1.1); }
+}
+.sky-twinkle { animation: sky-twinkle 4.5s ease-in-out infinite; }
+/* Reduce motion: park every cloud where it is instead of drifting (the
+   generic reduced-motion rule above would otherwise jump it off-screen). */
+:root[data-reduced-motion="true"] .sky-lane,
+:root[data-reduced-motion="true"] .sky-twinkle { animation: none !important; }
+:root[data-reduced-motion="true"] .sky-lane { transform: translateX(var(--rest)); }
+@media (prefers-reduced-motion: reduce) {
+  .sky-lane, .sky-twinkle { animation: none; }
+  .sky-lane { transform: translateX(var(--rest)); }
+}
+
+/* ── Living decorations (components/scenery/SkyDecor.tsx) ──
+   Each decoration gets its own natural motion. All slow and soft. */
+@keyframes deco-spin { to { transform: rotate(360deg); } }
+.deco-spin { animation: deco-spin 40s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes deco-breathe {
+  0%, 100% { transform: scale(0.92); opacity: 0.8; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+.deco-breathe { animation: deco-breathe 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes deco-twinkle {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.55; }
+  45%      { transform: scale(1.1) rotate(20deg); opacity: 1; }
+  60%      { transform: scale(0.95) rotate(28deg); opacity: 0.9; }
+}
+.deco-twinkle { animation: deco-twinkle 3.2s ease-in-out infinite; }
+@keyframes deco-wing {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.25); }
+}
+.deco-wing { animation: deco-wing 0.38s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes deco-flutter-path {
+  0%   { transform: translate(0, 0) rotate(-6deg); }
+  25%  { transform: translate(14px, -10px) rotate(8deg); }
+  50%  { transform: translate(26px, 2px) rotate(-4deg); }
+  75%  { transform: translate(10px, 10px) rotate(6deg); }
+  100% { transform: translate(0, 0) rotate(-6deg); }
+}
+.deco-flutter-path { animation: deco-flutter-path 9s ease-in-out infinite; }
+@keyframes deco-sway {
+  0%, 100% { transform: rotate(-5deg); }
+  50%      { transform: rotate(5deg); }
+}
+.deco-sway { animation: deco-sway 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes deco-glide {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(22px, -6px); }
+}
+.deco-glide { animation: deco-glide 12s ease-in-out infinite; }
+@keyframes deco-flap {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.35); }
+}
+.deco-flap { animation: deco-flap 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .deco-spin, .deco-breathe, .deco-twinkle, .deco-wing, .deco-flutter-path,
+  .deco-sway, .deco-glide, .deco-flap { animation: none; }
+}
+
+/* ── Live character depth (LiveCharacter.tsx) ──
+   Light comes from the upper left: a soft glow there, gentle shade on the
+   lower right and under the chin/feet. Both layers are masked to the
+   character's own outline, so nothing spills onto the background. */
+.live-art {
+  /* thin warm rim + a soft shadow cast slightly down-right = lifted off the page */
+  filter: drop-shadow(0 0 0.6px rgba(255,255,255,0.9)) drop-shadow(3px 5px 4px rgba(40,24,70,0.18));
+}
+.live-light {
+  background:
+    radial-gradient(ellipse 55% 40% at 32% 22%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%),
+    radial-gradient(ellipse 30% 22% at 26% 58%, rgba(255,250,235,0.35), rgba(255,250,235,0) 70%);
+  mix-blend-mode: soft-light;
+}
+.live-shade {
+  background:
+    radial-gradient(ellipse 60% 70% at 92% 70%, rgba(48,28,92,0.32), rgba(48,28,92,0) 70%),
+    linear-gradient(180deg, rgba(48,28,92,0) 62%, rgba(48,28,92,0.22) 100%);
+  mix-blend-mode: multiply;
+}
+.live-ground {
+  position: absolute;
+  left: 18%; right: 18%; bottom: -3%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(30,20,50,0.32) 0%, rgba(30,20,50,0.12) 50%, rgba(30,20,50,0) 72%);
+  pointer-events: none;
+}
+/* a slow, small turn of the body, as if glancing around */
+@keyframes live-turn {
+  0%, 100% { transform: perspective(600px) rotateY(0deg); }
+  30%      { transform: perspective(600px) rotateY(9deg); }
+  45%      { transform: perspective(600px) rotateY(9deg); }
+  75%      { transform: perspective(600px) rotateY(-7deg); }
+  88%      { transform: perspective(600px) rotateY(-7deg); }
+}
+.live-turn { animation: live-turn 11s ease-in-out infinite; transform-origin: 50% 100%; }
+/* shadows that move with each body motion */
+@keyframes live-breathe-shadow {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.96); }
+}
+.live-breathe-shadow { animation: live-breathe-shadow 3.4s ease-in-out infinite; }
+@keyframes live-hop-shadow {
+  0%, 100% { transform: scaleX(1.06); opacity: 1; }
+  12%      { transform: scaleX(1.1); opacity: 1; }
+  35%      { transform: scaleX(0.7); opacity: 0.5; }
+  55%      { transform: scaleX(0.66); opacity: 0.45; }
+  80%      { transform: scaleX(1.08); opacity: 1; }
+}
+.live-hop-shadow { animation: live-hop-shadow 0.9s ease-in-out infinite; }
+@keyframes live-poke-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  15%      { transform: scaleX(1.12); }
+  40%      { transform: scaleX(0.72); opacity: 0.5; }
+  65%      { transform: scaleX(1.08); opacity: 1; }
+}
+.live-poke-shadow { animation: live-poke-shadow 0.7s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .live-turn, .live-breathe, .live-hop, .live-lid, .live-breathe-shadow, .live-hop-shadow { animation: none; }
+}
+
+/* ── Live art (components/characters/LiveArt.tsx) ──
+   Pets: two slow breaths, then a small happy hop with squash & stretch.
+   Lands: a slow island float. Shadows follow each move. */
+@keyframes art-breathe {
+  0%, 30%, 60%, 100% { transform: translateY(0) scale(1, 1); }
+  15%, 45% { transform: translateY(0) scale(1.012, 0.985); }
+  68%  { transform: translateY(0) scale(1.08, 0.92); }
+  76%  { transform: translateY(-10%) scale(0.94, 1.07) rotate(-2deg); }
+  84%  { transform: translateY(-12%) scale(1, 1) rotate(2deg); }
+  92%  { transform: translateY(0) scale(1.07, 0.93); }
+  96%  { transform: translateY(0) scale(0.98, 1.02); }
+}
+.art-breathe { animation: art-breathe 6.5s ease-in-out infinite; }
+@keyframes art-breathe-shadow {
+  0%, 68%, 92%, 100% { transform: scaleX(1); opacity: 1; }
+  76%, 84% { transform: scaleX(0.72); opacity: 0.5; }
+}
+.art-breathe-shadow { animation: art-breathe-shadow 6.5s ease-in-out infinite; }
+@keyframes art-float {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50%      { transform: translateY(-5%) rotate(0.6deg); }
+}
+.art-float { animation: art-float 5.5s ease-in-out infinite; }
+@keyframes art-float-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50%      { transform: scaleX(0.85); opacity: 0.6; }
+}
+.art-float-shadow { animation: art-float-shadow 5.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .art-breathe, .art-breathe-shadow, .art-float, .art-float-shadow { animation: none; }
+}
+
+/* ── Friends' games (components/friends/kit) ──
+   The friend acts inside each game: flies, cheers, wobbles, talks. The
+   scene around it drifts, twinkles and rises. "Reduce motion" stills it. */
+@keyframes fg-cheer {
+  0%   { transform: translateY(0) scale(1, 1); }
+  10%  { transform: translateY(0) scale(1.16, 0.84); }
+  28%  { transform: translateY(-34%) scale(0.88, 1.14) rotate(-8deg); }
+  44%  { transform: translateY(0) scale(1.14, 0.86); }
+  60%  { transform: translateY(-26%) scale(0.9, 1.1) rotate(8deg); }
+  78%  { transform: translateY(0) scale(1.1, 0.9); }
+  90%  { transform: translateY(0) scale(0.97, 1.03); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.fg-cheer { animation: fg-cheer 1.1s ease-in-out; }
+@keyframes fg-oops {
+  0%, 100% { transform: rotate(0deg) scale(1, 1); }
+  20% { transform: rotate(-9deg) scale(1.04, 0.96); }
+  45% { transform: rotate(7deg) scale(0.97, 1.03); }
+  65% { transform: rotate(-4deg); }
+  82% { transform: rotate(2deg); }
+}
+.fg-oops { animation: fg-oops 0.9s ease-in-out; }
+@keyframes fg-fly {
+  0%, 100% { transform: translateY(0) rotate(-5deg) scale(1.02, 0.98); }
+  50%      { transform: translateY(-9%) rotate(5deg) scale(0.98, 1.03); }
+}
+.fg-fly { animation: fg-fly 0.42s ease-in-out infinite; }
+@keyframes fg-talk {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); }
+  30% { transform: scale(1.04, 0.95) rotate(-2deg); }
+  60% { transform: scale(0.97, 1.04) rotate(2deg); }
+}
+.fg-talk { animation: fg-talk 0.36s ease-in-out infinite; }
+@keyframes fg-dance {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  12% { transform: translateY(0) scale(1.1, 0.9); }
+  25% { transform: translateY(-14%) rotate(-10deg) scale(0.94, 1.08); }
+  37% { transform: translateY(0) scale(1.1, 0.9); }
+  50% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  62% { transform: translateY(0) scale(1.1, 0.9); }
+  75% { transform: translateY(-14%) rotate(10deg) scale(0.94, 1.08); }
+  87% { transform: translateY(0) scale(1.1, 0.9); }
+}
+.fg-dance { animation: fg-dance 1.6s ease-in-out infinite; }
+@keyframes fg-twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.fg-twinkle { animation: fg-twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes fg-burst {
+  0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.4) rotate(0deg); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; }
+}
+.fg-burst { animation: fg-burst 0.8s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes fg-drift {
+  from { transform: translateX(-40vw); }
+  to   { transform: translateX(140vw); }
+}
+.fg-drift { animation: fg-drift linear infinite; }
+@keyframes fg-rise {
+  0%   { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15%  { opacity: 0.9; }
+  50%  { transform: translate(var(--sway, 8px), calc(var(--rise, 200px) * -0.5)) scale(1); }
+  100% { transform: translate(0, calc(var(--rise, 200px) * -1)) scale(0.8); opacity: 0; }
+}
+.fg-rise { animation: fg-rise ease-in-out infinite; }
+@keyframes fg-fall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { transform: translate(var(--sway, 18px), calc(var(--fall, 260px) * 0.5)) rotate(140deg); }
+  100% { transform: translate(0, var(--fall, 260px)) rotate(300deg); opacity: 0; }
+}
+.fg-fall { animation: fg-fall ease-in-out infinite; }
+@keyframes fg-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+.fg-sway { animation: fg-sway 4s ease-in-out infinite; }
+@keyframes fg-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.fg-bob { animation: fg-bob 2.6s ease-in-out infinite; }
+@keyframes fg-drop {
+  0%   { transform: translateY(-160px) scale(0.8, 1.2); opacity: 0; }
+  55%  { transform: translateY(0) scale(1.25, 0.75); opacity: 1; }
+  72%  { transform: translateY(-10px) scale(0.92, 1.1); }
+  88%  { transform: translateY(0) scale(1.05, 0.95); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.fg-drop { animation: fg-drop 0.6s ease-out both; }
+@keyframes fg-draw { to { stroke-dashoffset: 0; } }
+.fg-draw { animation: fg-draw 0.35s ease-out forwards; }
+@keyframes fg-sprout {
+  0%   { transform: scale(0) rotate(-40deg); }
+  70%  { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.fg-sprout { animation: fg-sprout 0.45s ease-out both; transform-box: fill-box; transform-origin: 0% 50%; }
+@keyframes fg-bloom {
+  0%   { transform: scale(1) rotate(0deg); }
+  40%  { transform: scale(1.7) rotate(40deg); }
+  100% { transform: scale(1.45) rotate(72deg); }
+}
+.fg-bloom { animation: fg-bloom 0.9s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+@keyframes fg-glow {
+  0%, 100% { opacity: calc(var(--glow, 1) * 0.55); }
+  50% { opacity: var(--glow, 1); }
+}
+.fg-glow { animation: fg-glow 3s ease-in-out infinite; }
+@keyframes fg-swim {
+  from { transform: translateX(-30%) scaleX(-1); }
+  to   { transform: translateX(130vw) scaleX(-1); }
+}
+.fg-swim { animation: fg-swim linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .fg-cheer, .fg-oops, .fg-fly, .fg-talk, .fg-dance, .fg-twinkle, .fg-drift, .fg-rise, .fg-fall,
+  .fg-sway, .fg-bob, .fg-glow, .fg-swim { animation: none; }
+}

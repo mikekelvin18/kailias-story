@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import BackButton from '@/components/ui/BackButton';
 
 export const metadata = { title: 'Privacy Policy (Draft) — Kailia\'s Story' };
 
@@ -66,7 +67,7 @@ export default function PrivacyPolicyPage() {
     <main className="min-h-screen pb-12" style={{ background: '#F8FAFC' }}>
       <div className="max-w-2xl mx-auto px-5">
         <div className="pt-8 pb-2">
-          <Link href="/" className="text-sm font-bold text-blue-600">← Home</Link>
+          <BackButton href="/" label="Home" />
         </div>
         <div className="rounded-2xl p-3 mb-5 text-center" style={{ background: '#FEF3C7', border: '2px dashed #F59E0B' }}>
           <p className="text-sm font-extrabold text-amber-800">⚠️ DRAFT — pending legal review. Not yet in effect.</p>

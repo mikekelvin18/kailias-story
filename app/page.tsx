@@ -1,40 +1,48 @@
 'use client';
 
 import Link from 'next/link';
-import KailiaAvatar from '@/components/KailiaAvatar';
+import KailiaSprite from '@/components/characters/KailiaSprite';
+import PandaSprite from '@/components/characters/PandaSprite';
+import LivingSky from '@/components/scenery/LivingSky';
+import { Sparkle } from '@/components/scenery/SkyDecor';
+import { useAssessment } from '@/context/AssessmentContext';
+import { SETUP_STEPS } from '@/components/ui/StepGuide';
 
-const STARS = ['⭐', '🌟', '✨', '💫', '🌠'];
+const SPARKLE_COLORS = ['#FFF3B0', '#FFE08A', '#FFFFFF', '#F5D0FE', '#FDE68A'];
 
 export default function LandingPage() {
+  // A family that already finished setup goes straight back to the map
+  // instead of being sent through the story intro again.
+  const { state, loaded } = useAssessment();
+  const returning = loaded && state.assessmentCompleted;
+
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #667EEA 0%, #764BA2 50%, #F093FB 100%)' }}
     >
-      {/* Floating decorations */}
+      {/* Soft dusk clouds drifting behind everything, with drawn sparkles
+          twinkling between them (no emoji). */}
+      <LivingSky mood="dusk" placement="absolute" opacity={0.7} />
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(12)].map((_, i) => (
           <span
             key={i}
-            className="absolute text-2xl float sparkle"
-            style={{
-              left: `${(i * 17 + 5) % 95}%`,
-              top: `${(i * 23 + 8) % 90}%`,
-              animationDelay: `${i * 0.3}s`,
-              fontSize: `${16 + (i % 3) * 8}px`,
-            }}
+            className="absolute"
+            style={{ left: `${(i * 17 + 5) % 95}%`, top: `${(i * 23 + 8) % 90}%` }}
           >
-            {STARS[i % STARS.length]}
+            <Sparkle size={14 + (i % 3) * 7} color={SPARKLE_COLORS[i % SPARKLE_COLORS.length]}
+              style={{ animationDelay: `${i * 0.37}s` }} />
           </span>
         ))}
       </div>
 
       <div className="relative z-10 max-w-2xl w-full text-center">
-        {/* Kailia character (emoji-based, no licensing needed) */}
-        <div className="float mb-6">
-          <div className="inline-flex items-center justify-center" style={{ width: 150, height: 150 }}>
-            <KailiaAvatar size={150} />
-          </div>
+        {/* Kailia and Noel, standing together and breathing, blinking and
+            turning a little; tap either one and they hop. */}
+        <div className="flex items-end justify-center gap-2 mb-6" style={{ minHeight: 150 }}>
+          <KailiaSprite size={112} expression="happy" />
+          <PandaSprite size={122} expression="happy" />
         </div>
 
         <h1
@@ -43,7 +51,7 @@ export default function LandingPage() {
         >
           Kailia's Story
         </h1>
-        <p className="text-2xl text-purple-100 mb-8 font-semibold">
+        <p className="text-2xl text-purple-100 mb-8 font-semibold" style={{ textShadow: '0 2px 6px rgba(60,20,110,0.55)' }}>
           A Magical Learning Adventure
         </p>
 
@@ -77,22 +85,34 @@ export default function LandingPage() {
         </div>
 
         <Link
-          href="/story"
+          href={returning ? '/play' : '/story'}
           className="inline-block text-2xl font-bold text-purple-800 px-12 py-5 rounded-full shadow-xl transition-transform hover:scale-105 hover:shadow-2xl"
           style={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)' }}
         >
-          Start the Adventure! 🚀
+          {returning ? `Continue the Adventure${state.childName ? `, ${state.childName}` : ''}! 🗺️` : 'Start the Adventure! 🚀'}
         </Link>
+
+        {/* What happens next, so the first tap isn't a leap into the unknown */}
+        {!returning && (
+          <ol className="mt-6 flex flex-wrap justify-center gap-2" aria-label="How it works">
+            {SETUP_STEPS.map((s, i) => (
+              <li key={s.label} className="text-sm font-bold text-white rounded-full px-3 py-1.5"
+                style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)' }}>
+                <span style={{ opacity: 0.8 }}>{i + 1}.</span> {s.emoji} {s.label}
+              </li>
+            ))}
+          </ol>
+        )}
 
         <p className="mt-6 text-purple-200 text-sm">
           Free to start • Parents stay in charge • For ages 0–12
         </p>
 
         {/* Footer: privacy links (parent-facing) */}
-        <p className="mt-8 text-xs text-purple-200">
-          <Link href="/family" className="underline mr-3">👨‍👩‍👧 Parent Zone</Link>
-          <Link href="/privacy" className="underline mr-3">Privacy Policy</Link>
-          <Link href="/retention" className="underline">Data Retention</Link>
+        <p className="mt-8 text-sm text-white flex flex-wrap justify-center gap-x-5 gap-y-2">
+          <Link href="/family" className="underline underline-offset-4 py-1">👨‍👩‍👧 Parent Zone</Link>
+          <Link href="/privacy" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Privacy Policy</Link>
+          <Link href="/retention" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Data Retention</Link>
         </p>
       </div>
     </main>

@@ -11,9 +11,18 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import LivingSky from '@/components/scenery/LivingSky';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
 import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { LANDS, recordQuestPlay } from '@/lib/adventure';
+import { useAssessment } from '@/context/AssessmentContext';
+import BackButton from '@/components/ui/BackButton';
+import StepGuide from '@/components/ui/StepGuide';
+import Section from '@/components/ui/Section';
+import FocusPicker from '@/components/FocusPicker';
+
+// Developer-only tools show up only in `npm run dev`, never in a deployed build.
+const DEV_TOOLS = process.env.NODE_ENV === 'development';
 
 // ── Parent Zone ──
 // Consent first, then a minimal child profile, then full parental rights:
@@ -23,6 +32,13 @@ const AVATARS = [
   '🐱', '🐶', '🦊', '🐰', '🐻', '🐼', '🦁', '🐯',
   '🐨', '🐘', '🐧', '🦉', '🐸', '🦄', '🐢', '🐝', '🦋', '🐬',
 ];
+// "Age 4", or "14 months" for little ones (childAgeYears rounds those to 0.5/1).
+function ageLabel(c: { birthYear: number; birthMonth: number }) {
+  const now = new Date();
+  const months = (now.getFullYear() - c.birthYear) * 12 + (now.getMonth() + 1 - c.birthMonth);
+  return months < 24 ? `${Math.max(months, 0)} months old` : `Age ${Math.floor(months / 12)}`;
+}
+
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const COLLECTED = [
@@ -52,6 +68,7 @@ export default function ParentZonePage() {
   const [newTaskDomain, setNewTaskDomain] = useState<ActivityDomain>('communication');
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
+  const { state: assessment, loaded: assessmentLoaded } = useAssessment();
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
 
@@ -82,6 +99,9 @@ export default function ParentZonePage() {
   function handleConsent() {
     if (!agreeChecked) return;
     setFamily(recordConsent('checkbox'));
+    // The next part replaces this one, so bring the parent back to the top
+    // instead of leaving them scrolled down past where it starts.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleAddChild() {
@@ -91,6 +111,7 @@ export default function ParentZonePage() {
     setFormError('');
     setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(AVATARS[0]);
     setShowAddChild(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleSwitchChild(childId: string) {
@@ -116,60 +137,31 @@ export default function ParentZonePage() {
 
   if (!loaded) return null;
 
+  // First-time setup: until the active child has finished the adventure
+  // check, this page is step 2 of the four setup steps, so it shows the
+  // step strip and a clear "next step" button instead of looking like a
+  // settings page with no way forward.
+  const onboarding = assessmentLoaded && !assessment.assessmentCompleted;
+
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4">
 
-        <div className="flex items-center justify-between pt-6 pb-1">
-          <Link href="/" className={`text-sm font-bold ${theme.link}`}>← Home</Link>
-          <h1 className={`text-2xl font-extrabold ${theme.title}`}>👨‍👩‍👧 Parent Zone</h1>
+        <div className="flex items-center justify-between gap-2 pt-5 pb-1">
+          {onboarding ? <BackButton href="/story" label="Story" /> : <BackButton href="/play" label="Map" />}
+          <h1 className={`text-xl sm:text-2xl font-extrabold text-center ${theme.title}`}>👨‍👩‍👧 Parent Zone</h1>
           <ThemeToggle />
         </div>
-        <p className={`text-xs text-center mb-5 ${theme.subtitle}`}>
-          For grown-ups: your account, your child&apos;s data, your controls.
+        <p className={`text-sm text-center mb-4 ${theme.subtitle}`}>
+          For grown-ups: progress, settings and privacy.
         </p>
 
-        {/* ── Accessibility settings — a device display preference, not
-            child data, so it's always available regardless of consent ── */}
-        <div className="rounded-2xl p-4 mb-5" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
-          <h2 className={`text-sm font-extrabold mb-3 ${theme.title}`}>♿ Accessibility</h2>
-
-          <div className="mb-3">
-            <p className={`text-xs font-bold mb-1.5 ${theme.subtitle}`}>Text size</p>
-            <div className="flex gap-2">
-              {(['normal', 'large', 'xlarge'] as const).map(size => (
-                <button key={size} onClick={() => updateA11y({ textSize: size })}
-                  className="flex-1 py-2 rounded-xl text-xs font-extrabold transition-transform hover:scale-105"
-                  style={{ background: a11y.textSize === size ? '#7C3AED' : theme.cardBg, color: a11y.textSize === size ? 'white' : (bright ? '#1e1b4b' : 'white') }}>
-                  {size === 'normal' ? 'A' : size === 'large' ? 'A+' : 'A++'}
-                </button>
-              ))}
-            </div>
+        {onboarding && (
+          <div className="rounded-2xl px-4 py-3 mb-4" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
+            <StepGuide step={2} tone={bright ? 'light' : 'dark'} />
           </div>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>🎬 Reduce motion &amp; animation</span>
-            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
-          </label>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>🔇 Reduce sound effects</span>
-            <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
-          </label>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 mb-2 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>📖 Dyslexia-friendly text spacing</span>
-            <input type="checkbox" checked={a11y.dyslexiaFriendly} onChange={e => updateA11y({ dyslexiaFriendly: e.target.checked })} className="w-5 h-5" />
-          </label>
-
-          <label className="flex items-center justify-between gap-2 rounded-xl p-2.5 cursor-pointer" style={{ background: theme.cardBg }}>
-            <span className={`text-xs font-semibold ${theme.subtitle}`}>👁️ Colorblind-safe colors</span>
-            <input type="checkbox" checked={a11y.colorblindSafe} onChange={e => updateA11y({ colorblindSafe: e.target.checked })} className="w-5 h-5" />
-          </label>
-          <p className={`text-[10px] mt-2 ${theme.subtitle}`} style={{ opacity: 0.75 }}>
-            These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
-          </p>
-        </div>
+        )}
 
         {deletedMsg && (
           <div className="rounded-2xl p-4 mb-5 text-center" style={{ background: '#ECFDF5', border: '2px solid #34D399' }}>
@@ -179,7 +171,8 @@ export default function ParentZonePage() {
 
         {/* ── STEP 1: Consent ── */}
         {!consented && (
-          <div className="rounded-3xl p-5" style={{ background: 'rgba(255,255,255,0.97)' }}>
+          <div className="rounded-3xl p-5" style={{ background: theme.surface }}>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-violet-700 mb-1">Part 1 of 2 · Privacy</p>
             <h2 className="text-lg font-extrabold text-gray-800 mb-1">Before we begin</h2>
             <p className="text-sm text-gray-600 mb-3">
               Kailia&apos;s Story is made for children, so <strong>you</strong> — the parent or
@@ -233,31 +226,39 @@ export default function ParentZonePage() {
           </div>
         )}
 
-        {/* ── Child switcher — families can have more than one child; tap
-            an avatar to make it active, or add another sibling ── */}
-        {consented && family && family.children.length > 0 && (
-          <div className="rounded-2xl p-3 mb-4 flex items-center gap-2 flex-wrap" style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
-            {family.children.map(c => (
-              <button key={c.id} onClick={() => handleSwitchChild(c.id)}
-                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition-transform hover:scale-105"
-                style={{ background: c.id === family.activeChildId ? '#7C3AED' : theme.cardBg }}>
-                <span className="text-2xl">{c.avatar}</span>
-                <span className={`text-[10px] font-extrabold ${c.id === family.activeChildId ? 'text-white' : theme.subtitle}`}>{c.nickname}</span>
+        {/* ── Who we're looking at: the active child, with switch/add ── */}
+        {consented && family && child && (
+          <div className="rounded-3xl p-4 mb-4" style={{ background: theme.surface }}>
+            <div className="flex items-center gap-3">
+              <span className="text-5xl" aria-hidden="true">{child.avatar}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xl font-extrabold text-gray-800 truncate">{child.nickname}</p>
+                <p className="text-sm text-gray-500">{ageLabel(child)} · born {MONTHS[child.birthMonth - 1]} {child.birthYear}</p>
+              </div>
+            </div>
+            {/* Families can have more than one child: tap to switch, or add a sibling */}
+            <div className="flex items-center gap-2 flex-wrap mt-3 pt-3" style={{ borderTop: '1px solid rgba(15,23,42,0.08)' }}>
+              {family.children.length > 1 && family.children.map(c => (
+                <button key={c.id} onClick={() => handleSwitchChild(c.id)} aria-pressed={c.id === family.activeChildId}
+                  className="flex items-center gap-1.5 min-h-[40px] px-3 rounded-full text-sm font-extrabold transition-transform active:scale-95"
+                  style={{ background: c.id === family.activeChildId ? '#7C3AED' : '#F1F5F9', color: c.id === family.activeChildId ? 'white' : '#334155' }}>
+                  <span>{c.avatar}</span> {c.nickname}
+                </button>
+              ))}
+              <button onClick={() => setShowAddChild(true)}
+                className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
+                style={{ border: '1.5px dashed #CBD5E1' }}>
+                + Add a child
               </button>
-            ))}
-            <button onClick={() => setShowAddChild(true)}
-              className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-transform hover:scale-105"
-              style={{ background: theme.cardBg, border: `1.5px dashed ${theme.panelBorder}` }}>
-              <span className={`text-2xl ${theme.subtitle}`}>➕</span>
-              <span className={`text-[10px] font-extrabold ${theme.subtitle}`}>Add</span>
-            </button>
+            </div>
           </div>
         )}
 
         {/* ── STEP 2: Add child profile (always for the first child; a
             toggled form for adding a sibling afterward) ── */}
         {consented && (!child || showAddChild) && (
-          <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
+          <div className="rounded-3xl p-5 mb-4" style={{ background: theme.surface }}>
+            {!child && <p className="text-xs font-extrabold uppercase tracking-wide text-violet-700 mb-1">Part 2 of 2 · Your child</p>}
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-extrabold text-gray-800">{child ? 'Add another child' : 'Add your child'}</h2>
               {child && (
@@ -302,160 +303,213 @@ export default function ParentZonePage() {
           </div>
         )}
 
-        {/* ── STEP 3: Manage ── */}
         {consented && child && family && (
           <>
-            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
-              <div className="flex items-center gap-3">
-                <span className="text-5xl">{child.avatar}</span>
-                <div>
-                  <p className="text-xl font-extrabold text-gray-800">{child.nickname}</p>
-                  <p className="text-xs text-gray-500">
-                    Born {MONTHS[child.birthMonth - 1]} {child.birthYear} · profile created {new Date(child.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+            {/* The one obvious way forward during first-time setup */}
+            {onboarding && !showAddChild && (
+              <Link href="/setup"
+                className="block rounded-3xl p-5 mb-4 text-center shadow-lg transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #7C3AED, #6366F1)' }}>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-violet-100">All set! Next step</p>
+                <p className="text-xl font-extrabold text-white mt-0.5">🧭 Start {child.nickname}&apos;s adventure check →</p>
+                <p className="text-sm text-violet-100 mt-1">A few minutes of play so Kailia can pick the right path.</p>
+              </Link>
+            )}
+
+            {/* A quiet preview of what the parent gets later, so Results and
+                the Progress report aren't a surprise. Not tappable: the
+                start button above stays the one main action. */}
+            {onboarding && !showAddChild && (
+              <div className="rounded-3xl p-4 mb-4" aria-label="Unlocks after the adventure check"
+                style={{ background: theme.panelBg, border: `1.5px dashed ${theme.panelBorder}` }}>
+                <p className={`text-sm font-extrabold mb-2 ${theme.subtitle}`}>✨ What you&apos;ll get</p>
+                <ul className={`space-y-1.5 text-sm ${theme.subtitle}`} style={{ opacity: 0.85 }}>
+                  <li>🌟 <strong>Results:</strong> see how {child.nickname} is doing in each skill</li>
+                  <li>📋 <strong>Progress report:</strong> a printable summary for {child.nickname}&apos;s therapist or teacher</li>
+                </ul>
+                <p className={`text-xs font-bold mt-3 ${theme.subtitle}`} style={{ opacity: 0.7 }}>🔒 Unlocks after the adventure check</p>
               </div>
-              <div className="rounded-xl p-2.5 mt-3" style={{ background: '#ECFDF5' }}>
-                <p className="text-[11px] text-emerald-800">
-                  ✅ Consent on file: agreed {new Date(family.consent!.agreedAt).toLocaleString()} ·
-                  method: {family.consent!.method} · notice version {POLICY_VERSION}
-                </p>
+            )}
+
+            {/* The two things parents come here for most, as big tiles */}
+            {!onboarding && (
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                <Link href="/results" className="rounded-3xl p-4 transition-transform hover:scale-[1.02] active:scale-[0.98]" style={{ background: theme.surface }}>
+                  <span className="text-3xl" aria-hidden="true">🌟</span>
+                  <p className="font-extrabold text-gray-800 mt-1 leading-tight">Results</p>
+                  <p className="text-sm text-gray-500 leading-snug">How {child.nickname} is doing</p>
+                </Link>
+                <Link href="/progress" className="rounded-3xl p-4 transition-transform hover:scale-[1.02] active:scale-[0.98]" style={{ background: theme.surface }}>
+                  <span className="text-3xl" aria-hidden="true">📋</span>
+                  <p className="font-extrabold text-gray-800 mt-1 leading-tight">Progress report</p>
+                  <p className="text-sm text-gray-500 leading-snug">Print or share with a therapist or teacher</p>
+                </Link>
               </div>
-            </div>
+            )}
+
 
             {/* Custom Quests — a parent's own practice goals, woven into
                 Noel's daily quest screen alongside the built-in library. */}
-            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
-              <h2 className="text-lg font-extrabold text-gray-800 mb-1">📝 {child.nickname}&apos;s Custom Quests</h2>
-              <p className="text-xs text-gray-500 mb-3">
-                Add your own goal — an OT/IEP goal, a manners practice, anything specific to{' '}
-                {child.nickname} — and Noel will fold it into the daily quest screen with the same
-                Did it / Tried with help / Not yet report.
+            {/* Hidden during first-time setup so it doesn't read as a required
+                step next to the "Start the adventure check" button. */}
+            {!onboarding && (
+            <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
+              <h2 className="text-lg font-extrabold text-gray-800">🎯 {child.nickname}&apos;s goal</h2>
+              <p className="text-sm text-gray-600 mb-3">
+                {`Something ${child.nickname} is working on, like saying “thank you” or buttoning a coat. Noel adds it to Today's Quests.`}
               </p>
 
               {customTasks.length > 0 && (
-                <div className="space-y-2 mb-3">
+                <div className="space-y-2 mb-4">
                   {customTasks.map(t => (
-                    <div key={t.id} className="flex items-center gap-2 rounded-xl p-2.5" style={{ background: '#F8FAFC' }}>
+                    <div key={t.id} className="flex items-center gap-2 rounded-xl p-2.5" style={{ background: '#F1F5F9' }}>
                       <span className="text-lg">{DOMAIN_META[t.domain].emoji}</span>
                       <p className="flex-1 text-sm text-gray-800 font-semibold">{t.text}</p>
-                      <button onClick={() => handleRemoveTask(t.id)} className="text-xs font-bold text-rose-500">Remove</button>
+                      <button onClick={() => handleRemoveTask(t.id)} className="min-h-[36px] px-2 text-sm font-bold text-rose-600">Remove</button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <label className="block text-xs font-bold text-gray-700 mb-1">New goal</label>
-              <input type="text" value={newTaskText} onChange={e => setNewTaskText(e.target.value)}
-                placeholder={`e.g. "Practice saying thank you"`} maxLength={80}
-                className="w-full border-2 border-slate-200 rounded-2xl px-4 py-2.5 text-gray-800 mb-2 focus:outline-none focus:border-blue-400" />
-              <div className="flex gap-2">
-                <select value={newTaskDomain} onChange={e => setNewTaskDomain(e.target.value as ActivityDomain)}
-                  className="flex-1 border-2 border-slate-200 rounded-2xl px-3 py-2.5 text-gray-800 bg-white text-sm">
-                  {(Object.keys(DOMAIN_META) as ActivityDomain[]).map(d => (
-                    <option key={d} value={d}>{DOMAIN_META[d].emoji} {DOMAIN_META[d].label}</option>
-                  ))}
-                </select>
-                <button onClick={handleAddTask}
-                  className="px-5 py-2.5 rounded-2xl font-extrabold text-white flex-shrink-0" style={{ background: '#2563EB' }}>
-                  Add
-                </button>
-              </div>
-            </div>
-
-            {/* (Preview only) Instantly finishes every main-land quest so
-                the just-added bonus realms (Space Outpost, Coral Reef) can
-                be previewed without playing all 13 quests first. Not a
-                real feature — remove once the design is confirmed. */}
-            <div className="rounded-3xl p-4 mb-4 text-center" style={{ background: '#FEF3C7', border: '2px dashed #D97706' }}>
-              <p className="text-xs font-bold text-amber-900 mb-2">🚧 (Preview only) Unlock the bonus realms instantly</p>
-              <button onClick={() => {
-                  LANDS.forEach(land => land.quests.forEach(q => recordQuestPlay(land.id, q.href)));
-                  setDeletedMsg('Bonus realms unlocked — check the world map!');
-                  setTimeout(() => setDeletedMsg(''), 4000);
-                }}
-                className="px-5 py-2.5 rounded-full font-extrabold text-white text-sm" style={{ background: '#D97706' }}>
-                Finish all 6 main lands
-              </button>
-              {deletedMsg && <p className="text-xs font-bold text-emerald-700 mt-2">{deletedMsg}</p>}
-            </div>
-
-            {/* Progress report — printable rollup for the child's care team */}
-            <Link href="/progress"
-              className="block rounded-3xl p-5 mb-4 transition-transform hover:scale-[1.01]"
-              style={{ background: 'rgba(255,255,255,0.97)' }}>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">📋</span>
-                <div className="flex-1">
-                  <p className="font-extrabold text-gray-800">Progress Report</p>
-                  <p className="text-xs text-gray-500">
-                    A printable summary to share with an OT, PT, SLP, teacher, or pediatrician.
-                  </p>
-                </div>
-                <span className="text-gray-400">→</span>
-              </div>
-            </Link>
-
-            {/* View data */}
-            <div className="rounded-3xl p-5 mb-4" style={{ background: 'rgba(255,255,255,0.97)' }}>
-              <button onClick={() => { setInventory(childDataInventory()); setShowData(s => !s); }}
-                className="w-full py-3 rounded-full font-extrabold text-white" style={{ background: '#0891B2' }}>
-                {showData ? 'Hide my child\'s data ▴' : '🔎 View my child\'s data'}
-              </button>
-              {showData && (
-                <div className="mt-4 space-y-3 slide-up">
-                  {inventory.map(sec => (
-                    <div key={sec.label}>
-                      <p className="text-sm font-extrabold text-gray-700 mb-1">{sec.label}</p>
-                      <ul className="space-y-1">
-                        {sec.items.map((it, i) => (
-                          <li key={i} className="text-xs text-gray-600 rounded-lg px-2.5 py-1.5" style={{ background: '#F8FAFC' }}>{it}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                  <p className="text-[11px] text-gray-400">
-                    This is every piece of data stored about {child.nickname} — all of it on this device only.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Danger zone */}
-            <div className="rounded-3xl p-5" style={{ background: 'rgba(255,255,255,0.97)', border: '2px solid #FECACA' }}>
-              <h2 className="text-sm font-extrabold text-rose-700 mb-3">Delete controls</h2>
-              {!confirmingChild ? (
-                <button onClick={() => setConfirmingChild(true)}
-                  className="w-full py-3 rounded-full font-bold text-rose-700 mb-3" style={{ border: '2px solid #FCA5A5' }}>
-                  Delete {child.nickname}&apos;s profile and all data
-                </button>
-              ) : (
-                <div className="rounded-2xl p-3 mb-3" style={{ background: '#FEF2F2', border: '2px solid #F87171' }}>
-                  <p className="text-sm font-bold text-rose-800 mb-2">
-                    This permanently erases {child.nickname}&apos;s profile, assessment, game progress and
-                    every measurement. It cannot be undone. Are you sure?
-                  </p>
-                  <div className="flex gap-2">
-                    <button onClick={handleDeleteChild} className="flex-1 py-2.5 rounded-full font-extrabold text-white" style={{ background: '#DC2626' }}>
-                      Yes, permanently delete
+              <label htmlFor="goal-text" className="block text-sm font-bold text-gray-700 mb-1">1. What should {child.nickname} practice?</label>
+              <input id="goal-text" type="text" value={newTaskText} onChange={e => setNewTaskText(e.target.value)}
+                placeholder={`e.g. "Say thank you at dinner"`} maxLength={80}
+                className="w-full border-2 border-slate-200 rounded-2xl px-4 py-2.5 text-gray-800 bg-white mb-3 focus:outline-none focus:border-violet-400" />
+              <p id="goal-area" className="text-sm font-bold text-gray-700 mb-1.5">2. Which skill is it?</p>
+              {/* Tap buttons instead of a dropdown: every choice is visible at once */}
+              <div role="radiogroup" aria-labelledby="goal-area" className="grid grid-cols-2 gap-2 mb-4">
+                {(Object.keys(DOMAIN_META) as ActivityDomain[]).map(d => {
+                  const on = newTaskDomain === d;
+                  return (
+                    <button key={d} role="radio" aria-checked={on} onClick={() => setNewTaskDomain(d)}
+                      className="flex items-center gap-1.5 min-h-[44px] px-3 rounded-2xl text-sm font-bold text-left transition-colors"
+                      style={{ background: on ? '#EDE9FE' : '#F1F5F9', color: on ? '#5B21B6' : '#334155',
+                        border: on ? '2px solid #7C3AED' : '2px solid transparent' }}>
+                      <span>{DOMAIN_META[d].emoji}</span> <span className="leading-tight">{DOMAIN_META[d].label}</span>
                     </button>
-                    <button onClick={() => setConfirmingChild(false)} className="flex-1 py-2.5 rounded-full font-bold text-gray-600" style={{ border: '2px solid #E2E8F0' }}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
+              <button onClick={handleAddTask} disabled={!newTaskText.trim()}
+                className="w-full min-h-[48px] rounded-full font-extrabold text-white transition-colors"
+                style={{ background: newTaskText.trim() ? '#7C3AED' : '#CBD5E1' }}>
+                Add goal
+              </button>
             </div>
+            )}
+
+            {!onboarding && (
+              <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
+                <h2 className="text-lg font-extrabold text-gray-800">Practice focus</h2>
+                <FocusPicker childName={child.nickname} />
+              </div>
+            )}
+
+            <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>{onboarding ? 'Optional · you can skip these' : 'More options'}</p>
           </>
         )}
 
-        {/* Account deletion — always available once an account exists,
-            even after the child profile is gone (full consent withdrawal) */}
-        {consented && (
-          <div className="rounded-3xl p-5 mt-4" style={{ background: 'rgba(255,255,255,0.97)', border: '2px solid #FECACA' }}>
+        <Section icon="♿" title="Display & accessibility" hint="Text size, motion, sound and colors">
+          <div className="mb-3">
+            <p className={`text-xs font-bold mb-1.5 text-gray-700`}>Text size</p>
+            <div className="flex gap-2">
+              {(['normal', 'large', 'xlarge'] as const).map(size => (
+                <button key={size} onClick={() => updateA11y({ textSize: size })}
+                  className="flex-1 min-h-[44px] rounded-xl text-sm font-extrabold transition-transform hover:scale-105"
+                  style={{ background: a11y.textSize === size ? '#7C3AED' : '#F1F5F9', color: a11y.textSize === size ? 'white' : '#1E293B' }}>
+                  {size === 'normal' ? 'A' : size === 'large' ? 'A+' : 'A++'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>🎬 Reduce motion &amp; animation</span>
+            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>🔇 Reduce sound effects</span>
+            <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>📖 Dyslexia-friendly text spacing</span>
+            <input type="checkbox" checked={a11y.dyslexiaFriendly} onChange={e => updateA11y({ dyslexiaFriendly: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>👁️ Colorblind-safe colors</span>
+            <input type="checkbox" checked={a11y.colorblindSafe} onChange={e => updateA11y({ colorblindSafe: e.target.checked })} className="w-5 h-5" />
+          </label>
+          <p className={`text-xs mt-2 text-gray-500`}>
+            These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
+          </p>
+        </Section>
+
+        {/* Privacy & data — parental rights (COPPA rule 7): view everything
+            stored, delete the child, delete the account. Always reachable
+            once an account exists, even after the child profile is gone. */}
+        {consented && family && (
+          <Section icon="🔒" title="Privacy & your data" hint="See or delete what's stored on this device">
+            {family.consent && (
+              <p className="text-sm text-gray-600 mb-3">
+                ✅ You agreed to the privacy notice on {new Date(family.consent.agreedAt).toLocaleDateString()}.
+                Everything stays on this device only.
+              </p>
+            )}
+
+            {child && (
+              <>
+                <button onClick={() => { setInventory(childDataInventory()); setShowData(s => !s); }}
+                  className="w-full min-h-[48px] rounded-full font-extrabold text-white mb-3" style={{ background: '#0891B2' }}>
+                  {showData ? 'Hide stored data ▴' : `🔎 View everything stored about ${child.nickname}`}
+                </button>
+                {showData && (
+                  <div className="mb-4 space-y-3 slide-up">
+                    {inventory.map(sec => (
+                      <div key={sec.label}>
+                        <p className="text-sm font-extrabold text-gray-700 mb-1">{sec.label}</p>
+                        <ul className="space-y-1">
+                          {sec.items.map((it, i) => (
+                            <li key={i} className="text-xs text-gray-600 rounded-lg px-2.5 py-1.5" style={{ background: '#F1F5F9' }}>{it}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    <p className="text-[11px] text-gray-500">
+                      Consent record: {new Date(family.consent!.agreedAt).toLocaleString()} · method: {family.consent!.method} · notice version {POLICY_VERSION}
+                    </p>
+                  </div>
+                )}
+
+                {!confirmingChild ? (
+                  <button onClick={() => setConfirmingChild(true)}
+                    className="w-full min-h-[48px] rounded-full font-bold text-rose-700 mb-3" style={{ border: '2px solid #FCA5A5' }}>
+                    Delete {child.nickname}&apos;s profile and all data
+                  </button>
+                ) : (
+                  <div className="rounded-2xl p-3 mb-3" style={{ background: '#FEF2F2', border: '2px solid #F87171' }}>
+                    <p className="text-sm font-bold text-rose-800 mb-2">
+                      This permanently erases {child.nickname}&apos;s profile, assessment, game progress and
+                      every measurement. It cannot be undone. Are you sure?
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={handleDeleteChild} className="flex-1 py-2.5 rounded-full font-extrabold text-white" style={{ background: '#DC2626' }}>
+                        Yes, permanently delete
+                      </button>
+                      <button onClick={() => setConfirmingChild(false)} className="flex-1 py-2.5 rounded-full font-bold text-gray-600" style={{ border: '2px solid #E2E8F0' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
             {!confirmingAll ? (
               <button onClick={() => setConfirmingAll(true)}
-                className="w-full py-3 rounded-full font-bold text-rose-700" style={{ border: '2px solid #FCA5A5' }}>
+                className="w-full min-h-[48px] rounded-full font-bold text-rose-700" style={{ border: '2px solid #FCA5A5' }}>
                 Delete my entire account and all data
               </button>
             ) : (
@@ -474,22 +528,42 @@ export default function ParentZonePage() {
                 </div>
               </div>
             )}
+
+            <p className="text-sm text-gray-500 mt-4">
+              <Link href="/privacy" className="underline font-semibold">Privacy Policy</Link> ·{' '}
+              <Link href="/retention" className="underline font-semibold">Data Retention Policy</Link>
+            </p>
+          </Section>
+        )}
+
+        {/* Developer shortcut: finishes every main-land quest so the bonus
+            realms can be checked without playing all of them. Only on a
+            developer's own machine (npm run dev), never in a deployed app. */}
+        {DEV_TOOLS && consented && child && (
+          <div className="rounded-3xl p-4 mt-4 text-center" style={{ background: '#FEF3C7', border: '2px dashed #D97706' }}>
+            <p className="text-xs font-bold text-amber-900 mb-2">🚧 Developer only: unlock the bonus realms</p>
+            <button onClick={() => {
+                LANDS.forEach(land => land.quests.forEach(q => recordQuestPlay(land.id, q.href)));
+                setDeletedMsg('Bonus realms unlocked — check the world map!');
+                setTimeout(() => setDeletedMsg(''), 4000);
+              }}
+              className="px-5 py-2.5 rounded-full font-extrabold text-white text-sm" style={{ background: '#D97706' }}>
+              Finish all 6 main lands
+            </button>
           </div>
         )}
 
         {/* Footer */}
         <div className="flex items-center justify-center gap-2 mt-8">
           <PandaSprite size={46} expression="happy" />
-          <p className="text-slate-400 text-xs max-w-[240px]">
-            Noel keeps the adventure fun — you stay in charge of the data.
+          <p className={`text-sm max-w-[240px] ${theme.subtitle}`}>
+            Noel keeps the adventure fun. You stay in charge of the data.
           </p>
         </div>
-        <p className="text-center text-xs mt-4">
-          <Link href="/privacy" className="text-sky-300 underline mr-3">Privacy Policy</Link>
-          <Link href="/retention" className="text-sky-300 underline">Data Retention Policy</Link>
-        </p>
       </div>
-      <BottomNav />
+      {/* During first-time setup the tabs would only lead off the path
+          (none of them open until setup is done), so hide them. */}
+      {!onboarding && <BottomNav />}
     </main>
   );
 }

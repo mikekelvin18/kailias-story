@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
-import GraspHand, { type GripKey } from '@/components/art/GraspHand';
+import StepGuide from '@/components/ui/StepGuide';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -131,10 +131,10 @@ const GRASP_PATTERNS = [
 ];
 
 // ─── Grasp Illustrations ──────────────────────────────────────────────────────
-// Painted drawing of a child's hand in each grip (components/art/GraspHand),
-// plus dots showing which fingers touch the pencil. Replaces the old stock
-// photos (a wrench for "palmar", an adult's hand for "quadrupod") which
-// didn't show the grips at all.
+// A simple pencil diagram with a dot for each finger on the pencil.
+// (The old stock photos, a wrench for "palmar" and an adult's hand for
+// "quadrupod", didn't show the grips, so they're no longer used. Hand
+// drawings are waiting on real photos or an illustrator.)
 
 function GraspIllustration({ graspKey, color }: { graspKey: string; color: string }) {
   // Finger labels: T=thumb, 1=index, 2=middle, 3=ring, 4=pinky
@@ -150,17 +150,31 @@ function GraspIllustration({ graspKey, color }: { graspKey: string; color: strin
 
   return (
     <div style={{ width: 72, flexShrink: 0 }}>
-      <GraspHand grip={graspKey as GripKey} size={72} />
-      <div style={{ display: 'flex', gap: 2, marginTop: 4, justifyContent: 'center' }}>
-        {['T','1','2','3','4'].map((lbl, i) => (
-          <div key={lbl} style={{
-            width: 16, height: 16, borderRadius: '50%',
-            background: active[i] ? color : '#D1D5DB',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 8, fontWeight: 'bold', color: active[i] ? 'white' : '#9CA3AF',
-          }}>{lbl}</div>
+      <svg viewBox="0 0 72 72" width={72} height={72} style={{ borderRadius: 10, background: '#F9FAFB', border: '1.5px solid #E5E7EB' }}>
+        {/* pencil shaft diagonal */}
+        <line x1="8" y1="64" x2="60" y2="8" stroke="#FFD600" strokeWidth="10" strokeLinecap="round" />
+        <line x1="8" y1="64" x2="60" y2="8" stroke="#B8860B" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
+        <circle cx="60" cy="8"  r="5" fill="#FF9999" /> {/* eraser */}
+        <circle cx="8"  cy="64" r="4" fill="#444"    /> {/* tip */}
+        {/* finger circles along the pencil */}
+        {[
+          { x: 52, y: 16 }, // thumb position
+          { x: 44, y: 24 }, // index
+          { x: 36, y: 32 }, // middle
+          { x: 28, y: 40 }, // ring
+          { x: 20, y: 48 }, // pinky
+        ].map((pos, i) => (
+          <g key={i}>
+            <circle cx={pos.x} cy={pos.y} r="9"
+              fill={active[i] ? color : '#E5E7EB'}
+              opacity={active[i] ? 1 : 0.5} />
+            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fontSize="8"
+              fontWeight="bold" fill={active[i] ? 'white' : '#9CA3AF'}>
+              {['T', '1', '2', '3', '4'][i]}
+            </text>
+          </g>
         ))}
-      </div>
+      </svg>
     </div>
   );
 }
@@ -757,7 +771,7 @@ export default function GamesPage() {
     const domainKey = game.key as 'reading' | 'writing' | 'communication' | 'math';
     if (isLastQ) {
       setDomainScore(domainKey, domainScore);
-      if (isLastStep) { completeAssessment(); router.push('/results'); }
+      if (isLastStep) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); }
       else {
         setGameStep(s => s + 1);
         setQuestionIdx(0); setLocalScore(0);
@@ -790,6 +804,7 @@ export default function GamesPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-start px-0 py-10" style={{ background: '#FFF9F0' }}>
         <div className="max-w-2xl w-full px-4">
+          <StepGuide step={3} className="mb-6" />
           <div className="flex gap-2 mb-6">
             {stepLabels.map((l, i) => (
               <div key={i} className="flex-1 h-3 rounded-full transition-all"
@@ -798,7 +813,7 @@ export default function GamesPage() {
           </div>
         </div>
         <TracingGame age={state.childAge ?? 8} onComplete={handleTracingComplete} />
-        <p className="text-center text-gray-400 text-xs mt-4">Step {gameStep + 1} of {totalSteps}</p>
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">Game {gameStep + 1} of {totalSteps}</p>
       </main>
     );
   }
@@ -810,6 +825,7 @@ export default function GamesPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-10" style={{ background: '#FFF9F0' }}>
       <div className="max-w-2xl w-full">
+        <StepGuide step={3} className="mb-6" />
 
         <div className="rounded-3xl p-5 mb-5 text-center shadow-lg"
           style={{ background: game.light, border: `3px solid ${game.color}` }}>
@@ -891,13 +907,13 @@ export default function GamesPage() {
             <button onClick={handleNext}
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
-              {isLastQ && isLastStep ? 'See My Results! 🎉' : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
+              {isLastQ && isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
             </button>
           )}
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-4">
-          Step {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">
+          Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
           {!isTracingStep && ` • Question ${questionIdx + 1}/${game.questions.length}`}
         </p>
       </div>
