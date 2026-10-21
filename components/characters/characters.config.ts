@@ -58,17 +58,20 @@ export const CHARACTER_IMAGES: Record<'kailia' | 'noel', Partial<Record<Characte
 };
 
 // ── Child avatars (Parent Zone profile picture) ──
-// Six curated buddies a parent picks from. Until real pictures exist, each
-// one shows the matching drawn critter from CritterSprite.tsx. To swap in
+// Six curated buddies a parent picks from. They use the companion pets' pictures
+// and Noel's portrait; any without an `image` shows the matching drawn critter from CritterSprite.tsx. To swap in
 // a real picture: drop e.g. `avatar-fox.png` into `public/avatars/` and fill
 // in its `image` line below — nothing else changes.
-export type AvatarId = 'turtle' | 'fox' | 'owl' | 'rabbit' | 'koala' | 'dragon';
+export type AvatarId = 'turtle' | 'fox' | 'owl' | 'unicorn' | 'panda' | 'dragon';
 
-export const CHILD_AVATARS: { id: AvatarId; name: string; tint: string; image?: string }[] = [
-  { id: 'fox',    name: 'Fox',    tint: '#FFE8D6' /* image: '/avatars/avatar-fox.png' */ },
-  { id: 'rabbit', name: 'Bunny',  tint: '#FCE7F3' /* image: '/avatars/avatar-bunny.png' */ },
-  { id: 'owl',    name: 'Owl',    tint: '#EDE9FE' /* image: '/avatars/avatar-owl.png' */ },
-  { id: 'turtle', name: 'Turtle', tint: '#DCFCE7' /* image: '/avatars/avatar-turtle.png' */ },
-  { id: 'koala',  name: 'Koala',  tint: '#E0F2FE' /* image: '/avatars/avatar-koala.png' */ },
-  { id: 'dragon', name: 'Dragon', tint: '#FEF9C3' /* image: '/avatars/avatar-dragon.png' */ },
+export const CHILD_AVATARS: { id: AvatarId; name: string; tint: string; image?: string;
+  // Head-and-shoulders crop of a full-body picture, in the picture's own
+  // pixels: [face center x, face center y, square size, picture width]
+  crop?: [number, number, number, number] }[] = [
+  { id: 'fox',     name: 'Flick',  tint: '#FFE8D6', image: '/art/pets/flick.webp', crop: [205, 170, 360, 384] },
+  { id: 'turtle',  name: 'Shelly', tint: '#DCFCE7', image: '/art/pets/shelly.webp', crop: [205, 140, 300, 394] },
+  { id: 'owl',     name: 'Sage',   tint: '#EDE9FE', image: '/art/pets/sage.webp', crop: [210, 170, 370, 408] },
+  { id: 'unicorn', name: 'Nova',   tint: '#FCE7F3', image: '/art/pets/nova.webp', crop: [290, 175, 310, 438] },
+  { id: 'dragon',  name: 'Ember',  tint: '#FEF9C3', image: '/art/pets/ember.webp', crop: [222, 160, 320, 422] },
+  { id: 'panda',   name: 'Noel',   tint: '#E0F2FE', image: '/characters/noel/portrait-front.png', crop: [188, 140, 340, 376] },
 ];

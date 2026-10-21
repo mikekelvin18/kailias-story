@@ -7,7 +7,7 @@ import { CritterSprite, SpeciesKey } from './CritterSprite';
 import { AvatarId, CHILD_AVATARS } from './characters.config';
 
 const LEGACY_EMOJI: Record<string, AvatarId> = {
-  '🦊': 'fox', '🐰': 'rabbit', '🦉': 'owl', '🐢': 'turtle', '🐨': 'koala', '🐉': 'dragon', '🐲': 'dragon',
+  '🦊': 'fox', '🦄': 'unicorn', rabbit: 'unicorn', '🐰': 'unicorn', '🦉': 'owl', '🐢': 'turtle', '🐼': 'panda', koala: 'panda', '🐉': 'dragon', '🐲': 'dragon',
 };
 
 export function resolveAvatar(stored: string) {
@@ -26,7 +26,13 @@ export default function ChildAvatar({ avatar, size = 48 }: { avatar: string; siz
       style={{ width: size, height: size, background: a.tint }}>
       {a.image ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={a.image} alt="" className="w-full h-full object-cover" />
+        <img src={a.image} alt="" className="absolute max-w-none"
+          style={a.crop ? {
+            // Zoom the full-body picture to a head-and-shoulders crop
+            width: a.crop[3] * size / a.crop[2],
+            left: size / 2 - a.crop[0] * size / a.crop[2],
+            top: size / 2 - a.crop[1] * size / a.crop[2],
+          } : { inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
         // A bust: the critter sits low in the circle so its face is centered
         <CritterSprite species={a.id as SpeciesKey} size={size} animate={false}
