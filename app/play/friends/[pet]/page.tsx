@@ -19,8 +19,8 @@ import { loadRewards, recordGameLevel } from '@/lib/rewards';
 import { setReturnPath } from '@/lib/returnTo';
 
 // stop positions on the path, bottom to top (fractions of the path box)
-const SPOTS: [number, number][] = [[0.28, 0.87], [0.72, 0.69], [0.28, 0.51], [0.72, 0.33], [0.4, 0.16]];
-const BOX_W = 390, BOX_H = 470;
+const SPOTS: [number, number][] = [[0.35, 0.89], [0.65, 0.71], [0.35, 0.53], [0.65, 0.35], [0.5, 0.15]];
+const BOX_W = 390, BOX_H = 540;
 
 function pathD() {
   const p = SPOTS.map(([x, y]) => [x * BOX_W, y * BOX_H]);
@@ -118,7 +118,7 @@ export default function TrailPage() {
         </div>
 
         {/* the trail */}
-        <div className="relative w-full mt-2" style={{ aspectRatio: `${BOX_W} / ${BOX_H}` }}>
+        <div className="relative w-full mt-4" style={{ aspectRatio: `${BOX_W} / ${BOX_H}` }}>
           <svg viewBox={`0 0 ${BOX_W} ${BOX_H}`} className="absolute inset-0 w-full h-full" aria-hidden="true">
             <path d={pathD()} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="16" strokeLinecap="round" />
           </svg>
@@ -134,7 +134,7 @@ export default function TrailPage() {
                 className="absolute flex flex-col items-center gap-1 -translate-x-1/2 -translate-y-1/2 transition-transform active:scale-95"
                 style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: 120 }}>
                 <span className={`flex items-center justify-center rounded-full ${next ? 'portal-pulse' : ''}`}
-                  style={{ width: rescue ? 76 : 66, height: rescue ? 76 : 66, boxShadow: '0 5px 0 rgba(0,0,0,0.25)',
+                  style={{ width: rescue ? 70 : 60, height: rescue ? 70 : 60, boxShadow: '0 5px 0 rgba(0,0,0,0.25)',
                     background: done ? trail.color : next ? '#FFFFFF' : 'rgba(255,255,255,0.1)',
                     border: `4px solid ${done || next ? trail.color : 'rgba(255,255,255,0.22)'}` }}>
                   {done && <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F2A44" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
@@ -145,11 +145,11 @@ export default function TrailPage() {
               </button>
             );
           })}
-          {/* the friend waits across the path from the next stop, in the
-              empty side of the zigzag, so it never covers a stop */}
+          {/* the friend waits just beside the next stop, on the outer edge
+              of the zigzag, so it never covers a stop or its name */}
           <span className="absolute -translate-x-1/2 -translate-y-full"
-            style={{ left: `${(petSpot[0] < 0.5 ? 0.78 : 0.22) * 100}%`, top: `${(petSpot[1] + 0.07) * 100}%` }}>
-            <LiveArt src={c.art} alt={`${trail.pet} the ${c.kind}`} size={88} kind="pet" />
+            style={{ left: `${(petSpot[0] < 0.5 ? 0.13 : 0.86) * 100}%`, top: `${(petSpot[1] + 0.045) * 100}%` }}>
+            <LiveArt src={c.art} alt={`${trail.pet} the ${c.kind}`} size={80} kind="pet" />
           </span>
         </div>
 
