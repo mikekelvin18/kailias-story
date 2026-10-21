@@ -528,3 +528,35 @@ button:active {
 @media (prefers-reduced-motion: reduce) {
   .live-turn, .live-breathe, .live-hop, .live-lid, .live-breathe-shadow, .live-hop-shadow { animation: none; }
 }
+
+/* ── Live art (components/characters/LiveArt.tsx) ──
+   Pets: two slow breaths, then a small happy hop with squash & stretch.
+   Lands: a slow island float. Shadows follow each move. */
+@keyframes art-breathe {
+  0%, 30%, 60%, 100% { transform: translateY(0) scale(1, 1); }
+  15%, 45% { transform: translateY(0) scale(1.012, 0.985); }
+  68%  { transform: translateY(0) scale(1.08, 0.92); }
+  76%  { transform: translateY(-10%) scale(0.94, 1.07) rotate(-2deg); }
+  84%  { transform: translateY(-12%) scale(1, 1) rotate(2deg); }
+  92%  { transform: translateY(0) scale(1.07, 0.93); }
+  96%  { transform: translateY(0) scale(0.98, 1.02); }
+}
+.art-breathe { animation: art-breathe 6.5s ease-in-out infinite; }
+@keyframes art-breathe-shadow {
+  0%, 68%, 92%, 100% { transform: scaleX(1); opacity: 1; }
+  76%, 84% { transform: scaleX(0.72); opacity: 0.5; }
+}
+.art-breathe-shadow { animation: art-breathe-shadow 6.5s ease-in-out infinite; }
+@keyframes art-float {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50%      { transform: translateY(-5%) rotate(0.6deg); }
+}
+.art-float { animation: art-float 5.5s ease-in-out infinite; }
+@keyframes art-float-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50%      { transform: scaleX(0.85); opacity: 0.6; }
+}
+.art-float-shadow { animation: art-float-shadow 5.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .art-breathe, .art-breathe-shadow, .art-float, .art-float-shadow { animation: none; }
+}

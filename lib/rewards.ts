@@ -20,12 +20,15 @@ import { scopedKey } from './family';
 const KEY = 'kailia_rewards_v1';
 const empty: RewardsState = { starlight: 0, gameLevels: {}, celebratedCompanions: [] };
 
-export const COMPANIONS: { at: number; emoji: string; name: string }[] = [
-  { at: 30,  emoji: '🐢', name: 'Shelly' },
-  { at: 80,  emoji: '🦊', name: 'Flick' },
-  { at: 150, emoji: '🦉', name: 'Sage' },
-  { at: 250, emoji: '🦄', name: 'Nova' },
-  { at: 400, emoji: '🐉', name: 'Ember' },
+// `art` = Kelvin's painted picture of each pet (public/art/pets/); `emoji`
+// stays only as a fallback and for plain-text spots. Who each pet is
+// (personality, colors) lives in the art kit doc.
+export const COMPANIONS: { at: number; emoji: string; name: string; art: string; kind: string }[] = [
+  { at: 30,  emoji: '🐢', name: 'Shelly', art: '/art/pets/shelly.webp', kind: 'turtle' },
+  { at: 80,  emoji: '🦊', name: 'Flick',  art: '/art/pets/flick.webp',  kind: 'fox' },
+  { at: 150, emoji: '🦉', name: 'Sage',   art: '/art/pets/sage.webp',   kind: 'owl' },
+  { at: 250, emoji: '🦄', name: 'Nova',   art: '/art/pets/nova.webp',   kind: 'unicorn' },
+  { at: 400, emoji: '🐉', name: 'Ember',  art: '/art/pets/ember.webp',  kind: 'dragon' },
 ];
 
 function consented(): boolean {
