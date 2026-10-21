@@ -52,6 +52,8 @@ const FROG = { x: 1492, y: 965 };
 const LEAVES = { x: 640, y: 950 };
 const SHELF = { x: 400, y: 648 };
 const BANK = { x: 1262, y: 812 };
+/** the thing the child needs right now is never hidden behind a character */
+const ACTIVE_Z = 1500;
 /** where Kailia goes when a step begins, so a small screen frames the task */
 const STEP_SPOT: Partial<Record<StepId, Pt>> = { water: { x: 900, y: 800 }, bridge: BANK, search: { x: 1660, y: 820 } };
 
@@ -659,9 +661,9 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
         )}
       </div>
 
-      {/* on phones Noel talks from the empty sky, so the ground stays reachable */}
+      {/* Noel talks from the empty sky, so nothing on the ground is ever covered */}
       {line && (
-        <div key={line.n} className="absolute left-3 right-3 sm:left-5 sm:right-auto top-[124px] sm:top-auto sm:bottom-5 flex items-end gap-2 gw-say"
+        <div key={line.n} className="absolute left-3 right-3 sm:left-5 sm:right-auto top-[124px] sm:top-[88px] flex items-center gap-2 gw-say"
           style={{ zIndex: 10, maxWidth: 560 }}>
           <span className="flex-shrink-0 rounded-full overflow-hidden" style={{ width: 64, height: 64, background: P.paper, border: `2.5px solid ${INK}` }} aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -679,7 +681,7 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
       )}
 
       {askHelp && (
-        <div className="absolute left-1/2 -translate-x-1/2 bounce-in" style={{ zIndex: 11, top: '26%' }}>
+        <div className="absolute left-1/2 -translate-x-1/2 bounce-in" style={{ zIndex: 11, top: '36%' }}>
           <button type="button" onClick={helpPet} className="rounded-full px-8 py-3 font-extrabold text-xl sm:text-2xl"
             style={{ background: P.starGold, color: INK, border: `3px solid ${INK}`, boxShadow: `0 5px 0 ${INK}`, minHeight: 60 }}>
             Let&apos;s help!
@@ -763,7 +765,7 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
       ))}
 
       <DragThing x={can.x} y={can.y} w={140} h={110} label="Watering can" glide={can.drag ? 0 : 450}
-        dragging={can.drag} disabled={!canActive} z={can.drag ? 2000 : can.parked ? FLOWER.y + 4 : undefined}
+        dragging={can.drag} disabled={!canActive} z={can.drag ? 2000 : can.parked ? FLOWER.y + 4 : canActive ? ACTIVE_Z : undefined}
         className={wiggle === 'can' ? 'gw-wiggle' : ''} {...canHandlers}>
         <WateringCan tilt={pouring} />
       </DragThing>
@@ -775,7 +777,7 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
       {stones.map((s, i) => (
         <DragThing key={i} x={s.x} y={s.y + 20} w={96} h={64} label={s.slot !== null ? 'Stepping stone in the stream' : 'Stepping stone'}
           glide={s.drag ? 0 : 350} dragging={s.drag} disabled={!bridgeActive || s.slot !== null}
-          z={s.drag ? 2000 : s.slot !== null ? 795 : undefined} className={wiggle === 'stones' && s.slot === null ? 'gw-wiggle' : ''}
+          z={s.drag ? 2000 : s.slot !== null ? 795 : bridgeActive ? ACTIVE_Z : undefined} className={wiggle === 'stones' && s.slot === null ? 'gw-wiggle' : ''}
           onStart={() => { touch(); setStones(ss => ss.map((t, k2) => (k2 === i ? { ...t, drag: true } : t))); actK('reach', 600000, s.x); }}
           onMove={q => setStones(ss => ss.map((t, k2) => (k2 === i ? { ...t, x: q.x, y: q.y + 10 } : t)))}
           onDrop={q => placeStone(i, { x: q.x, y: q.y + 10 }, 'drag')}
@@ -846,10 +848,10 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
           </DragThing>
         ) : (
           <div className="absolute pointer-events-none" aria-hidden="true" style={{
-            left: ballPos.x - 24, top: ballPos.y - 48, zIndex: ball.mode === 'pet' ? Math.round(p.y + 2) : 1500,
+            left: ballPos.x - 28, top: ballPos.y - 56, zIndex: ball.mode === 'pet' ? Math.round(p.y + 2) : 1500,
             transition: ball.mode === 'fly' ? 'left 0.55s cubic-bezier(.2,.6,.4,1), top 0.55s cubic-bezier(.3,-0.6,.6,1)' : undefined,
           }}>
-            <StarBall size={40} glow={false} />
+            <StarBall size={56} glow={false} />
           </div>
         )
       )}
