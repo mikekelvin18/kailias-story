@@ -210,7 +210,7 @@ export default function StarLetters({ difficulty, accent, say, onDone, pet, reac
             {round.letter.ch}{round.letter.ch.toLowerCase()}
           </span>
         )}
-        <Actor art={pet.art} name={pet.name} x={14} y={97} h={84} mood={mood} moodKey={moodKey} z={5} />
+        <Actor art={pet.art} name={pet.name} x={14} y={97} h={84} mood={mood} moodKey={moodKey} z={5} halo="#2A1A5E" />
         {layer}
       </Stage>
 

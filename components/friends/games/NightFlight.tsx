@@ -149,7 +149,7 @@ export default function NightFlight({ difficulty, accent, say, onDone, pet, reac
           </button>
         );
       })}
-      <Actor art={pet.art} name={pet.name} x={spot.x} y={spot.y} h={size === 3 ? 66 : 56} mood={mood} moodKey={moodKey}
+      <Actor halo="#FFF1B8" art={pet.art} name={pet.name} x={spot.x} y={spot.y} h={size === 3 ? 66 : 56} mood={mood} moodKey={moodKey}
         moveMs={mode === 'watch' ? Math.min(stepMs * 0.75, 520) : 380} flip={spot.x < 40 && mode === 'answer'} shadow={false} z={6} />
       {layer}
     </Stage>

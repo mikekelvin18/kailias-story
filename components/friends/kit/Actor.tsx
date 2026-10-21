@@ -46,9 +46,11 @@ interface Props {
   onTap?: () => void;
   shadow?: boolean;
   z?: number;
+  /** a soft light behind the friend, so it stands out from a busy or same-colored scene */
+  halo?: string;
 }
 
-export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, moveMs = 600, flip, onTap, shadow = true, z = 5 }: Props) {
+export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, moveMs = 600, flip, onTap, shadow = true, z = 5, halo }: Props) {
   const w = petWidth(art, h);
   const cls = mood === 'idle' ? '' : `fg-${mood}`;
   return (
@@ -57,6 +59,9 @@ export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, 
       transition: `left ${moveMs}ms cubic-bezier(.45,.05,.4,1), top ${moveMs}ms cubic-bezier(.3,-0.3,.4,1)`,
       pointerEvents: onTap ? 'auto' : 'none',
     }}>
+      {halo && (
+        <span aria-hidden="true" className="absolute rounded-full" style={{ left: '-30%', right: '-30%', top: '-12%', bottom: '-6%', background: `radial-gradient(closest-side, ${halo}, ${halo}00)`, opacity: 0.7 }} />
+      )}
       {shadow && mood !== 'fly' && (
         <span aria-hidden="true" className="absolute left-[18%] right-[18%] -bottom-[4%] h-[10%] rounded-[50%]" style={{ background: 'rgba(0,0,0,0.22)', filter: 'blur(2px)' }} />
       )}
