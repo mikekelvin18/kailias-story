@@ -16,6 +16,7 @@ import Stage from '@/components/friends/kit/Stage';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import KailiaActor from '@/components/games/KailiaActor';
+import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
@@ -275,7 +276,7 @@ export default function WordWizardPage() {
   const lit = popped ? qIdx + 1 : qIdx;  // stones Kailia has walked
   const hintOn = triesThisQ >= 2;
   // Kailia stands on the last stone she lit, and runs to the flag at the end
-  const kailiaX = lit === 0 ? 4 : lit >= round.length ? stoneX(round.length) - 6 : stoneX(lit - 1);
+  const kailiaX = lit === 0 ? 8 : lit >= round.length ? stoneX(round.length) - 6 : stoneX(lit - 1);
   const isWordVisual = q ? !/^\p{Extended_Pictographic}️?$/u.test(q.visual) : false;
 
   return (
@@ -394,14 +395,17 @@ export default function WordWizardPage() {
               <KailiaActor x={kailiaX} y={95} h={78} hop={kailiaHop} />
               <div data-pet>
                 {(() => {
-                  // after two tries the friend flies up under the right balloon
+                  // after two tries the friend runs to stand under the right
+                  // balloon and bounces (the friends are drawn sitting, so
+                  // they stay on the ground instead of floating in the sky)
                   const hintSpot = hintOn && !popped ? (SPOTS[q.choices.length] ?? SPOTS[4])[q.choices.indexOf(q.answer)] : null;
                   const kx = kailiaX;
-                  const px = hintSpot ? hintSpot[0] + (hintSpot[0] > 50 ? -16 : 16) : kx > 70 ? kx - 13 : kx + 13;
-                  const py = hintSpot ? hintSpot[1] + 20 : 95;
+                  const near = hintSpot && Math.abs(hintSpot[0] - kx) < 14;
+                  const px = hintSpot && !near ? hintSpot[0] : kx > 70 ? kx - 14 : kx + 14;
+                  const py = 95;
                   return (
                     <Actor art={pet.art} name={pet.name} x={px} y={py} h={56}
-                      mood={hintSpot ? 'fly' : petMood} moodKey={petMoodKey} moveMs={900}
+                      mood={hintSpot ? 'talk' : petMood} moodKey={petMoodKey} moveMs={900}
                       onTap={() => { setPetMood('dance'); timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300)); }} z={9} />
                   );
                 })()}
@@ -421,28 +425,30 @@ export default function WordWizardPage() {
       {/* ── Level complete ── */}
       {phase === 'levelDone' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #1e3a8aee, #2563ebee)' }}>
+          style={{ background: 'linear-gradient(135deg, #1e3a8a, #2563eb)' }}>
           <div className="text-center bounce-in">
-            <span className="block text-7xl mb-3 star-burst">🪧</span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={140} expression="celebrating" className="float" />
-              <KailiaSprite size={100} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={120} expression="celebrating" className="float" />
+              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
+                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
+              </span>
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
             <p className="text-blue-100 font-semibold mb-1">
-              {chapter.emoji} {chapter.name} reader! Every signpost is glowing again.
+              {chapter.name} reader! Every signpost is glowing again.
             </p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{earned} starlight</p>
+            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
             <div className="flex gap-3 justify-center flex-wrap">
               <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-blue-900 shadow-xl transition-transform hover:scale-105"
                 style={{ background: 'white' }}>
-                Level {level + 1} ▶
+                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
               </button>
               <Link href="/play"
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-blue-950 shadow-xl transition-transform hover:scale-105 inline-block"
                 style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                Back to the map
+                <span className="whitespace-nowrap">Back to the map</span>
               </Link>
             </div>
           </div>

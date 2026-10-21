@@ -13,6 +13,7 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import KailiaActor from '@/components/games/KailiaActor';
+import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -53,6 +54,9 @@ const PRAISE = [
 ];
 
 const clampPct = (v: number) => Math.max(10, Math.min(90, v));
+// the friend never stands right on top of Kailia: nudge it beside her
+const besideKailia = (petX: number, kailiaX: number) =>
+  Math.abs(petX - kailiaX) >= 14 ? petX : clampPct(kailiaX + (kailiaX > 50 ? -16 : 16));
 
 const LANTERN_ZONE = 84; // drop radius around the lantern, px
 
@@ -108,6 +112,8 @@ export default function FireflyCatchPage() {
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const [petPos, setPetPos] = useState({ x: 72, y: 93 });
   const [kailiaPos, setKailiaPos] = useState({ x: 30, y: 94 });
+  const kailiaXRef = useRef(30);
+  useEffect(() => { kailiaXRef.current = kailiaPos.x; }, [kailiaPos.x]);
   const [kailiaHop, setKailiaHop] = useState(0);
   const [hintId, setHintId] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -280,7 +286,7 @@ export default function FireflyCatchPage() {
       const free = fliesRef.current.filter(f => !f.caught);
       if (!free.length || dragRef.current) return;
       const f = free[Math.floor(Math.random() * free.length)];
-      setPetPos({ x: clampPct((f.x / w) * 100 + 8), y: 93 });
+      setPetPos({ x: besideKailia(clampPct((f.x / w) * 100 + 8), kailiaXRef.current), y: 93 });
     }, 2600);
     return () => clearInterval(id);
   }, [phase]);
@@ -289,7 +295,9 @@ export default function FireflyCatchPage() {
   // firefly zooms into the lantern and sparkles pop
   function cheer(x: number, y: number) {
     const { w, h } = sizeRef.current;
-    setKailiaPos({ x: clampPct((x / w) * 100), y: 94 });
+    const kx = clampPct((x / w) * 100);
+    setKailiaPos({ x: kx, y: 94 });
+    setPetPos(p => ({ ...p, x: besideKailia(p.x, kx), y: 93 }));
     setKailiaHop(n => n + 1);
     setPetMood('cheer');
     setHintId(null);
@@ -304,7 +312,7 @@ export default function FireflyCatchPage() {
     }, 700);
   }
 
-  // after a few misses the friend flies up to a firefly to point it out
+  // after a few misses the friend runs under a firefly to point it out
   function friendHint(x: number, y: number) {
     const { w, h } = sizeRef.current;
     let best: Firefly | null = null;
@@ -314,8 +322,10 @@ export default function FireflyCatchPage() {
     }
     if (!best) return;
     setHintId(best.id);
-    setPetMood('fly');
-    setPetPos({ x: clampPct((best.x / w) * 100 + 10), y: Math.min(90, (best.y / h) * 100 + 14) });
+    // the friends are drawn sitting, so they stay on the ground: it runs
+    // underneath the firefly and bounces to point it out
+    setPetMood('talk');
+    setPetPos({ x: besideKailia(clampPct((best.x / w) * 100), kailiaPos.x), y: 93 });
   }
 
   function tickle() {
@@ -393,7 +403,7 @@ export default function FireflyCatchPage() {
     const cy = Math.max(cfg.r, Math.min(h - cfg.r, y));
     setFireflies(prev => prev.map(f => (f.id === drag.id ? { ...f, x: cx, y: cy } : f)));
     // the friend trots along underneath the sleepy firefly
-    setPetPos({ x: clampPct((cx / w) * 100 + 9), y: 93 });
+    setPetPos({ x: besideKailia(clampPct((cx / w) * 100 + 9), kailiaPos.x), y: 93 });
   }
 
   function onPointerUp() {
@@ -563,26 +573,29 @@ export default function FireflyCatchPage() {
       {/* ── Finale ── */}
       {phase === 'done' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #065f46ee, #0f766eee)' }}>
+          style={{ background: 'linear-gradient(135deg, #065f46, #0f766e)' }}>
           <div className="text-center bounce-in">
             <span className="inline-block mb-3 star-burst"><Lantern glow={1} size={96} /></span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={145} expression="celebrating" className="float" />
-              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={120} expression="celebrating" className="float" />
+              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
+                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
+              </span>
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
             <p className="text-emerald-100 font-semibold mb-2">Every firefly made it home. {pet.name} is doing a happy dance!</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{15 + level * 5} starlight collected!</p>
-            <div className="flex gap-3 justify-center">
+            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{15 + level * 5} starlight collected!</p>
+            <div className="flex gap-3 justify-center flex-wrap">
               <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-900 shadow-xl transition-transform hover:scale-105"
                 style={{ background: 'white' }}>
-                Level {level + 1} ▶
+                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
               </button>
               <Link href="/play"
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105 inline-block"
                 style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                Back to the map
+                <span className="whitespace-nowrap">Back to the map</span>
               </Link>
             </div>
           </div>
@@ -600,7 +613,10 @@ function Lantern({ glow, size, gulp = 0 }: { glow: number; size: number; gulp?: 
   return (
     <div key={gulp} className={gulp ? 'lantern-gulp' : undefined} style={{ width: size, height: size * 1.3 }}>
       <svg viewBox="0 0 60 78" width={size} height={size * 1.3} className="lantern-swing" aria-hidden="true" style={{ overflow: 'visible' }}>
-        <circle cx="30" cy="46" r={18 + glow * 26} fill="#FDE047" opacity={0.08 + glow * 0.35} style={{ transition: 'all 0.6s' }} />
+        <defs>
+          <radialGradient id="lantern-halo"><stop offset="0" stopColor="#FFF3A0" stopOpacity="0.9" /><stop offset="1" stopColor="#FDE047" stopOpacity="0" /></radialGradient>
+        </defs>
+        <circle cx="30" cy="46" r={18 + glow * 30} fill="url(#lantern-halo)" opacity={0.15 + glow * 0.6} style={{ transition: 'all 0.6s' }} />
         <g filter="url(#kp-brush)">
           <path d="M18 14 Q30 -2 42 14" stroke={sk} strokeWidth="3" fill="none" strokeLinecap="round" />
           <rect x="14" y="13" width="32" height="8" rx="3" fill="#C9822F" stroke={sk} strokeWidth="2.4" />
