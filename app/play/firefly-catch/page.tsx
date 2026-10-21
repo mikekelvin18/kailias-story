@@ -508,7 +508,8 @@ export default function FireflyCatchPage() {
 
               {/* fireflies */}
               {fireflies.filter(f => !f.caught).map((f, i) => {
-                const size = cfg.r * 2.4;
+                // drawn a little smaller than the (forgiving) tap area, and never giant
+                const size = Math.min(64, cfg.r * 1.7);
                 const dragging = draggingId === f.id;
                 return (
                   <div key={f.id} data-firefly className="absolute" style={{ left: f.x - size / 2, top: f.y - size / 2, width: size, height: size, pointerEvents: 'none', zIndex: 10 }}>
@@ -525,10 +526,10 @@ export default function FireflyCatchPage() {
               {/* caught fireflies zooming home into the lantern */}
               {homing.map(b => (
                 <div key={b.id} className="absolute ff-home" style={{
-                  left: lanternX - 22, top: lanternY - 40, width: 44, height: 44, pointerEvents: 'none', zIndex: 11,
+                  left: lanternX - 18, top: lanternY - 36, width: 36, height: 36, pointerEvents: 'none', zIndex: 11,
                   ['--fx' as string]: `${b.x - lanternX}px`, ['--fy' as string]: `${b.y - lanternY + 18}px`,
                 } as React.CSSProperties}>
-                  <GlowBug size={44} seed={b.id} lit={1} />
+                  <GlowBug size={36} seed={b.id} lit={1} />
                 </div>
               ))}
 
