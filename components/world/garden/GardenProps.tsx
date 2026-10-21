@@ -40,12 +40,12 @@ export function WateringCan({ tilt }: { tilt: boolean }) {
       {!tilt && <ellipse cx="66" cy="104" rx="52" ry="7" fill={SHADOW} />}
       <g style={{ transform: tilt ? 'rotate(-34deg)' : 'none', transformOrigin: '60px 70px', transition: 'transform 0.25s ease-out' }}>
         <g filter={brush} stroke={INK} strokeWidth={LINE} strokeLinejoin="round">
-          <path d="M84 62 L128 26 L134 32 L96 76Z" fill="#5FA8D3" />
-          <ellipse cx="132" cy="28" rx="9" ry="13" transform="rotate(40 132 28)" fill="#7CC0E6" />
-          <path d="M22 40 Q22 34 28 34 H92 Q98 34 98 40 V96 Q98 102 92 102 H28 Q22 102 22 96Z" fill="#7CC0E6" />
+          <path d="M84 62 L128 26 L134 32 L96 76Z" fill="#1F5F9A" />
+          <ellipse cx="132" cy="28" rx="9" ry="13" transform="rotate(40 132 28)" fill="#2F7FC4" />
+          <path d="M22 40 Q22 34 28 34 H92 Q98 34 98 40 V96 Q98 102 92 102 H28 Q22 102 22 96Z" fill="#2F7FC4" />
           <path d="M36 34 Q36 6 60 6 Q84 6 84 34" fill="none" stroke={INK} strokeWidth="13" strokeLinecap="round" />
-          <path d="M36 34 Q36 6 60 6 Q84 6 84 34" fill="none" stroke="#5FA8D3" strokeWidth="7" strokeLinecap="round" />
-          <path d="M22 56 H98" stroke="#5FA8D3" strokeWidth="5" />
+          <path d="M36 34 Q36 6 60 6 Q84 6 84 34" fill="none" stroke="#1F5F9A" strokeWidth="7" strokeLinecap="round" />
+          <path d="M22 56 H98" stroke="#1F5F9A" strokeWidth="5" />
           <path d="M32 46 Q34 42 40 42" stroke="#FFFFFF" strokeWidth="5" fill="none" strokeLinecap="round" opacity="0.8" />
         </g>
       </g>
@@ -111,14 +111,15 @@ export function Sunflower({ lift, bloomed }: { lift: number; bloomed: boolean })
 }
 
 export function Stone({ v }: { v: number }) {
-  const fills = ['#BDB6AA', '#C7C0B3', '#B2AB9E', '#C2B9A9'];
+  // pale stones read clearly against both the lawn and the stream
+  const fills = ['#ECE6DA', '#E4DDD0', '#F1ECE2', '#E8E1D3'];
   return (
     <svg viewBox="0 0 96 64" width="96" height="64" className="overflow-visible" aria-hidden="true">
       <ellipse cx="48" cy="58" rx="42" ry="6" fill={SHADOW} />
       <g filter={brush} stroke={INK} strokeWidth={LINE} strokeLinejoin="round">
         <path d={v % 2 ? 'M8 44 Q4 22 26 14 Q50 6 74 14 Q92 22 88 42 Q84 56 48 56 Q12 56 8 44Z' : 'M6 40 Q8 18 34 12 Q64 8 82 20 Q94 32 86 46 Q74 58 44 56 Q10 54 6 40Z'}
           fill={fills[v % 4]} />
-        <path d="M22 26 Q34 18 50 18" stroke="#E4DED4" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M22 26 Q34 18 50 18" stroke="#FFFFFF" strokeWidth="6" fill="none" strokeLinecap="round" />
         <path d="M18 48 Q48 54 80 44" stroke={P.stoneDeep} strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.7" />
       </g>
     </svg>
@@ -134,11 +135,13 @@ export function StoneSlot() {
   );
 }
 
+// bushes are the search targets: a deeper green than the lawn so each one
+// stands apart from the grass and the gold ball peeking out pops against it
 const BUSH_COLORS = [
-  { body: P.leaf, deep: P.leafDeep, dot: '#E9534A' },
-  { body: '#7DC98A', deep: '#4E9E60', dot: '#FFFFFF' },
-  { body: '#66B87A', deep: '#3E8A52', dot: '#B994F2' },
-  { body: '#82CF7C', deep: '#4F9E4E', dot: P.petal },
+  { body: '#2F8A4A', deep: '#1F6635', dot: '#FF6B5E' },
+  { body: '#3F8F3E', deep: '#2B6B2B', dot: '#FFFFFF' },
+  { body: '#2E7F52', deep: '#1E5E3B', dot: '#D9B8FF' },
+  { body: '#3A9A55', deep: '#26723D', dot: P.petal },
 ];
 
 export function Bush({ v, searched }: { v: number; searched: boolean }) {
@@ -187,7 +190,7 @@ export function Ladybug({ size = 40 }: { size?: number }) {
 export function Frog({ hop }: { hop: boolean }) {
   return (
     <svg viewBox="0 0 120 80" width="120" height="80" className="overflow-visible" aria-hidden="true">
-      <ellipse cx="60" cy="62" rx="56" ry="15" fill="#5CB57A" stroke={INK} strokeWidth={LINE} />
+      <ellipse cx="60" cy="62" rx="56" ry="15" fill="#2F7A41" stroke={INK} strokeWidth={LINE} />
       <path d="M60 62 L104 56" stroke={INK} strokeWidth="2" />
       <g className={hop ? 'gw-hop' : 'gw-breathe'} style={{ transformOrigin: '60px 64px' }}>
         <g stroke={INK} strokeWidth={LINE} strokeLinejoin="round">
