@@ -231,6 +231,17 @@ button:active {
 .portal-pulse {
   animation: portal-pulse 2.6s ease-in-out infinite;
 }
+/* Same gentle pulse without the centering translate, for SVG shapes and
+   icons that are already positioned (vine tips, the next star to tap). */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+.soft-pulse {
+  animation: soft-pulse 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
 /* Slow rising bubbles/motes for game backgrounds that want more "life"
    than static decoration — loops forever, drifting up and fading. */
 @keyframes rise-fade {

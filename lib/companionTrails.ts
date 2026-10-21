@@ -5,9 +5,8 @@
 // that chapter's story. The trails open once all six main lands are
 // finished (adventure.ts isBonusLandUnlocked): "after everything".
 //
-// Engines × content: every stop today is an existing game. Each friend's
-// own signature game (Night Flight, Vine Weave, Gem Scales, Star Letters,
-// Slow Waves, Call and Answer) replaces one of its stops as it is built.
+// Engines × content: most stops are existing games; one stop per friend is
+// that friend's own signature game (components/friends/games/).
 //
 // Progress is just the number of stops reached per trail, kept with the
 // other game levels in kailia_rewards_v1 (recordGameLevel(trailId, n)),
@@ -53,7 +52,7 @@ export const TRAILS: Trail[] = [
     stops: [
       { title: 'Feather Match', href: '/play/moonlight-match' },
       { title: 'Potion Sort', href: '/play/potion-sort' },
-      { title: 'Sky Mail', href: '/play/sky-mail' },
+      { title: 'Night Flight', href: '/play/friend-games/night-flight' },
       { title: 'Find the Owlets', href: '/play/hidden-friends' },
       { title: 'Moonlight Rescue', href: '/play/moonlight-match' },
     ],
@@ -74,7 +73,7 @@ export const TRAILS: Trail[] = [
       { title: 'Tail Trails', href: '/play/firefly-trails' },
       { title: 'Leaf Catch', href: '/play/firefly-catch' },
       { title: 'Den Maze', href: '/play/fine-motor' },
-      { title: 'Berry Drop', href: '/play/potion-sort' },
+      { title: 'Vine Weave', href: '/play/friend-games/vine-weave' },
       { title: 'The Bridge Home', href: '/play/fine-motor' },
     ],
   },
@@ -94,7 +93,7 @@ export const TRAILS: Trail[] = [
       { title: 'Gem Gather', href: '/play/snack-quest' },
       { title: 'Number Mail', href: '/play/sky-mail' },
       { title: 'Dot Pairs', href: '/play/moonlight-match' },
-      { title: 'Toll Trail', href: '/play/snack-quest' },
+      { title: 'Gem Scales', href: '/play/friend-games/gem-scales' },
       { title: 'Treasure Rescue', href: '/play/snack-quest' },
     ],
   },
@@ -114,7 +113,7 @@ export const TRAILS: Trail[] = [
       { title: 'Word Spells', href: '/play/reading' },
       { title: 'Rhyme Trail', href: '/play/trail-walk' },
       { title: 'Riddle Road', href: '/play/journey' },
-      { title: 'Letter Mail', href: '/play/sky-mail' },
+      { title: 'Star Letters', href: '/play/friend-games/star-letters' },
       { title: 'Rainbow Rescue', href: '/play/reading' },
     ],
   },
@@ -126,7 +125,7 @@ export const TRAILS: Trail[] = [
       { name: 'Crystal Spots', line: 'One crystal is a little different. Can you spot it?' },
       { name: 'The Shell Song', line: 'The shells sing a tune. Can you sing it back?' },
       { name: 'Hidden Shells', line: 'My shell friends are hiding. Look carefully!' },
-      { name: 'Glow Fish', line: 'Follow the glowing fish with your eyes.' },
+      { name: 'Slow Tides', line: 'Let\u2019s breathe slowly with the tide.' },
       { name: 'The Bubble Garden', line: 'Colors, sounds and textures everywhere. Let’s explore.' },
       { name: 'The Quiet Reef', line: 'The reef is resting. Let’s find every little treasure.' },
     ],
@@ -134,7 +133,7 @@ export const TRAILS: Trail[] = [
       { title: 'Crystal Spot', href: '/play/sensory' },
       { title: 'Shell Song', href: '/play/echo-song' },
       { title: 'Hidden Shells', href: '/play/hidden-friends' },
-      { title: 'Glow Catch', href: '/play/firefly-catch' },
+      { title: 'Slow Waves', href: '/play/friend-games/slow-waves' },
       { title: 'Reef Rescue', href: '/play/sensory' },
     ],
   },
@@ -145,7 +144,7 @@ export const TRAILS: Trail[] = [
     chapters: [
       { name: 'Story Sparks', line: 'The storybooks lost their pages. What happens next?' },
       { name: 'Copy My Song', line: 'Listen to my song, then sing it back!' },
-      { name: 'Silly Sentences', line: 'Some of these sentences are very silly. Sort them out!' },
+      { name: 'Kiko Says', line: 'Listen to my words and do just what I say!' },
       { name: 'Talk Together', line: 'Time to talk with your grown-up. I’ll listen too!' },
       { name: 'The Jungle Show', line: 'Every animal wants to tell a story.' },
       { name: 'Kiko’s Big Show', line: 'The big show is tonight. Let’s tell the best story ever!' },
@@ -153,7 +152,7 @@ export const TRAILS: Trail[] = [
     stops: [
       { title: 'Story Sparks', href: '/play/story-sparks' },
       { title: 'Copy My Song', href: '/play/echo-song' },
-      { title: 'Silly Sentences', href: '/play/sky-mail' },
+      { title: 'Kiko Says', href: '/play/friend-games/kiko-says' },
       { title: 'Talk Together', href: '/activities' },
       { title: 'Big Show Rescue', href: '/play/story-sparks' },
     ],
@@ -173,4 +172,21 @@ export function companionFor(t: Trail) {
 /** chapter index (0-based) for the next stop to play, given stops reached */
 export function currentChapter(reached: number) {
   return Math.min(CHAPTER_COUNT - 1, Math.floor(reached / STOPS_PER_CHAPTER));
+}
+
+// Width ÷ height of each pet picture (public/art/pets/). Pets are sized by
+// HEIGHT so every friend stands the same height in its box, whole, from ear
+// tips to toes; pass the result as LiveArt's width. Update if a picture is
+// re-exported with a different shape.
+const PET_ASPECT: Record<string, number> = {
+  '/art/pets/sage.webp': 408 / 512,
+  '/art/pets/flick.webp': 384 / 512,
+  '/art/pets/ember.webp': 422 / 512,
+  '/art/pets/nova.webp': 438 / 512,
+  '/art/pets/shelly.webp': 394 / 512,
+  '/art/pets/kiko.webp': 485 / 512,
+};
+
+export function petWidth(art: string, height: number) {
+  return Math.round(height * (PET_ASPECT[art] ?? 0.8));
 }

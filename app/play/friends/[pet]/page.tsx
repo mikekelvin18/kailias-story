@@ -11,7 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import LiveArt from '@/components/characters/LiveArt';
 import {
-  findTrail, companionFor, trailId, currentChapter,
+  findTrail, companionFor, trailId, currentChapter, petWidth,
   STOPS_PER_CHAPTER, CHAPTER_COUNT, TRAIL_LENGTH,
 } from '@/lib/companionTrails';
 import { loadProgress, isBonusLandUnlocked } from '@/lib/adventure';
@@ -149,7 +149,7 @@ export default function TrailPage() {
               of the zigzag, so it never covers a stop or its name */}
           <span className="absolute -translate-x-1/2 -translate-y-full"
             style={{ left: `${(petSpot[0] < 0.5 ? 0.13 : 0.86) * 100}%`, top: `${(petSpot[1] + 0.045) * 100}%` }}>
-            <LiveArt src={c.art} alt={`${trail.pet} the ${c.kind}`} size={80} kind="pet" />
+            <LiveArt src={c.art} alt={`${trail.pet} the ${c.kind}`} size={petWidth(c.art, 100)} kind="pet" />
           </span>
         </div>
 

@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import LiveArt from '@/components/characters/LiveArt';
 import PandaSprite from '@/components/characters/PandaSprite';
 import BackButton from '@/components/ui/BackButton';
-import { TRAILS, TRAIL_LENGTH, companionFor, trailId } from '@/lib/companionTrails';
+import { TRAILS, TRAIL_LENGTH, companionFor, trailId, petWidth } from '@/lib/companionTrails';
 import { loadProgress, isBonusLandUnlocked } from '@/lib/adventure';
 import { loadRewards, getFocusCompanion } from '@/lib/rewards';
 
@@ -48,10 +48,10 @@ export default function FriendsPage() {
             const steps = Math.min(TRAIL_LENGTH, reached[trailId(t)] ?? 0);
             const card = (
               <>
-                <span className="flex items-end justify-center w-full h-32 rounded-2xl overflow-hidden"
+                <span className="flex items-end justify-center w-full h-36 rounded-2xl"
                   style={{ background: `${t.color}55` }}>
-                  <LiveArt src={c.art} alt={`${t.pet} the ${c.kind}`} size={104} kind="pet" pokeable={false}
-                    style={{ marginBottom: 6 }} />
+                  <LiveArt src={c.art} alt={`${t.pet} the ${c.kind}`} size={petWidth(c.art, 112)} kind="pet" pokeable={false}
+                    style={{ marginBottom: 10 }} />
                 </span>
                 <span className="mt-2 text-xl font-extrabold leading-none" style={{ color: '#1F2A44' }}>{t.pet}</span>
                 <span className="mt-1 text-sm font-bold leading-tight" style={{ color: '#4A5578' }}>{t.skillLabel}</span>
