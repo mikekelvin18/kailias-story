@@ -170,7 +170,6 @@ export default function ActivityLibraryPage() {
           <div className="flex-1">
             <p className="font-extrabold text-gray-800 leading-tight">
               {state.childName ? `${state.childName} the ` : 'Your '}{info.name}
-              <span className="font-semibold text-gray-500 text-xs"> · {info.ages}</span>
             </p>
             <p className="text-xs text-gray-600 mt-0.5">{info.blurb}</p>
           </div>

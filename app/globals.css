@@ -692,3 +692,56 @@ button:active {
   .fg-cheer, .fg-oops, .fg-fly, .fg-talk, .fg-dance, .fg-twinkle, .fg-drift, .fg-rise, .fg-fall,
   .fg-sway, .fg-bob, .fg-glow, .fg-swim { animation: none; }
 }
+
+/* ── Adventure world (components/world) ──
+   Motion for places like Kailia's Garden. Timings follow the art bible
+   (lib/world/artBible.ts): one-shots under 1.2 s, nothing flashes, and
+   "Reduce motion" stills the loops. */
+.gw-touch { -webkit-tap-highlight-color: transparent; }
+.gw-touch:focus-visible { outline: 6px solid #FFF6E5; outline-offset: 4px; border-radius: 28px; }
+.gw-held > span { transform: translateY(-4px) scale(1.06); filter: drop-shadow(0 14px 8px rgba(59,36,22,0.25)); transition: transform 0.12s ease-out; }
+@keyframes gw-ripple { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 0.85; } 100% { transform: translate(6px, 60px); opacity: 0; } }
+.gw-ripple { animation: gw-ripple 5.4s linear infinite; }
+@keyframes gw-petwalk {
+  0%, 100% { transform: translateY(0) rotate(-2deg) scale(1.02, 0.98); }
+  50% { transform: translateY(-9%) rotate(2deg) scale(0.98, 1.03); }
+}
+.gw-petwalk { animation: gw-petwalk 0.34s ease-in-out infinite; }
+@keyframes gw-sniff {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  20% { transform: rotate(9deg) translateY(4%); }
+  35% { transform: rotate(7deg) translateY(3%); }
+  50% { transform: rotate(10deg) translateY(5%); }
+  65% { transform: rotate(7deg) translateY(3%); }
+  85% { transform: rotate(4deg) translateY(1%); }
+}
+.gw-sniff { animation: gw-sniff 1.3s ease-in-out infinite; }
+@keyframes gw-sad { 0% { transform: scale(1, 1); } 100% { transform: scale(1.03, 0.93) rotate(-3deg) translateY(2%); } }
+.gw-sad { animation: gw-sad 0.6s ease-out forwards; filter: saturate(0.85); }
+@keyframes gw-wiggle { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-7deg); } 30% { transform: rotate(6deg); } 45% { transform: rotate(-4deg); } 60% { transform: rotate(3deg); } }
+.gw-wiggle > span { animation: gw-wiggle 0.8s ease-in-out 2; transform-origin: 50% 100%; }
+@keyframes gw-shake { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-4deg) scale(1.04, 0.96); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } 80% { transform: rotate(1deg); } }
+.gw-shake { animation: gw-shake 0.6s ease-out; transform-origin: 50% 100%; }
+@keyframes gw-drip { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(14px, 110px); opacity: 0; } }
+.gw-drip { animation: gw-drip 0.6s ease-in infinite; }
+@keyframes gw-zzz { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 0.9; transform: translateY(-8px); } }
+.gw-zzz { animation: gw-zzz 2.4s ease-in-out infinite; }
+@keyframes gw-flyaway { 0% { transform: translate(0, 40px) scale(0.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(140px, -260px) scale(1); opacity: 0; } }
+.gw-flyaway { animation: gw-flyaway 1.8s ease-out forwards; }
+.gw-flap { animation: gw-flap 0.22s ease-in-out infinite; }
+@keyframes gw-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.3); } }
+@keyframes gw-peek { 0% { transform: translateY(40px); opacity: 0; } 20%, 75% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
+.gw-peek { animation: gw-peek 2.2s ease-in-out forwards; }
+@keyframes gw-hop { 0% { transform: translateY(0) scale(1, 1); } 15% { transform: scale(1.12, 0.86); } 45% { transform: translateY(-60px) scale(0.9, 1.12); } 75% { transform: translateY(0) scale(1.1, 0.9); } 100% { transform: scale(1, 1); } }
+.gw-hop { animation: gw-hop 0.7s ease-out; }
+@keyframes gw-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 0.97); } }
+.gw-breathe { animation: gw-breathe 2.6s ease-in-out infinite; }
+@keyframes gw-crawl { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(6px) rotate(6deg); } }
+.gw-crawl { animation: gw-crawl 3.2s ease-in-out infinite; }
+@keyframes gw-slot { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.gw-slot { animation: gw-slot 1.6s ease-in-out infinite; }
+@keyframes gw-say { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.gw-say { animation: gw-say 0.3s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .gw-ripple, .gw-petwalk, .gw-sniff, .gw-drip, .gw-zzz, .gw-flap, .gw-breathe, .gw-crawl, .gw-slot { animation: none; }
+}
