@@ -17,6 +17,7 @@ import { loadRewards, explorerLevel, COMPANIONS, RewardsState, pendingCompanionR
 import { isPremium } from '@/lib/premium';
 import { takeReturnPath, clearReturnPath } from '@/lib/returnTo';
 import { TRAILS, companionFor } from '@/lib/companionTrails';
+import { characterArt } from '@/components/characters/characters.config';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
@@ -512,6 +513,20 @@ export default function AdventureMap() {
           <div className="sm:landscape:hidden flex-1 min-h-0">{renderMap('portrait')}</div>
           <div className="hidden sm:landscape:flex flex-1 min-h-0">{renderMap('landscape')}</div>
         </div>
+
+        {/* ── Kailia's Garden ──
+            The adventure world's home base (app/play/garden): walk around,
+            help a friend, find things. Always open. */}
+        <Link href="/play/garden" onClick={() => sfx.open()}
+          className="flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-sm sm:text-base flex-shrink-0 transition-transform active:scale-[0.98]"
+          style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={characterArt('kailia', 'portrait-front')} alt="" width={30} height={30} aria-hidden="true"
+            className="rounded-full flex-shrink-0"
+            style={{ width: 30, height: 30, objectFit: 'cover', objectPosition: '50% 12%', background: '#FFF6E5', border: '2px solid #FFFFFF' }} />
+          <span className={`flex-1 ${theme.subtitle}`}>Kailia&apos;s Garden</span>
+          <span aria-hidden="true" className={theme.subtitle}>→</span>
+        </Link>
 
         {/* ── Friends' adventures ──
             Each companion's own trail (lib/companionTrails.ts). They open
