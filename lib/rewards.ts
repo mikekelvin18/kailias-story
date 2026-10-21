@@ -21,14 +21,17 @@ const KEY = 'kailia_rewards_v1';
 const empty: RewardsState = { starlight: 0, gameLevels: {}, celebratedCompanions: [] };
 
 // `art` = Kelvin's painted picture of each pet (public/art/pets/); `emoji`
-// stays only as a fallback and for plain-text spots. Who each pet is
-// (personality, colors) lives in the art kit doc.
-export const COMPANIONS: { at: number; emoji: string; name: string; art: string; kind: string }[] = [
-  { at: 30,  emoji: '🐢', name: 'Shelly', art: '/art/pets/shelly.webp', kind: 'turtle' },
-  { at: 80,  emoji: '🦊', name: 'Flick',  art: '/art/pets/flick.webp',  kind: 'fox' },
-  { at: 150, emoji: '🦉', name: 'Sage',   art: '/art/pets/sage.webp',   kind: 'owl' },
-  { at: 250, emoji: '🦄', name: 'Nova',   art: '/art/pets/nova.webp',   kind: 'unicorn' },
-  { at: 400, emoji: '🐉', name: 'Ember',  art: '/art/pets/ember.webp',  kind: 'dragon' },
+// stays only as a fallback and for plain-text spots. `skill` = the land
+// domain this pet owns: each pet will get its own adventures for that
+// skill (agreed with Kelvin 2026-10-21). Who each pet is (personality,
+// colors) lives in the art kit doc. A 6th pet, Kiko the parrot
+// (communication), joins once Kelvin's picture exists.
+export const COMPANIONS: { at: number; emoji: string; name: string; art: string; kind: string; skill: string }[] = [
+  { at: 30,  emoji: '🐢', name: 'Shelly', art: '/art/pets/shelly.webp', kind: 'turtle',  skill: 'sensory' },
+  { at: 80,  emoji: '🦊', name: 'Flick',  art: '/art/pets/flick.webp',  kind: 'fox',     skill: 'fine motor' },
+  { at: 150, emoji: '🦉', name: 'Sage',   art: '/art/pets/sage.webp',   kind: 'owl',     skill: 'processing' },
+  { at: 250, emoji: '🦄', name: 'Nova',   art: '/art/pets/nova.webp',   kind: 'unicorn', skill: 'reading' },
+  { at: 400, emoji: '🐉', name: 'Ember',  art: '/art/pets/ember.webp',  kind: 'dragon',  skill: 'math' },
 ];
 
 function consented(): boolean {
