@@ -50,6 +50,7 @@ Kailia and Noel travel together through every one of these lands — Kailia atte
 - Each difficulty level maps to an approximate developmental age band per domain. Store this mapping in a single config file (e.g. `lib/milestones.ts`) so it is easy to review and adjust with real data.
 - Kids see only story rewards: map regions unlocked, companion creatures collected, badges. No scores, timers, or grades on the child-facing screens.
 - Parents get a separate dashboard: per-domain developmental-age estimate, trend over time, and plain-language notes. Include a disclaimer that this is a screening/guidance tool, not a clinical diagnosis.
+- **Where ages may appear (Kelvin, 2026-10-21):** developmental-age estimates are shown ONLY on the assessment results (`/results`) and the progress report (`/progress`). Every other screen (world map, activity library, games, Parent Zone, adventure world) may name a stage such as "Little Explorer" but never an age. Gameplay never computes or changes an age; it only logs numbers.
 
 ## Developmental bands & the Parent & Baby Quest Library
 For children below preschool developmental level, screens teach very little by themselves — so the app coaches the parent instead:

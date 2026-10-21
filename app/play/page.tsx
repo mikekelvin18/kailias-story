@@ -659,9 +659,7 @@ export default function AdventureMap() {
             </p>
             <p className="text-xs text-amber-800 mb-4 px-2 leading-snug rounded-xl py-2"
               style={{ background: 'rgba(255,255,255,0.55)' }}>
-              💡 {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure check showed a
-              developmental age of {BAND_INFO[band].ages} — and at the{' '}
-              {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
+              💡 At the {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
               <strong>together with you</strong>. That&apos;s why Noel suggests these quests first!
               Only ~{dailyPrompt.reduce((s, q) => s + q.minutes, 0)} minutes all together.
             </p>
