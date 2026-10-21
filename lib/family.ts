@@ -278,9 +278,10 @@ export function childDataInventory(): DataSection[] {
   }
 
   const rewards = read('kailia_rewards_v1');
-  if (rewards?.starlight) {
+  if (rewards?.starlight || rewards?.focusCompanion) {
     sections.push({ label: '✨ Rewards', items: [
-      `Starlight collected: ${rewards.starlight}`,
+      `Starlight collected: ${rewards.starlight ?? 0}`,
+      ...(rewards.focusCompanion ? [`Practice focus: ${rewards.focusCompanion}`] : []),
       ...Object.entries(rewards.gameLevels ?? {}).map(([g, l]) => `${g}: reached level ${l}`),
     ]});
   }

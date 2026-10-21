@@ -19,6 +19,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import BackButton from '@/components/ui/BackButton';
 import StepGuide from '@/components/ui/StepGuide';
 import Section from '@/components/ui/Section';
+import FocusPicker from '@/components/FocusPicker';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -395,6 +396,13 @@ export default function ParentZonePage() {
                 Add goal
               </button>
             </div>
+            )}
+
+            {!onboarding && (
+              <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
+                <h2 className="text-lg font-extrabold text-gray-800">Practice focus</h2>
+                <FocusPicker childName={child.nickname} />
+              </div>
             )}
 
             <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>{onboarding ? 'Optional · you can skip these' : 'More options'}</p>

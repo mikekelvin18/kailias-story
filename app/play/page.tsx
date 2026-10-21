@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import LiveArt from '@/components/characters/LiveArt';
@@ -14,6 +15,8 @@ import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState, pendingCompanionReveal, markCompanionCelebrated } from '@/lib/rewards';
 import { isPremium } from '@/lib/premium';
+import { takeReturnPath, clearReturnPath } from '@/lib/returnTo';
+import { TRAILS, companionFor } from '@/lib/companionTrails';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
@@ -130,6 +133,14 @@ export default function AdventureMap() {
   // Loading it into state after mount keeps server and client in sync.
   useEffect(() => { setChild(activeChild()); }, []);
 
+  // A game started from a friend's trail sends its "back to the map" tap
+  // here; go straight on to that trail instead (see lib/returnTo.ts).
+  const router = useRouter();
+  useEffect(() => {
+    const back = takeReturnPath();
+    if (back) router.replace(back);
+  }, [router]);
+
   // A newly-unlocked companion is a one-time surprise reveal (the
   // celebration modal below) instead of a permanent row on the map —
   // pendingCompanionReveal only returns one not shown yet.
@@ -221,6 +232,7 @@ export default function AdventureMap() {
 
   function startQuest(land: Land, href: string) {
     sfx.play();
+    clearReturnPath();
     setProgress(recordQuestPlay(land.id, href));
     // navigation happens via the <Link>
   }
@@ -500,6 +512,42 @@ export default function AdventureMap() {
           <div className="sm:landscape:hidden flex-1 min-h-0">{renderMap('portrait')}</div>
           <div className="hidden sm:landscape:flex flex-1 min-h-0">{renderMap('landscape')}</div>
         </div>
+
+        {/* ── Friends' adventures ──
+            Each companion's own trail (lib/companionTrails.ts). They open
+            once all six lands are finished; before that the button stays
+            as a gentle tease and Noel explains. */}
+        {(() => {
+          const open = hydrated && isBonusLandUnlocked(progress);
+          const faces = (
+            <span className="flex -space-x-2 flex-shrink-0" aria-hidden="true">
+              {TRAILS.map(t => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={t.slug} src={companionFor(t).art} alt="" width={30} height={30}
+                  className="rounded-full"
+                  style={{ width: 30, height: 30, objectFit: 'cover', objectPosition: '50% 20%', background: '#FFFFFF',
+                    border: '2px solid #FFFFFF', filter: open ? 'none' : 'grayscale(0.7) brightness(0.9)' }} />
+              ))}
+            </span>
+          );
+          const cls = 'flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-sm sm:text-base flex-shrink-0 transition-transform active:scale-[0.98]';
+          const style = { background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` };
+          return open ? (
+            <Link href="/play/friends" className={cls} style={style} onClick={() => sfx.open()}>
+              {faces}<span className={`flex-1 ${theme.subtitle}`}>Friends&apos; adventures</span>
+              <span aria-hidden="true" className={theme.subtitle}>→</span>
+            </Link>
+          ) : (
+            <button className={cls} style={style} onClick={() => {
+              sfx.locked();
+              setNoelLine('Your friends are planning their own adventures! Finish all six lands and they\'ll take you along.');
+              setNoelMood('thinking');
+            }}>
+              {faces}<span className={`flex-1 ${theme.subtitle}`} style={{ opacity: 0.75 }}>Friends&apos; adventures</span>
+              <LockIcon size={18} />
+            </button>
+          );
+        })()}
 
         {/* ── Noel's guide bar ── */}
         <div className="flex items-center gap-3 mt-2 sm:mt-4 rounded-2xl p-2.5 sm:p-3 flex-shrink-0"
