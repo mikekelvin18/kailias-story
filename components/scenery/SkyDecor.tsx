@@ -153,3 +153,38 @@ export function Birds({ size = 30, className, style }: Props) {
     </svg>
   );
 }
+
+// A small gold star for progress rows (replaces ⭐ text).
+export function StarIcon({ size = 14, className, style, dim }: Props & { dim?: boolean }) {
+  const [g] = useIds('star');
+  return (
+    <svg viewBox="-12 -12 24 24" width={size} height={size} className={className} style={{ display: 'inline-block', verticalAlign: 'middle', opacity: dim ? 0.3 : 1, ...style }}>
+      <defs>
+        <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFF3B0" />
+          <stop offset="1" stopColor="#F59E0B" />
+        </linearGradient>
+      </defs>
+      <path d="M 0 -10 L 2.9 -3.9 L 9.5 -3.1 L 4.6 1.5 L 5.9 8.1 L 0 4.8 L -5.9 8.1 L -4.6 1.5 L -9.5 -3.1 L -2.9 -3.9 Z"
+        fill={`url(#${g})`} stroke="#B45309" strokeWidth="1.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// A soft padlock for locked lands (replaces 🔒).
+export function LockIcon({ size = 20, className, style }: Props) {
+  const [g] = useIds('lock');
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} style={style}>
+      <defs>
+        <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FDE68A" />
+          <stop offset="1" stopColor="#D97706" />
+        </linearGradient>
+      </defs>
+      <path d="M 7.5 11 V 8 a 4.5 4.5 0 0 1 9 0 v 3" fill="none" stroke="#64748B" strokeWidth="2.4" strokeLinecap="round" />
+      <rect x="5" y="10.5" width="14" height="10.5" rx="3" fill={`url(#${g})`} stroke="#92400E" strokeWidth="1.2" />
+      <circle cx="12" cy="15.2" r="1.6" fill="#78350F" />
+    </svg>
+  );
+}
