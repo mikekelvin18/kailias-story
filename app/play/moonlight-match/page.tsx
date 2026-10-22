@@ -10,22 +10,38 @@ import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import NightForest from '@/components/games/NightForest';
+import KailiaActor from '@/components/games/KailiaActor';
+import StarIcon from '@/components/games/StarIcon';
+import { usePlayPet } from '@/components/games/playPet';
+import Actor, { usePetMood } from '@/components/friends/kit/Actor';
+import { useBursts } from '@/components/friends/kit/Burst';
+import { chime } from '@/components/friends/voice';
+import LiveArt from '@/components/characters/LiveArt';
+import { petWidth } from '@/lib/companionTrails';
+import { Feather, Flame, Shape, SHAPE_KINDS, type ShapeKind } from '../_pieces/pieces';
 
 // ─── Moonlight Match ──────────────────────────────────────────────────────────
 // The owl's memory riddle: moonlit feathers hide sleeping creatures — flip
 // two, find the pairs. Video-game feel: 3D card flips, combo streaks with
 // rising chimes, endless levels that add pairs and new content sets.
 // Measures visual memory: flips needed per pair, mismatches, time.
+//
+// The board lies in the moonlit forest glade. Kailia scurries under every
+// feather the child lifts and jumps for joy at a pair; the friend cheers,
+// wobbles along on a miss and, after two misses in a row, runs under the
+// twin of the feather that is open and bounces to point it out.
 
 interface CardT {
   id: number;
-  face: string;      // what's shown when flipped
+  face: string;      // what's shown when flipped ('shape:star' = a drawn shape)
   matchKey: string;  // two cards share this to form a pair
   state: 'down' | 'up' | 'matched';
 }
 
+// the sleeping creatures are still emoji pictures (no drawn animals yet)
 const CREATURES = ['🦊', '🐰', '🦉', '🐸', '🦋', '🐝', '🐢', '🦄', '🐞', '🐿️'];
-const SHAPES = ['🔵', '🔺', '🟩', '⭐', '❤️', '🟣', '🌙', '☀️', '🍀', '💎'];
+const SHAPES = SHAPE_KINDS.map(k => `shape:${k}`);
 const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
 
 import { soundEnabled } from '@/lib/accessibility';
@@ -56,6 +72,22 @@ const sfx = {
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 
+const MATCH_LINES = ['Twins! They woke up and waved!', 'You remembered! Wonderful!', 'Another pair found!', 'Look at Kailia jump!'];
+
+const clampPct = (v: number) => Math.max(10, Math.min(90, v));
+// the friend never stands right on top of Kailia: nudge it beside her
+const besideKailia = (petX: number, kailiaX: number) =>
+  Math.abs(petX - kailiaX) >= 15 ? petX : clampPct(kailiaX + (kailiaX > 50 ? -17 : 17));
+
+const GROUND = 112; // px of glade below the board, where Kailia and the friend stand
+
+function CardFace({ face, cols }: { face: string; cols: number }) {
+  const big = cols <= 3 ? 1.35 : cols === 4 ? 1.1 : 0.9;
+  if (face.startsWith('shape:')) return <Shape kind={face.slice(6) as ShapeKind} size={Math.round(44 * big)} />;
+  const isLetter = face.length === 1 && /[A-Za-z]/.test(face);
+  return <span style={{ fontSize: Math.round((isLetter ? 36 : 32) * big), lineHeight: 1 }}>{face}</span>;
+}
+
 export default function MoonlightMatchPage() {
   const { state, totalScore } = useAssessment();
   const tier = difficultyTier(state.ageGroup, totalScore);
@@ -68,10 +100,22 @@ export default function MoonlightMatchPage() {
   const [noelLine, setNoelLine] = useState('Flip two feathers — find the sleeping friends that match!');
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
 
+  // Kailia and the friend in the glade (x, y = % of the scene, at the feet)
+  const pet = usePlayPet();
+  const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
+  const [kailiaX, setKailiaX] = useState(28);
+  const [petX, setPetX] = useState(74);
+  const [kailiaHop, setKailiaHop] = useState(0);
+  const [hintId, setHintId] = useState<number | null>(null);
+  const { layer: burstLayer, fire } = useBursts();
+
   const busyRef = useRef(false);
   const completedRef = useRef(false);
   const openRef = useRef<number | null>(null);
+  const missRunRef = useRef(0); // mismatches in a row (for the friend's hint)
   const statsRef = useRef({ flips: 0, mismatches: 0, startedAt: 0, bestStreak: 0 });
+  const stageRef = useRef<HTMLDivElement>(null);
+  const cardEls = useRef<Record<number, HTMLButtonElement | null>>({});
 
   useEffect(() => { setLevel(nextGameLevel('moonlight-match')); }, []);
 
@@ -99,14 +143,33 @@ export default function MoonlightMatchPage() {
     openRef.current = null;
     busyRef.current = false;
     completedRef.current = false;
+    missRunRef.current = 0;
     setStreak(0);
     setCards(deck);
+    setHintId(null);
+    setKailiaX(28);
+    setPetX(74);
     setNoelLine(useLetters
       ? 'Tricky level — match the BIG letter with its little twin!'
       : 'Flip two feathers — find the friends that match!');
     setNoelMood('excited');
     setPhase('playing');
   }, [pairsForLevel, tier]);
+
+  // where a card sits in the scene, in % (for Kailia, the friend and sparkles)
+  function spotOf(id: number) {
+    const el = cardEls.current[id], st = stageRef.current;
+    if (!el || !st) return { x: 50, y: 40 };
+    const r = el.getBoundingClientRect(), s = st.getBoundingClientRect();
+    return { x: ((r.left + r.width / 2 - s.left) / s.width) * 100, y: ((r.top + r.height / 2 - s.top) / s.height) * 100 };
+  }
+
+  function runKailiaTo(x: number) {
+    const kx = clampPct(x);
+    setKailiaX(kx);
+    setPetX(p => besideKailia(p, kx));
+    return kx;
+  }
 
   function flip(cardId: number) {
     if (phase !== 'playing' || busyRef.current) return;
@@ -115,8 +178,23 @@ export default function MoonlightMatchPage() {
     sfx.flip();
     statsRef.current.flips += 1;
     setCards(prev => prev.map(c => (c.id === cardId ? { ...c, state: 'up' } : c)));
+    // Kailia scurries under the feather the child lifts
+    const kx = runKailiaTo(spotOf(cardId).x);
 
-    if (openRef.current === null) { openRef.current = cardId; return; }
+    if (openRef.current === null) {
+      openRef.current = cardId;
+      // two misses in a row: the friend runs under this one's twin and bounces
+      if (missRunRef.current >= 2) {
+        const twin = cards.find(c => c.matchKey === card.matchKey && c.id !== cardId);
+        if (twin) {
+          setHintId(twin.id);
+          setPetMood('talk');
+          const tx = clampPct(spotOf(twin.id).x);
+          setPetX(Math.abs(tx - kx) < 15 ? clampPct(tx + (tx > 50 ? -15 : 15)) : tx);
+        }
+      }
+      return;
+    }
 
     const first = cards.find(c => c.id === openRef.current)!;
     openRef.current = null;
@@ -128,21 +206,42 @@ export default function MoonlightMatchPage() {
         sfx.match(newStreak);
         setStreak(newStreak);
         statsRef.current.bestStreak = Math.max(statsRef.current.bestStreak, newStreak);
-        setBurst({ id: Date.now(), text: newStreak >= 2 ? `✨ Combo ×${newStreak}!` : '✨ Match!' });
+        setBurst({ id: Date.now(), text: newStreak >= 2 ? `Combo ×${newStreak}!` : 'Match!' });
         setCards(prev => prev.map(c => (c.matchKey === card.matchKey ? { ...c, state: 'matched' as const } : c)));
+        // sparkles on both twins, Kailia jumps, the friend cheers
+        for (const id of [first.id, card.id]) { const s = spotOf(id); fire(s.x, s.y, ['#FFE066', '#FFF7B0', '#FFFFFF', '#C4B5FD'], 12, 60); }
+        setKailiaHop(n => n + 1);
+        setPetMood('cheer');
+        setPetX(p => besideKailia(p, kx));
+        setHintId(null);
+        missRunRef.current = 0;
+        setNoelLine(MATCH_LINES[newStreak % MATCH_LINES.length]);
+        setNoelMood('excited');
         busyRef.current = false;
       }, 350);
     } else {
       statsRef.current.mismatches += 1;
+      missRunRef.current += 1;
       setTimeout(() => {
         sfx.miss();
         setStreak(0);
-        setNoelLine('Hmm, not twins! Remember where they sleep…');
+        setNoelLine(missRunRef.current >= 2
+          ? `Hmm, not twins! Flip one — ${pet.name} will help you find its twin!`
+          : 'Hmm, not twins! Remember where they sleep…');
         setNoelMood('thinking');
+        setPetMood('oops');
+        setHintId(null);
+        setPetX(p => besideKailia(p, kx));
         setCards(prev => prev.map(c => (c.state === 'up' ? { ...c, state: 'down' } : c)));
         busyRef.current = false;
       }, 750);
     }
+  }
+
+  function tickle() {
+    setPetMood('dance');
+    chime.tap();
+    setTimeout(() => setPetMood('idle'), 1300);
   }
 
   function completeLevel() {
@@ -184,82 +283,107 @@ export default function MoonlightMatchPage() {
   return (
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)' }}>
       <div className="max-w-md mx-auto px-3 relative">
-        {['🌙', '⭐', '✨', '☁️'].map((e, i) => (
-          <span key={i} className="absolute sparkle" style={{ left: `${[6, 82, 45, 68][i]}%`, top: [6, 30, 90, 150][i], fontSize: [30, 16, 14, 24][i], opacity: 0.5, animationDelay: `${i * 0.6}s`, pointerEvents: 'none' }}>{e}</span>
-        ))}
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="text-sm font-bold text-indigo-200">← Map</Link>
+          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+            style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
-            🦉 Moonlight Match <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+            Moonlight Match <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="text-sm font-extrabold text-yellow-300 w-14 text-right">
-            {streak >= 2 ? `🔥×${streak}` : ''}
+          <span className="w-14 flex items-center justify-end gap-0.5 text-sm font-extrabold text-yellow-300">
+            {streak >= 2 && phase === 'playing' && <><Flame size={22} />×{streak}</>}
           </span>
         </div>
 
         {/* ── Intro ── */}
         {phase === 'intro' && (
-          <div className="text-center mt-8 bounce-in relative z-10">
+          <div className="text-center mt-6 bounce-in relative z-10">
             <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={128} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="text-6xl mb-4 float">🦉</span>
-              <KailiaSprite size={96} expression="thinking" className="float" />
+              <PandaSprite size={120} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
+              <KailiaSprite size={92} expression="thinking" className="float" />
+              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 66)} kind="pet" />
+              <span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
+                <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
+              </span>
             </div>
             <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
-                The wise owl hid her friends under <strong>moonlit feathers</strong>! 🪶
+                The wise owl hid her friends under <strong>moonlit feathers</strong>!
               </p>
               <p className="text-gray-900 text-2xl font-bold leading-snug">
                 Flip two at a time and remember where everyone sleeps. Match pairs in a row for
-                <strong> combo magic</strong>! ✨
+                <strong> combo magic</strong>!
               </p>
             </div>
             <LevelPath gameId="moonlight-match" level={level} onPick={setLevel} />
             <button onClick={() => startLevel(level)}
               className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-indigo-950 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Level {level} — flip! 🪶
+              Level {level} — flip!
             </button>
             <SkillIntro gameId="moonlight-match" />
           </div>
         )}
 
-        {/* ── The board ── */}
+        {/* ── The board, in the moonlit glade ── */}
         {phase !== 'intro' && (
           <div className="relative z-10">
-            <div className="grid gap-2.5 mt-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-              {cards.map(c => (
-                <button key={c.id} data-mkey={c.matchKey} data-state={c.state} onClick={() => flip(c.id)}
-                  className="relative w-full"
-                  style={{ aspectRatio: '3 / 4', perspective: 600 }}>
-                  <div className="absolute inset-0 transition-transform duration-300"
-                    style={{ transformStyle: 'preserve-3d', transform: c.state === 'down' ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
-                    {/* feather back */}
-                    <div className="absolute inset-0 rounded-2xl flex items-center justify-center text-2xl"
-                      style={{ backfaceVisibility: 'hidden', background: 'linear-gradient(135deg, #4338CA, #6D28D9)', border: '2px solid #818CF8', boxShadow: '0 3px 10px rgba(0,0,0,0.4)' }}>
-                      🪶
-                    </div>
-                    {/* face */}
-                    <div className={`absolute inset-0 rounded-2xl flex items-center justify-center font-extrabold ${c.state === 'matched' ? 'star-burst' : ''}`}
-                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
-                        fontSize: c.face.length === 1 && /[A-Za-z]/.test(c.face) ? 34 : 30,
-                        color: '#312E81',
-                        background: c.state === 'matched' ? 'linear-gradient(135deg, #FEF9C3, #FDE68A)' : 'white',
-                        border: c.state === 'matched' ? '2.5px solid #FBBF24' : '2px solid #C7D2FE',
-                        boxShadow: c.state === 'matched' ? '0 0 14px rgba(253,224,71,0.6)' : '0 3px 10px rgba(0,0,0,0.3)' }}>
-                      {c.face}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <div ref={stageRef} className="relative w-full rounded-[28px] overflow-hidden select-none mt-1"
+              style={{ boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+              <NightForest glow={cards.length ? cards.filter(c => c.state === 'matched').length / cards.length : 0} />
 
-            {/* combo burst */}
-            {burst && (
-              <p key={burst.id} className="text-center text-2xl font-extrabold text-yellow-300 drop-shadow mt-3 pop">{burst.text}</p>
-            )}
+              <div className="relative grid gap-2.5 px-3 pt-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, paddingBottom: GROUND, zIndex: 8 }}>
+                {cards.map(c => (
+                  <button key={c.id} ref={el => { cardEls.current[c.id] = el; }}
+                    data-mkey={c.matchKey} data-state={c.state} onClick={() => flip(c.id)}
+                    aria-label={c.state === 'down' ? 'Sleeping feather' : c.face.replace('shape:', '')}
+                    className="relative w-full"
+                    style={{ aspectRatio: '3 / 4', perspective: 600 }}>
+                    {hintId === c.id && c.state === 'down' && (
+                      <span className="absolute -inset-1 rounded-[18px] hint-glow pointer-events-none" style={{ border: '3px solid rgba(255,255,255,0.9)', zIndex: 2 }} />
+                    )}
+                    <div className="absolute inset-0 transition-transform duration-300"
+                      style={{ transformStyle: 'preserve-3d', transform: c.state === 'down' ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
+                      {/* feather back: light and moonlit so it shows on the night glade */}
+                      <div className="absolute inset-0 rounded-2xl flex items-center justify-center"
+                        style={{ backfaceVisibility: 'hidden', background: 'linear-gradient(160deg, #FFF8E1 0%, #E4DBFF 100%)', border: '2.5px solid #3b2416',
+                          boxShadow: '0 0 12px rgba(255,244,194,0.35), 0 4px 0 rgba(0,0,0,0.3)' }}>
+                        <Feather size={cols <= 3 ? 54 : cols === 4 ? 44 : 34} color="#C9B8FF" vein="#5B48B8"
+                          style={{ transform: `rotate(${(c.id * 37) % 30 - 15}deg)` }} />
+                      </div>
+                      {/* face */}
+                      <div className="absolute inset-0 rounded-2xl flex items-center justify-center font-extrabold"
+                        style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
+                          color: '#312E81',
+                          background: c.state === 'matched' ? 'linear-gradient(135deg, #FEF9C3, #FDE68A)' : 'white',
+                          border: c.state === 'matched' ? '2.5px solid #F59E0B' : '2.5px solid #3b2416',
+                          boxShadow: c.state === 'matched' ? '0 0 16px rgba(253,224,71,0.75)' : '0 4px 0 rgba(0,0,0,0.3)' }}>
+                        {/* the joy-spin lives on the picture, not the card, so it never undoes the flip */}
+                        <span className={`inline-flex ${c.state === 'matched' ? 'star-burst' : ''}`}><CardFace face={c.face} cols={cols} /></span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Kailia and the friend, in the glade below the board */}
+              <KailiaActor x={kailiaX} y={96} h={80} hop={kailiaHop} z={9} />
+              <div data-pet>
+                <Actor art={pet.art} name={pet.name} x={petX} y={95} h={58}
+                  mood={petMood} moodKey={petMoodKey} moveMs={900} onTap={tickle} z={9} />
+              </div>
+
+              {burstLayer}
+
+              {/* combo burst */}
+              {burst && (
+                <p key={burst.id} className="absolute left-0 right-0 text-center text-2xl font-extrabold text-yellow-300 pop pointer-events-none"
+                  style={{ bottom: GROUND - 34, zIndex: 31, textShadow: '0 2px 0 #3b2416, 0 0 10px rgba(0,0,0,0.6)' }}>
+                  <StarIcon size={24} /> {burst.text}
+                </p>
+              )}
+            </div>
 
             {/* Noel guide */}
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
@@ -278,29 +402,32 @@ export default function MoonlightMatchPage() {
       {/* ── Level complete ── */}
       {phase === 'levelDone' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #312e81ee, #6d28d9ee)' }}>
+          style={{ background: 'linear-gradient(135deg, #1e1b4b, #5b21b6)' }}>
           <div className="text-center bounce-in">
-            <span className="block text-7xl mb-3 star-burst">🦉</span>
+            <span className="inline-block mb-3 star-burst" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Shape kind="moon" size={84} /></span>
             <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={145} expression="celebrating" className="float" />
-              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <PandaSprite size={120} expression="celebrating" className="float" />
+              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
+              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
+                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
+              </span>
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-indigo-100 font-semibold mb-1">Every friend found their twin under the moon! 🌙</p>
+            <p className="text-indigo-100 font-semibold mb-1">Every friend found their twin under the moon. {pet.name} is doing a happy dance!</p>
             <p className="text-yellow-300 font-extrabold text-lg mb-6">
-              ✨ +{Math.max(8, 12 + level * 3 - statsRef.current.mismatches)} starlight
+              <StarIcon /> +{Math.max(8, 12 + level * 3 - statsRef.current.mismatches)} starlight
               {statsRef.current.bestStreak >= 2 && ` · best combo ×${statsRef.current.bestStreak}!`}
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex gap-3 justify-center flex-wrap">
               <button onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-indigo-900 shadow-xl transition-transform hover:scale-105"
                 style={{ background: 'white' }}>
-                Level {level + 1} ▶
+                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
               </button>
               <Link href="/play"
                 className="px-8 py-3.5 rounded-full text-lg font-extrabold text-indigo-950 shadow-xl transition-transform hover:scale-105 inline-block"
                 style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                Back to the map 🗺️
+                <span className="whitespace-nowrap">Back to the map</span>
               </Link>
             </div>
           </div>
