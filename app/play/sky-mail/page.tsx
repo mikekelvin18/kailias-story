@@ -590,7 +590,7 @@ export default function SkyMailPage() {
           <h1 className="text-xl font-extrabold text-sky-950" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}>Sky Mail</h1>
           <span className="flex justify-end shrink-0" style={{ width: 104 }} aria-label={`${doneDecks.length} mailbags sorted`}>
             {availableDecks.map(d => (
-              <span key={d} style={{ opacity: doneDecks.includes(d) ? 1 : 0.35 }}><StarIcon size={availableDecks.length > 6 ? 13 : 16} /></span>
+              <span key={d}><StarIcon size={availableDecks.length > 6 ? 13 : 16} empty={!doneDecks.includes(d)} /></span>
             ))}
           </span>
         </div>
