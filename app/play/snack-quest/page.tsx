@@ -148,6 +148,22 @@ function findPath(from: Tile, to: Tile, walls: Tile[]): Tile[] | null {
   return null;
 }
 
+// Where the friend may stand: a free tile (no rock, snack or nest) at
+// least one whole tile away from the hero, as close to `want` as possible.
+// The hero's picture is wider than a tile, so touching tiles would overlap.
+function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | null {
+  const same = (a: Tile) => (b: Tile) => a.r === b.r && a.c === b.c;
+  let best: Tile | null = null, bestD = Infinity;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const t = { r, c };
+    if (inDragonZone(t) || walls.some(same(t)) || items.some(same(t))) continue;
+    if (Math.max(Math.abs(r - hero.r), Math.abs(c - hero.c)) < 2) continue;
+    const d = Math.abs(r - want.r) + Math.abs(c - want.c) + (r === hero.r ? 0 : 0.1); // prefer beside, on the hero's row
+    if (d < bestD) { best = t; bestD = d; }
+  }
+  return best;
+}
+
 export default function SnackQuestPage() {
   const { state, totalScore } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
@@ -185,7 +201,7 @@ export default function SnackQuestPage() {
   const chosenPet = usePlayPet();
   const pet: PlayPet = chosenPet.name === DRAGON.name ? FLICK : chosenPet;
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
-  const [petTile, setPetTile] = useState<Tile>({ r: 7, c: 1 });
+  const [petTile, setPetTile] = useState<Tile>({ r: 7, c: 2 });
   const [hintItem, setHintItem] = useState<number | null>(null);
   const [walking, setWalking] = useState(false);
   const [faceLeft, setFaceLeft] = useState(false);
@@ -275,7 +291,7 @@ export default function SnackQuestPage() {
     setRevealed(0);
     setWalking(false);
     setHintItem(null);
-    setPetTile({ r: 7, c: 1 });
+    setPetTile(petSpot({ r: 7, c: 2 }, START, wallSet, []) ?? { r: 7, c: 2 });
     historyRef.current = [START];
     // Shown every round — now that empty slots are a clear dashed outline
     // instead of dimmed bamboo, it's a helpful visual aid rather than
@@ -313,9 +329,10 @@ export default function SnackQuestPage() {
       if (isDestination) setWalking(false);
       // the friend trots a step or two behind, on a free spot (never on a snack)
       historyRef.current = [...historyRef.current.slice(-6), next];
-      const behind = [...historyRef.current].reverse().slice(2)
-        .find(t => !itemsRef.current.some(i => i.r === t.r && i.c === t.c) && !(t.r === next.r && t.c === next.c));
-      if (behind) setPetTile(behind);
+      const trail = [...historyRef.current].reverse();
+      const behind = trail[Math.min(trail.length - 1, 2)];
+      const spot = petSpot(behind, next, walls, itemsRef.current);
+      if (spot) setPetTile(spot);
       // pick up only the snack the child deliberately walked TO —
       // brushing past one on the way never grabs it by accident
       if (isDestination) {
@@ -391,14 +408,12 @@ export default function SnackQuestPage() {
         setItems(fresh);
         setPetMood('oops');
         historyRef.current = [START];
-        setPetTile({ r: 7, c: 1 });
+        setPetTile(petSpot({ r: 7, c: 2 }, START, walls, fresh) ?? { r: 7, c: 2 });
         // after two tries the friend runs to the closest snack and bounces
         // beside it, to show where to start gathering
         if (attemptsRef.current >= 2 && fresh.length) {
           const near = [...fresh].sort((a, b) => (Math.abs(a.r - START.r) + Math.abs(a.c - START.c)) - (Math.abs(b.r - START.r) + Math.abs(b.c - START.c)))[0];
-          const spot = [{ r: near.r, c: near.c + 1 }, { r: near.r, c: near.c - 1 }, { r: near.r + 1, c: near.c }, { r: near.r - 1, c: near.c }]
-            .find(t => t.r >= 0 && t.r < ROWS && t.c >= 0 && t.c < COLS && !walls.some(w => w.r === t.r && w.c === t.c)
-              && !fresh.some(i => i.r === t.r && i.c === t.c) && !(t.r === START.r && t.c === START.c));
+          const spot = petSpot(near, START, walls, fresh);
           setHintItem(near.id);
           if (spot) {
             setPetTile(spot);
