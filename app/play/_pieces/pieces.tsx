@@ -138,8 +138,8 @@ export function Arrow({ dir, color = '#FFD43B', ...p }: Svg & { dir: Dir; color?
 }
 
 // ── Wind riders: light things the wind carries (no animals) ──
-export type RiderKind = 'leaf' | 'kite' | 'plane' | 'feather' | 'balloon' | 'seed';
-export const RIDER_KINDS: RiderKind[] = ['leaf', 'kite', 'plane', 'feather', 'balloon', 'seed'];
+export type RiderKind = 'leaf' | 'kite' | 'plane' | 'feather' | 'balloon' | 'pinwheel';
+export const RIDER_KINDS: RiderKind[] = ['leaf', 'kite', 'plane', 'feather', 'balloon', 'pinwheel'];
 export function Rider({ kind, ...p }: Svg & { kind: RiderKind }) {
   return (
     <Frame {...p}>
@@ -174,15 +174,14 @@ export function Rider({ kind, ...p }: Svg & { kind: RiderKind }) {
           <Shine cx={15} cy={10} r={3} />
         </>
       )}
-      {kind === 'seed' && (
+      {kind === 'pinwheel' && (
         <>
-          <path d="M20 22 L20 37" stroke={SK} strokeWidth="1.8" strokeLinecap="round" />
-          <ellipse cx="20" cy="37" rx="2" ry="2.6" fill="#B08354" stroke={SK} strokeWidth="1" />
-          {Array.from({ length: 9 }, (_, i) => {
-            const a = Math.PI + (i / 8) * Math.PI;
-            const x = 20 + Math.cos(a) * 15, y = 20 + Math.sin(a) * 15;
-            return <g key={i}><path d={`M20 22 L${x} ${y}`} stroke="#FFFFFF" strokeWidth="1.3" /><circle cx={x} cy={y} r="2.4" fill="#FFFFFF" stroke={SK} strokeWidth="0.8" /></g>;
-          })}
+          <path d="M20 17 L20 39" stroke="#8A5A3B" strokeWidth="2.6" strokeLinecap="round" />
+          {['#F472B6', '#FFD43B', '#60A5FA', '#58C26B'].map((c, i) => (
+            <path key={c} d="M17 17 L17 3 Q25 5 17 17z" fill={c} stroke={SK} strokeWidth="1.6" strokeLinejoin="round"
+              transform={`rotate(${i * 90} 17 17)`} />
+          ))}
+          <circle cx="17" cy="17" r="2.2" fill="#FFFFFF" stroke={SK} strokeWidth="1.2" />
         </>
       )}
     </Frame>
@@ -272,10 +271,10 @@ export function Mailbox({ color = '#F2645A', flagUp = false, ...p }: Svg & { col
       <path d="M7 27 V15 A13 11 0 0 1 33 15 V27z" fill={color} stroke={SK} strokeWidth="2.2" strokeLinejoin="round" />
       <path d="M10 15 A10 8 0 0 1 22 8" stroke="#FFFFFF" strokeWidth="2" fill="none" opacity="0.55" strokeLinecap="round" />
       <rect x="12" y="17" width="16" height="3.4" rx="1.7" fill={SK} />
-      <g style={{ transformBox: 'view-box', transformOrigin: '33px 22px', transform: `rotate(${flagUp ? -80 : 0}deg)`, transition: 'transform 0.25s cubic-bezier(.3,1.6,.5,1)' }}>
-        <path d="M33 22 H38 V25 H33z" fill="#FFD43B" stroke={SK} strokeWidth="1.2" />
-        <path d="M37 18 V26" stroke={SK} strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M37 18 H40.5 V21 H37z" fill="#FFD43B" stroke={SK} strokeWidth="1.2" />
+      <g style={{ transformBox: 'view-box', transformOrigin: '33px 22px', transform: `rotate(${flagUp ? -90 : 0}deg)`, transition: 'transform 0.3s cubic-bezier(.3,1.6,.5,1)' }}>
+        <rect x="32.5" y="20.8" width="9" height="2.6" rx="1" fill="#8A5A3B" stroke={SK} strokeWidth="1" />
+        <path d="M38 23.4 H43 V29 H38z" fill="#FFD43B" stroke={SK} strokeWidth="1.3" strokeLinejoin="round" />
+        <circle cx="33" cy="22" r="1.4" fill={SK} />
       </g>
     </Frame>
   );
