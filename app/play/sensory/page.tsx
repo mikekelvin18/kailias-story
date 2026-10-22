@@ -325,7 +325,9 @@ export default function SenseExplorerPage() {
   } else if (hint && round?.kind === 'odd') {
     hintX = crystalSpots(round.count)[round.oddIdx].x;
   }
-  const petAt = hintX !== null ? besideKailia(Math.min(78, hintX), kailiaX) : besideKailia(petX, kailiaX);
+  // during a hint the friend stands right under the piece and Kailia steps aside
+  const petAt = hintX !== null ? Math.max(9, Math.min(78, hintX)) : besideKailia(petX, kailiaX);
+  const kailiaAt = hintX !== null ? kailiaSpot(besideKailia(kailiaX, petAt)) : kailiaX;
   const roundsTotal = Math.max(1, rounds.length * 2);
 
   return (
@@ -450,11 +452,11 @@ export default function SenseExplorerPage() {
                 );
               })}
 
-              <KailiaActor x={kailiaX} y={GROUND} h={74} hop={kailiaHop} z={6} />
+              <KailiaActor x={kailiaAt} y={GROUND} h={74} hop={kailiaHop} z={6} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 1} h={54}
                   mood={hintX !== null ? 'talk' : petMood} moodKey={petMoodKey} moveMs={900}
-                  flip={petAt < kailiaX} onTap={tickle} z={7} />
+                  flip={petAt < kailiaAt} onTap={tickle} z={7} />
               </div>
               {burstLayer}
             </div>
