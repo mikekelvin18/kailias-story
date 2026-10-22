@@ -82,7 +82,7 @@ export const LANDS: Land[] = [
     tagline: 'Words that light the way',
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
-      { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'Match words to pictures and unlock magical spells!' },
+      { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'The signpost words floated away as balloons! Pop the right word to bring it home.' },
       { href: '/play/journey', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
       { href: '/play/trail-walk', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
     ],
@@ -115,7 +115,7 @@ export const LANDS: Land[] = [
     tagline: 'Crystals, colors and curious sounds',
     noelIntro: "Shhh… hear that? The caves echo with colors and sounds! Find the ones that match and the crystals will glow!",
     quests: [
-      { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Match colors, sounds and patterns deep in the glowing caves!" },
+      { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Catch the wandering things Noel asks for, and spot the crystal that's a tiny bit different!" },
       { href: '/play/echo-song', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
     ],
   },
