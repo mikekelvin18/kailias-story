@@ -556,7 +556,7 @@ export default function MazeRunnerPage() {
     if (q.x < 22 || q.x > W - 22 || q.y < 50 || q.y > H - 4) return false;
     if (k && Math.abs(q.x - k.x) < 40 && q.y - 46 < k.y + 8 && q.y > k.y - 62) return false;
     return !starPosRef.current.some((sp, i) =>
-      !collectedRef.current.has(i) && Math.abs(sp.x - q.x) < 28 && sp.y > q.y - 54 && sp.y < q.y + 10);
+      !collectedRef.current.has(i) && Math.abs(sp.x - q.x) < 36 && sp.y > q.y - 62 && sp.y < q.y + 16);
   }, []);
 
   // Where the friend goes: on the ground beside Kailia, on the side she
@@ -579,7 +579,9 @@ export default function MazeRunnerPage() {
             { x: k.x + back * 46, y: k.y + 52 }, { x: k.x - back * 46, y: k.y + 52 },
             { x: k.x + back * 46, y: k.y - 40 }, { x: k.x - back * 46, y: k.y - 40 },
           ];
-      const spot = options.find(spotIsFree) ?? options[0];
+      // nowhere free right now (all spots touch Kailia or a star): stay put
+      const spot = options.find(spotIsFree);
+      if (!spot) return;
       const nx = (spot.x / W) * 100, ny = (spot.y / H) * 100;
       setPetPos(p => (Math.abs(p.x - nx) < 0.6 && Math.abs(p.y - ny) < 0.6 ? p : { x: nx, y: ny, flip: nx < p.x }));
     }, 220);
@@ -834,15 +836,12 @@ export default function MazeRunnerPage() {
           </span>
         </div>
 
-        {/* HUD */}
-        <div className="flex items-center justify-between mb-3 rounded-2xl px-4 py-2.5"
+        {/* HUD: name, tagline, then the stars on their own row so they never sit on the text */}
+        <div className="mb-3 rounded-2xl px-4 py-2.5 text-center"
           style={{background:'rgba(0,0,0,0.35)',border:`1px solid ${lv.accent}30`}}>
-          <span className="w-20" />
-          <div className="text-center">
-            <p className="text-white font-extrabold text-base leading-none">{lv.name}</p>
-            <p className="text-xs mt-0.5" style={{color:lv.accent}}>{lv.tagline}</p>
-          </div>
-          <div className="flex gap-1 w-20 justify-end" aria-label={`${starCount} stars found`}>
+          <p className="text-white font-extrabold text-base leading-none">{lv.name}</p>
+          <p className="text-xs mt-1" style={{color:lv.accent}}>{lv.tagline}</p>
+          <div className="flex gap-1.5 justify-center mt-1.5" aria-label={`${starCount} stars found`}>
             {[0,1,2].map(i=>(
               <span key={i} className={i < starCount ? 'star-burst inline-block' : 'inline-block'}
                 style={{filter:i<starCount?'drop-shadow(0 0 6px #FFD700)':'grayscale(1) opacity(0.35)'}}>
