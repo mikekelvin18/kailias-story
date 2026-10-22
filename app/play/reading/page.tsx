@@ -105,6 +105,12 @@ const BANKS: ReadingQ[][] = [
   ],
 ];
 
+// Kelvin's painted pictures for the signpost (public/art/words/), keyed by
+// the stand-in emoji they replace. Any picture not drawn yet keeps its emoji.
+const WORD_ART: Record<string, string> = {
+  '🏠': '/art/words/house.webp',
+};
+
 const QUESTIONS_PER_LEVEL = 5;
 const BALLOON_COLORS = ['#F472B6', '#60A5FA', '#34D399', '#FBBF24'];
 const HAPPY_LINES = ['You read it!', 'The signpost lit up!', 'Wizard reading!', 'Sparkly! Kailia steps ahead!', 'Yes! The path glows!'];
@@ -327,7 +333,12 @@ export default function WordWizardPage() {
             <div key={qIdx} className="mx-auto mt-1 drop-in" style={{ maxWidth: 320 }}>
               <div className="rounded-2xl px-4 py-3 text-center shadow-lg"
                 style={{ background: 'linear-gradient(180deg,#fde68a,#f59e0b)', border: '4px solid #92400e' }}>
-                <p className={`font-extrabold text-amber-950 leading-tight ${isWordVisual ? 'text-xl' : 'text-6xl'}`}>{q.visual}</p>
+                {WORD_ART[q.visual] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={WORD_ART[q.visual]} alt="" className="mx-auto h-24 w-auto drop-shadow" />
+                ) : (
+                  <p className={`font-extrabold text-amber-950 leading-tight ${isWordVisual ? 'text-xl' : 'text-6xl'}`}>{q.visual}</p>
+                )}
                 <p className="mt-1 text-base font-bold text-amber-900">{q.prompt}</p>
                 {popped && (
                   <p className="bounce-in mt-1 inline-block px-3 py-0.5 rounded-full text-lg font-extrabold text-amber-950"
