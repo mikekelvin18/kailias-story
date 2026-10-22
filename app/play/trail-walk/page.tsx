@@ -129,11 +129,19 @@ export default function TrailWalkPage() {
     const far: { x: number; k: FarKind; s: number }[] = [];
     const nearPool: NearKind[] = ['pine', 'tree', 'flower', 'mushroom', 'flower', 'rock', 'bush'];
     const farPool: FarKind[] = ['mountain', 'hill', 'mountain', 'cloud'];
-    for (let x = 100; x < worldW; x += 130 + Math.random() * 160) near.push({ x, k: pick(nearPool), s: 0.8 + Math.random() * 0.5 });
+    // at every stop the open path between Kailia and the creature stays
+    // clear of props, so the friend (and its hint spot) never stands in a tree
+    const clearFrom = Math.round(sceneW * 0.47) + 50, clearTo = Math.round(sceneW * 0.82) + 56;
+    const blocked = (x: number) => Array.from({ length: STOPS + 2 }, (_, k) => k * SEG)
+      .some(o => x + 62 > o + clearFrom && x < o + clearTo);
+    for (let x = 100; x < worldW; x += 130 + Math.random() * 160) {
+      const k = pick(nearPool), sc = 0.8 + Math.random() * 0.5;
+      if (!blocked(x)) near.push({ x, k, s: sc });
+    }
     for (let x = 0; x < worldW; x += 260 + Math.random() * 240) far.push({ x, k: pick(farPool), s: 0.8 + Math.random() * 0.5 });
     return { near, far, worldW };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level]);
+  }, [level, sceneW]);
 
   const startWalk = useCallback(() => {
     challengesRef.current = Array.from({ length: STOPS }, (_, i) => makeChallenge(i, tier, level));
@@ -250,7 +258,7 @@ export default function TrailWalkPage() {
             {phase !== 'intro' && Array.from({ length: STOPS }).map((_, i) => (
               i < party.length
                 ? <Critter key={i} emoji={party[i]} size={20} animate={false} />
-                : <span key={i} className="inline-block w-2.5 h-2.5 mx-1 rounded-full" style={{ background: '#0E7490', opacity: 0.3 }} />
+                : <span key={i} className="inline-block w-3 h-3 mx-1 rounded-full" style={{ background: '#FFFFFF', border: '2.5px solid #0E7490' }} />
             ))}
           </span>
         </div>
