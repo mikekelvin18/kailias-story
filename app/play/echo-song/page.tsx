@@ -233,7 +233,7 @@ export default function EchoSongPage() {
           <span className="flex justify-end flex-wrap gap-1 w-16" aria-hidden="true">
             {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && seq.map((_, i) => (
               <span key={i} className="inline-block w-2.5 h-2.5 rounded-full"
-                style={{ background: '#FDE047', boxShadow: i < progress ? '0 0 8px #FDE047' : 'none', opacity: i < progress ? 1 : 0.25 }} />
+                style={i < progress ? { background: '#FDE047', boxShadow: '0 0 8px #FDE047' } : { border: '2px solid #FDE68A' }} />
             ))}
           </span>
         </div>
