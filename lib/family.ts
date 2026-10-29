@@ -61,6 +61,7 @@ export const CHILD_DATA_KEYS = [
   'kailia_worksheet_progress_v1', // printable worksheet completion records
   'kailia_custom_tasks_v1',    // parent-authored custom quest goals
   'kailia_daily_history_v1',   // no-repeat rotation history for daily quests
+  'kailia_pet_v1',             // daily care pet: growth, today's task, difficulty steps
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -283,6 +284,17 @@ export function childDataInventory(): DataSection[] {
       `Starlight collected: ${rewards.starlight ?? 0}`,
       ...(rewards.focusCompanion ? [`Practice focus: ${rewards.focusCompanion}`] : []),
       ...Object.entries(rewards.gameLevels ?? {}).map(([g, l]) => `${g}: reached level ${l}`),
+    ]});
+  }
+
+  const pet = read(scopedKey('kailia_pet_v1'));
+  if (pet?.v === 1) {
+    sections.push({ label: '🥚 Daily care pet', items: [
+      `Happy days so far: ${pet.happyDays ?? 0}`,
+      `Started: ${pet.startedDay}`,
+      `Difficulty steps (1–6): feed ${pet.steps?.feed}, play ${pet.steps?.play}, care ${pet.steps?.care}`,
+      ...((pet.history ?? []) as { day: string; need: string; step: number; outcome: string }[]).slice(-14)
+        .map(h => `${h.day} — ${h.need} at step ${h.step}: ${h.outcome === 'win' ? 'easy win' : h.outcome === 'help' ? 'with help' : 'not yet'}`),
     ]});
   }
 

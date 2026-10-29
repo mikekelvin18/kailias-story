@@ -18,6 +18,7 @@ import { isPremium } from '@/lib/premium';
 import { takeReturnPath, clearReturnPath } from '@/lib/returnTo';
 import { TRAILS, companionFor } from '@/lib/companionTrails';
 import BottomNav from '@/components/BottomNav';
+import CarePet from '@/components/carepet/CarePet';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -120,6 +121,9 @@ export default function AdventureMap() {
   const [noelLine, setNoelLine] = useState(IDLE_LINES[0]);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
+  // one pop-up per visit: if today's quests popped up, the care pet waits
+  // to be tapped instead of popping up right after
+  const [dailyPopped, setDailyPopped] = useState(false);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {}, celebratedCompanions: [] });
   const [showGuide, setShowGuide] = useState(false);
   const [newCompanion, setNewCompanion] = useState<(typeof COMPANIONS)[number] | null>(null);
@@ -178,6 +182,7 @@ export default function AdventureMap() {
       const reports = getTodayReports();
       if (quests.every(q => reports[q.id] !== undefined)) return;
       setDailyPrompt(quests);
+      setDailyPopped(true);
     } catch { /* never block the map */ }
   }, [band]);
 
@@ -559,6 +564,8 @@ export default function AdventureMap() {
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
             {noelLine}
           </div>
+          {/* the daily care pet (components/carepet) — pops up once a day */}
+          <CarePet holdAutoOpen={dailyPopped || showGuide || !!openLand || !!celebrating || !!newCompanion} />
         </div>
 
         {/* Companions no longer sit in a permanent row here — unlocking one
