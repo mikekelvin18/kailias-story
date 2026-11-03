@@ -9,9 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@erc8426/apple": "^0.3.1",
+    "@erc8426/client": "^0.3.0",
+    "@erc8426/core": "^0.3.2",
+    "@erc8426/google": "^0.3.1",
+    "@erc8426/issuer": "^0.3.3",
+    "@erc8426/react": "^0.3.0",
+    "@upstash/redis": "^1.41.0",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "viem": "^2.57.16"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

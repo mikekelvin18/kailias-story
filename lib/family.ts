@@ -62,6 +62,7 @@ export const CHILD_DATA_KEYS = [
   'kailia_custom_tasks_v1',    // parent-authored custom quest goals
   'kailia_daily_history_v1',   // no-repeat rotation history for daily quests
   'kailia_pet_v1',             // daily care pet: growth, today's task, difficulty steps
+  'kailia_walletpet_v1',       // wallet lab (experiment): the pet card's device key + card number
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -216,6 +217,7 @@ export async function deleteChildAndData(childId: string) {
   f.children = f.children.filter(c => c.id !== childId);
   if (f.activeChildId === childId) f.activeChildId = f.children[0]?.id ?? null;
   save(f);
+  await releaseWalletCards([childId]);
   CHILD_DATA_KEYS.forEach(base => {
     localStorage.removeItem(`${base}::${childId}`);
     // also clear the un-namespaced legacy key — it only ever held data
@@ -228,10 +230,24 @@ export async function deleteChildAndData(childId: string) {
 
 export async function deleteEverything() {
   const f = loadFamily();
+  await releaseWalletCards(f?.children.map(c => c.id) ?? []);
   f?.children.forEach(c => CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(`${base}::${c.id}`)));
   CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(base));
   localStorage.removeItem(FAMILY_KEY);
   await deleteAllPhotos();
+}
+
+// Wallet lab (experiment): a child's pet card also exists on a test
+// blockchain and its card server, so deleting asks the server to delete
+// the card too. Loaded only when a card exists, so the wallet code never
+// ships to families who don't use it.
+async function releaseWalletCards(childIds: string[]) {
+  const has = childIds.some(id => localStorage.getItem(`kailia_walletpet_v1::${id}`) !== null);
+  if (!has) return;
+  try {
+    const { releaseWalletCard } = await import('./walletLab/device');
+    await Promise.all(childIds.map(id => releaseWalletCard(id)));
+  } catch { /* keys are still removed below */ }
 }
 
 // ── "View my child's data" — everything stored, in readable form ──
@@ -284,6 +300,16 @@ export function childDataInventory(): DataSection[] {
       `Starlight collected: ${rewards.starlight ?? 0}`,
       ...(rewards.focusCompanion ? [`Practice focus: ${rewards.focusCompanion}`] : []),
       ...Object.entries(rewards.gameLevels ?? {}).map(([g, l]) => `${g}: reached level ${l}`),
+    ]});
+  }
+
+  const card = read(scopedKey('kailia_walletpet_v1'));
+  if (card?.v === 1) {
+    sections.push({ label: '🪪 Wallet pet card (test)', items: [
+      `Card number ${card.tokenId} on test network ${card.chainId}`,
+      `Made: ${String(card.madeAt).slice(0, 10)}`,
+      'Stored on the card: pet kind, growth stage, happy days, hellos. Nothing about your child.',
+      'This device also keeps the card\'s private key, which proves the card is yours.',
     ]});
   }
 
