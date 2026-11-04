@@ -63,6 +63,7 @@ export const CHILD_DATA_KEYS = [
   'kailia_daily_history_v1',   // no-repeat rotation history for daily quests
   'kailia_pet_v1',             // daily care pet: growth, today's task, difficulty steps
   'kailia_walletpet_v1',       // wallet lab (experiment): the pet card's device key + card number
+  'kailia_world_v1',           // adventure world: quest steps, discoveries, grown-up task settings
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -257,7 +258,9 @@ export interface DataSection { label: string; items: string[]; }
 export function childDataInventory(): DataSection[] {
   if (typeof window === 'undefined') return [];
   const sections: DataSection[] = [];
-  const read = (k: string) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { return null; } };
+  // every child-data key is stored per child (scopedKey), so read the
+  // active child's copy, not the old shared one
+  const read = (k: string) => { try { return JSON.parse(localStorage.getItem(scopedKey(k)) ?? 'null'); } catch { return null; } };
 
   const fam = loadFamily();
   const child = activeChild(fam);
@@ -346,6 +349,16 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '📝 Custom quests (parent-authored)', items:
       (customTasks as { text: string; domain: string }[]).map(t => `"${t.text}" (${t.domain})`),
     });
+  }
+
+  const world = read('kailia_world_v1');
+  if (world?.garden) {
+    const g = world.garden;
+    sections.push({ label: '🏡 Adventure world', items: [
+      `Kailia's Garden quest: ${g.quest?.complete ? 'finished' : g.quest?.done?.length ? `${g.quest.done.length} step(s) done` : 'not started'}${g.finished ? ` (finished ${g.finished} time(s))` : ''}`,
+      `Ladybugs found: ${g.ladybugs?.length ?? 0}, stickers: ${(g.stickers ?? []).join(', ') || 'none'}`,
+      `Grown-up settings: challenge ${world.grownUp?.challenge ?? 'auto'}, hints ${world.grownUp?.hints ?? 'auto'}, tap to move ${world.grownUp?.tapToMove ? 'on' : 'off'}`,
+    ]});
   }
 
   if (!sections.length) sections.push({ label: 'Nothing yet', items: ['No data has been stored on this device.'] });

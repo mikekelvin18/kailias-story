@@ -106,33 +106,14 @@ function getDevAge(total: number, group: AgeGroup): string {
   return '10–12 years';
 }
 
+// Ranges on purpose (Kelvin, 2026-10-21): a short check can't place a child
+// to the month, so every estimate reads as a band, never a single age.
 function getDomainAge(score: number, group: AgeGroup): string {
-  if (group === 'infant') {
-    if (score <= 2) return '~6 mo';
-    if (score <= 4) return '~7–8 mo';
-    if (score <= 6) return '~8–9 mo';
-    if (score <= 8) return '~9–10 mo';
-    return '~10–11 mo';
-  }
-  if (group === 'toddler') {
-    if (score <= 2) return '~12 mo';
-    if (score <= 4) return '~13–15 mo';
-    if (score <= 6) return '~15–18 mo';
-    if (score <= 8) return '~18–21 mo';
-    return '~21–23 mo';
-  }
-  if (group === 'preschool') {
-    if (score <= 2) return '~2 yrs';
-    if (score <= 4) return '~2.5 yrs';
-    if (score <= 6) return '~3 yrs';
-    if (score <= 8) return '~3.5–4 yrs';
-    return '~4–5 yrs';
-  }
-  if (score <= 2) return '~5–6 yrs';
-  if (score <= 4) return '~6–7 yrs';
-  if (score <= 6) return '~7–9 yrs';
-  if (score <= 8) return '~9–11 yrs';
-  return '~11–12 yrs';
+  const pick = (r: string[]) => `about ${r[score <= 2 ? 0 : score <= 4 ? 1 : score <= 6 ? 2 : score <= 8 ? 3 : 4]}`;
+  if (group === 'infant') return pick(['5–7 mo', '6–9 mo', '7–10 mo', '8–11 mo', '9–12 mo']);
+  if (group === 'toddler') return pick(['11–14 mo', '12–16 mo', '14–19 mo', '16–22 mo', '19–24 mo']);
+  if (group === 'preschool') return pick(['1½–2½ yrs', '2–3 yrs', '2½–3½ yrs', '3–4½ yrs', '3½–5 yrs']);
+  return pick(['4½–6 yrs', '5½–7½ yrs', '6½–9 yrs', '8–11 yrs', '10–12 yrs']);
 }
 
 function getLearningStage(total: number, group: AgeGroup) {
@@ -287,7 +268,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       learningStage: stage,
       stageEmoji: emoji,
       stageDescription: description,
-      developmentalAge: getDevAge(totalScore, state.ageGroup),
+      developmentalAge: `About ${getDevAge(totalScore, state.ageGroup)}`,
       domainAge: (score) => getDomainAge(score, state.ageGroup),
       primarySensoryPattern: pattern,
       sensoryPatternEmoji: sEmoji,
