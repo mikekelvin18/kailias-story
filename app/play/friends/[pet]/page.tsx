@@ -17,6 +17,7 @@ import {
 import { loadProgress, isBonusLandUnlocked } from '@/lib/adventure';
 import { loadRewards, recordGameLevel } from '@/lib/rewards';
 import { setReturnPath } from '@/lib/returnTo';
+import { say } from '@/lib/voice';
 
 // stop positions on the path, bottom to top (fractions of the path box)
 const SPOTS: [number, number][] = [[0.35, 0.89], [0.65, 0.71], [0.35, 0.53], [0.65, 0.35], [0.5, 0.15]];
@@ -33,16 +34,7 @@ function pathD() {
   return d;
 }
 
-function speak(text: string) {
-  try {
-    const s = window.speechSynthesis;
-    if (!s) return;
-    s.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.95; u.pitch = 1.1;
-    s.speak(u);
-  } catch { /* no voice on this device */ }
-}
+function speak(text: string) { say(text, { rate: 0.95 }); }
 
 export default function TrailPage() {
   const { pet } = useParams<{ pet: string }>();
