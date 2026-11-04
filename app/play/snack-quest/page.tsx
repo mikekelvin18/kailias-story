@@ -790,7 +790,7 @@ function Floor({ cave }: { cave: boolean }) {
               ? <><stop offset="0" stopColor="#9A6845" /><stop offset="0.65" stopColor="#7A4E33" /><stop offset="1" stopColor="#4E2F1F" /></>
               : <><stop offset="0" stopColor="#A6DB86" /><stop offset="0.7" stopColor="#86C56C" /><stop offset="1" stopColor="#5E9F4E" /></>}
           </radialGradient>
-          <radialGradient id={`${g}-glow`}><stop offset="0" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity="0.75" /><stop offset="1" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity="0" /></radialGradient>
+          <radialGradient id={`${g}-glow`}><stop offset="0" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity={cave ? 0.75 : 0.35} /><stop offset="1" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity="0" /></radialGradient>
         </defs>
         <rect width="70" height="80" fill={`url(#${g})`} />
         <g filter="url(#kp-brush)">

@@ -284,7 +284,8 @@ export default function ParentZonePage() {
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <p className="block text-sm font-bold text-gray-700 mb-3">Pick an avatar</p>
+            <p className="block text-sm font-bold text-gray-700">Pick a buddy</p>
+            <p className="text-sm text-gray-500 mb-3">This buddy also becomes your child&apos;s daily pet friend in the games. You can change it later.</p>
             <div className="mb-6"><AvatarPicker value={avatar} onChange={setAvatar} /></div>
             {formError && <p className="text-sm font-bold text-rose-600 mb-2">{formError}</p>}
             <button onClick={handleAddChild}

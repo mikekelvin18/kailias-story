@@ -17,7 +17,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import LiveArt from '@/components/characters/LiveArt';
 import PetEgg from './PetEgg';
 import PetTrace from './PetTrace';
-import { pickPlayPet, PlayPet } from '@/components/games/playPet';
+import { pickPlayPet, signupFriend, PlayPet } from '@/components/games/playPet';
 import { chime } from '@/components/friends/voice';
 import { speak, stopSpeaking } from '@/lib/speak';
 import { COMPANIONS, getFocusCompanion, setFocusCompanion } from '@/lib/rewards';
@@ -128,9 +128,13 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       setPhase('thanks');
       say('Crack, crack! The egg is hatching!');
       setTimeout(() => {
-        const focus = getFocusCompanion();
+        // the friend picked as the practice focus, else the buddy picked
+        // at sign-up, hatches straight away; only with neither (e.g. the
+        // Noel buddy) does the child choose who is inside
+        const focus = getFocusCompanion() ?? signupFriend();
         if (focus) {
           const f = COMPANIONS.find(c => c.name === focus)!;
+          setFocusCompanion(f.name);
           setFriend(f);
           setHatching(false);
           say(`Hi! I'm ${f.name}! Thank you for taking care of my egg!`);
@@ -152,13 +156,16 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   }
 
   function pickFriend(name: string) {
+    const switching = stage !== 'egg' && !hatching;
     setFocusCompanion(name);
     const f = COMPANIONS.find(c => c.name === name)!;
     setFriend(f);
     setHatching(false);
-    setPhase('thanks');
+    setPhase(switching ? 'resting' : 'thanks');
     chime.good();
-    say(`Hi! I'm ${f.name}! Thank you for taking care of my egg. See you tomorrow!`);
+    say(switching
+      ? `Hi! I'm ${f.name}! Let's be friends. See you tomorrow!`
+      : `Hi! I'm ${f.name}! Thank you for taking care of my egg. See you tomorrow!`);
   }
 
   function askGrownUp() {
@@ -271,8 +278,15 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
             )}
 
             {(phase === 'thanks' || phase === 'resting') && !hatching && (
-              <div className="flex justify-center mt-6">
+              <div className="flex flex-col items-center mt-6">
                 <button className={big} style={{ background: accent }} onClick={close}>See you tomorrow!</button>
+                {/* the friend comes from the sign-up buddy; it can be swapped here */}
+                {stage !== 'egg' && (
+                  <button className="mt-3 min-h-[44px] px-4 rounded-full text-sm font-bold" style={{ color: accent }}
+                    onClick={() => { setPhase('pick'); say('Who do you want to play with?'); }}>
+                    Pick a different friend
+                  </button>
+                )}
               </div>
             )}
 

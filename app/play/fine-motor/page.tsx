@@ -561,7 +561,7 @@ export default function MazeRunnerPage() {
 
   // Where the friend goes: on the ground beside Kailia, on the side she
   // came from (so behind her on the path, or next to it on the way up or
-  // down), or sitting just below GO before the run begins. During a hint
+  // down), or waiting on the path just past GO before the run begins. During a hint
   // it holds its spot.
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -572,8 +572,12 @@ export default function MazeRunnerPage() {
       if (hint) { hintRef.current = null; setHinting(false); }
       const k = shownRef.current ?? path[0];
       const back = -facingRef.current;
+      // before the run: standing on the glowing path a little way past GO,
+      // as if showing the way (not squeezed under GO against the walls)
+      const ahead = (d: number) => path.find(q => Math.hypot(q.x - path[0].x, q.y - path[0].y) >= d);
       const options: Pt[] = !charRef.current
-        ? [{ x: path[0].x, y: path[0].y + 64 }]
+        ? [...[ahead(78), ahead(100), ahead(124)].filter((q): q is Pt => !!q).map(q => ({ x: q.x, y: q.y + 16 })),
+            { x: path[0].x, y: path[0].y + 64 }]
         : [
             { x: k.x + back * 46, y: k.y + 4 }, { x: k.x - back * 46, y: k.y + 4 },
             { x: k.x + back * 46, y: k.y + 52 }, { x: k.x - back * 46, y: k.y + 52 },
