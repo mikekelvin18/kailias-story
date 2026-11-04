@@ -126,7 +126,7 @@ function Backdrop({ world }: { world: World }) {
         <>
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <defs>
-              <linearGradient id={g('sky')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#BDEFD0" /><stop offset="0.55" stopColor="#6FC08F" /><stop offset="1" stopColor="#3C8E5C" /></linearGradient>
+              <linearGradient id={g('sky')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF4CF" /><stop offset="0.6" stopColor="#F5DE9C" /><stop offset="1" stopColor="#A9CF7A" /></linearGradient>
               <linearGradient id={g('ray')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFBE0" stopOpacity="0.55" /><stop offset="1" stopColor="#FFFBE0" stopOpacity="0" /></linearGradient>
             </defs>
             <rect width="100" height="100" fill={`url(#${g('sky')})`} />
@@ -148,7 +148,7 @@ function Backdrop({ world }: { world: World }) {
               <circle cx="68" cy="88" r="1.6" fill="#FFE07A" stroke={sk} strokeWidth="0.3" />
             </g>
           </svg>
-          <Risers n={9} color="#FFF59A" size={9} glow rise={180} sway={26} seed={4} />
+          <Risers n={9} color="#FF7EB0" size={9} glow rise={180} sway={26} seed={4} />
           <Leaves n={6} colors={['#F7B267', '#9ED36A', '#F4845F']} />
         </>
       );
@@ -173,9 +173,6 @@ function Backdrop({ world }: { world: World }) {
               <path d="M86 88 L89 72 L92 88z M91 88 L94 78 L97 88z" fill="#A78BFA" stroke={sk} strokeWidth="0.4" />
               <path d="M82 18 L85 8 L88 18z" fill="#F9A8D4" stroke={sk} strokeWidth="0.4" />
               <path d="M7 77 L8 76 L8.6 82z" fill="#FFFFFF" opacity="0.7" />
-              {/* a heap of coins */}
-              <ellipse cx="72" cy="92" rx="9" ry="3" fill="#F2C14E" stroke={sk} strokeWidth="0.4" />
-              <ellipse cx="72" cy="90" rx="6" ry="2.4" fill="#FFD966" stroke={sk} strokeWidth="0.4" />
             </g>
           </svg>
           <Risers n={14} color="#FF9F43" size={5} glow rise={320} sway={18} seed={7} />
@@ -186,15 +183,15 @@ function Backdrop({ world }: { world: World }) {
         <>
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <defs>
-              <linearGradient id={g('sky')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2E1E62" /><stop offset="0.6" stopColor="#6A3F9E" /><stop offset="1" stopColor="#E59BC8" /></linearGradient>
+              <linearGradient id={g('sky')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2E1E62" /><stop offset="0.65" stopColor="#5A3592" /><stop offset="1" stopColor="#7A4BAA" /></linearGradient>
             </defs>
             <rect width="100" height="100" fill={`url(#${g('sky')})`} />
-            <g fill="none" strokeWidth="2.4" opacity="0.2">
+            <g fill="none" strokeWidth="2.4" opacity="0.12">
               {['#FF6B6B', '#FFB347', '#FFE66D', '#7BE495', '#6FB7FF', '#B28DFF'].map((c, i) => (
                 <path key={c} d={`M-10 ${104 + i * 2.6} A 62 62 0 0 1 110 ${104 + i * 2.6}`} stroke={c} transform="translate(0 -18)" />
               ))}
             </g>
-            <g filter="url(#kp-brush)" fill="#FFFFFF">
+            <g filter="url(#kp-brush)" fill="#9A7AD3">
               <ellipse cx="14" cy="96" rx="22" ry="8" opacity="0.85" /><ellipse cx="30" cy="99" rx="20" ry="6" opacity="0.85" />
               <ellipse cx="84" cy="97" rx="24" ry="8" opacity="0.85" /><ellipse cx="62" cy="100" rx="18" ry="5" opacity="0.85" />
             </g>
@@ -222,7 +219,7 @@ function Backdrop({ world }: { world: World }) {
         <>
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <defs>
-              <linearGradient id={g('sky')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#CFF5A8" /><stop offset="0.5" stopColor="#7CC46A" /><stop offset="1" stopColor="#3E8A3C" /></linearGradient>
+              <linearGradient id={g('sky')} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF6D6" /><stop offset="0.55" stopColor="#F2E3A6" /><stop offset="1" stopColor="#7DB862" /></linearGradient>
             </defs>
             <rect width="100" height="100" fill={`url(#${g('sky')})`} />
             {[[18, 30], [70, 18], [50, 60], [86, 52]].map(([x, y], i) => (

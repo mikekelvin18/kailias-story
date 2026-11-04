@@ -40,7 +40,6 @@ export default function VineWeave({ difficulty, accent, say, onDone, pet, reacti
   const [pts, setPts] = useState<Pt[]>([START]);
   const [leaves, setLeaves] = useState<{ x: number; y: number; a: number; side: number }[]>([]);
   const [wiggle, setWiggle] = useState(-1);
-  const [passed, setPassed] = useState(0);
   const [bloom, setBloom] = useState(false);
   const [mood, moodKey, setMood] = usePetMood('idle');
   const [flick, setFlick] = useState<Pt>({ x: 10, y: 98 });
@@ -87,7 +86,6 @@ export default function VineWeave({ difficulty, accent, say, onDone, pet, reacti
         setMood('cheer');
       }
       s.next++;
-      setPassed(s.next);
     }
     // a new leaf every few steps of growth, alternating sides
     s.grown += step;
@@ -139,9 +137,6 @@ export default function VineWeave({ difficulty, accent, say, onDone, pet, reacti
                 <ellipse cx={g.x - 3.4} cy={(a + b) / 2} rx="3.4" ry="1.7" fill="#7BD07F" stroke="#3b2416" strokeWidth="0.4" transform={`rotate(30 ${g.x - 3.4} ${(a + b) / 2})`} />
               </g>
             ))}
-            {/* a little glow in the gap that lights up once passed */}
-            <circle cx={g.x} cy={g.y} r={Math.min(4, g.h * 0.4)} fill={i < passed ? accent : '#FFFFFF'} opacity={i < passed ? 0.45 : 0.25} className={i === passed ? 'fg-glow' : undefined}
-              style={{ ['--glow' as string]: 0.3 } as React.CSSProperties} />
           </g>
         ))}
         {/* the flower to reach, on its own stem */}
@@ -165,8 +160,8 @@ export default function VineWeave({ difficulty, accent, say, onDone, pet, reacti
         ))}
         {/* the growing tip: where to put your finger */}
         {!bloom && <>
-          <circle cx={tip.x} cy={tip.y} r="6.5" fill="#FFF8B0" opacity="0.35" className="soft-pulse" />
-          <circle cx={tip.x} cy={tip.y} r="3.6" fill="#B6F58C" stroke="#FFFFFF" strokeWidth="1" />
+          <circle cx={tip.x} cy={tip.y} r="6.5" fill="#FF9F43" opacity="0.4" className="soft-pulse" />
+          <circle cx={tip.x} cy={tip.y} r="3.6" fill="#FFD23F" stroke="#3b2416" strokeWidth="0.9" />
         </>}
       </svg>
       <Actor art={pet.art} name={pet.name} x={flick.x} y={flick.y} h={58} mood={mood} moodKey={moodKey} moveMs={bloom ? 600 : 260} z={5} />
