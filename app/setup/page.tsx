@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
+import ChildAvatar from '@/components/characters/ChildAvatar';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { ChildProfile, activeChild, childAgeYears } from '@/lib/family';
 import StepGuide from '@/components/ui/StepGuide';
@@ -105,7 +106,7 @@ export default function SetupPage() {
 
             {/* The profile the parent created — nothing for the child to type */}
             <div className="flex items-center gap-3 rounded-2xl p-4 mb-5" style={{ background: '#F5F3FF', border: '2px solid #DDD6FE' }}>
-              <span className="text-5xl">{child.avatar}</span>
+              <ChildAvatar avatar={child.avatar} size={60} />
               <div className="flex-1">
                 <p className="text-xl font-extrabold text-gray-800">{child.nickname}</p>
                 <p className="text-xs text-gray-500">
