@@ -6,7 +6,9 @@
 // Four layers, all kept quiet so they sit under the game:
 //   pad      warm, slow chords (the "bed")
 //   bass     one soft low note per chord
-//   bells    a sparse music-box / kalimba melody on a calm 5-note scale
+//   bells    a sparse, mellow kalimba melody on a calm 5-note scale
+//            (kept in a middle range with short, soft ringing: Kelvin
+//            found the earlier long high tones unpleasant, 2026-11-04)
 //   shaker   a whisper of rhythm on the off-beats
 // Each game gets its own little tune (picked from the page's address),
 // all in the same calm style. Music dips while Noel is talking.
@@ -24,16 +26,16 @@ type Song = {
 const SONGS: Song[] = [
   // F major, drifting down: Fmaj7, Em7, Dm7, Cmaj7
   { bpm: 74, chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]],
-    scale: [72, 74, 77, 79, 81, 84, 86] },
+    scale: [60, 62, 65, 67, 69, 72, 74] },
   // C major, sunny: Cmaj9, Am7, Fmaj7, G6
   { bpm: 78, chords: [[48, 55, 59, 62], [45, 52, 55, 60], [41, 48, 52, 57], [43, 50, 52, 59]],
-    scale: [72, 74, 76, 79, 81, 84, 88] },
+    scale: [60, 62, 64, 67, 69, 72, 76] },
   // D major, dreamy: Dmaj7, Bm7, Gmaj7, A6
   { bpm: 70, chords: [[50, 57, 61, 64], [47, 54, 57, 62], [43, 50, 54, 59], [45, 52, 54, 61]],
-    scale: [74, 76, 78, 81, 83, 86, 88] },
+    scale: [62, 64, 66, 69, 71, 74, 76] },
   // A minor, cosy night: Am9, Fmaj7, Cmaj7, Em7
   { bpm: 68, chords: [[45, 52, 55, 59], [41, 48, 52, 57], [48, 52, 55, 59], [40, 47, 50, 55]],
-    scale: [69, 72, 74, 76, 79, 81, 84] },
+    scale: [57, 60, 62, 64, 67, 69, 72] },
 ];
 
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
@@ -106,7 +108,7 @@ class ChillPlayer {
     // a soft lowpass takes the edge off everything
     const tone = ctx.createBiquadFilter();
     tone.type = 'lowpass';
-    tone.frequency.value = 2600;
+    tone.frequency.value = 1800;
     tone.Q.value = 0.3;
 
     // a roomy reverb made from fading noise
@@ -120,7 +122,7 @@ class ChillPlayer {
     verb.buffer = ir;
 
     this.dry = ctx.createGain(); this.dry.gain.value = 0.75;
-    this.wet = ctx.createGain(); this.wet.gain.value = 0.55;
+    this.wet = ctx.createGain(); this.wet.gain.value = 0.35;
     this.dry.connect(tone);
     this.wet.connect(verb).connect(tone);
     tone.connect(this.duck).connect(this.master).connect(ctx.destination);
@@ -143,17 +145,17 @@ class ChillPlayer {
     notes.forEach((m, k) => {
       [-6, 6].forEach(cents => {
         const o = ctx.createOscillator();
-        o.type = k === 0 ? 'sine' : 'triangle';
-        o.frequency.value = hz(m + 12);
+        o.type = 'sine'; // pure and round: no buzzy high overtones
+        o.frequency.value = hz(k === notes.length - 1 ? m - 12 : m); // low and warm, top note tucked down
         o.detune.value = cents;
         const g = ctx.createGain();
-        const peak = 0.028;
+        const peak = 0.034;
         g.gain.setValueAtTime(0.0001, t);
         g.gain.linearRampToValueAtTime(peak, t + dur * 0.35);
         g.gain.linearRampToValueAtTime(peak * 0.7, t + dur * 0.8);
         g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.6);
         const f = ctx.createBiquadFilter();
-        f.type = 'lowpass'; f.frequency.value = 900;
+        f.type = 'lowpass'; f.frequency.value = 650;
         o.connect(f).connect(g);
         this.send(g, 0.6);
         o.start(t); o.stop(t + dur + 0.7);
@@ -180,7 +182,7 @@ class ChillPlayer {
   private bell(m: number, t: number) {
     const ctx = this.ctx!;
     const f0 = hz(m);
-    [[1, 0.07, 1.6], [3.01, 0.012, 0.5], [4.2, 0.006, 0.3]].forEach(([mult, peak, decay]) => {
+    [[1, 0.07, 0.9], [2, 0.006, 0.25]].forEach(([mult, peak, decay]) => {
       const o = ctx.createOscillator();
       o.type = 'sine';
       o.frequency.value = f0 * mult;
@@ -189,7 +191,7 @@ class ChillPlayer {
       g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
       g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
       o.connect(g);
-      this.send(g, 0.7);
+      this.send(g, 0.35);
       o.start(t); o.stop(t + decay + 0.05);
     });
   }
@@ -199,9 +201,9 @@ class ChillPlayer {
     const src = ctx.createBufferSource();
     src.buffer = this.noise;
     const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 6500;
+    hp.type = 'bandpass'; hp.frequency.value = 3800; hp.Q.value = 0.8;
     const g = ctx.createGain();
-    const peak = accent ? 0.018 : 0.009;
+    const peak = accent ? 0.012 : 0.006;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
