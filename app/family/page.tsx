@@ -23,6 +23,7 @@ import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
+import VoicePicker from '@/components/VoicePicker';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -82,12 +83,10 @@ export default function ParentZonePage() {
   }
 
   function updateA11y(patch: Partial<AccessibilityPrefs>) {
-    setA11y(prev => {
-      const next = { ...prev, ...patch };
-      saveA11y(next);
-      applyA11y(next);
-      return next;
-    });
+    const next = { ...a11y, ...patch };
+    saveA11y(next);
+    applyA11y(next);
+    setA11y(next);
   }
 
   const consented = !!family?.consent;
@@ -423,6 +422,17 @@ export default function ParentZonePage() {
             <span className={`text-sm font-semibold text-gray-700`}>🔇 Reduce sound effects</span>
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games</span>
+            <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
+            <p className={`text-sm font-semibold text-gray-700 mb-0.5`}>🐼 Noel&apos;s read-aloud voice</p>
+            <p className="text-xs text-gray-500 mb-2">Automatic picks the warmest voice this device has. Tap Hear it to try one.</p>
+            <VoicePicker value={a11y.voiceName} onChange={name => updateA11y({ voiceName: name })} />
+          </div>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
             <span className={`text-sm font-semibold text-gray-700`}>📖 Dyslexia-friendly text spacing</span>

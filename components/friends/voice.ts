@@ -1,24 +1,17 @@
 // ── Voice and sound for the friends' games ──
-// speak(): the browser's built-in voice reads a line aloud (it only
+// speak(): Noel's warm voice (lib/voice.ts) reads a line aloud (it only
 // speaks, it never listens). tones(): small sine-wave chimes. Both stay
 // silent when the device has no voice or sound is switched off in the app.
 
 import { soundEnabled } from '@/lib/accessibility';
+import { say, canSpeak as canSay } from '@/lib/voice';
 
 export function speak(text: string, opts: { rate?: number; pitch?: number } = {}) {
-  try {
-    const s = window.speechSynthesis;
-    if (!s) return;
-    s.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = opts.rate ?? 0.95;
-    u.pitch = opts.pitch ?? 1.1;
-    s.speak(u);
-  } catch { /* no voice on this device */ }
+  say(text, { rate: opts.rate ?? 0.95, pitch: opts.pitch });
 }
 
 export function canSpeak() {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  return canSay();
 }
 
 let ctx: AudioContext | null = null;
