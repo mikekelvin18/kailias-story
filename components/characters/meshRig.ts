@@ -40,6 +40,8 @@ export interface PetRig {
   pad: number;
   /** for a drawn cycle (e.g. run-1…run-5): pictures per second */
   fps?: number;
+  /** play the drawn pictures once and hold the last (a jump), instead of looping */
+  once?: boolean;
   /** soft light from the upper left and shade toward the lower right, so a
       flat picture reads as rounded (as LiveCharacter's overlays did) */
   shade?: boolean;
@@ -229,13 +231,14 @@ export function startRig(canvas: HTMLCanvasElement, pictures: HTMLImageElement |
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
     gl.bufferData(gl.ARRAY_BUFFER, pos, gl.DYNAMIC_DRAW);
     gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-    gl.bindTexture(gl.TEXTURE_2D, textures[still ? 0 : Math.floor(t * fps) % textures.length]);
+    const f = Math.floor(t * fps);
+    gl.bindTexture(gl.TEXTURE_2D, textures[still ? (rig.once ? textures.length - 1 : 0) : rig.once ? Math.min(f, textures.length - 1) : f % textures.length]);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_SHORT, 0);
   };
 
   let raf = 0;
-  const t0 = performance.now() - (seed % 7) * 1000;
+  const t0 = performance.now() - (rig.once ? 0 : (seed % 7) * 1000);
   const loop = (now: number) => { draw((now - t0) / 1000); raf = requestAnimationFrame(loop); };
   if (still) draw(0); else raf = requestAnimationFrame(loop);
   // a still frame is redrawn when the canvas changes size

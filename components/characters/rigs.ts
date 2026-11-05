@@ -188,6 +188,27 @@ export const RUN_RIGS: Record<'kailia' | 'noel', PetRig> = {
   },
 };
 
+// Jumping: the drawn jump-1…jump-4 (crouch, take off, in the air, land),
+// played once. Hair, cape and scarf lift and settle through the hop.
+export const JUMP_RIGS: Record<'kailia' | 'noel', PetRig> = {
+  kailia: {
+    pad: 0.12, fps: 8, once: true, eyes: [],
+    bones: [
+      { name: 'hair', pivot: [0.55, 0.3], region: { cx: 0.25, cy: 0.42, rx: 0.24, ry: 0.2, soft: 0.4 },
+        swing: { deg: 5, period: 0.5 } },
+      { name: 'cape', pivot: [0.5, 0.62], region: { cx: 0.15, cy: 0.66, rx: 0.15, ry: 0.1, soft: 0.4 },
+        swing: { deg: 8, period: 0.5, phase: 0.2 } },
+    ],
+  },
+  noel: {
+    pad: 0.12, fps: 8, once: true, eyes: [],
+    bones: [
+      { name: 'scarf', pivot: [0.55, 0.5], region: { cx: 0.22, cy: 0.5, rx: 0.2, ry: 0.12, soft: 0.4 },
+        swing: { deg: 7, period: 0.5, phase: 0.2 } },
+    ],
+  },
+};
+
 export function rigFor(src: string): PetRig | null {
   return PET_RIGS[src] ?? CHARACTER_RIGS[src] ?? null;
 }
