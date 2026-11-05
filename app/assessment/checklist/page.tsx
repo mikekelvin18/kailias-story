@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import type { AgeGroup } from '@/context/AssessmentContext';
+import StepGuide from '@/components/ui/StepGuide';
 
 type Answer = 'yes' | 'sometimes' | 'notyet' | null;
 const SCORE: Record<string, number> = { yes: 2, sometimes: 1, notyet: 0 };
@@ -259,7 +260,7 @@ export default function ChecklistPage() {
   const handleNext = () => {
     const score = domainAnswers.reduce((sum, a) => sum + (a ? SCORE[a] : 0), 0);
     setDomainScore(domain.key as 'reading' | 'writing' | 'communication' | 'math', score);
-    if (isLast) { completeAssessment(); router.push('/results'); } else { setStep(s => s + 1); }
+    if (isLast) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); } else { setStep(s => s + 1); }
   };
 
   // For school-age parent report, use "My child..." phrasing; others use direct questions
@@ -268,6 +269,7 @@ export default function ChecklistPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-10" style={{ background: '#FFF9F0' }}>
       <div className="max-w-2xl w-full">
+        <StepGuide step={3} className="mb-6" />
 
         {/* Header */}
         <div className="text-center mb-6">
@@ -341,13 +343,13 @@ export default function ChecklistPage() {
             className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: allAnswered ? `linear-gradient(135deg, ${domain.color}, #EC4899)` : '#D1D5DB' }}
           >
-            {isLast ? 'See Results! 🎉' : 'Next Domain →'}
+            {isLast ? (state.sensoryCompleted ? 'See Results! 🎉' : 'Next: senses →') : 'Next part →'}
           </button>
           {!allAnswered && <p className="text-gray-400 text-sm mt-3">Answer all questions to continue</p>}
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-4">
-          Domain {step + 1} of {domains.length} • {domain.label}
+        <p className="text-center text-gray-500 text-sm font-semibold mt-4">
+          Part {step + 1} of {domains.length} • {domain.label}
         </p>
       </div>
     </main>

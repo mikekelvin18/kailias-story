@@ -59,7 +59,7 @@ interface Props {
   animate?: boolean; // set false for tiny inline usages (option buttons) to save motion
 }
 
-const SK = '#1a1108';
+const SK = '#3b2416'; // warm painted contour, not black ink
 
 export function CritterSprite({ species, size = 64, className, style, animate = true }: Props) {
   const c = SPECIES[species];
@@ -68,6 +68,9 @@ export function CritterSprite({ species, size = 64, className, style, animate = 
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={`${animate ? 'critter-bob' : ''} ${className ?? ''}`}
       style={style} xmlns="http://www.w3.org/2000/svg">
+      {/* hand-painted brush look (components/art/PaintKit.tsx); the
+          boiling edge only while animated, so tiny static icons stay calm */}
+      <g filter={animate ? 'url(#kp-boil)' : 'url(#kp-brush)'}>
 
       {/* ── tails, drawn behind the body ── */}
       {c.extra === 'tail-bushy' && (
@@ -268,6 +271,7 @@ export function CritterSprite({ species, size = 64, className, style, animate = 
           <circle cx={(c.extra === 'beak-long' ? 62 : 50) + 20} cy={(c.extra === 'beak-long' ? 20 : 38) + 10} r="6" fill="#FFB3C6" opacity="0.5" />
         </>
       )}
+      </g>
     </svg>
   );
 }

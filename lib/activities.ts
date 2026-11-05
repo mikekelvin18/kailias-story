@@ -25,11 +25,11 @@ export interface ParentActivity {
 }
 
 export const DOMAIN_META: Record<ActivityDomain, { emoji: string; label: string }> = {
-  'fine motor':    { emoji: '🤲', label: 'Little Hands' },
+  'fine motor':    { emoji: '✋', label: 'Hand Skills' },
   'communication': { emoji: '🗣️', label: 'Talking & Listening' },
   'reading':       { emoji: '📖', label: 'Early Books & Sounds' },
   'math':          { emoji: '🔢', label: 'Counting & Sorting' },
-  'sensory':       { emoji: '🌈', label: 'Senses' },
+  'sensory':       { emoji: '👀', label: 'Senses' },
   'processing':    { emoji: '🧠', label: 'Thinking & Remembering' },
 };
 

@@ -7,6 +7,7 @@ import { activeChild } from '@/lib/family';
 import { DOMAIN_META, domainSummaries, allReportEntries, DomainSummary, ReportEntry } from '@/lib/activities';
 import { loadCustomTasks, CustomTask } from '@/lib/customTasks';
 import BottomNav from '@/components/BottomNav';
+import BackButton from '@/components/ui/BackButton';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
 // A parent-facing, printable rollup for handing to a child's care team
@@ -37,7 +38,7 @@ export default function ProgressReportPage() {
       <style>{`@media print { .no-print { display: none !important; } }`}</style>
       <div className="max-w-md sm:max-w-2xl mx-auto px-4 pt-6 print:pt-0">
         <div className="flex items-center justify-between mb-3 no-print">
-          <Link href="/family" className="text-sm font-bold text-indigo-700">← Family</Link>
+          <BackButton href="/family" label="Family" />
           <button onClick={() => window.print()}
             className="px-4 py-2 rounded-full font-bold text-sm text-white" style={{ background: '#2563EB' }}>
             🖨️ Print / Save as PDF

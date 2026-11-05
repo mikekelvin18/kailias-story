@@ -1,0 +1,42 @@
+/* Echo Song: the cave's own little moves (the shared ones live in globals.css) */
+
+/* a ring of sound spreading out from a singing crystal */
+@keyframes ring {
+  0%   { transform: translate(-50%, -50%) scale(0.35); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+.ring { animation: ring 0.9s ease-out forwards; }
+
+/* a painted music note floating up and away */
+@keyframes noteUp {
+  0%   { transform: translate(0, 0) rotate(-8deg) scale(0.6); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(var(--nx, 14px), -70px) rotate(12deg) scale(1); opacity: 0; }
+}
+.noteUp { animation: noteUp 1.1s ease-out forwards; }
+
+/* a crystal rings: a quick stretch up, then settles */
+@keyframes sing {
+  0%   { transform: scale(1, 1); }
+  30%  { transform: scale(0.94, 1.12); }
+  60%  { transform: scale(1.06, 0.96); }
+  100% { transform: scale(1.08, 1.08); }
+}
+.sing { animation: sing 0.35s ease-out forwards; transform-origin: 50% 100%; }
+
+/* water drips from the stalactites */
+@keyframes drip {
+  0%, 70% { transform: translateY(0) scale(0.4); opacity: 0; }
+  74%     { transform: translateY(0) scale(1); opacity: 0.9; }
+  100%    { transform: translateY(var(--fall, 220px)) scale(0.8, 1.3); opacity: 0; }
+}
+.drip { animation: drip 4.5s ease-in infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ring, .noteUp, .drip { animation: none; opacity: 0; }
+  .sing { animation: none; transform: scale(1.06); }
+}
+:global([data-reduced-motion='true']) .ring,
+:global([data-reduced-motion='true']) .noteUp,
+:global([data-reduced-motion='true']) .drip { animation: none; opacity: 0; }
+:global([data-reduced-motion='true']) .sing { animation: none; transform: scale(1.06); }
