@@ -11,6 +11,7 @@ import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import LivingSky from '@/components/scenery/LivingSky';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
 import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { LANDS, recordQuestPlay } from '@/lib/adventure';
@@ -142,7 +143,8 @@ export default function ParentZonePage() {
   const onboarding = assessmentLoaded && !assessment.assessmentCompleted;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4">
 
         <div className="flex items-center justify-between gap-2 pt-5 pb-1">
