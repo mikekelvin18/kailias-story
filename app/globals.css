@@ -681,11 +681,21 @@ button:active {
 }
 .fg-twinkle { animation: fg-twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes fg-burst {
-  0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.4) rotate(0deg); opacity: 1; }
-  70%  { opacity: 1; }
-  100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; }
+  0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.3) rotate(0deg); opacity: 1; animation-timing-function: cubic-bezier(.15,.75,.35,1); }
+  45%  { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.8), calc(var(--dy) * 0.8 - 14px)) scale(1.15) rotate(calc(var(--rot) * 0.6)); opacity: 1; animation-timing-function: cubic-bezier(.5,0,.9,.6); }
+  100% { transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) + 46px)) scale(0.6) rotate(var(--rot)); opacity: 0; }
 }
-.fg-burst { animation: fg-burst 0.8s cubic-bezier(.2,.8,.3,1) forwards; }
+.fg-burst { opacity: 0; animation: fg-burst 1.05s linear both; }
+@keyframes fg-ring {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; border-width: 7px; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
+}
+.fg-ring { animation: fg-ring 0.55s cubic-bezier(.1,.7,.3,1) forwards; left: 0; top: 0; }
+@keyframes fg-flash {
+  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+}
+.fg-flash { animation: fg-flash 0.35s ease-out forwards; }
 @keyframes fg-drift {
   from { transform: translateX(-40vw); }
   to   { transform: translateX(140vw); }
@@ -750,6 +760,7 @@ button:active {
 @media (prefers-reduced-motion: reduce) {
   .fg-cheer, .fg-oops, .fg-fly, .fg-talk, .fg-dance, .fg-twinkle, .fg-drift, .fg-rise, .fg-fall,
   .fg-sway, .fg-bob, .fg-glow, .fg-swim { animation: none; }
+  .fg-burst, .fg-ring, .fg-flash { display: none; }
 }
 
 /* ── Game-feel kit (components/games) ── */
@@ -1003,3 +1014,6 @@ button:active {
 .gf-choice:active { transform: translateY(4px) scale(0.97, 0.94); box-shadow: 0 2px 0 #3b2416; }
 @media (prefers-reduced-motion: reduce) { .gf-choice { animation: none; opacity: 1; } }
 :root[data-reduced-motion="true"] .gf-choice { animation: none; opacity: 1; }
+:root[data-reduced-motion="true"] .fg-burst,
+:root[data-reduced-motion="true"] .fg-ring,
+:root[data-reduced-motion="true"] .fg-flash { display: none; }
