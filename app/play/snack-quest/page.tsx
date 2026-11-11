@@ -179,6 +179,9 @@ export default function SnackQuestPage() {
   const [carried, setCarried] = useState(0);
   const [delivered, setDelivered] = useState(0);
   const [revealed, setRevealed] = useState(0);
+  // snacks the dragon already ate this round from earlier trips: a child
+  // may bring them one or two at a time, the dragon keeps every one
+  const [kept, setKept] = useState(0);
   const [showSlots, setShowSlots] = useState(true);
   const [guideLine, setGuideLine] = useState('Who will gather snacks for the baby dragon?');
   const [guideMood, setGuideMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
@@ -193,9 +196,10 @@ export default function SnackQuestPage() {
   const firstPickupRef = useRef(false);
   const [tilePx, setTilePx] = useState(56);
   const attemptsRef = useRef(0);          // wrong deliveries this round
+  const tripsRef = useRef(0);             // deliveries this round (1 = all in one go)
   const roundStartRef = useRef(0);
   const itemIdRef = useRef(0);
-  const metricsRef = useRef({ attempts: 0, firstTry: 0, deliverMs: [] as number[], maxNumber: 0, startedAt: 0 });
+  const metricsRef = useRef({ attempts: 0, firstTry: 0, partialTrips: 0, deliverMs: [] as number[], maxNumber: 0, startedAt: 0 });
 
   // the friend playing along (Ember is the hungry baby dragon here, so if
   // Ember is the chosen friend, Flick keeps everyone company instead)
@@ -283,6 +287,7 @@ export default function SnackQuestPage() {
     const round = roundPlan[idx];
     const wallSet = WALLS[idx % WALLS.length];
     attemptsRef.current = 0;
+    tripsRef.current = 0;
     roundStartRef.current = Date.now();
     setWalls(wallSet);
     setItems(spawnItems(round, wallSet));
@@ -290,6 +295,7 @@ export default function SnackQuestPage() {
     setCarried(0);
     setDelivered(0);
     setRevealed(0);
+    setKept(0);
     setWalking(false);
     setHintItem(null);
     setPetTile(petSpot({ r: 7, c: 2 }, START, wallSet, []) ?? { r: 7, c: 2 });
@@ -307,7 +313,7 @@ export default function SnackQuestPage() {
 
   function choose(which: 'kailia' | 'noel', lvl = level) {
     const plan = buildRounds(lvl);
-    metricsRef.current = { attempts: 0, firstTry: 0, deliverMs: [], maxNumber: plan[plan.length - 1].want, startedAt: Date.now() };
+    metricsRef.current = { attempts: 0, firstTry: 0, partialTrips: 0, deliverMs: [], maxNumber: plan[plan.length - 1].want, startedAt: Date.now() };
     setSkin(SKINS[which]);
     setRounds(plan);
     sfx.yay();
@@ -381,10 +387,26 @@ export default function SnackQuestPage() {
       timers.push(setTimeout(() => { setRevealed(i); sfx.count(); }, i * 380));
     }
     timers.push(setTimeout(() => {
-      const total = cfg.have + delivered;
+      const total = cfg.have + kept + delivered;
+      tripsRef.current += 1;
+      if (total < cfg.want) {
+        // not enough yet: she keeps what came and waits for more (bringing
+        // snacks a few at a time is fine, it just isn't a one-go count)
+        metricsRef.current.partialTrips += 1;
+        sfx.pickup();
+        setKept(k => k + delivered);
+        setDelivered(0);
+        setRevealed(0);
+        setCarried(0);
+        setPetMood('cheer');
+        setGuideLine(`Yum! That makes ${total}. She wished for ${cfg.want}. Bring her some more!`);
+        setGuideMood('excited');
+        setPhase('playing');
+        return;
+      }
       if (total === cfg.want) {
         metricsRef.current.deliverMs.push(Date.now() - roundStartRef.current);
-        if (attemptsRef.current === 0) metricsRef.current.firstTry += 1;
+        if (attemptsRef.current === 0 && tripsRef.current === 1) metricsRef.current.firstTry += 1;
         const line = PRAISE[Math.floor(Math.random() * PRAISE.length)];
         setPraise(line);
         setGuideLine(line);
@@ -400,9 +422,7 @@ export default function SnackQuestPage() {
         metricsRef.current.attempts += 1;
         sfx.hmm();
         const diff = Math.abs(total - cfg.want);
-        setGuideLine(total > cfg.want
-          ? `The dragon counted ${total}, that's ${diff} too many! Let's try again together!`
-          : `The dragon counted ${total}, she wished for ${cfg.want}! Just ${diff} more!`);
+        setGuideLine(`The dragon counted ${total}, that's ${diff} too many! Let's try again together!`);
         setGuideMood('thinking');
         if (attemptsRef.current >= 2) setShowSlots(true); // scaffold appears when struggling
         const fresh = spawnItems(cfg, walls);
@@ -420,14 +440,15 @@ export default function SnackQuestPage() {
             setPetTile(spot);
             setPetMood('talk');
           }
-          setGuideLine(total > cfg.want
-            ? `The dragon counted ${total}, that's ${diff} too many! ${pet.name} found a snack to start again with.`
-            : `The dragon counted ${total}, she wished for ${cfg.want}! Just ${diff} more! ${pet.name} found a snack to start with.`);
+          setGuideLine(`The dragon counted ${total}, that's ${diff} too many! ${pet.name} found a snack to start again with.`);
         }
+        // too many: she hands them back and the round starts over
+        tripsRef.current = 0;
         setPos(START);
         setCarried(0);
         setDelivered(0);
         setRevealed(0);
+        setKept(0);
         setPhase('playing');
       }
     }, delivered * 380 + 700));
@@ -449,6 +470,7 @@ export default function SnackQuestPage() {
       level,
       firstTryRounds: m.firstTry,
       wrongDeliveries: m.attempts,
+      partialTrips: m.partialTrips,
       avgRoundMs: Math.round(avg(m.deliverMs)),
       maxNumber: m.maxNumber,
       totalMs: Date.now() - m.startedAt,
@@ -548,8 +570,8 @@ export default function SnackQuestPage() {
               {showSlots && (
                 <p className="leading-none mt-1.5 flex items-center justify-center gap-1 flex-wrap">
                   {Array.from({ length: cfg.want }).map((_, i) => (
-                    i < cfg.have + revealed
-                      ? <span key={i} className={i >= cfg.have ? 'star-burst' : undefined} style={{ display: 'inline-block' }}><Snack cave={cave} size={30} /></span>
+                    i < cfg.have + kept + revealed
+                      ? <span key={i} className={i >= cfg.have + kept ? 'star-burst' : undefined} style={{ display: 'inline-block' }}><Snack cave={cave} size={30} /></span>
                       : <span key={i} className="inline-flex items-center justify-center rounded-full"
                           style={{ width: 26, height: 26, margin: 2, border: '2.5px dashed #9CA3AF' }} />
                   ))}
@@ -589,10 +611,10 @@ export default function SnackQuestPage() {
                 {/* the dragon's own stash sits in a little white tray — a
                     clearly different look from the loose snacks in the
                     field, so it's obvious these are already hers */}
-                {(cfg.have + revealed) > 0 && (
+                {(cfg.have + kept + revealed) > 0 && (
                   <span className="absolute bottom-0 inline-flex items-center justify-center flex-wrap rounded-xl"
                     style={{ maxWidth: '100%', padding: '1px 3px', background: 'rgba(255,255,255,0.92)', border: '2px solid #3b2416' }}>
-                    {Array.from({ length: cfg.have + revealed }).map((_, i) => <Snack key={i} cave={cave} size={Math.max(10, tilePx * 0.24)} />)}
+                    {Array.from({ length: cfg.have + kept + revealed }).map((_, i) => <Snack key={i} cave={cave} size={Math.max(10, tilePx * 0.24)} />)}
                   </span>
                 )}
               </div>
