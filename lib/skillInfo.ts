@@ -50,6 +50,11 @@ export const SKILL_INFO: Record<string, SkillNote> = {
     builds: 'Understanding spoken directions with describing words and remembering steps in order. Kiko only talks; nothing records your child.',
     notices: 'How many steps were followed, and how often Kiko was asked to repeat or show the words.',
   },
+  'dragon-bridge': {
+    skills: ['Fair sharing', 'Patterns', 'Counting on'],
+    builds: 'Sharing a set equally (early division, and what is left over), spotting and continuing patterns of color and shape, then counting on and back by 1s, 2s, 5s and 10s.',
+    notices: 'How often shares come out fair on the first go, first-try pattern stones, how long each stone takes, and the biggest amounts and numbers reached.',
+  },
   'potion-sort': {
     skills: ['🧠 Processing', '⚡ Sorting speed'],
     builds: 'Sorting by category under time pressure, quick color/rule matching, and impulse control (waiting for the right bin).',

@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
-import { CHAPTERS, STAR_CHAPTER, LEVELS_PER_CHAPTER, unlockedUpTo, highestBeaten } from '@/lib/levels';
+import { CHAPTERS, LEVELS_PER_CHAPTER, chapterAt, unlockedUpTo, highestBeaten } from '@/lib/levels';
 
 // ── Level map ──
 // A small winding path of 5 level stones (one chapter) on every leveled
 // game's intro screen. Kailia hops on the chosen stone; beaten stones
 // glow, the rest wait behind a little lock. Arrows flip between
 // chapters. The child can replay any level they have reached.
+// After the 30-level ladder the path never ends: every five levels is a
+// new Star world with its own name and color, the fifth stone of every
+// world is a golden "big level" stone, and a world the child has just
+// opened says so with a little ribbon.
 //
 // Reads saved progress after mount (localStorage), so the server render
 // and the first client paint match.
@@ -44,10 +48,14 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   }, [level]);
 
   const maxPage = Math.floor((Math.max(unlocked, level) - 1) / LEVELS_PER_CHAPTER);
-  const chapter = CHAPTERS[page] ?? STAR_CHAPTER;
+  const chapter = chapterAt(page);
   const first = page * LEVELS_PER_CHAPTER + 1;
   const levels = Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => first + i);
-  const chapterLabel = page < CHAPTERS.length ? `Chapter ${page + 1}` : 'Bonus';
+  const chapterLabel = page < CHAPTERS.length ? `Chapter ${page + 1}` : `Star world ${page - CHAPTERS.length + 1}`;
+  // a world the child has only just reached (its first stone is the next one to play)
+  const freshWorld = page > 0 && first === unlocked && beaten === first - 1;
+  // far up the path, a quick way back to the newest level
+  const newestPage = Math.floor((unlocked - 1) / LEVELS_PER_CHAPTER);
 
   return (
     <div className="mx-2 mt-4 rounded-3xl px-3 pt-3 pb-2 select-none"
@@ -60,6 +68,12 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
         <div className="text-center" key={page}>
           <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">{chapterLabel}</p>
           <p className="text-lg font-extrabold text-white slide-up">{chapter.emoji} {chapter.name}</p>
+          {freshWorld && (
+            <p className="bounce-in text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 mt-0.5 rounded-full inline-block"
+              style={{ background: chapter.color, color: '#1E1B4B', boxShadow: `0 0 12px ${chapter.color}` }}>
+              New world!
+            </p>
+          )}
         </div>
         <button aria-label="Next chapter" onClick={() => setPage(p => Math.min(maxPage, p + 1))}
           disabled={page >= maxPage}
@@ -78,6 +92,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           const open = lv <= unlocked;
           const chosen = lv === level;
           const s = SPOTS[i];
+          const big = i === LEVELS_PER_CHAPTER - 1;   // the world's last, golden stone
           return (
             <div key={lv} className="absolute"
               style={{ left: `${(s.x / 300) * 100}%`, top: `${((s.y + 12) / 132) * 100}%`, transform: 'translate(-50%, -50%)' }}>
@@ -86,13 +101,13 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
                 onClick={() => onPick(lv)}
                 className={`relative flex items-center justify-center rounded-full font-extrabold drop-in ${chosen ? 'lp-chosen' : ''}`}
                 style={{
-                  width: 48, height: 48,
+                  width: big ? 54 : 48, height: big ? 54 : 48,
                   animationDelay: `${i * 60}ms`, animationFillMode: 'both',
                   background: done ? chapter.color : open ? 'white' : 'rgba(255,255,255,0.12)',
                   color: done ? 'white' : open ? '#1E293B' : 'rgba(255,255,255,0.45)',
-                  border: chosen ? '3px solid #FDE047' : '2px solid rgba(255,255,255,0.35)',
+                  border: chosen ? '3px solid #FDE047' : big && open ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.35)',
                   boxShadow: done ? `0 0 14px ${chapter.color}` : 'none',
-                  fontSize: open ? 17 : 15,
+                  fontSize: open ? (lv > 999 ? 13 : lv > 99 ? 15 : 17) : 15,
                 }}>
                 {open ? lv : '🔒'}
                 {done && <span className="absolute -top-1.5 -right-1.5 text-sm sparkle" aria-hidden>✨</span>}
@@ -106,6 +121,15 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           );
         })}
       </div>
+      {newestPage !== page && unlocked > LEVELS_PER_CHAPTER && (
+        <div className="text-center pb-1">
+          <button onClick={() => { setPage(newestPage); onPick(unlocked); }}
+            className="px-4 py-1.5 rounded-full text-sm font-extrabold"
+            style={{ background: 'rgba(255,255,255,0.9)', color: '#1E293B' }}>
+            Go to my newest level ({unlocked})
+          </button>
+        </div>
+      )}
     </div>
   );
 }
