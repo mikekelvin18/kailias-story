@@ -828,3 +828,47 @@ button:active {
 @media (prefers-reduced-motion: reduce) {
   .gw-ripple, .gw-petwalk, .gw-sniff, .gw-drip, .gw-zzz, .gw-flap, .gw-breathe, .gw-crawl, .gw-slot { animation: none; }
 }
+
+/* ── Daily care pet "moment" (components/carepet) ── */
+@keyframes pm-enter { 0% { transform: translateY(-60px) scale(0.6); opacity: 0; } 55% { transform: translateY(8px) scale(1.06, 0.92); opacity: 1; } 75% { transform: translateY(-4px) scale(0.97, 1.04); } 100% { transform: none; } }
+.pm-enter { animation: pm-enter 0.7s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
+@keyframes pm-card { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.pm-card { animation: pm-card 0.35s cubic-bezier(.3,1.3,.5,1) both; }
+@keyframes pm-bubble { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
+.pm-bubble { animation: pm-bubble 0.35s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
+@keyframes pm-chomp { 0%,100% { transform: none; } 20% { transform: scale(1.12, 0.86); } 40% { transform: scale(0.94, 1.08); } 60% { transform: scale(1.08, 0.9); } 80% { transform: scale(0.98, 1.03); } }
+.pm-chomp { animation: pm-chomp 0.9s ease-in-out; transform-origin: 50% 100%; }
+@keyframes pm-food { 0% { transform: translate(0, 0) scale(0.6); opacity: 1; } 18% { transform: translate(0, 0) scale(1.1); } 35% { transform: translate(0, 0) scale(1); } 80% { transform: translate(0, var(--pm-fly, -260px)) scale(0.45); opacity: 1; } 100% { transform: translate(0, var(--pm-fly, -260px)) scale(0.1); opacity: 0; } }
+.pm-food { animation: pm-food 1.3s cubic-bezier(.45,0,.55,1) forwards; }
+@keyframes pm-crumb { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; } }
+.pm-crumb { animation: pm-crumb 0.8s ease-out forwards; }
+@keyframes pm-heart { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; transform: translate(0,-10px) scale(1); } 100% { transform: translate(var(--dx, 0px), -140px) scale(0.8); opacity: 0; } }
+.pm-heart { animation: pm-heart 1.6s ease-out forwards; }
+@keyframes pm-confetti { 0% { transform: translate(0, -20px) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), 420px) rotate(var(--rot)); opacity: 0; } }
+.pm-confetti { animation: pm-confetti 2.2s cubic-bezier(.2,.6,.4,1) forwards; }
+@keyframes pm-glow { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.06); } }
+.pm-glow { animation: pm-glow 3s ease-in-out infinite; }
+@keyframes pm-node { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.pm-node { animation: pm-node 0.6s cubic-bezier(.3,1.5,.5,1); }
+/* the pet showing a move: a calm loop the child copies */
+@keyframes pm-stretch { 0%,100% { transform: scale(1,1); } 25% { transform: scale(0.9,1.18); } 50% { transform: scale(1,1); } 75% { transform: scale(1.18,0.9); } }
+@keyframes pm-hop { 0%,100% { transform: translateY(0) scale(1,1); } 15% { transform: translateY(0) scale(1.1,0.9); } 45% { transform: translateY(-34px) scale(0.94,1.08); } 75% { transform: translateY(0) scale(1.08,0.92); } }
+@keyframes pm-balance { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes pm-push { 0%,100% { transform: translateX(0) skewX(0); } 50% { transform: translateX(14px) skewX(-6deg); } }
+@keyframes pm-cross { 0%,100% { transform: rotate(-8deg) translateY(0); } 25% { transform: rotate(0) translateY(-8px); } 50% { transform: rotate(8deg) translateY(0); } 75% { transform: rotate(0) translateY(-8px); } }
+@keyframes pm-march { 0%,100% { transform: translateY(0) rotate(-3deg); } 25% { transform: translateY(-10px) rotate(0); } 50% { transform: translateY(0) rotate(3deg); } 75% { transform: translateY(-10px) rotate(0); } }
+@keyframes pm-dance { 0%,100% { transform: rotate(0) translateY(0); } 20% { transform: rotate(-10deg) translateY(-12px); } 40% { transform: rotate(8deg) translateY(0); } 60% { transform: rotate(-6deg) translateY(-8px); } 80% { transform: rotate(10deg) translateY(0); } }
+.pm-move-stretch { animation: pm-stretch 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-star { animation: pm-stretch 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-hop { animation: pm-hop 1.1s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-balance { animation: pm-balance 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-push { animation: pm-push 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-cross { animation: pm-cross 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-march { animation: pm-march 1s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-dance { animation: pm-dance 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .pm-enter, .pm-card, .pm-bubble, .pm-chomp, .pm-node, .pm-glow,
+  .pm-move-stretch, .pm-move-star, .pm-move-hop, .pm-move-balance, .pm-move-push,
+  .pm-move-cross, .pm-move-march, .pm-move-dance { animation: none; }
+  .pm-food, .pm-crumb, .pm-confetti, .pm-heart { animation-duration: 0.01s; }
+}

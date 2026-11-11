@@ -16,7 +16,7 @@ import { scopedKey } from './family';
 import { logQuestMetric } from './metrics';
 import { isPremium } from './premium';
 import { ACTIVITIES, ParentActivity, reportActivity, ReportScore } from './activities';
-import { PET_CARDS, PetCard } from './petTasks';
+import { PET_CARDS, PetCard, PetGame } from './petTasks';
 import { developmentalBand, difficultyTier } from './difficulty';
 import type { AgeGroup } from '@/context/AssessmentContext';
 import type { ShapeKind } from './traceShapes';
@@ -80,7 +80,9 @@ export function petLocked(s: CarePetState): boolean {
 // ── Today's activity ──
 
 export interface FeedTask { kind: 'feed'; step: number; shape: ShapeKind; food: string; tolerance: number }
-export interface CardTask { kind: 'play' | 'care'; step: number; ask: string; title?: string; steps?: string[]; tip: string; activity?: ParentActivity; card?: PetCard }
+// game: how the pop-up plays it on screen (steps 4–6). Without one (the
+// library cards at steps 1–3) a grown-up leads it and reports with a tap.
+export interface CardTask { kind: 'play' | 'care'; step: number; ask: string; title?: string; steps?: string[]; tip: string; activity?: ParentActivity; card?: PetCard; game?: PetGame }
 export type PetTask = FeedTask | CardTask;
 
 // Each step is a harder shape with a tighter path (tolerance in px, for a
@@ -114,7 +116,7 @@ export function taskFor(need: Need, step: number, day: string = today()): PetTas
   }
   const exact = PET_CARDS.filter(c => c.need === need && c.step === step);
   const c = pick(exact.length ? exact : PET_CARDS.filter(x => x.need === need), `${day}-${need}`);
-  return { kind: need, step, ask: c.ask, tip: c.tip, card: c };
+  return { kind: need, step, ask: c.ask, tip: c.tip, card: c, game: c.game };
 }
 
 // ── Finishing ──
