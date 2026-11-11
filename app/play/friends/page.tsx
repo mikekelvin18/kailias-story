@@ -76,7 +76,7 @@ export default function FriendsPage() {
 
         <div className="mt-6 flex items-center gap-3 rounded-2xl bg-white p-3">
           <PandaSprite size={52} expression={open ? 'excited' : 'thinking'} style={{ flexShrink: 0 }} />
-          <p className="text-[15px] font-bold leading-snug" style={{ color: '#1F2A44' }}>{noelLine}</p>
+          <p data-read-aloud className="text-[15px] font-bold leading-snug" style={{ color: '#1F2A44' }}>{noelLine}</p>
         </div>
       </div>
     </div>

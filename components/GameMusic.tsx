@@ -14,9 +14,12 @@ import { usePathname } from 'next/navigation';
 import { A11Y_EVENT, musicEnabled, updateA11yPrefs } from '@/lib/accessibility';
 import { music } from '@/lib/music';
 
+/** Listening games, where music would cover the sounds the child must hear. */
+const LISTENING_GAMES = ['/play/echo-song'];
+
 /** The world map itself stays quiet; music is for the games. */
 function isGame(path: string) {
-  return path.startsWith('/play/');
+  return path.startsWith('/play/') && !LISTENING_GAMES.some(g => path.startsWith(g));
 }
 
 export default function GameMusic() {
