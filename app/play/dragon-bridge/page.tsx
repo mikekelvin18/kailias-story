@@ -228,8 +228,8 @@ type NoelMood = 'happy' | 'excited' | 'thinking' | 'celebrating';
 interface Flyer { id: number; nest: number; back: boolean; dx: number; dy: number }
 
 export default function DragonBridgePage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
