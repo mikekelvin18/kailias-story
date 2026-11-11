@@ -67,6 +67,7 @@ export const LANDS: Land[] = [
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
       { href: '/play/snack-quest', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
+      { href: '/play/dragon-bridge', emoji: '💎', title: 'Dragon Bridge', desc: 'Share berries fairly with the baby dragons and finish the stepping-stone patterns to reach the treasure!' },
     ],
   },
   {
