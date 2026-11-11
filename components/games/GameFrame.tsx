@@ -38,6 +38,9 @@ interface Theme {
   ink?: string;
 }
 
+/** The warm gold used for every "next level" button. */
+export const GOLD = { accent: '#FDE047', accent2: '#FBBF24', ink: '#3b2416' };
+
 /** The game's name, each letter popping in on its own beat. */
 function Title({ text, accent }: { text: string; accent: string }) {
   return (
@@ -126,7 +129,7 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
 }
 
 /** The big round Play button: it breathes, shines, and squishes when pressed. */
-export function PlayButton({ onClick, children, theme, href }: { onClick?: () => void; children: ReactNode; theme: Theme; href?: string }) {
+export function PlayButton({ onClick, children, theme, href }: { onClick?: () => void; children: ReactNode; theme: Omit<Theme, 'bg'>; href?: string }) {
   const style: CSSProperties = {
     background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2 ?? theme.accent})`,
     color: theme.ink ?? '#FFFFFF',
@@ -148,14 +151,17 @@ interface IntroProps {
   extras?: ReactNode;
   /** usually <LevelPath .../> */
   levels?: ReactNode;
-  startLabel: ReactNode;
-  onStart: () => void;
+  /** the Play button; leave both out when the extras hold the choices (pick a hero, pick a mailbag) */
+  startLabel?: ReactNode;
+  onStart?: () => void;
   /** anything under the button: a back link, the grown-ups' note */
   footer?: ReactNode;
   backHref?: string;
+  /** Noel reads the story aloud by himself; turn off for a game that speaks or listens on its own */
+  readAloud?: boolean;
 }
 
-export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play' }: IntroProps) {
+export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play', readAloud = true }: IntroProps) {
   return (
     <main className="gf-screen" style={{ background: theme.bg }}>
       <StarDust />
@@ -165,15 +171,17 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
         </div>
         <Title text={title} accent={theme.accent} />
         <Gang pet={pet} accent={theme.accent} />
-        <div className="gf-bubble mt-3 text-left" style={{ animationDelay: '1.25s' }}>
+        <div className="gf-bubble mt-3 text-left" style={{ animationDelay: '1.25s' }} {...(readAloud ? { 'data-read-aloud': '' } : {})}>
           <span className="gf-bubble-tail" aria-hidden="true" />
           <div className="text-gray-900 text-[17px] font-bold leading-snug space-y-2">{story}</div>
         </div>
         {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '1.45s' }}>{extras}</div>}
         {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '1.6s' }}>{levels}</div>}
-        <div className="gf-rise-in mt-5" style={{ animationDelay: '1.75s' }}>
-          <PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton>
-        </div>
+        {onStart && (
+          <div className="gf-rise-in mt-5" style={{ animationDelay: '1.75s' }}>
+            <PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton>
+          </div>
+        )}
         {footer && <div className="mt-4">{footer}</div>}
       </div>
     </main>

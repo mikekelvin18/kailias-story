@@ -989,3 +989,17 @@ button:active {
 }
 :root[data-reduced-motion="true"] :is(.gf-letter, .gf-enter-right, .gf-drop-in, .gf-bubble, .gf-rise-in, .gf-ribbon, .gf-fly-star) { animation: none; opacity: 1; }
 :root[data-reduced-motion="true"] :is(.gf-dust, .gf-stage, .gf-cta, .gf-shine, .gf-confetti, .gf-flutter, .gf-rays, .gf-party-hop, .gf-counter) { animation: none; }
+/* a big tappable choice card inside a game's opening (pick a hero, pick a mailbag) */
+@keyframes gf-choice-in {
+  0%   { transform: translateY(30px) scale(0.9); opacity: 0; }
+  70%  { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.gf-choice {
+  border-radius: 24px; padding: 18px; border: 3px solid #3b2416; box-shadow: 0 6px 0 #3b2416;
+  opacity: 0; animation: gf-choice-in 0.5s ease-out 1.5s forwards; transition: transform 0.1s;
+}
+.gf-choice:hover { transform: translateY(-2px); }
+.gf-choice:active { transform: translateY(4px) scale(0.97, 0.94); box-shadow: 0 2px 0 #3b2416; }
+@media (prefers-reduced-motion: reduce) { .gf-choice { animation: none; opacity: 1; } }
+:root[data-reduced-motion="true"] .gf-choice { animation: none; opacity: 1; }
