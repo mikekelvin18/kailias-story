@@ -225,8 +225,8 @@ function bfsPath(start: Pt, goal: Pt, grid: TileType[][]): Pt[] | null {
 
 
 export default function JourneyPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');
@@ -650,7 +650,7 @@ export default function JourneyPage() {
               style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.6), transparent)' }}>
               <div className="flex items-center gap-3">
                 <PandaSprite size={50} expression="happy" style={{ flexShrink: 0 }} />
-                <div className="rounded-2xl px-4 py-3 text-lg font-extrabold leading-snug text-gray-900 bg-white relative shadow-lg">
+                <div data-read-aloud className="rounded-2xl px-4 py-3 text-lg font-extrabold leading-snug text-gray-900 bg-white relative shadow-lg">
                   <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                     style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                   {dialog}

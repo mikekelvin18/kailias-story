@@ -8,6 +8,7 @@ import { DOMAIN_META, domainSummaries, allReportEntries, DomainSummary, ReportEn
 import { loadCustomTasks, CustomTask } from '@/lib/customTasks';
 import BottomNav from '@/components/BottomNav';
 import BackButton from '@/components/ui/BackButton';
+import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
 // A parent-facing, printable rollup for handing to a child's care team
@@ -16,7 +17,7 @@ import BackButton from '@/components/ui/BackButton';
 // reports), never anything new collected just for this page.
 
 export default function ProgressReportPage() {
-  const { state, domainAge, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
+  const { state, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
   const [summaries, setSummaries] = useState<DomainSummary[]>([]);
   const [entries, setEntries] = useState<ReportEntry[]>([]);
@@ -65,18 +66,29 @@ export default function ProgressReportPage() {
         {state.childName && (
           <section className="mb-6">
             <h2 className="text-sm font-extrabold text-slate-700 mb-2">Developmental Snapshot (from screening)</h2>
+            <p className="text-[11px] text-slate-500 mb-2">
+              Each range is the likeliest 8 in 10 developmental ages, worked out from age-tagged milestones
+              (CDC 2022 checklists under 5, OT norms for hand skills and pencil grasp, end-of-grade standards for
+              school age), asked with a basal and ceiling so the range isn&apos;t capped by the child&apos;s age.
+            </p>
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {([
-                ['📖 Reading', state.scores.reading],
-                ['✍️ Fine Motor / Writing', state.scores.writing],
-                ['🗣️ Communication', state.scores.communication],
-                ['🔢 Math', state.scores.math],
-              ] as [string, number][]).map(([label, score]) => (
-                <div key={label} className="flex items-center justify-between px-3 py-2 bg-white border-b border-slate-100 last:border-0">
-                  <span className="text-sm font-semibold text-slate-700">{label}</span>
-                  <span className="text-sm font-bold text-slate-500">{domainAge(score)}</span>
-                </div>
-              ))}
+                ['📖 Reading', 'reading'],
+                ['✍️ Fine Motor / Writing', 'writing'],
+                ['🗣️ Communication', 'communication'],
+                ['🔢 Math', 'math'],
+              ] as [string, MilestoneDomain][]).map(([label, key]) => {
+                const cmp = domainComparison(key);
+                return (
+                  <div key={label} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">
+                    <span className="text-sm font-semibold text-slate-700">{label}</span>
+                    <span className="text-right">
+                      <span className="block text-sm font-bold text-slate-500">{domainRange(key)}</span>
+                      {cmp && <span className="block text-[11px] font-semibold" style={{ color: COMPARISON_TEXT[cmp].color }}>{COMPARISON_TEXT[cmp].label}</span>}
+                    </span>
+                  </div>
+                );
+              })}
               {primarySensoryPattern && (
                 <div className="px-3 py-2 bg-white">
                   <span className="text-sm font-semibold text-slate-700">🌈 Sensory pattern: </span>

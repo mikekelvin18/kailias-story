@@ -78,8 +78,8 @@ type NearKind = 'pine' | 'tree' | 'flower' | 'mushroom' | 'rock' | 'bush';
 type FarKind = 'mountain' | 'hill' | 'cloud';
 
 export default function TrailWalkPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'walking' | 'challenge' | 'memoryShow' | 'done'>('intro');
@@ -360,7 +360,7 @@ export default function TrailWalkPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-3"
               style={{ background: 'rgba(255,255,255,0.85)', border: '2px solid rgba(14,116,144,0.25)' }}>
               <PandaSprite size={54} expression={phase === 'challenge' ? 'thinking' : 'happy'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
+              <div data-read-aloud className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                 {noelLine}

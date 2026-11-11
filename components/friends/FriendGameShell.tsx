@@ -67,8 +67,8 @@ const pick = <T,>(xs: T[], n: number) => xs[n % xs.length];
 export default function FriendGameShell({ game }: { game: FriendGameDef }) {
   const trail = findTrail(game.slug)!;
   const pet = COMPANIONS.find(c => c.name === trail.pet)!;
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
   const rounds = game.rounds ?? 5;
 
   const [phase, setPhase] = useState<'intro' | 'play' | 'done'>('intro');

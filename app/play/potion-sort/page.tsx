@@ -84,8 +84,8 @@ const sfx = {
 };
 
 export default function PotionSortPage() {
-  const { state, totalScore } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore)];
+  const { state, totalScore, devMonths } = useAssessment();
+  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('potion-sort')); }, []);
@@ -475,7 +475,7 @@ export default function PotionSortPage() {
         <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
           style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.18)' }}>
           <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-          <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">
+          <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">
             {noelLine}
             {combo >= 2 && <span key={combo} className="block text-base text-purple-700 bounce-in">{comboLine}</span>}
           </div>

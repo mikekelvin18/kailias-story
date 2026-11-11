@@ -40,8 +40,8 @@ interface Loaded { save: WorldSave; pet: PetInfo; soundOn: boolean }
 
 export default function GardenPage() {
   const router = useRouter();
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [paused, setPaused] = useState(false);
   const [run, setRun] = useState(0);

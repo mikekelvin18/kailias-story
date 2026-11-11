@@ -70,8 +70,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'cheer' | 'levelDone'>('intro');
@@ -237,7 +237,7 @@ export default function EchoSongPage() {
 
         {phase === 'intro' && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
-            <GameIntro readAloud={false}
+            <GameIntro
               title="Echo Song"
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #164e63 50%, #082f49 100%)', accent: '#22D3EE', accent2: '#0891B2' }}
               pet={pet}
@@ -320,7 +320,9 @@ export default function EchoSongPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div
+                // Noel stays quiet while the crystals sing, so the song is easy to hear
+                data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
