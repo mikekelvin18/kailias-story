@@ -156,7 +156,7 @@ export default function ChecklistPage() {
 
     // Not pinned down yet (all "yes" at the top, or "not yet" at the
     // bottom)? Ask a few more rungs before moving on.
-    const more = rounds < MAX_EXTRA_ROUNDS ? followUpItems(domainKey, asked, credit) : [];
+    const more = rounds < MAX_EXTRA_ROUNDS ? followUpItems(domainKey, asked, credit, age) : [];
     if (more.length) {
       setAsked(a => [...a, ...more]);
       setRounds(r => r + 1);
