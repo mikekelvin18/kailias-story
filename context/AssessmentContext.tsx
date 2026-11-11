@@ -2,6 +2,10 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { scopedKey, ACTIVE_CHILD_CHANGED_EVENT } from '@/lib/family';
+import {
+  estimateAge, formatAgeRange, compareToAge, MILESTONE_DOMAINS,
+  type AgeEstimate, type AgeComparison, type Evidence, type MilestoneDomain,
+} from '@/lib/milestones';
 
 export type AgeGroup = 'infant' | 'toddler' | 'preschool' | 'schoolAge' | null;
 export type InputMethod = 'touch' | 'mouse' | null;
@@ -25,6 +29,8 @@ export interface FineMotorSubScores {
 export interface AssessmentState {
   childName: string;
   childAge: number | null;
+  /** Real age in months at the time of the check (from birth month/year). */
+  childAgeMonths: number | null;
   ageGroup: AgeGroup;
   assessmentType: 'checklist' | 'games' | null;
   scores: { reading: number; writing: number; communication: number; math: number };
@@ -34,12 +40,15 @@ export interface AssessmentState {
   graspPattern: string | null;
   fineMotorSubScores: FineMotorSubScores | null;
   assessmentCompleted: boolean;
+  /** Every milestone answer / task result, per area — the estimator's input (lib/milestones.ts). */
+  evidence: Partial<Record<MilestoneDomain, Evidence[]>>;
 }
 
 interface AssessmentContextType {
   state: AssessmentState;
   loaded: boolean;
-  setChildInfo: (name: string, age: number) => void;
+  setChildInfo: (name: string, age: number, ageMonths?: number) => void;
+  setDomainEvidence: (domain: MilestoneDomain, evidence: Evidence[]) => void;
   setAssessmentType: (type: 'checklist' | 'games') => void;
   setDomainScore: (domain: keyof AssessmentState['scores'], score: number) => void;
   setSensoryScore: (pattern: keyof SensoryScores, score: number) => void;
@@ -55,6 +64,15 @@ interface AssessmentContextType {
   stageDescription: string;
   developmentalAge: string;
   domainAge: (score: number) => string;
+  /** Real age in months (falls back to the age group). */
+  chronoMonths: number | null;
+  /** Range estimate per area, null for checks done before the milestone ladders existed. */
+  estimates: Partial<Record<MilestoneDomain, AgeEstimate>>;
+  /** Midpoint of the overall estimate, in months — drives game difficulty and the Quest Library band. */
+  devMonths: number | null;
+  /** "about 2½ to 3½ years" for one area, falling back to the older score bands. */
+  domainRange: (domain: MilestoneDomain) => string;
+  domainComparison: (domain: MilestoneDomain) => AgeComparison | null;
   primarySensoryPattern: string;
   sensoryPatternEmoji: string;
   sensoryPatternDescription: string;
@@ -63,6 +81,7 @@ interface AssessmentContextType {
 const defaultState: AssessmentState = {
   childName: '',
   childAge: null,
+  childAgeMonths: null,
   ageGroup: null,
   assessmentType: null,
   scores: { reading: 0, writing: 0, communication: 0, math: 0 },
@@ -72,6 +91,7 @@ const defaultState: AssessmentState = {
   graspPattern: null,
   fineMotorSubScores: null,
   assessmentCompleted: false,
+  evidence: {},
 };
 
 function deriveAgeGroup(age: number): AgeGroup {
@@ -129,12 +149,34 @@ function getLearningStage(total: number, group: AgeGroup) {
   return             { stage: 'Independent Thinker',     emoji: '🧠', description: 'Ready to lead — solving problems, thinking deeply, and creating new ideas.' };
 }
 
+// Stage from the developmental estimate itself (months), so the stage name
+// and the activity list on /results fit the level the child is working at
+// — a 3-year-old never gets "join a debate club", whatever their score.
+// Each cut-off matches the activities listed for that stage in app/results.
+function stageForMonths(m: number) {
+  if (m < 30)  return { stage: 'Growing Learner',     emoji: '🌿', description: 'Actively discovering the world through touch, sight, sound, and smiles.' };
+  if (m < 42)  return { stage: 'Early Explorer',      emoji: '🌱', description: 'Discovering the world through senses, songs, shapes and play.' };
+  if (m < 54)  return { stage: 'Curious Explorer',    emoji: '⭐', description: 'Talking, counting and making things: ready for first letters and scissors.' };
+  if (m < 66)  return { stage: 'Bright Starter',      emoji: '🌟', description: 'Ready for letters, names and counting games: the doorway to school skills.' };
+  if (m < 84)  return { stage: 'Skill Builder',       emoji: '🔧', description: 'Building foundations — growing stronger in reading, writing, talking, and counting.' };
+  if (m < 114) return { stage: 'Confident Explorer',  emoji: '🚀', description: 'Gaining confidence — tackling bigger challenges with curiosity and courage.' };
+  return              { stage: 'Independent Thinker', emoji: '🧠', description: 'Ready to lead — solving problems, thinking deeply, and creating new ideas.' };
+}
+
 // Sensory pattern analysis
 // Internally based on Dunn's Sensory Processing Model (published academic research)
 function getSensoryPattern(scores: SensoryScores) {
   const { lowRegistration: lr, seeking: sk, sensitive: se, avoiding: av } = scores;
   const max = Math.max(lr, sk, se, av);
   if (max === 0) return { pattern: '', emoji: '', description: '' };
+  // Like the Sensory Profile's "just like the majority" band: with 3
+  // questions per pattern (0–6), mostly "rarely" answers (≤ 2) aren't a
+  // pattern at all, so don't label the highest of four low numbers.
+  if (max <= 2) return {
+    pattern: 'Balanced',
+    emoji: '🌈',
+    description: 'Your child responds to sights, sounds, touch and movement much like most children. No sensory pattern stands out.',
+  };
 
   // If two patterns are within 1 point of each other, show mixed
   const tied = [lr, sk, se, av].filter(v => v >= max - 1).length > 1;
@@ -217,8 +259,11 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     } catch { /* ignore */ }
   }, [state, loaded]);
 
-  const setChildInfo = (name: string, age: number) =>
-    setState(s => ({ ...s, childName: name, childAge: age, ageGroup: deriveAgeGroup(age) }));
+  const setChildInfo = (name: string, age: number, ageMonths?: number) =>
+    setState(s => ({ ...s, childName: name, childAge: age, childAgeMonths: ageMonths ?? null, ageGroup: deriveAgeGroup(age) }));
+
+  const setDomainEvidence = (domain: MilestoneDomain, evidence: Evidence[]) =>
+    setState(s => ({ ...s, evidence: { ...s.evidence, [domain]: evidence } }));
 
   const setAssessmentType = (type: 'checklist' | 'games') =>
     setState(s => ({ ...s, assessmentType: type }));
@@ -247,14 +292,43 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const resetAssessment = () => setState(defaultState);
 
   const totalScore = state.scores.reading + state.scores.writing + state.scores.communication + state.scores.math;
-  const { stage, emoji, description } = getLearningStage(totalScore, state.ageGroup);
   const { pattern, emoji: sEmoji, description: sDesc } = getSensoryPattern(state.sensoryScores);
+
+  // ── Developmental-age ranges (lib/milestones.ts) ──
+  const chronoMonths = state.childAgeMonths
+    ?? (state.childAge == null ? null : state.childAge < 1 ? 9 : state.childAge === 1 ? 18 : state.childAge * 12 + 6);
+  const estimates: Partial<Record<MilestoneDomain, AgeEstimate>> = {};
+  const pooled: Evidence[] = [];
+  for (const d of MILESTONE_DOMAINS) {
+    const ev = state.evidence?.[d];
+    if (!ev?.length) continue;
+    const est = estimateAge(ev, chronoMonths);
+    if (est) estimates[d] = est;
+    pooled.push(...ev);
+  }
+  const overall = estimateAge(pooled, chronoMonths);
+  const devMonths = overall ? overall.mid : null;
+  const domainRange = (d: MilestoneDomain) => {
+    const est = estimates[d];
+    return est ? formatAgeRange(est) : getDomainAge(state.scores[d], state.ageGroup);
+  };
+  const domainComparison = (d: MilestoneDomain) => {
+    const est = estimates[d];
+    return est ? compareToAge(est, chronoMonths) : null;
+  };
+  const { stage, emoji, description } = devMonths != null
+    ? stageForMonths(devMonths)
+    : getLearningStage(totalScore, state.ageGroup);
+  const developmentalAge = overall
+    ? formatAgeRange(overall).replace(/^about/, 'About')
+    : `About ${getDevAge(totalScore, state.ageGroup)}`;
 
   return (
     <AssessmentContext.Provider value={{
       state,
       loaded,
       setChildInfo,
+      setDomainEvidence,
       setAssessmentType,
       setDomainScore,
       setSensoryScore,
@@ -268,8 +342,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       learningStage: stage,
       stageEmoji: emoji,
       stageDescription: description,
-      developmentalAge: `About ${getDevAge(totalScore, state.ageGroup)}`,
+      developmentalAge,
       domainAge: (score) => getDomainAge(score, state.ageGroup),
+      chronoMonths,
+      estimates,
+      devMonths,
+      domainRange,
+      domainComparison,
       primarySensoryPattern: pattern,
       sensoryPatternEmoji: sEmoji,
       sensoryPatternDescription: sDesc,

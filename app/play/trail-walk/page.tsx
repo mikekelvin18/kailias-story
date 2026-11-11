@@ -81,8 +81,8 @@ type NearKind = 'pine' | 'tree' | 'flower' | 'mushroom' | 'rock' | 'bush';
 type FarKind = 'mountain' | 'hill' | 'cloud';
 
 export default function TrailWalkPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'walking' | 'challenge' | 'memoryShow' | 'done'>('intro');

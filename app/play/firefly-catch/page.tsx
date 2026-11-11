@@ -95,8 +95,8 @@ const sfx = {
 };
 
 export default function FireflyCatchPage() {
-  const { state, totalScore } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore)];
+  const { state, totalScore, devMonths } = useAssessment();
+  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   // video-game levels: each one a touch faster and trickier; the game
   // remembers the highest level beaten and offers the next one

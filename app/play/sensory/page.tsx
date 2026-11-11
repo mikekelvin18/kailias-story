@@ -167,8 +167,8 @@ const besideKailia = (petX: number, kx: number) => {
 };
 
 export default function SenseExplorerPage() {
-  const { state, totalScore } = useAssessment();
-  const tiny = difficultyTier(state.ageGroup, totalScore) === 'tiny';
+  const { state, totalScore, devMonths } = useAssessment();
+  const tiny = difficultyTier(state.ageGroup, totalScore, devMonths) === 'tiny';
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');

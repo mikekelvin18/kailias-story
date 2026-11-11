@@ -78,8 +78,8 @@ const SCENE_H = 1.27;
 const GROUND_Y = 97; // feet line, % of the whole scene
 
 export default function FireflyTrailsPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'watch' | 'trace' | 'shine' | 'done'>('intro');

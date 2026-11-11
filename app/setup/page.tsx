@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ageInMonths } from '@/lib/milestones';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import ChildAvatar from '@/components/characters/ChildAvatar';
@@ -45,7 +46,7 @@ export default function SetupPage() {
 
   const handleStart = () => {
     if (!child) return;
-    setChildInfo(child.nickname, ageNum);
+    setChildInfo(child.nickname, ageNum, ageInMonths(child.birthYear, child.birthMonth));
     const type = willUseChecklist ? 'checklist' : 'games';
     setAssessmentType(type);
     router.push(type === 'checklist' ? '/assessment/checklist' : '/assessment/games');

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
 import { loadProgress } from '@/lib/adventure';
 import StepGuide from '@/components/ui/StepGuide';
 import BackButton from '@/components/ui/BackButton';
@@ -136,13 +137,15 @@ const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> 
 export default function ResultsPage() {
   const {
     state, totalScore, learningStage, stageEmoji, stageDescription,
-    developmentalAge, domainAge, resetAssessment,
+    developmentalAge, domainRange, domainComparison, estimates, chronoMonths, devMonths, resetAssessment,
     primarySensoryPattern, sensoryPatternEmoji, sensoryPatternDescription,
   } = useAssessment();
   const router = useRouter();
   const [showCelebration, setShowCelebration] = useState(true);
   const [confirmingRetake, setConfirmingRetake] = useState(false);
-  const band = developmentalBand(state.ageGroup, totalScore);
+  const band = developmentalBand(state.ageGroup, totalScore, devMonths);
+  const answersUsed = Object.values(estimates).reduce((t, e) => t + (e?.items ?? 0), 0);
+  const anyGrowing = (['reading', 'writing', 'communication', 'math'] as const).some(k => domainComparison(k) === 'growing');
   // Right after the first adventure check (nothing played on the map
   // yet) this is the last of the four setup steps; afterwards it's a
   // regular results page reached from the map or the Parent Zone.
@@ -214,16 +217,24 @@ export default function ResultsPage() {
               Estimated Developmental Level
             </p>
             <p className="text-white text-3xl font-extrabold">{developmentalAge}</p>
-            <p className="text-purple-200 text-xs mt-1">Based on performance across all 4 domains</p>
+            <p className="text-purple-200 text-xs mt-1">
+              A range, not one number: the likeliest 8 in 10 ages, based on all 4 skill areas
+            </p>
           </div>
 
           <div className="flex justify-center gap-4 text-white text-sm font-semibold">
-            <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-              Score: {totalScore} / 40
-            </span>
-            {state.childAge && (
+            {answersUsed > 0 ? (
               <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-                Chronological age: {state.childAge} yrs
+                {answersUsed} milestones checked
+              </span>
+            ) : (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Score: {totalScore} / 40
+              </span>
+            )}
+            {chronoMonths != null && (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Age today: {chronoMonths < 24 ? `${Math.floor(chronoMonths)} months` : `${Math.floor(chronoMonths / 12)} yrs ${Math.floor(chronoMonths % 12)} mo`}
               </span>
             )}
           </div>
@@ -239,8 +250,14 @@ export default function ResultsPage() {
           <div className="space-y-5">
             {DOMAIN_INFO.map(d => {
               const score = state.scores[d.key as keyof typeof state.scores];
-              const pct = Math.round((score / d.max) * 100);
-              const age = domainAge(score);
+              // Bar: where the range's middle sits next to the child's age
+              // (about two-thirds full = right at their age).
+              const est = estimates[d.key as MilestoneDomain];
+              const pct = est && chronoMonths
+                ? Math.round(Math.min(100, (est.mid / chronoMonths) * 66))
+                : Math.round((score / d.max) * 100);
+              const age = domainRange(d.key as MilestoneDomain);
+              const cmp = domainComparison(d.key as MilestoneDomain);
               const isWriting = d.key === 'writing';
               const inputMethod = state.fineMotorInputMethod;
               const graspInfo = state.graspPattern ? GRASP_LOOKUP[state.graspPattern] : null;
@@ -257,9 +274,13 @@ export default function ResultsPage() {
                       >
                         {age}
                       </span>
-                      <span className="text-slate-300 text-xs">{score}/{d.max}</span>
                     </div>
                   </div>
+                  {cmp && (
+                    <p className="text-xs font-semibold mb-1" style={{ color: cmp === 'growing' ? '#FCD34D' : cmp === 'ahead' ? '#6EE7B7' : '#BFDBFE' }}>
+                      {COMPARISON_TEXT[cmp].label}
+                    </p>
+                  )}
                   <div className="h-3 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
                     <div
                       className="h-3 rounded-full transition-all"
@@ -299,6 +320,12 @@ export default function ResultsPage() {
               );
             })}
           </div>
+          {anyGrowing && (
+            <p className="text-sm mt-5 rounded-2xl p-4" style={{ background: 'rgba(252,211,77,0.12)', color: '#FDE68A' }}>
+              {COMPARISON_TEXT.growing.note} You know your child best: if anything worries you, ask your
+              child&apos;s doctor about a developmental check. Getting help early makes a real difference.
+            </p>
+          )}
         </div>
 
         {/* Sensory section */}

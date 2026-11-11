@@ -89,8 +89,8 @@ function CardFace({ face, cols }: { face: string; cols: number }) {
 }
 
 export default function MoonlightMatchPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [cards, setCards] = useState<CardT[]>([]);

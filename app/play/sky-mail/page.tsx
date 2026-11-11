@@ -339,8 +339,8 @@ const BOX_PX = 64; // drawn mailbox width
 const clampPct = (v: number) => Math.max(10, Math.min(90, v));
 
 export default function SkyMailPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [deckId, setDeckId] = useState<DeckId | null>(null);
   const [cards, setCards] = useState<Card[]>([]);

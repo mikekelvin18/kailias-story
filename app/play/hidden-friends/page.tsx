@@ -124,8 +124,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 }
 
 export default function WheresNoelPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');

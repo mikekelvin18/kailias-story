@@ -43,10 +43,10 @@ export function savePet(s: CarePetState) {
 }
 
 // Band 1–3 start at steps 1–3; school age starts at 4 (or 5 if confident).
-export function startStep(ageGroup: AgeGroup, totalScore: number): number {
-  const band = developmentalBand(ageGroup, totalScore);
+export function startStep(ageGroup: AgeGroup, totalScore: number, devMonths?: number | null): number {
+  const band = developmentalBand(ageGroup, totalScore, devMonths);
   if (band !== null) return band;
-  return difficultyTier(ageGroup, totalScore) === 'big' ? 5 : 4;
+  return difficultyTier(ageGroup, totalScore, devMonths) === 'big' ? 5 : 4;
 }
 
 export function today(): string {
@@ -57,11 +57,11 @@ export function today(): string {
 // Loads (or hatches a fresh record for) the active child and rolls the day
 // over. Returns null when no parent consent exists, so nothing can grow
 // that would then vanish on reload.
-export function openPet(ageGroup: AgeGroup, totalScore: number) {
+export function openPet(ageGroup: AgeGroup, totalScore: number, devMonths?: number | null) {
   if (!consented()) return null;
   const day = today();
   const existing = loadPet();
-  const base = existing ?? createPet(startStep(ageGroup, totalScore), day, PET_CONFIG);
+  const base = existing ?? createPet(startStep(ageGroup, totalScore, devMonths), day, PET_CONFIG);
   const { state } = visit(base, day, PET_CONFIG);
   savePet(state);
   return { state, greeting: greetingFor(state, day) };

@@ -225,8 +225,8 @@ function bfsPath(start: Pt, goal: Pt, grid: TileType[][]): Pt[] | null {
 
 
 export default function JourneyPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');

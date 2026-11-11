@@ -165,7 +165,7 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore } = useAssessment();
+  const { state, totalScore, devMonths } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
@@ -234,7 +234,7 @@ export default function SnackQuestPage() {
   // the field never overflows), and "how many more?" rounds start from a
   // bigger pile — counting, then adding, with ever-larger numbers.
   const buildRounds = useCallback((lvl: number): RoundCfg[] => {
-    const tier = difficultyTier(state.ageGroup, totalScore);
+    const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
     tierRef.current = tier;
     const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
       tiny:  { w: [1, 2, 2, 3], h: [0, 0, 1, 1] },   // developmental level under ~2½ yrs
@@ -255,7 +255,7 @@ export default function SnackQuestPage() {
       const have = h[i] > 0 ? Math.min(want - 1, h[i] + Math.floor(bump / 2)) : 0;
       return { want, have, intro: intros[i] };
     });
-  }, [state.ageGroup, totalScore]);
+  }, [state.ageGroup, totalScore, devMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;

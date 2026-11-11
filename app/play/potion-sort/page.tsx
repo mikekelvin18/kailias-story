@@ -87,8 +87,8 @@ const sfx = {
 };
 
 export default function PotionSortPage() {
-  const { state, totalScore } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore)];
+  const { state, totalScore, devMonths } = useAssessment();
+  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('potion-sort')); }, []);
