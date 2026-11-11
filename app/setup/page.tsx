@@ -9,6 +9,7 @@ import ChildAvatar from '@/components/characters/ChildAvatar';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { ChildProfile, activeChild, childAgeYears } from '@/lib/family';
 import StepGuide from '@/components/ui/StepGuide';
+import { Sparkle } from '@/components/scenery/SkyDecor';
 
 // COPPA: children never type personal information anywhere in the app.
 // The child's nickname and birth month/year come from the profile the
@@ -64,13 +65,14 @@ export default function SetupPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-10 relative"
       style={{ background: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 50%, #667EEA 100%)' }}
     >
+      {/* Drawn sparkles twinkling behind the card (no emoji art) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {['⭐','🌟','✨','💫','🎈','🎀'].map((s, i) => (
-          <span key={i} className="absolute float" style={{ left: `${(i*19+3)%92}%`, top: `${(i*29+5)%85}%`, fontSize: 24, animationDelay: `${i*0.4}s`, opacity: 0.6 }}>
-            {s}
+        {[...Array(8)].map((_, i) => (
+          <span key={i} className="absolute" style={{ left: `${(i*19+3)%92}%`, top: `${(i*29+5)%85}%` }}>
+            <Sparkle size={14 + (i % 3) * 6} color={['#FFF3B0', '#FFFFFF', '#FDE68A'][i % 3]} style={{ animationDelay: `${i*0.4}s` }} />
           </span>
         ))}
       </div>

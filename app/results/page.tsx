@@ -8,6 +8,7 @@ import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { loadProgress } from '@/lib/adventure';
 import StepGuide from '@/components/ui/StepGuide';
 import BackButton from '@/components/ui/BackButton';
+import { Sparkle } from '@/components/scenery/SkyDecor';
 
 function getFineMotorStage(score: number) {
   if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', color: '#059669' };
@@ -167,16 +168,18 @@ export default function ResultsPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-8"
+      className={`min-h-screen flex flex-col items-center justify-start px-4 py-8 ${firstVisit ? 'pb-28' : ''}`}
       style={{ background: 'linear-gradient(180deg, #1A2238 0%, #222849 60%, #1E2F4D 100%)' }}
     >
       {/* Celebration burst */}
+      {/* Celebration: drawn sparkles burst around the edges for a few
+          seconds (no emoji, and nothing lands on top of the heading). */}
       {showCelebration && (
-        <div className="fixed inset-0 pointer-events-none z-[5] flex items-center justify-center">
-          <div className="text-8xl bounce-in">🎉</div>
-          {['🌟','⭐','✨','💫','🎊','🎈','🏆','🌈'].map((e, i) => (
-            <span key={i} className="absolute float" style={{ left: `${10 + i * 12}%`, top: `${5 + (i % 4) * 22}%`, fontSize: 36, animationDelay: `${i * 0.15}s` }}>
-              {e}
+        <div className="fixed inset-0 pointer-events-none z-[5] print:hidden" aria-hidden="true">
+          {[...Array(14)].map((_, i) => (
+            <span key={i} className="absolute bounce-in"
+              style={{ left: `${i % 2 ? 88 - (i % 5) * 3 : 4 + (i % 5) * 3}%`, top: `${8 + (i * 13) % 84}%`, animationDelay: `${i * 0.08}s` }}>
+              <Sparkle size={18 + (i % 4) * 8} color={['#FDE68A', '#F5D0FE', '#FFFFFF', '#A7F3D0'][i % 4]} />
             </span>
           ))}
         </div>
@@ -490,6 +493,19 @@ export default function ResultsPage() {
           </button>
         </div>
       </div>
+
+      {/* First visit: the way forward stays on screen while the parent
+          reads, instead of waiting at the very bottom of a long page. */}
+      {firstVisit && (
+        <div className="fixed bottom-0 inset-x-0 z-20 px-4 pb-4 pt-3 print:hidden"
+          style={{ background: 'linear-gradient(180deg, rgba(26,34,56,0), rgba(26,34,56,0.92) 35%)' }}>
+          <button onClick={() => router.push('/play')}
+            className="block w-full max-w-2xl mx-auto py-4 rounded-full font-extrabold text-lg sm:text-xl text-white shadow-2xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #059669, #2563EB, #7C3AED)' }}>
+            Open Kailia&rsquo;s World →
+          </button>
+        </div>
+      )}
     </main>
   );
 }
