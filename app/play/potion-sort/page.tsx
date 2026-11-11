@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
@@ -15,10 +15,7 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 
 // ─── Potion Sort ────────────────────────────────────────────────────────────
 // A fast-paced drag-to-sort game in the owl's potion room: colored potion
@@ -359,72 +356,42 @@ export default function PotionSortPage() {
   const petAt = hintIdx >= 0 ? zoneCenter(hintIdx, colorsNow.length) : besideKailia(petX, kailiaX);
   const kailiaAt = hintIdx >= 0 ? besideKailia(kailiaX, petAt) : kailiaX;
 
+  const theme = { bg: 'radial-gradient(120% 80% at 50% 0%, #4c3a9e 0%, #2a1f6b 45%, #160f3d 100%)', accent: '#A855F7', accent2: '#7C3AED' };
+
   if (phase === 'intro') return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-6"
-      style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
-      <div className="max-w-sm w-full text-center">
-        <div className="flex items-end justify-center gap-2 mb-4">
-          <PandaSprite size={112} expression="excited" className="float" />
-          <KailiaSprite size={88} expression="excited" className="float" style={{ animationDelay: '0.2s' }} />
-          <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 62)} kind="pet" />
-        </div>
-        <h1 className="text-3xl font-extrabold text-white mb-2" style={{ textShadow: '0 0 20px #A855F7' }}>Potion Sort</h1>
-        <div data-read-aloud className="rounded-2xl px-4 py-3 mb-4 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-          <p className="text-gray-900 text-base font-bold leading-snug">
-            The owl&apos;s potions are tumbling off the shelf! Drag each one into the cauldron with the
-            <strong> same color</strong> before it lands. Kailia will stir them in!
-          </p>
-        </div>
-        <div className="flex justify-center items-end gap-3 mb-5">
+    <GameIntro
+      title="Potion Sort"
+      theme={theme}
+      pet={pet}
+      story={<p>The owl&apos;s potions are tumbling off the shelf! Drag each one into the cauldron with the
+        <strong> same color</strong> before it lands. Kailia will stir them in!</p>}
+      extras={
+        <div className="flex justify-center items-end gap-3">
           {COLORS.map((c, i) => (
-            <span key={c.key} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}><PotionBottle color={c.hex} size={34} /></span>
+            <span key={c.key} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}><PotionBottle color={c.hex} size={38} /></span>
           ))}
         </div>
-        <LevelPath gameId="potion-sort" level={level} onPick={setLevel} />
-        <button onClick={() => { setPhase('playing'); startGame(); }}
-          className="mt-4 px-10 py-4 rounded-full font-extrabold text-white text-xl transition-transform hover:scale-105"
-          style={{ background: 'linear-gradient(135deg,#A855F7,#7C3AED)', boxShadow: '0 0 30px rgba(168,85,247,0.4)' }}>
-          <span className="whitespace-nowrap">Play level {level}</span>
-        </button>
-        <div className="mt-4">
-          <Link href="/play" className="text-purple-200 text-sm hover:text-white">← Back to the map</Link>
-        </div>
-        <SkillIntro gameId="potion-sort" />
-      </div>
-    </main>
+      }
+      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} />}
+      startLabel={<>Play level {level}</>}
+      onStart={() => { setPhase('playing'); startGame(); }}
+      footer={<SkillIntro gameId="potion-sort" />}
+    />
   );
 
   if (phase === 'done') return (
-    <main className="min-h-screen flex items-center justify-center p-6"
-      style={{ background: 'linear-gradient(135deg,#3b2a7a,#5b21b6)' }}>
-      <div className="text-center bounce-in">
-        <span className="inline-flex items-end gap-2 mb-3 star-burst">
-          {COLORS.map(c => <PotionBottle key={c.key} color={c.hex} size={30} />)}
-        </span>
-        <div className="flex items-end justify-center gap-2 mb-4">
-          <PandaSprite size={120} expression="celebrating" className="float" />
-          <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-          <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-            <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 80)} kind="pet" />
-          </span>
-        </div>
-        <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-        <p className="text-purple-100 font-semibold mb-1">Every cauldron is bubbling. {pet.name} is doing a potion dance!</p>
-        <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
-            className="px-8 py-3.5 rounded-full text-lg font-extrabold text-purple-900 shadow-xl transition-transform hover:scale-105"
-            style={{ background: 'white' }}>
-            <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-          </button>
-          <Link href="/play"
-            className="px-8 py-3.5 rounded-full text-lg font-extrabold text-purple-950 shadow-xl transition-transform hover:scale-105 inline-block"
-            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-            <span className="whitespace-nowrap">Back to the map</span>
-          </Link>
-        </div>
-      </div>
-    </main>
+    <GameFinish
+      title={`Level ${level} complete!`}
+      theme={theme}
+      pet={pet}
+      trophy={<span className="inline-flex items-end gap-2">{COLORS.map(c => <PotionBottle key={c.key} color={c.hex} size={34} />)}</span>}
+      message={<>Every cauldron is bubbling. {pet.name} is doing a potion dance!</>}
+      earned={earned}
+      actions={<>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+        <SoftButton href="/play">Back to the map</SoftButton>
+      </>}
+    />
   );
 
   const fallMs = ROUNDS[roundIdx].fallMs * tuning.fall;
