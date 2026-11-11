@@ -672,7 +672,7 @@ export default function JourneyPage() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: '#1a1a2e' }}>
           <div className="text-center">
             <TallGrass size={120} color={world.biome.grass} sparkle={false} className="shake mx-auto block" style={{ animationIterationCount: 'infinite' }} />
-            <p className="mt-3 font-extrabold text-lg" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
+            <p className="mt-3 font-extrabold text-lg" style={{ color: '#FDE047' }}>
               The grass rustles…
             </p>
           </div>
@@ -683,7 +683,7 @@ export default function JourneyPage() {
       {phase === 'memoryShow' && activeEncounter && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: '#1a1a2e' }}>
           <div className="text-center px-6">
-            <p className="font-extrabold text-lg mb-4" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
+            <p className="font-extrabold text-lg mb-4" style={{ color: '#FDE047' }}>
               Look closely — remember everyone here!
             </p>
             <div className="bounce-in flex gap-3 justify-center flex-wrap rounded-3xl p-4" style={{ background: 'rgba(255,255,255,0.92)' }}>
@@ -699,7 +699,7 @@ export default function JourneyPage() {
       {showParty && world && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowParty(false)}>
           <div className="w-full max-w-sm rounded-2xl p-5 bounce-in" style={{ background: '#fdfdf8', border: '4px solid #1a1a2e' }} onClick={e => e.stopPropagation()}>
-            <p className="font-extrabold text-lg mb-1 flex items-center gap-2" style={{ color: '#1a1a2e', fontFamily: '"Courier New", monospace' }}><Satchel size={24} /> Your Party</p>
+            <p className="font-extrabold text-lg mb-1 flex items-center gap-2" style={{ color: '#1a1a2e' }}><Satchel size={24} /> Your Party</p>
             <p className="text-xs text-slate-600 mb-3">{party.length - partyPets} of {world.required} friends met in {world.biome.name}</p>
             <div className="grid grid-cols-4 gap-2">
               {party.map((p, i) => (
@@ -747,10 +747,10 @@ export default function JourneyPage() {
             {burstLayer}
           </div>
 
-          {/* Game-Boy-style dialog box */}
-          <div className={`mt-auto mx-3 mb-3 rounded-lg p-4 ${shakeBox ? 'shake' : ''}`}
-            style={{ background: '#fdfdf8', border: '4px solid #1a1a2e', boxShadow: '0 -4px 0 rgba(0,0,0,0.15) inset' }}>
-            <p style={{ fontFamily: '"Courier New", monospace', fontSize: 19, fontWeight: 800, color: '#1a1a2e', lineHeight: 1.5 }}>
+          {/* the story box: what Noel says, and the riddle with its answer tiles */}
+          <div className={`mt-auto mx-3 sm:mx-auto sm:w-[calc(100%-1.5rem)] sm:max-w-2xl mb-16 rounded-3xl p-4 ${shakeBox ? 'shake' : ''}`}
+            style={{ background: 'rgba(255,255,255,0.96)', border: '3px solid #3b2416', boxShadow: '0 6px 0 rgba(59,36,22,0.2)' }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', lineHeight: 1.4 }}>
               {phase === 'capturing'
                 ? `Gotcha! The ${creatureName(activeEncounter.challenge.creature)} joined your party!`
                 : dialog}
@@ -760,7 +760,7 @@ export default function JourneyPage() {
               <div>
                 {activeEncounter.challenge.memoryCast && (
                   <>
-                    <p className="text-center text-xs font-bold" style={{ color: '#475569', fontFamily: '"Courier New", monospace' }}>Still here:</p>
+                    <p className="text-center text-sm font-bold" style={{ color: '#475569' }}>Still here:</p>
                     <div className="flex gap-2 justify-center my-1 flex-wrap">
                       {activeEncounter.challenge.memoryCast.map((c, i) => (
                         <Critter key={i} emoji={c} size={40} />
@@ -773,16 +773,17 @@ export default function JourneyPage() {
                     <ChallengeDisplay ch={activeEncounter.challenge} />
                   </div>
                 )}
-                <p style={{ fontFamily: '"Courier New", monospace', fontSize: 15, fontWeight: 700, color: '#334155', marginTop: 6, marginBottom: 4 }}>{askText(activeEncounter.challenge)}</p>
-                <div className="rounded-md overflow-hidden mt-1" style={{ border: '3px solid #1a1a2e' }}>
+                <p style={{ fontSize: 17, fontWeight: 700, color: '#334155', marginTop: 6, marginBottom: 6 }}>{askText(activeEncounter.challenge)}</p>
+                {/* answers as big side-by-side picture tiles: easy to tap,
+                    and readable for children who can't read yet */}
+                <div className="grid gap-2 mt-1" style={{ gridTemplateColumns: `repeat(${activeEncounter.challenge.options.length}, minmax(0, 1fr))` }}>
                   {activeEncounter.challenge.options.map((o, i) => (
                     <button key={i} data-correct={o.correct} onClick={() => answer(o, activeEncounter.challenge)}
                       aria-label={optionLabel(activeEncounter.challenge, o.label)}
-                      className={`w-full text-left px-3 py-2 transition-colors hover:bg-slate-100 active:bg-slate-200 flex items-center gap-2 ${challengeHint && o.correct ? 'hint-glow' : ''}`}
-                      style={{ fontFamily: '"Courier New", monospace', fontSize: 16, fontWeight: 700, color: '#1a1a2e', minHeight: 48,
-                        borderBottom: i < activeEncounter.challenge.options.length - 1 ? '2px solid #1a1a2e' : 'none',
-                        background: challengeHint && o.correct ? '#FEF9C3' : '#fdfdf8' }}>
-                      <span>▶</span>
+                      className={`rounded-2xl px-2 py-2 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 ${challengeHint && o.correct ? 'hint-glow' : ''}`}
+                      style={{ fontSize: 22, fontWeight: 800, color: '#1a1a2e', minHeight: 76,
+                        border: '3px solid #3b2416', boxShadow: '0 4px 0 rgba(59,36,22,0.25)',
+                        background: challengeHint && o.correct ? '#FEF9C3' : '#FFFFFF' }}>
                       <OptionArt ch={activeEncounter.challenge} label={o.label} />
                     </button>
                   ))}
@@ -865,7 +866,7 @@ function OptionArt({ ch, label }: { ch: Challenge; label: string }) {
   if (ch.type === 'memory' || ch.type === 'word') return <Critter emoji={label} size={58} animate={false} />;
   if (ch.type === 'color') return <PaintBlob hex={COLOR_OF[label]?.hex ?? '#999'} size={40} />;
   if (ch.type === 'feeling') return <FeelingFace happy={label === '😊'} size={40} />;
-  return <span style={{ fontSize: 20 }}>{label}</span>;
+  return <span style={{ fontSize: 26 }}>{label}</span>;
 }
 
 function PartyMember({ p, size }: { p: string; size: number }) {

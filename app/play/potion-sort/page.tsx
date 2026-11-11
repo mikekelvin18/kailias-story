@@ -202,8 +202,14 @@ export default function PotionSortPage() {
   }, [phase, roundIdx]);
 
   // when a bottle reaches the cauldron rims without being caught
+  // only the newest landing timer of a bottle counts: a bottle caught and
+  // let go again falls anew, and its first timer must not knock it out mid-air
+  const landingRef = useRef<Record<number, number>>({});
   function scheduleLanding(bottleId: number, ms: number) {
+      const token = (landingRef.current[bottleId] ?? 0) + 1;
+      landingRef.current[bottleId] = token;
       setTimeout(() => {
+        if (landingRef.current[bottleId] !== token) return;
         const { w } = sizeRef.current;
         const landed = bottlesRef.current.find(b => b.id === bottleId);
         if (landed && !landed.dragging) {

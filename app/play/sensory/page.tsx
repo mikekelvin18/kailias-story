@@ -282,8 +282,12 @@ export default function SenseExplorerPage() {
   function tapCrystal(i: number) {
     if (!round || round.kind !== 'odd' || roundDone) return;
     if (i !== round.oddIdx) { miss(i, 'odd'); return; }
-    if (tries === 0) statsRef.current.oddFirstTry += 1;
-    statsRef.current.smallestDelta = Math.min(statsRef.current.smallestDelta, round.delta);
+    // only a first-try find shows the child really saw the difference (with
+    // a few crystals, tapping each in turn always finds it eventually)
+    if (tries === 0) {
+      statsRef.current.oddFirstTry += 1;
+      statsRef.current.smallestDelta = Math.min(statsRef.current.smallestDelta, round.delta);
+    }
     setCaught(new Set([i]));
     setRoundDone(true);
     chime([659, 880, 1175]);
