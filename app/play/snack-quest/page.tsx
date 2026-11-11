@@ -6,13 +6,13 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import LevelPath from '@/components/LevelPath';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import LiveArt from '@/components/characters/LiveArt';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet, type PlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -513,42 +513,42 @@ export default function SnackQuestPage() {
 
         {/* ── Character select ── */}
         {phase === 'select' && (
-          <div className="text-center mt-4 bounce-in">
-            <div className="flex items-end justify-center gap-3 mb-3">
-              <span className="relative inline-block">
-                <span aria-hidden="true" className="absolute left-[8%] right-[8%] bottom-[-4%] h-[16%] rounded-[50%]" style={{ background: 'radial-gradient(ellipse, #F2C14E 0%, #C9822F 70%)', border: '2px solid #3b2416' }} />
-                <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 112)} kind="pet" />
-              </span>
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 68)} kind="pet" />
-            </div>
-            <div data-read-aloud className="rounded-3xl p-5 mx-1 mb-5 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Snack Quest"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #b45309 0%, #78350f 55%, #431407 100%)', accent: '#FB923C', accent2: '#C2410C' }}
+              pet={pet}
+              story={<p>
                 A <strong>baby dragon</strong> is hungry, and she only eats <strong>exactly</strong> the
                 right amount! Who will gather her snacks?
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 px-1">
-              <button onClick={() => choose('kailia')}
-                className="rounded-3xl p-5 shadow-xl transition-transform hover:scale-105 active:scale-95"
-                style={{ background: '#FFF7ED', border: '3px solid #FDBA74' }}>
-                <KailiaSprite size={90} className="mx-auto" />
-                <span className="block mt-2 font-extrabold text-amber-700">Play as Kailia</span>
-                <span className="block text-sm text-gray-700 mt-1">
-                  Gather cookies <Snack cave size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the treasure cave!
-                </span>
-              </button>
-              <button onClick={() => choose('noel')}
-                className="rounded-3xl p-5 shadow-xl transition-transform hover:scale-105 active:scale-95"
-                style={{ background: '#ECFDF5', border: '3px solid #6EE7B7' }}>
-                <PandaSprite size={90} className="mx-auto" />
-                <span className="block mt-2 font-extrabold text-emerald-700">Play as Noel</span>
-                <span className="block text-sm text-gray-700 mt-1">
-                  Gather bamboo <Snack cave={false} size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the meadow!
-                </span>
-              </button>
-            </div>
-            <LevelPath gameId="snack-quest" level={level} onPick={setLevel} />
-            <SkillIntro gameId="snack-quest" />
+              </p>}
+              extras={<>
+                <div className="flex justify-center mb-4">
+                  <span className="relative inline-block gf-drop-in" style={{ animationDelay: '1.5s' }}>
+                    <span aria-hidden="true" className="absolute left-[8%] right-[8%] bottom-[-4%] h-[16%] rounded-[50%]" style={{ background: 'radial-gradient(ellipse, #F2C14E 0%, #C9822F 70%)', border: '2px solid #3b2416' }} />
+                    <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 112)} kind="pet" />
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 px-1">
+                  <button onClick={() => choose('kailia')} className="gf-choice" style={{ background: '#FFF7ED' }}>
+                    <KailiaSprite size={90} className="mx-auto" />
+                    <span className="block mt-2 font-extrabold text-amber-700 text-lg">Play as Kailia</span>
+                    <span className="block text-sm text-gray-700 mt-1">
+                      Gather cookies <Snack cave size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the treasure cave!
+                    </span>
+                  </button>
+                  <button onClick={() => choose('noel')} className="gf-choice" style={{ background: '#ECFDF5', animationDelay: '0.15s' }}>
+                    <PandaSprite size={90} className="mx-auto" />
+                    <span className="block mt-2 font-extrabold text-emerald-700 text-lg">Play as Noel</span>
+                    <span className="block text-sm text-gray-700 mt-1">
+                      Gather bamboo <Snack cave={false} size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the meadow!
+                    </span>
+                  </button>
+                </div>
+              </>}
+              levels={<LevelPath gameId="snack-quest" level={level} onPick={setLevel} />}
+              footer={<SkillIntro gameId="snack-quest" />}
+            />
           </div>
         )}
 
@@ -699,38 +699,21 @@ export default function SnackQuestPage() {
 
       {/* ── Finale ── */}
       {phase === 'done' && skin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overflow-y-auto"
-          style={{ background: cave ? 'linear-gradient(135deg, #92400e, #b45309)' : 'linear-gradient(135deg, #065f46, #15803d)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-block mb-2 star-burst">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #FDE047, #FBBF24)', accent: '#FB923C', accent2: '#C2410C' }}
+            pet={pet}
+            trophy={<span className="inline-block mb-2">
               <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 104)} kind="pet" />
-            </span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={116} expression="celebrating" className="float" />
-              <KailiaSprite size={88} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 76)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-white font-bold text-lg mb-1">The dragon is full and happy! {pet.name} is doing a happy dance!</p>
-            <p className="text-white/90 font-semibold mb-2 inline-flex items-center gap-1.5 justify-center flex-wrap">
-              She gives you a treasure from her cave <Gem size={26} />
-            </p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}
-                className={`px-8 py-3.5 rounded-full text-lg font-extrabold shadow-xl transition-transform hover:scale-105 ${cave ? 'text-amber-900' : 'text-emerald-900'}`}
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-amber-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+            </span>}
+            message={<>The dragon is full and happy! {pet.name} is doing a happy dance!</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

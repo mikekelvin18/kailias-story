@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
@@ -17,9 +16,9 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet, type PlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { petWidth } from '@/lib/companionTrails';
 
 // ─── Dragon Bridge ──────────────────────────────────────────────────────────
@@ -510,25 +509,20 @@ export default function DragonBridgePage() {
   // ── Screens ──
   const chapter = chapterFor(level);
 
+  const theme = { bg: 'radial-gradient(130% 85% at 50% 0%, #6b2f7a 0%, #3b1a52 50%, #1c0b2b 100%)', accent: '#F59E0B', accent2: '#C2410C' };
+
   if (phase === 'intro') return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-6"
-      style={{ background: 'linear-gradient(160deg,#2a1640,#4a2357 55%,#7c2d12)' }}>
-      <div className="max-w-sm w-full text-center">
-        <div className="flex items-end justify-center gap-2 mb-4">
-          <PandaSprite size={104} expression="excited" className="float" />
-          <KailiaSprite size={84} expression="excited" className="float" style={{ animationDelay: '0.2s' }} />
-          <span className="float inline-block" style={{ animationDelay: '0.4s' }}>
-            <LiveArt src={EMBER.art} alt="a baby dragon" size={petWidth(EMBER.art, 70)} kind="pet" />
+    <GameIntro
+      title="Dragon Bridge"
+      theme={theme}
+      pet={pet}
+      story={<p>The dragons&apos; treasure is across the crystal river! Share berries <strong>fairly</strong> with the
+        baby dragons and finish the <strong>stepping-stone patterns</strong> so Kailia can hop across.</p>}
+      extras={
+        <div className="flex justify-center items-end gap-2" aria-hidden>
+          <span className="float inline-block mr-1">
+            <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, 56)} kind="pet" />
           </span>
-        </div>
-        <h1 className="text-3xl font-extrabold text-white mb-2" style={{ textShadow: '0 0 20px #F59E0B' }}>Dragon Bridge</h1>
-        <div data-read-aloud className="rounded-2xl px-4 py-3 mb-4 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-          <p className="text-gray-900 text-base font-bold leading-snug">
-            The dragons&apos; treasure is across the crystal river! Share berries <strong>fairly</strong> with the
-            baby dragons and finish the <strong>stepping-stone patterns</strong> so Kailia can hop across.
-          </p>
-        </div>
-        <div className="flex justify-center items-end gap-2 mb-2" aria-hidden>
           {[0, 1, 2, 3].map(i => (
             <span key={i} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}>
               <GemToken t={{ c: [0, 1, 0, 1][i], s: 0 }} size={30} />
@@ -537,49 +531,27 @@ export default function DragonBridgePage() {
           <span className="soft-pulse inline-flex items-center justify-center rounded-full font-extrabold text-amber-200"
             style={{ width: 30, height: 30, border: '2.5px dashed #FDE68A' }}>?</span>
         </div>
-        <LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} />
-        <button onClick={startGame}
-          className="mt-4 px-10 py-4 rounded-full font-extrabold text-amber-950 text-xl transition-transform hover:scale-105"
-          style={{ background: 'linear-gradient(135deg,#FDE047,#F59E0B)', boxShadow: '0 0 30px rgba(245,158,11,0.45)' }}>
-          <span className="whitespace-nowrap">Play level {level}</span>
-        </button>
-        <div className="mt-4">
-          <Link href="/play" className="text-amber-200 text-sm hover:text-white">← Back to the map</Link>
-        </div>
-        <SkillIntro gameId="dragon-bridge" />
-      </div>
-    </main>
+      }
+      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} />}
+      startLabel={<>Play level {level}</>}
+      onStart={startGame}
+      footer={<SkillIntro gameId="dragon-bridge" />}
+    />
   );
 
   if (phase === 'done') return (
-    <main className="min-h-screen flex items-center justify-center p-6"
-      style={{ background: 'linear-gradient(160deg,#4a2357,#9a3412)' }}>
-      <div className="text-center bounce-in">
-        <div className="mx-auto mb-2 star-burst" style={{ width: 120 }}><Chest gems={rounds.length} open /></div>
-        <div className="flex items-end justify-center gap-2 mb-4">
-          <PandaSprite size={112} expression="celebrating" className="float" />
-          <KailiaSprite size={88} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-          <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-            <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 76)} kind="pet" />
-          </span>
-        </div>
-        <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-        <p className="text-amber-100 font-semibold mb-1">The treasure chest is sparkling, {chapter.name} bridge-builder!</p>
-        <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
-            className="px-8 py-3.5 rounded-full text-lg font-extrabold text-amber-900 shadow-xl transition-transform hover:scale-105"
-            style={{ background: 'white' }}>
-            <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-          </button>
-          <Link href="/play"
-            className="px-8 py-3.5 rounded-full text-lg font-extrabold text-amber-950 shadow-xl transition-transform hover:scale-105 inline-block"
-            style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-            <span className="whitespace-nowrap">Back to the map</span>
-          </Link>
-        </div>
-      </div>
-    </main>
+    <GameFinish
+      title={`Level ${level} complete!`}
+      theme={theme}
+      pet={pet}
+      trophy={<div style={{ width: 120 }} className="mx-auto"><Chest gems={rounds.length} open /></div>}
+      message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
+      earned={earned}
+      actions={<>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+        <SoftButton href="/play">Back to the map</SoftButton>
+      </>}
+    />
   );
 
   if (!round) return null;

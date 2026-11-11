@@ -4,9 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -19,8 +19,6 @@ import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 import { PIECES, PieceIcon, type PieceKind } from './pieces';
 
 // ─── Where's Noel? ────────────────────────────────────────────────────────────
@@ -291,26 +289,22 @@ export default function WheresNoelPage() {
         </div>
 
         {phase === 'intro' && (
-          <div className="text-center mt-4 bounce-in">
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <Magnifier size={70} />
-              <KailiaSprite size={92} expression="thinking" className="float" />
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 62)} kind="pet" />
-              <PeekingNoel size={58} />
-            </div>
-            <div data-read-aloud className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Where's Noel?"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #475569 0%, #1e293b 55%, #0f172a 100%)', accent: '#FB923C', accent2: '#EA580C' }}
+              pet={pet}
+              story={<><p className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
                 <PieceIcon kind={scene.treasure.piece} size={22} /> Chapter {level}: {scene.name}
               </p>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">{scene.story}</p>
-            </div>
-            <LevelPath gameId="hidden-friends" level={level} onPick={setLevel} />
-            <button onClick={startLevel}
-              className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Start the search!
-            </button>
-            <SkillIntro gameId="hidden-friends" />
+              <p>{scene.story}</p></>}
+              extras={<div className="flex items-end justify-center gap-3"><Magnifier size={70} />
+              <PeekingNoel size={58} /></div>}
+              levels={<LevelPath gameId="hidden-friends" level={level} onPick={setLevel} />}
+              startLabel={<>Start the search!</>}
+              onStart={startLevel}
+              footer={<SkillIntro gameId="hidden-friends" />}
+            />
           </div>
         )}
 
@@ -404,35 +398,21 @@ export default function WheresNoelPage() {
       </div>
 
       {phase === 'levelDone' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #1e293b, #334155)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-flex items-end gap-1 mb-3 star-burst" aria-hidden="true">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #1e293b, #334155)', accent: '#FB923C', accent2: '#EA580C' }}
+            pet={pet}
+            trophy={<span className="inline-flex items-end gap-1" aria-hidden="true">
               {Array.from({ length: scene.treasure.count }, (_, i) => <PieceIcon key={i} kind={scene.treasure.piece} size={i === 1 ? 64 : 48} />)}
-            </span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={120} expression="celebrating" className="float" />
-              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-slate-200 font-semibold mb-1">You found Noel and every {scene.treasure.label.replace(/s$/, '')} in {scene.name}!</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Next chapter ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-slate-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+            </span>}
+            message={<>You found Noel and every {scene.treasure.label.replace(/s$/, '')} in {scene.name}!</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next chapter ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -17,10 +17,7 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 import { Thing } from './things';
 import { audioCtx } from '@/lib/sfx';
 
@@ -356,25 +353,20 @@ export default function SenseExplorerPage() {
 
         {/* ── Intro ── */}
         {phase === 'intro' && (
-          <div className="text-center mt-4 bounce-in relative z-10">
-            <div className="flex items-end justify-center gap-1 mb-3">
-              <PandaSprite size={112} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={88} expression="excited" className="float" />
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 64)} kind="pet" />
-            </div>
-            <div className="rounded-3xl p-5 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-xl font-bold leading-snug">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Sense Explorer"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #164e63 50%, #083344 100%)', accent: '#2DD4BF', accent2: '#0D9488' }}
+              pet={pet}
+              story={<><p>
                 Little things are floating in glowing bubbles in the caves! Catch the ones Noel asks for, and spot the
                 crystal that&apos;s <strong>a tiny bit different</strong>.
-              </p>
-            </div>
-            <LevelPath gameId="sense-explorer" level={level} onPick={setLevel} />
-            <button onClick={begin}
-              className="mt-5 px-12 py-4 rounded-full text-xl font-extrabold text-cyan-950 shadow-xl transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              <span className="whitespace-nowrap">Play level {level}</span>
-            </button>
-            <SkillIntro gameId="sense-explorer" />
+              </p></>}
+              levels={<LevelPath gameId="sense-explorer" level={level} onPick={setLevel} />}
+              startLabel={<><span className="whitespace-nowrap">Play level {level}</span></>}
+              onStart={begin}
+              footer={<SkillIntro gameId="sense-explorer" />}
+            />
           </div>
         )}
 
@@ -477,35 +469,21 @@ export default function SenseExplorerPage() {
 
       {/* ── Level complete ── */}
       {phase === 'levelDone' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #164e63, #0e7490)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-flex items-end gap-1 mb-3 star-burst" style={{ filter: 'drop-shadow(0 0 16px rgba(165,243,252,0.9))' }}>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #164e63, #0e7490)', accent: '#2DD4BF', accent2: '#0D9488' }}
+            pet={pet}
+            trophy={<span className="inline-flex items-end gap-1" style={{ filter: 'drop-shadow(0 0 16px rgba(165,243,252,0.9))' }}>
               <Crystal hue={190} size={40} /><Crystal hue={290} size={56} /><Crystal hue={330} size={40} />
-            </span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={120} expression="celebrating" className="float" />
-              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 80)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-cyan-100 font-semibold mb-1">Super-sharp {chapter.name} eyes! The caves are sparkling, and {pet.name} is dancing.</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-cyan-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-cyan-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+            </span>}
+            message={<>Super-sharp {chapter.name} eyes! The caves are sparkling, and {pet.name} is dancing.</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

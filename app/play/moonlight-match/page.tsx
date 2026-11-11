@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -17,8 +17,6 @@ import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 import { Feather, Flame, Shape, SHAPE_KINDS, type ShapeKind } from '../_pieces/pieces';
 
 // ─── Moonlight Match ──────────────────────────────────────────────────────────
@@ -299,31 +297,26 @@ export default function MoonlightMatchPage() {
 
         {/* ── Intro ── */}
         {phase === 'intro' && (
-          <div className="text-center mt-6 bounce-in relative z-10">
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={120} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={92} expression="thinking" className="float" />
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 66)} kind="pet" />
-              <span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
-                <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
-              </span>
-            </div>
-            <div data-read-aloud className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Moonlight Match"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #5b21b6 0%, #312e81 50%, #1e1b4b 100%)', accent: '#A78BFA', accent2: '#7C3AED' }}
+              pet={pet}
+              story={<><p>
                 The wise owl hid her friends under <strong>moonlit feathers</strong>!
               </p>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+              <p>
                 Flip two at a time and remember where everyone sleeps. Match pairs in a row for
                 <strong> combo magic</strong>!
-              </p>
-            </div>
-            <LevelPath gameId="moonlight-match" level={level} onPick={setLevel} />
-            <button onClick={() => startLevel(level)}
-              className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-indigo-950 shadow-xl transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Level {level} — flip!
-            </button>
-            <SkillIntro gameId="moonlight-match" />
+              </p></>}
+              extras={<div className="flex items-end justify-center gap-3"><span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
+                <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
+              </span></div>}
+              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} />}
+              startLabel={<>Level {level} — flip!</>}
+              onStart={() => startLevel(level)}
+              footer={<SkillIntro gameId="moonlight-match" />}
+            />
           </div>
         )}
 
@@ -402,36 +395,19 @@ export default function MoonlightMatchPage() {
 
       {/* ── Level complete ── */}
       {phase === 'levelDone' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #1e1b4b, #5b21b6)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-block mb-3 star-burst" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Shape kind="moon" size={84} /></span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={120} expression="celebrating" className="float" />
-              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-indigo-100 font-semibold mb-1">Every friend found their twin under the moon. {pet.name} is doing a happy dance!</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6">
-              <StarIcon /> +{Math.max(8, 12 + level * 3 - statsRef.current.mismatches)} starlight
-              {statsRef.current.bestStreak >= 2 && ` · best combo ×${statsRef.current.bestStreak}!`}
-            </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-indigo-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-indigo-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #1e1b4b, #5b21b6)', accent: '#A78BFA', accent2: '#7C3AED' }}
+            pet={pet}
+            trophy={<span className="inline-block" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Shape kind="moon" size={84} /></span>}
+            message={<>Every friend found their twin under the moon. {pet.name} is doing a happy dance!{statsRef.current.bestStreak >= 2 && <><br />Best combo ×{statsRef.current.bestStreak}!</>}</>}
+            earned={Math.max(8, 12 + level * 3 - statsRef.current.mismatches)}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

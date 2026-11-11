@@ -11,13 +11,12 @@ function answerAs(dev) {
   return m => (m.months <= dev * 0.92 ? 1 : m.months <= dev * 1.1 ? 0.5 : 0);
 }
 
-function run(domain, age, dev) {
-  const ans = answerAs(dev);
+function run(domain, age, dev, ans = answerAs(dev)) {
   let asked = M.startingItems(domain, age);
   const answers = {};
   for (const m of asked) answers[m.id] = ans(m);
   for (let round = 0; round < M.MAX_EXTRA_ROUNDS; round++) {
-    const more = M.followUpItems(domain, asked, answers);
+    const more = M.followUpItems(domain, asked, answers, age);
     if (!more.length) break;
     for (const m of more) answers[m.id] = ans(m);
     asked = [...asked, ...more];
@@ -48,6 +47,18 @@ for (const domain of M.MILESTONE_DOMAINS) {
 }
 console.log(cases.join('\n'));
 assert.ok(fails <= 4, `${fails} ranges missed the true developmental age`);
+// Proud parent: "yes" to everything. The range must stay near the
+// questions actually asked (≤ ~1.5× age), never jump to "12+ years".
+for (const domain of M.MILESTONE_DOMAINS) {
+  for (const age of [10, 20, 43, 66, 100]) {
+    const { est } = run(domain, age, 0, () => 1);
+    const label = M.formatAgeRange(est);
+    console.log(`all-yes ${domain.padEnd(13)} age ${String(age).padStart(3)}mo → ${label}`);
+    assert.ok(est.openTop, `${domain} ${age} all-yes should be open-topped`);
+    assert.ok(est.high <= age * 1.8 + 6, `${domain} ${age} all-yes climbed to ${label}`);
+    assert.match(label, /or older|\+|or more/);
+  }
+}
 // Narrow ranges stay centred on the estimate (regression: 27–33 mo once read "4 to 5 years").
 assert.equal(M.formatAgeRange({ low: 27, mid: 30, high: 33, items: 30 }), 'about 2 to 3 years');
 assert.equal(M.formatAgeRange({ low: 50, mid: 54, high: 58, items: 30 }), 'about 4 to 5 years');

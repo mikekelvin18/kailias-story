@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import OverworldSprite, { type Facing } from '@/components/characters/OverworldSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
@@ -511,33 +511,31 @@ export default function JourneyPage() {
         <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-4">
           <div className="w-full max-w-sm">
             {phase === 'intro' && (
-              <div className="text-center bounce-in">
-                <div className="flex items-end justify-center gap-1 mb-4">
-                  <PandaSprite size={120} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-                  <KailiaSprite size={90} expression="excited" className="float" />
-                  {level > 1 && <LiveArt src={playPet.art} alt={playPet.name} size={petWidth(playPet.art, 62)} kind="pet" />}
-                  <Flag size={40} ready={false} />
-                </div>
-                <div className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide mb-3"
-                  style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
-                  ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
-                </div>
-                <div data-read-aloud className="rounded-3xl p-6 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-                  <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">A brand-new world stretches ahead!</p>
-                  <p className="text-gray-900 text-2xl font-bold leading-snug">
-                    Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
-                    anywhere on the map to walk there! Step into patches of <strong>tall grass</strong> to meet
-                    wild creatures — solve their riddle to catch them, then lead your new friends to the flag!
-                  </p>
-                </div>
-                <LevelPath gameId="journey" level={level} onPick={setLevel} />
-                <button onClick={startLevel}
-                  className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-                  style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                  Enter the world!
-                </button>
-                <SkillIntro gameId="journey" />
-                <Link href="/play" className="block mt-4 text-sm font-bold text-slate-300">← Back to the map</Link>
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                <GameIntro
+                  title="Journey"
+                  theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #334155 0%, #1e293b 50%, #0f172a 100%)', accent: '#38BDF8', accent2: '#0284C7' }}
+                  pet={playPet}
+                  story={<>
+                    <p>A brand-new world stretches ahead!</p>
+                    <p>
+                      Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
+                      anywhere on the map to walk there! Step into patches of <strong>tall grass</strong> to meet
+                      wild creatures — solve their riddle to catch them, then lead your new friends to the flag!
+                    </p>
+                  </>}
+                  extras={<div className="flex items-center justify-center gap-3">
+                    <Flag size={40} ready={false} />
+                    <span className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide"
+                      style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
+                      ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
+                    </span>
+                  </div>}
+                  levels={<LevelPath gameId="journey" level={level} onPick={setLevel} />}
+                  startLabel={<>Enter the world!</>}
+                  onStart={startLevel}
+                  footer={<SkillIntro gameId="journey" />}
+                />
               </div>
             )}
 
@@ -795,36 +793,24 @@ export default function JourneyPage() {
       )}
 
       {phase === 'done' && world && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-6 overflow-y-auto"
-          style={{ background: 'linear-gradient(135deg, #0f172a, #334155)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-block mb-3 star-burst"><Flag size={56} ready glow={false} /></span>
-            <div className="flex items-end justify-center gap-2 mb-3">
-              <PandaSprite size={120} expression="celebrating" className="float" />
-              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={partner.art} alt={partner.name} size={petWidth(partner.art, 84)} kind="pet" />
-              </span>
-            </div>
-            <div className="inline-flex gap-2 justify-center flex-wrap mb-3 px-3 py-2 rounded-2xl" style={{ background: 'rgba(255,255,255,0.92)' }}>
-              {party.filter(p => !p.startsWith(PET_TAG)).map((p, i) => <Critter key={i} emoji={p} size={44} />)}
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-slate-200 font-semibold mb-1">You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Next world ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-slate-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-[90] overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #0f172a, #334155)', accent: '#38BDF8', accent2: '#0284C7' }}
+            pet={partner}
+            trophy={<div className="flex flex-col items-center gap-2">
+              <Flag size={56} ready glow={false} />
+              <div className="inline-flex gap-2 justify-center flex-wrap px-3 py-2 rounded-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '3px solid #3b2416' }}>
+                {party.filter(p => !p.startsWith(PET_TAG)).map((p, i) => <Critter key={i} emoji={p} size={40} />)}
+              </div>
+            </div>}
+            message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Next world ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

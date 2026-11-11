@@ -57,6 +57,8 @@ export interface AgeEstimate {
   mid: number;     // months, median
   high: number;    // months, 90th percentile
   items: number;   // how many answers it rests on
+  /** No ceiling was found (every hard question was a "yes"): the true level may be higher than shown. */
+  openTop?: boolean;
 }
 
 // ─── Model constants (review with real data) ─────────────────────────────
@@ -250,6 +252,7 @@ export function followUpItems(
   domain: MilestoneDomain,
   asked: Milestone[],
   answers: Record<string, number>,   // id → 1 / 0.5 / 0
+  ageMonths?: number,
 ): Milestone[] {
   if (asked.length >= MAX_ITEMS) return [];
   const ladder = LADDERS[domain];
@@ -264,7 +267,11 @@ export function followUpItems(
   const needCeiling = notYet.length < 2 || answers[sorted[sorted.length - 1].id] === 1;
   // Basal: two "yes"es, and the easiest answer is a "yes".
   const needBasal = yes.length < 2 || answers[sorted[0].id] !== 1;
-  if (needCeiling) extra.push(...ladder.filter(m => !askedIds.has(m.id) && m.months > hi).slice(0, 2));
+  // Never climb past 1.5× the child's age: a parent proud enough to tick
+  // every "yes" shouldn't turn a 3-year-old into a 10-year-old. The
+  // estimate then reads "or older" at the top instead.
+  const roof = ageMonths ? Math.max(ageMonths * 1.5, ageMonths + 6) : Infinity;
+  if (needCeiling) extra.push(...ladder.filter(m => !askedIds.has(m.id) && m.months > hi && m.months <= roof).slice(0, 2));
   if (needBasal) extra.push(...ladder.filter(m => !askedIds.has(m.id) && m.months < lo).slice(-2));
   return extra.slice(0, MAX_ITEMS - asked.length).sort((a, b) => a.months - b.months);
 }
@@ -312,7 +319,22 @@ export function estimateAge(evidence: Evidence[], ageMonths: number | null): Age
     }
     return GRID[GRID.length - 1];
   };
-  return { low: quantile(0.1), mid: quantile(0.5), high: quantile(0.9), items: evidence.length };
+  const est: AgeEstimate = { low: quantile(0.1), mid: quantile(0.5), high: quantile(0.9), items: evidence.length };
+  // No ceiling (nothing "not yet" at or above the hardest "yes"): the
+  // answers only say "at least this far". Report up to just past the
+  // hardest skill seen, flagged as open, rather than extrapolating.
+  const passes = evidence.filter(e => e.r === 1);
+  if (passes.length) {
+    const topPass = Math.max(...passes.map(e => e.months));
+    const ceiling = evidence.some(e => e.r === 0 && e.months >= topPass);
+    if (!ceiling) {
+      est.openTop = true;
+      est.high = Math.min(est.high, topPass * 1.15);
+      est.mid = Math.min(est.mid, topPass);
+      est.low = Math.min(est.low, topPass * 0.85);
+    }
+  }
+  return est;
 }
 
 // ─── Plain-language output ───────────────────────────────────────────────
@@ -324,8 +346,13 @@ function halfYears(h: number): string {
   return `${whole}${half ? '½' : ''}`;
 }
 
-/** "about 14 to 18 months", "about 2½ to 3½ years" — always a range. */
+/** "about 14 to 18 months", "about 2½ to 3½ years" — always a range. An open top reads "… or older". */
 export function formatAgeRange(est: AgeEstimate): string {
+  const text = formatRange(est);
+  return est.openTop && !/\+|or more/.test(text) ? `${text} or older` : text;
+}
+
+function formatRange(est: AgeEstimate): string {
   let lo = est.low;
   const hi = est.high;
   if (hi < 24) {
