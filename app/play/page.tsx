@@ -39,11 +39,12 @@ const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 // ── Tiny sound effects (no audio files needed) ────────────────────────────────
 
 import { soundEnabled } from '@/lib/accessibility';
+import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -336,7 +337,7 @@ export default function AdventureMap() {
               {isBonus && (
                 <span className={`absolute left-1/2 top-1/2 rounded-full portal-ring ${unlocked ? 'portal-pulse' : ''}`}
                   style={{
-                    width: '5.4rem', height: '5.4rem',
+                    width: '4.6rem', height: '4.6rem',
                     background: unlocked
                       ? `conic-gradient(from 0deg, ${land.color}, ${land.glow}, #FBBF24, ${land.color})`
                       : 'conic-gradient(from 0deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05), rgba(255,255,255,0.35))',
@@ -376,7 +377,7 @@ export default function AdventureMap() {
                   )}
                 </span>
               ) : (
-              <span className={`relative inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
+              <span className={`relative inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 ${isBonus ? 'w-14 h-14 text-2xl sm:w-16 sm:h-16 sm:text-3xl' : 'w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl'} ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
                   style={{
                     background: unlocked ? land.sky : (isBonus ? 'rgba(80,70,120,0.55)' : 'rgba(120,120,140,0.45)'),
                     border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,

@@ -22,6 +22,7 @@ import { usePlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
 import { Thing } from './things';
+import { audioCtx } from '@/lib/sfx';
 
 // ─── Sense Explorer ───────────────────────────────────────────────────────────
 // Deep in Echo Caves, little things wander about in glowing bubbles.
@@ -118,8 +119,8 @@ function buildOdd(level: number, tiny: boolean): Round {
 function chime(freqs: number[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     freqs.forEach((f, i) => {
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
       osc.type = 'triangle'; osc.frequency.value = f;

@@ -20,6 +20,7 @@ import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
+import { audioCtx } from '@/lib/sfx';
 
 // ─── Word Wizard ──────────────────────────────────────────────────────────────
 // The Whispering Signposts lost their words — they floated away as word
@@ -156,8 +157,8 @@ function buildRound(level: number): ReadingQ[] {
 function chime(freqs: number[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     freqs.forEach((f, i) => {
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
       osc.type = 'sine'; osc.frequency.value = f;

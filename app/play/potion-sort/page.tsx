@@ -19,6 +19,7 @@ import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
+import { audioCtx } from '@/lib/sfx';
 
 // ─── Potion Sort ────────────────────────────────────────────────────────────
 // A fast-paced drag-to-sort game in the owl's potion room: colored potion
@@ -68,8 +69,8 @@ const GROUND = 98;       // feet of Kailia and the friend
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = 'triangle'; o.frequency.value = f;

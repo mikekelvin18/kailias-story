@@ -20,6 +20,7 @@ import { seeded } from '@/components/friends/kit/Stage';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
 import styles from './game.module.css';
+import { audioCtx } from '@/lib/sfx';
 
 // ─── Echo Song ────────────────────────────────────────────────────────────────
 // Simon-style sequence memory in Echo Caves: the crystals sing a little
@@ -48,8 +49,8 @@ const CRYSTAL_W = 92;      // px, drawn size (the button is a little bigger)
 function tone(f: number, d = 0.32) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine'; osc.frequency.value = f;
@@ -152,7 +153,9 @@ export default function EchoSongPage() {
   }
 
   function tap(c: number) {
-    if (phase !== 'echo') return;
+    // a fast second tap can land before the 'cheer' screen renders; the
+    // song is already finished then, so it must not count as a slip
+    if (phase !== 'echo' || posRef.current >= seq.length) return;
     sing(c, 0.25);
     timersRef.current.push(setTimeout(() => setLit(null), 260));
     runTo(c);

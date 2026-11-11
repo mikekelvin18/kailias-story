@@ -140,6 +140,23 @@ function closestOnPath(p: Pt, path: Pt[]): number {
   for (let i=0;i<path.length-1;i++) { const d=distToSeg(p,path[i],path[i+1]); if(d<min) min=d; }
   return min;
 }
+// how far along the path (in px of path length) the point nearest p sits
+function arcAlong(p: Pt, path: Pt[]): number {
+  let best=Infinity, arc=0, run=0;
+  for (let i=0;i<path.length-1;i++) {
+    const a=path[i], b=path[i+1], dx=b.x-a.x, dy=b.y-a.y, l2=dx*dx+dy*dy, l=Math.sqrt(l2);
+    const t=l2?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l2)):0;
+    const d=Math.hypot(p.x-(a.x+t*dx), p.y-(a.y+t*dy));
+    if (d<best) { best=d; arc=run+t*l; }
+    run+=l;
+  }
+  return arc;
+}
+function pathLength(path: Pt[]): number {
+  let run=0;
+  for (let i=0;i<path.length-1;i++) run+=Math.hypot(path[i+1].x-path[i].x, path[i+1].y-path[i].y);
+  return run;
+}
 
 // ─── Canvas star helper ───────────────────────────────────────────────────────
 
@@ -190,6 +207,11 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+// The trace has to really follow the path: it starts on GO, picks up near
+// where Kailia stands after a lift, and only counts progress that moves
+// along the path a little at a time (no tapping the flag, no shortcuts
+// between two corridors that run side by side).
+const START_R=34, LEAP=70, FINISH_SLACK=60;
 const STAR_LINES=['Ooh, a star!','Sparkly! Keep going!','Another star!','Star catcher!'];
 const TOUCH_LINE=()=>typeof window!=='undefined'&&'ontouchstart' in window
   ? 'Put your finger on GO and follow the glowing path to the flag!'
@@ -318,6 +340,8 @@ export default function MazeRunnerPage() {
   const lastHitRef   = useRef(0);
   const hitFlashRef  = useRef(false);
   const doneRef      = useRef(false);
+  const progressRef  = useRef(0);       // furthest path length really traced
+  const lengthRef    = useRef(0);       // whole path length
   const levelRef     = useRef(LEVELS[0]);
   const animRef      = useRef(0);
   // Kailia on the canvas: a 5-frame run cycle while she follows the
@@ -509,6 +533,8 @@ export default function MazeRunnerPage() {
     lastHitRef.current   = 0;
     hitFlashRef.current  = false;
     doneRef.current      = false;
+    progressRef.current  = 0;
+    lengthRef.current    = pathLength(path);
     charRef.current      = null;
     shownRef.current     = null;
     trailRef.current     = [];
@@ -630,7 +656,24 @@ export default function MazeRunnerPage() {
 
   const onStart = (e: React.MouseEvent|React.TouchEvent) => {
     e.preventDefault();
-    const p=getPos(e); if(!p) return;
+    const p=getPos(e); if(!p || doneRef.current) return;
+    const path=pathRef.current; if(!path.length) return;
+    if (!charRef.current) {
+      // the very first touch has to land on GO
+      if (Math.hypot(p.x-path[0].x,p.y-path[0].y)>START_R) {
+        setNoelLine('Start on the green GO circle, where Kailia is standing!');
+        return;
+      }
+    } else {
+      // after a lift, carry on from where Kailia is (not further ahead)
+      const onPath=closestOnPath(p,path)<=corridorRef.current;
+      const arc=arcAlong(p,path);
+      const nearKailia=Math.hypot(p.x-charRef.current.x,p.y-charRef.current.y)<=START_R+10;
+      if (!nearKailia && !(onPath && arc<=progressRef.current+LEAP)) {
+        setNoelLine('Put your finger back on Kailia and keep going!');
+        return;
+      }
+    }
     if (!started) setNoelLine('Nice and steady! Grab the stars on the way.');
     setStarted(true); setDrawing(true);
     charRef.current=p; drawCanvas();
@@ -643,6 +686,14 @@ export default function MazeRunnerPage() {
 
     const dist=closestOnPath(p,pathRef.current);
     const ok=dist<=corridorRef.current;
+    if (ok) {
+      // a quick swipe may cover a lot of path between two events; a jump
+      // across a wall covers lots of path with very little finger movement
+      const prev=charRef.current;
+      const moved=prev?Math.hypot(p.x-prev.x,p.y-prev.y):0;
+      const arc=arcAlong(p,pathRef.current);
+      if (arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
+    }
     trailRef.current=[...trailRef.current,{x:p.x,y:p.y,ok}];
     charRef.current=p;
 
@@ -678,7 +729,8 @@ export default function MazeRunnerPage() {
 
     // Reached end?
     const end=pathRef.current[pathRef.current.length-1];
-    if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current) {
+    if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
+        && progressRef.current>=lengthRef.current-FINISH_SLACK) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);
