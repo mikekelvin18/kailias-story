@@ -124,8 +124,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 }
 
 export default function WheresNoelPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
@@ -297,7 +297,7 @@ export default function WheresNoelPage() {
               <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 62)} kind="pet" />
               <PeekingNoel size={58} />
             </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div data-read-aloud className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
                 <PieceIcon kind={scene.treasure.piece} size={22} /> Chapter {level}: {scene.name}
               </p>
@@ -392,7 +392,7 @@ export default function WheresNoelPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelFound ? 'celebrating' : 'thinking'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}

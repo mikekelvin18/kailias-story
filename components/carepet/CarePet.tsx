@@ -64,7 +64,7 @@ function PetPicture({ friend, stage, size, crack, small }: { friend: PlayPet; st
 
 export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boolean }) {
   const router = useRouter();
-  const { state: assessment, totalScore, loaded } = useAssessment();
+  const { state: assessment, totalScore, devMonths, loaded } = useAssessment();
   const [pet, setPet] = useState<CarePetState | null>(null);
   const [friend, setFriend] = useState<PlayPet>(COMPANIONS[1]);
   const [open, setOpen] = useState(false);
@@ -90,13 +90,13 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   // load (or start) the pet once the assessment is known
   useEffect(() => {
     if (!loaded) return;
-    const r = openPet(assessment.ageGroup, totalScore);
+    const r = openPet(assessment.ageGroup, totalScore, devMonths);
     if (!r) return;
     /* eslint-disable react-hooks/set-state-in-effect -- the pet lives in this device's storage, readable only after mount */
     setPet(r.state);
     setFriend(pickPlayPet());
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [loaded, assessment.ageGroup, totalScore]);
+  }, [loaded, assessment.ageGroup, totalScore, devMonths]);
 
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
   const later = useCallback((fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); }, []);
@@ -114,7 +114,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
 
   const openMoment = useCallback((auto: boolean) => {
     // re-read, so a map left open past midnight starts the new day
-    const fresh = openPet(assessment.ageGroup, totalScore);
+    const fresh = openPet(assessment.ageGroup, totalScore, devMonths);
     if (!fresh || !fresh.state.today) return;
     let s = fresh.state;
     const hello = fresh.greeting;
@@ -146,7 +146,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
     }
     setOpen(true);
     chime.soft();
-  }, [assessment.ageGroup, totalScore, friend.name, say]);
+  }, [assessment.ageGroup, totalScore, devMonths, friend.name, say]);
 
   // pop up by itself once a day, after the map has settled
   useEffect(() => {

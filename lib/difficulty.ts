@@ -11,7 +11,12 @@ import type { AgeGroup } from '@/context/AssessmentContext';
 
 export type DifficultyTier = 'tiny' | 'small' | 'big';
 
-export function difficultyTier(ageGroup: AgeGroup, totalScore: number): DifficultyTier {
+// devMonths: the middle of the assessment's developmental-age range
+// (lib/milestones.ts). When present it decides, so a 5-year-old working at
+// a 3-year-old level gets 3-year-old games and vice versa. Older checks
+// without it fall back to age group + score.
+export function difficultyTier(ageGroup: AgeGroup, totalScore: number, devMonths?: number | null): DifficultyTier {
+  if (devMonths != null) return devMonths < 30 ? 'tiny' : devMonths < 57 ? 'small' : 'big';
   if (ageGroup === 'infant' || ageGroup === 'toddler') return 'tiny';
   if (ageGroup === 'preschool') return 'small';
   if (ageGroup === 'schoolAge') return totalScore <= 20 ? 'small' : 'big';
@@ -30,7 +35,8 @@ export function difficultyTier(ageGroup: AgeGroup, totalScore: number): Difficul
 
 export type DevBand = 1 | 2 | 3 | null;
 
-export function developmentalBand(ageGroup: AgeGroup, totalScore: number): DevBand {
+export function developmentalBand(ageGroup: AgeGroup, totalScore: number, devMonths?: number | null): DevBand {
+  if (devMonths != null) return devMonths < 18 ? 1 : devMonths < 30 ? 2 : devMonths < 48 ? 3 : null;
   if (ageGroup === 'infant') return 1;
   if (ageGroup === 'toddler') return totalScore <= 20 ? 1 : 2;   // dev level under ~18 mo → Band 1
   if (ageGroup === 'preschool') return totalScore <= 20 ? 2 : 3;

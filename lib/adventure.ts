@@ -67,6 +67,7 @@ export const LANDS: Land[] = [
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
       { href: '/play/snack-quest', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
+      { href: '/play/dragon-bridge', emoji: '💎', title: 'Dragon Bridge', desc: 'Share berries fairly with the baby dragons and finish the stepping-stone patterns to reach the treasure!' },
     ],
   },
   {
@@ -159,7 +160,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🚀',
     color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
     x: 140, y: 700,
-    dx: 1090, dy: 215,
+    dx: 1095, dy: 150,
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
@@ -173,7 +174,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🐠',
     color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
     x: 260, y: 700,
-    dx: 1090, dy: 385,
+    dx: 1095, dy: 330,
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [

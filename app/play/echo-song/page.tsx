@@ -73,8 +73,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'cheer' | 'levelDone'>('intro');
@@ -248,7 +248,7 @@ export default function EchoSongPage() {
                 <Crystal c={0} lit={false} />
               </svg>
             </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div data-read-aloud className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
                 Deep in Echo Caves, the <strong>crystals sing</strong>!
               </p>
@@ -328,7 +328,9 @@ export default function EchoSongPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div
+                // Noel stays quiet while the crystals sing, so the song is easy to hear
+                data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}

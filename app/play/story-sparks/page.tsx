@@ -268,7 +268,7 @@ export default function StorySparksPage() {
               <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 66)} kind="pet" />
               <span className="mb-2 float inline-block" style={{ animationDelay: '0.5s' }}><Book size={50} /></span>
             </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div data-read-aloud className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
                 The Story Keepers&apos; books lost their pages!
               </p>
@@ -360,7 +360,7 @@ export default function StorySparksPage() {
             <div className="flex items-center gap-3 mt-2 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}

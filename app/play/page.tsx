@@ -113,8 +113,8 @@ const DOMAIN_LAND: Record<string, string> = {
 };
 
 export default function AdventureMap() {
-  const { state, totalScore } = useAssessment();
-  const band = developmentalBand(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const band = developmentalBand(state.ageGroup, totalScore, devMonths);
   const [progress, setProgress] = useState<AdventureProgress>({ played: {}, celebrated: [] });
   const [hydrated, setHydrated] = useState(false);
   const [openLand, setOpenLand] = useState<Land | null>(null);

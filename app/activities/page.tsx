@@ -111,8 +111,8 @@ function ActivityCard({ activity, report, onReport, highlight }: {
 }
 
 export default function ActivityLibraryPage() {
-  const { state, totalScore } = useAssessment();
-  const detectedBand = developmentalBand(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const detectedBand = developmentalBand(state.ageGroup, totalScore, devMonths);
   const [band, setBand] = useState<1 | 2 | 3>(detectedBand ?? 2);
   const [domainFilter, setDomainFilter] = useState<ActivityDomain | 'all'>('all');
   const [reports, setReports] = useState<{ [id: string]: ReportScore }>({});

@@ -93,8 +93,15 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
 // ── Quieting the music while Noel talks ──
 type Listener = (talking: boolean) => void;
 const listeners = new Set<Listener>();
+let talkingNow = false;
 export function onTalking(fn: Listener) { listeners.add(fn); return () => { listeners.delete(fn); }; }
-function setTalking(t: boolean) { listeners.forEach(fn => { try { fn(t); } catch { /* ignore */ } }); }
+function setTalking(t: boolean) {
+  if (talkingNow === t) return;
+  talkingNow = t;
+  listeners.forEach(fn => { try { fn(t); } catch { /* ignore */ } });
+}
+/** True while Noel is in the middle of a line. */
+export function isTalking() { return talkingNow; }
 
 export interface SayOptions {
   /** 1 = normal speed. Kids' lines default a touch slower. */
@@ -103,43 +110,94 @@ export interface SayOptions {
   pitch?: number;
 }
 
+// Each new line gets a number; anything still waiting from an older line
+// (a delayed start, a late "finished" signal) checks it and quietly drops out.
+let generation = 0;
+
+/** Chrome and Android load their voices a moment after the page. Wait (briefly)
+    so the very first line isn't read in the flat fallback voice. */
+function whenVoicesReady(go: () => void) {
+  const synth = window.speechSynthesis;
+  if (synth.getVoices().length) { go(); return; }
+  let done = false;
+  const finish = () => { if (done) return; done = true; synth.removeEventListener?.('voiceschanged', finish); go(); };
+  synth.addEventListener?.('voiceschanged', finish);
+  setTimeout(finish, 900); // some devices never announce: go anyway
+}
+
+/** Split into sentences where end punctuation is followed by a new capitalised
+    sentence, so "3.5" and "their little song… then echo it" stay whole. */
+function sentences(text: string): string[] {
+  const parts = text.split(/(?<=[.!?…])\s+(?=[A-Z"'“‘])/).map(p => p.trim()).filter(Boolean);
+  return parts.length ? parts : [text];
+}
+
 /**
  * Read a line aloud in Noel's warm voice. Emoji are stripped (they read
  * as "sparkles") and longer lines are spoken a sentence at a time with a
  * tiny breath between, which sounds more like a person and avoids a
- * Chrome bug that cuts long lines off.
+ * Chrome bug that cuts long lines off. A new line always replaces the
+ * one before, so two lines never talk over each other.
  */
 export function say(text: string, opts: SayOptions = {}) {
   if (typeof window === 'undefined') return;
   try {
     const synth = window.speechSynthesis;
     if (!synth) return;
+    const clean = text.replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').replace(/[*_~]/g, '')
+      .replace(/\s+/g, ' ').trim();
+    const gen = ++generation;
+    const busy = synth.speaking || synth.pending;
     synth.cancel();
-    const clean = text.replace(/\p{Extended_Pictographic}|️|‍/gu, '').replace(/\s+/g, ' ').trim();
+    setTalking(false);
     if (!clean) return;
 
-    const voice = chosenVoice();
-    const natural = isNaturalVoice(voice);
-    const wantPitch = opts.pitch ?? 1.12;
-    // Lifelike voices already sound warm; pushing their pitch far makes
-    // them sound squeaky, so they get half the lift the robotic ones need.
-    const pitch = natural ? 1 + (wantPitch - 1) * 0.5 : wantPitch;
-    const rate = opts.rate ?? 0.92;
-
-    const parts = clean.match(/[^.!?]+[.!?]*\s*/g)?.map(p => p.trim()).filter(Boolean) ?? [clean];
-    parts.forEach((part, i) => {
-      const u = new SpeechSynthesisUtterance(part);
-      if (voice) { u.voice = voice; u.lang = voice.lang; }
-      u.rate = rate;
-      u.pitch = Math.max(0.5, Math.min(2, pitch));
-      if (i === 0) u.onstart = () => setTalking(true);
-      if (i === parts.length - 1) { u.onend = () => setTalking(false); u.onerror = () => setTalking(false); }
-      synth.speak(u);
-    });
+    const start = () => {
+      if (gen !== generation) return;
+      const voice = chosenVoice();
+      const natural = isNaturalVoice(voice);
+      const wantPitch = opts.pitch ?? 1.08;
+      // Lifelike voices already sound warm; pushing their pitch far makes
+      // them sound squeaky, so they get half the lift the plain ones get.
+      const pitch = natural ? 1 + (wantPitch - 1) * 0.5 : wantPitch;
+      const rate = opts.rate ?? 0.92;
+      // SHOUTED words ("the SAME color", uppercase headings) get spelled out
+      // letter by letter on some voices, so read them as normal words
+      const parts = sentences(clean).map(p => p.replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase())));
+      parts.forEach((part, i) => {
+        const u = new SpeechSynthesisUtterance(part);
+        if (voice) { u.voice = voice; u.lang = voice.lang; }
+        u.rate = rate;
+        u.pitch = Math.max(0.5, Math.min(2, pitch));
+        u.onstart = () => { if (gen === generation) setTalking(true); };
+        if (i === parts.length - 1) {
+          const end = () => { if (gen === generation) setTalking(false); };
+          u.onend = end; u.onerror = end;
+        }
+        synth.speak(u);
+      });
+      // Safari sometimes starts out paused after a cancel
+      if (synth.paused) synth.resume();
+    };
+    // Safari drops a line spoken in the same instant as a cancel, so give
+    // it a breath when something was still playing.
+    const go = () => (busy ? setTimeout(start, 80) : start());
+    whenVoicesReady(go);
   } catch { /* reading aloud is a bonus, never an error */ }
 }
 
+/**
+ * For game bubbles that change often: a short cheer ("Splash!") never
+ * cuts Noel off mid-instruction; anything longer replaces what he's saying.
+ */
+export function sayLine(text: string, opts: SayOptions & { force?: boolean } = {}) {
+  const words = text.trim().split(/\s+/).length;
+  if (!opts.force && talkingNow && words <= 4) return;
+  say(text, opts);
+}
+
 export function hush() {
+  generation++;
   try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
   setTalking(false);
 }

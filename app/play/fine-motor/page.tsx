@@ -727,7 +727,7 @@ export default function MazeRunnerPage() {
           <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 62)} kind="pet" />
         </div>
         <h1 className="text-3xl font-extrabold text-white mb-2" style={{textShadow:'0 0 20px #4ade80'}}>Maze Runner</h1>
-        <div className="rounded-2xl px-4 py-3 mb-4 text-left" style={{background:'rgba(255,255,255,0.95)'}}>
+        <div data-read-aloud className="rounded-2xl px-4 py-3 mb-4 text-left" style={{background:'rgba(255,255,255,0.95)'}}>
           <p className="text-gray-900 text-base font-bold leading-snug">
             Ooh, the fireflies lost their way! Trace the glowing trail with your finger to the flag.
             Stay off the walls, and grab every star! {pet.name} will run along with Kailia.
@@ -878,7 +878,7 @@ export default function MazeRunnerPage() {
         <div className="flex items-center gap-3 rounded-2xl p-2.5"
           style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
           <PandaSprite size={46} expression={hinting ? 'thinking' : started ? 'excited' : 'happy'} style={{ flexShrink: 0 }} />
-          <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
+          <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
         </div>
       </div>
     </main>

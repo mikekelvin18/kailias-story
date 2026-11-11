@@ -165,7 +165,7 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore } = useAssessment();
+  const { state, totalScore, devMonths } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
@@ -234,7 +234,7 @@ export default function SnackQuestPage() {
   // the field never overflows), and "how many more?" rounds start from a
   // bigger pile — counting, then adding, with ever-larger numbers.
   const buildRounds = useCallback((lvl: number): RoundCfg[] => {
-    const tier = difficultyTier(state.ageGroup, totalScore);
+    const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
     tierRef.current = tier;
     const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
       tiny:  { w: [1, 2, 2, 3], h: [0, 0, 1, 1] },   // developmental level under ~2½ yrs
@@ -255,7 +255,7 @@ export default function SnackQuestPage() {
       const have = h[i] > 0 ? Math.min(want - 1, h[i] + Math.floor(bump / 2)) : 0;
       return { want, have, intro: intros[i] };
     });
-  }, [state.ageGroup, totalScore]);
+  }, [state.ageGroup, totalScore, devMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
@@ -498,7 +498,7 @@ export default function SnackQuestPage() {
               </span>
               <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 68)} kind="pet" />
             </div>
-            <div className="rounded-3xl p-5 mx-1 mb-5 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div data-read-aloud className="rounded-3xl p-5 mx-1 mb-5 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-900 text-2xl font-bold leading-snug">
                 A <strong>baby dragon</strong> is hungry, and she only eats <strong>exactly</strong> the
                 right amount! Who will gather her snacks?
@@ -661,7 +661,7 @@ export default function SnackQuestPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <Guide size={54} expression={guideMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative">
+              <div data-read-aloud className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {guideLine}
