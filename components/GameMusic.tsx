@@ -73,9 +73,6 @@ export default function GameMusic() {
   };
 
   return (
-    <>
-    {/* room at the end of scrolling pages so the button never sits on the last thing */}
-    <div aria-hidden="true" style={{ height: 64, flexShrink: 0 }} />
     <button type="button" onClick={toggle}
       aria-label={on ? 'Turn music off' : 'Turn music on'} aria-pressed={on}
       title={on ? 'Music on' : 'Music off'}
@@ -96,6 +93,5 @@ export default function GameMusic() {
         {!on && <path d="M3.5 3.5l17 17" stroke="#64748B" strokeWidth="2.4" strokeLinecap="round" />}
       </svg>
     </button>
-    </>
   );
 }
