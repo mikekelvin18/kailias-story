@@ -270,7 +270,7 @@ export default function TrailWalkPage() {
               <KailiaSprite size={90} expression="excited" className="float" />
               <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 66)} kind="pet" />
             </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div data-read-aloud className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
                 A brand-new trail stretches past the meadows!
               </p>
@@ -368,7 +368,7 @@ export default function TrailWalkPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-3"
               style={{ background: 'rgba(255,255,255,0.85)', border: '2px solid rgba(14,116,144,0.25)' }}>
               <PandaSprite size={54} expression={phase === 'challenge' ? 'thinking' : 'happy'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
+              <div data-read-aloud className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                 {noelLine}
