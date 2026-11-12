@@ -376,7 +376,16 @@ export default function ParentZonePage() {
                       className="flex items-center gap-1.5 min-h-[44px] px-3 rounded-2xl text-sm font-bold text-left transition-colors"
                       style={{ background: on ? '#EDE9FE' : '#F1F5F9', color: on ? '#5B21B6' : '#334155',
                         border: on ? '2px solid #7C3AED' : '2px solid transparent' }}>
-                      <span>{DOMAIN_META[d].emoji}</span> <span className="leading-tight">{DOMAIN_META[d].label}</span>
+                      <span>{DOMAIN_META[d].emoji}</span>
+                      <span className="leading-tight">
+                        {DOMAIN_META[d].label}
+                        {/* the map land that practices this skill, so the two names connect */}
+                        {LANDS.find(l => l.domain === d) && (
+                          <span className="block text-[11px] font-semibold" style={{ color: on ? '#6D28D9' : '#64748B' }}>
+                            {LANDS.find(l => l.domain === d)!.mapLabel ?? LANDS.find(l => l.domain === d)!.name}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   );
                 })}

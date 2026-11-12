@@ -307,7 +307,7 @@ export function childDataInventory(): DataSection[] {
     ]});
   }
 
-  const card = read(scopedKey('kailia_walletpet_v1'));
+  const card = read('kailia_walletpet_v1');
   if (card?.v === 1) {
     sections.push({ label: '🪪 Wallet pet card (test)', items: [
       `Card number ${card.tokenId} on test network ${card.chainId}`,
@@ -317,7 +317,7 @@ export function childDataInventory(): DataSection[] {
     ]});
   }
 
-  const pet = read(scopedKey('kailia_pet_v1'));
+  const pet = read('kailia_pet_v1');
   if (pet?.v === 1) {
     sections.push({ label: '🥚 Daily care pet', items: [
       `Happy days so far: ${pet.happyDays ?? 0}`,
@@ -361,6 +361,22 @@ export function childDataInventory(): DataSection[] {
       `Grown-up settings: challenge ${world.grownUp?.challenge ?? 'auto'}, hints ${world.grownUp?.hints ?? 'auto'}, tap to move ${world.grownUp?.tapToMove ? 'on' : 'off'}`,
     ]});
   }
+
+  // Small bookkeeping records (which daily pop-up was shown, quest
+  // rotation history, a play counter). Listed too, so "everything
+  // stored" really is everything.
+  const SMALL: Record<string, string> = {
+    kailia_daily_seen_v1: "Day the daily quests pop-up was last shown",
+    kailias_play_count: 'Number of games played',
+    kailia_daily_history_v1: 'Recently suggested daily quests (so they don\'t repeat)',
+  };
+  const small = Object.entries(SMALL).flatMap(([k, label]) => {
+    const raw = localStorage.getItem(scopedKey(k));
+    if (raw == null) return [];
+    const v = raw.length > 80 ? `${raw.slice(0, 80)}…` : raw;
+    return [`${label}: ${v}`];
+  });
+  if (small.length) sections.push({ label: '🗂️ Small app records', items: small });
 
   if (!sections.length) sections.push({ label: 'Nothing yet', items: ['No data has been stored on this device.'] });
   return sections;
