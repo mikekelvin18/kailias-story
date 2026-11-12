@@ -132,6 +132,53 @@ function sentences(text: string): string[] {
   return parts.length ? parts : [text];
 }
 
+// ── Noel's recorded voice ──
+// Lines that never change ("Tap the fireflies gently to catch them!") are
+// recorded ahead of time with a natural human-sounding AI voice by
+// scripts/record-voice.mjs and shipped as small audio files in
+// public/voice/, listed in public/voice/manifest.json. The app only ever
+// PLAYS those files: it never calls a voice service, and no child data is
+// ever sent anywhere. A line is played from recordings only when every
+// sentence in it has one; anything else (a line with the child's name, a
+// number, or a pet's name in it) is read by the device voice above.
+
+/** Must match voiceKey() in scripts/record-voice.mjs. */
+export function voiceKey(sentence: string): string {
+  return sentence.toLowerCase().replace(/[‘’]/g, "'").replace(/[^a-z0-9']+/g, ' ').trim();
+}
+
+let clips: Map<string, string> | null = null;
+if (typeof window !== 'undefined') {
+  fetch('/voice/manifest.json')
+    .then(r => (r.ok ? r.json() : {}))
+    .then((m: Record<string, string>) => { clips = new Map(Object.entries(m ?? {})); })
+    .catch(() => { clips = new Map(); });
+}
+
+let player: HTMLAudioElement | null = null;
+function stopClip() {
+  if (!player) return;
+  player.onended = null; player.onerror = null;
+  try { player.pause(); } catch { /* ignore */ }
+}
+
+/** Play recorded sentences one after another. Returns false if it couldn't start. */
+function playClips(files: string[], gen: number, fallback: () => void) {
+  player = player ?? new Audio();
+  const audio = player;
+  let i = 0;
+  const next = () => {
+    if (gen !== generation) return;
+    if (i >= files.length) { setTalking(false); return; }
+    audio.src = `/voice/${files[i++]}`;
+    audio.onended = () => setTimeout(next, 140); // a small breath between sentences
+    audio.onerror = () => { if (gen === generation) fallback(); };
+    audio.play().then(() => { if (gen === generation) setTalking(true); })
+      .catch(() => { if (gen === generation) fallback(); }); // e.g. autoplay blocked: use the device voice
+  };
+  next();
+}
+
 /**
  * Read a line aloud in Noel's warm voice. Emoji are stripped (they read
  * as "sparkles") and longer lines are spoken a sentence at a time with a
@@ -149,6 +196,7 @@ export function say(text: string, opts: SayOptions = {}) {
     const gen = ++generation;
     const busy = synth.speaking || synth.pending;
     synth.cancel();
+    stopClip();
     setTalking(false);
     if (!clean) return;
 
@@ -179,6 +227,16 @@ export function say(text: string, opts: SayOptions = {}) {
       // Safari sometimes starts out paused after a cancel
       if (synth.paused) synth.resume();
     };
+    // Recorded lines first. A raised pitch means a pet friend is talking
+    // (Kiko, Ember...), and they shouldn't borrow Noel's recorded voice.
+    if (clips && (opts.pitch ?? 1) < 1.25) {
+      const files = sentences(clean).map(p => clips!.get(voiceKey(p)));
+      if (files.length && files.every(Boolean)) {
+        playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); });
+        return;
+      }
+    }
+
     // Safari drops a line spoken in the same instant as a cancel, so give
     // it a breath when something was still playing.
     const go = () => (busy ? setTimeout(start, 80) : start());
@@ -198,6 +256,7 @@ export function sayLine(text: string, opts: SayOptions & { force?: boolean } = {
 
 export function hush() {
   generation++;
+  stopClip();
   try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
   setTalking(false);
 }
