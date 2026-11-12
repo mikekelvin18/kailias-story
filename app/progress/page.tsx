@@ -17,7 +17,7 @@ import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
 // reports), never anything new collected just for this page.
 
 export default function ProgressReportPage() {
-  const { state, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
+  const { state, estimates, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
   const [summaries, setSummaries] = useState<DomainSummary[]>([]);
   const [entries, setEntries] = useState<ReportEntry[]>([]);
@@ -77,7 +77,8 @@ export default function ProgressReportPage() {
                 ['✍️ Fine Motor / Writing', 'writing'],
                 ['🗣️ Communication', 'communication'],
                 ['🔢 Math', 'math'],
-              ] as [string, MilestoneDomain][]).map(([label, key]) => {
+                ['🦉 Attention & Memory', 'processing'],
+              ] as [string, MilestoneDomain][]).filter(([, key]) => key !== 'processing' || estimates.processing).map(([label, key]) => {
                 const cmp = domainComparison(key);
                 return (
                   <div key={label} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">

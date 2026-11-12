@@ -7,6 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
 import StepGuide from '@/components/ui/StepGuide';
 import type { Evidence, MilestoneDomain } from '@/lib/milestones';
+import { fineMotorStage, TRACE_MEASURES, traceNextStep } from '@/lib/fineMotor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,7 +116,7 @@ const GAMES: DomainGame[] = [
         options: [{ label: '5', correct: false }, { label: '6', correct: true }, { label: '7', correct: false }],
         points: { correct: 2, wrong: 0 } },
       { text: 'Kailia shares 12 cookies equally among 3 friends (including herself). How many each?', type: 'choice', months: 108,
-        options: [{ label: '3', correct: true }, { label: '4', correct: false }, { label: '6', correct: false }],
+        options: [{ label: '3', correct: false }, { label: '4', correct: true }, { label: '6', correct: false }],
         points: { correct: 2, wrong: 0 } },
       { text: 'Kailia baked 2 trays of cookies. Each tray has 8 cookies. How many total?', type: 'choice', months: 102,
         options: [{ label: '10', correct: false }, { label: '14', correct: false }, { label: '16', correct: true }],
@@ -272,13 +273,7 @@ function getPathComplexity(age: number): number {
   return 1;
 }
 
-function getFineMotorStage(score: number) {
-  if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', description: 'Excellent pencil control and steady movement!',               color: '#059669' };
-  if (score >= 70) return { stage: 'Pre-Writer',     emoji: '✏️', description: 'Great tracing — almost ready for letter writing!',           color: '#2563EB' };
-  if (score >= 50) return { stage: 'Shape Master',   emoji: '⭐', description: 'Good effort — keep tracing and drawing every day.',          color: '#D97706' };
-  if (score >= 25) return { stage: 'Pathfinder',     emoji: '🧭', description: 'Building those tracing skills — practice makes perfect!',   color: '#F59E0B' };
-  return             { stage: 'Explorer',            emoji: '🌱', description: 'Just starting the fine motor journey — every trace counts!', color: '#EC4899' };
-}
+const getFineMotorStage = fineMotorStage;
 
 function getTargetPath(age: number, w: number, h: number): PathPoint[] {
   const pts: PathPoint[] = [];
@@ -633,7 +628,10 @@ function TracingGame({
             <h2 className="text-2xl font-extrabold mt-1" style={{ color:si.color }}>{si.stage}</h2>
             <p className="text-gray-500 text-sm mb-1">{si.description}</p>
             <p className="text-4xl font-extrabold" style={{ color:si.color }}>{finalResult.composite}%</p>
-            <p className="text-xs text-gray-400">weighted score across all 5 tests</p>
+            <p className="text-xs text-gray-500">
+              For grown-ups: all 5 traces combined, compared with what&apos;s typical at this age
+              (the path is wider for younger children). About 70% and up is typical.
+            </p>
           </div>
 
           {/* Per-test breakdown */}
@@ -650,20 +648,29 @@ function TracingGame({
           {/* Avg sub-score bars */}
           <div className="space-y-1.5 mb-4">
             {[
-              { label:'Accuracy',   value:finalResult.accuracy,   color:'#10B981' },
-              { label:'Smoothness', value:finalResult.smoothness, color:'#3B82F6' },
-              { label:'Control',    value:finalResult.precision,  color:'#7C3AED' },
+              { key:'accuracy' as const,   value:finalResult.accuracy,   color:'#10B981' },
+              { key:'smoothness' as const, value:finalResult.smoothness, color:'#3B82F6' },
+              { key:'precision' as const,  value:finalResult.precision,  color:'#7C3AED' },
             ].map(s=>(
-              <div key={s.label}>
+              <div key={s.key}>
                 <div className="flex justify-between text-xs mb-0.5">
-                  <span className="text-gray-600 font-semibold">{s.label}</span>
+                  <span className="text-gray-600 font-semibold">{TRACE_MEASURES[s.key].label}</span>
                   <span className="font-bold" style={{ color:s.color }}>{Math.round(s.value)}%</span>
                 </div>
                 <div className="h-2 rounded-full" style={{ background:'#E5E7EB' }}>
                   <div className="h-2 rounded-full transition-all" style={{ width:`${s.value}%`, background:s.color }} />
                 </div>
+                <p className="text-[11px] text-gray-500 mt-0.5">{TRACE_MEASURES[s.key].what}</p>
               </div>
             ))}
+            {(() => {
+              const next = traceNextStep(finalResult);
+              return next && (
+                <p className="text-xs rounded-xl p-2.5 mt-2" style={{ background:'#F0FDF4', color:'#166534' }}>
+                  <strong>Try next ({next.skill.toLowerCase()}):</strong> {next.tip}
+                </p>
+              );
+            })()}
           </div>
 
           {/* Grasp pattern selector */}
@@ -793,7 +800,10 @@ function TracingGame({
 
 // ─── Main Games Page ──────────────────────────────────────────────────────────
 
-const ENCOURAGEMENTS = ['Great thinking! 🌟', "Kailia loves your answer! ✨", "You're amazing! 🎉", 'Keep it up, explorer! 🚀', 'Wonderful! 🌈'];
+// Contingent feedback: a right answer is celebrated, a miss gets warm
+// effort praise and a nudge on. Never "wrong", never the same words for both.
+const ENCOURAGEMENTS = ['Yes! You got it! 🌟', 'That\'s it! Kailia cheers! ✨', 'Spot on, explorer! 🎉', 'You figured it out! 🚀', 'Exactly right! 🌈'];
+const GOOD_TRIES = ['Good try! Let\'s keep going together. 🐼', 'Nice thinking! On to the next one. 🌱', 'Thanks for trying! Noel is proud of you. 💛'];
 
 // Pencil grip as evidence: each grip is a rung on the classic grasp
 // progression (age most children use it by). A child using grip N "passes"
@@ -856,7 +866,8 @@ export default function GamesPage() {
     if (!game || !question) return;
     const r = getScore() >= question.points.correct ? 1 : 0;
     setEvidence(ev => [...ev, { id: `${game.key}-${cur}`, months: question.months, r, kind: 'choice3' }]);
-    setEncourage(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
+    const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
+    setEncourage(pool[Math.floor(Math.random() * pool.length)]);
     setSubmitted(true);
   };
 
@@ -872,14 +883,15 @@ export default function GamesPage() {
 
   const handleNext = () => {
     if (!game) return;
-    const domainKey = game.key as MilestoneDomain;
+    const domainKey = game.key as 'reading' | 'communication' | 'math';
     const last = evidence[evidence.length - 1];
     const next = isLastQ ? null : nextQuestion(bank, asked, cur, last?.r === 1);
     if (next == null) {
       setDomainEvidence(domainKey, evidence);
       // Legacy 0–10 score (share right) — still drives the stage name and the bars.
       setDomainScore(domainKey, Math.round((evidence.reduce((t, e) => t + e.r, 0) / Math.max(1, evidence.length)) * 10));
-      if (isLastStep) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); }
+      // Then a few attention / memory questions for the grown-up (checklist page, processing only).
+      if (isLastStep) router.push('/assessment/checklist');
       else startGame(gameStep + 1);
     } else {
       setAsked(a => [...a, next]);

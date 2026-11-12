@@ -310,7 +310,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const devMonths = overall ? overall.mid : null;
   const domainRange = (d: MilestoneDomain) => {
     const est = estimates[d];
-    return est ? formatAgeRange(est) : getDomainAge(state.scores[d], state.ageGroup);
+    if (est) return formatAgeRange(est);
+    return d === 'processing' ? 'not checked yet' : getDomainAge(state.scores[d], state.ageGroup);
   };
   const domainComparison = (d: MilestoneDomain) => {
     const est = estimates[d];

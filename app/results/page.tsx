@@ -6,24 +6,20 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
+import { fineMotorStage, traceNextStep } from '@/lib/fineMotor';
 import { loadProgress } from '@/lib/adventure';
 import StepGuide from '@/components/ui/StepGuide';
 import BackButton from '@/components/ui/BackButton';
 import { Sparkle } from '@/components/scenery/SkyDecor';
 
-function getFineMotorStage(score: number) {
-  if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', color: '#059669' };
-  if (score >= 70) return { stage: 'Pre-Writer',     emoji: '✏️', color: '#2563EB' };
-  if (score >= 50) return { stage: 'Shape Master',   emoji: '⭐', color: '#D97706' };
-  if (score >= 25) return { stage: 'Pathfinder',     emoji: '🧭', color: '#F59E0B' };
-  return             { stage: 'Explorer',            emoji: '🌱', color: '#EC4899' };
-}
+const getFineMotorStage = fineMotorStage;
 
 const DOMAIN_INFO = [
   { key: 'reading',       label: 'Reading & Literacy',     emoji: '📖', color: '#2563EB', max: 10 },
   { key: 'writing',       label: 'Writing & Fine Motor',   emoji: '✍️', color: '#059669', max: 10 },
   { key: 'communication', label: 'Communication',          emoji: '🗣️', color: '#7C3AED', max: 10 },
   { key: 'math',          label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', max: 10 },
+  { key: 'processing',    label: 'Attention & Memory',     emoji: '🦉', color: '#0E7490', max: 10 },
 ];
 
 const DOMAIN_BASIS: Record<string, string> = {
@@ -31,6 +27,7 @@ const DOMAIN_BASIS: Record<string, string> = {
   writing:       'Fine motor milestones + school readiness benchmarks',
   communication: 'CDC communication milestones + expressive/receptive language norms',
   math:          'Early numeracy research + school readiness benchmarks',
+  processing:    'Attention, working memory (number span) and rule-switching milestones',
 };
 
 const GRASP_LOOKUP: Record<string, { emoji: string; label: string; milestone: string; color: string }> = {
@@ -146,7 +143,7 @@ export default function ResultsPage() {
   const [confirmingRetake, setConfirmingRetake] = useState(false);
   const band = developmentalBand(state.ageGroup, totalScore, devMonths);
   const answersUsed = Object.values(estimates).reduce((t, e) => t + (e?.items ?? 0), 0);
-  const anyGrowing = (['reading', 'writing', 'communication', 'math'] as const).some(k => domainComparison(k) === 'growing');
+  const anyGrowing = (['reading', 'writing', 'communication', 'math', 'processing'] as const).some(k => domainComparison(k) === 'growing');
   // Right after the first adventure check (nothing played on the map
   // yet) this is the last of the four setup steps; afterwards it's a
   // regular results page reached from the map or the Parent Zone.
@@ -221,7 +218,7 @@ export default function ResultsPage() {
             </p>
             <p className="text-white text-3xl font-extrabold">{developmentalAge}</p>
             <p className="text-purple-200 text-xs mt-1">
-              A range, not one number: the likeliest 8 in 10 ages, based on all 4 skill areas
+              A range, not one number: the likeliest 8 in 10 ages, based on every skill area checked
             </p>
           </div>
 
@@ -251,8 +248,8 @@ export default function ResultsPage() {
           <h3 className="text-xl font-bold text-white mb-1">Skill Breakdown</h3>
           <p className="text-slate-300 text-sm mb-5">Estimated developmental level for each skill area</p>
           <div className="space-y-5">
-            {DOMAIN_INFO.map(d => {
-              const score = state.scores[d.key as keyof typeof state.scores];
+            {DOMAIN_INFO.filter(d => d.key !== 'processing' || estimates.processing).map(d => {
+              const score = state.scores[d.key as keyof typeof state.scores] ?? 0;
               // Bar: where the range's middle sits next to the child's age
               // (about two-thirds full = right at their age).
               const est = estimates[d.key as MilestoneDomain];
@@ -307,7 +304,9 @@ export default function ResultsPage() {
                   )}
                   {isWriting && state.fineMotorSubScores && (() => {
                     const fm = getFineMotorStage(state.fineMotorSubScores!.composite);
+                    const next = traceNextStep(state.fineMotorSubScores!);
                     return (
+                      <>
                       <div className="mt-2 flex items-center gap-2">
                         <span className="font-bold text-xs" style={{ color: fm.color }}>
                           {fm.emoji} Fine Motor: {fm.stage}
@@ -317,6 +316,11 @@ export default function ResultsPage() {
                         </div>
                         <span className="text-slate-300 text-xs">{state.fineMotorSubScores!.composite}%</span>
                       </div>
+                      <p className="text-slate-300 text-xs mt-1">
+                        Tracing, compared with what&apos;s typical at this age: {fm.description}
+                        {next && <> <span className="text-emerald-300 font-semibold">Try next:</span> {next.tip}</>}
+                      </p>
+                      </>
                     );
                   })()}
                 </div>

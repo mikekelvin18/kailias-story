@@ -46,6 +46,10 @@ const INFANT_DOMAINS: Domain[] = [
     key: 'math', label: 'Problem Solving & Play', emoji: '🧠', color: '#D97706', light: '#FFFBEB',
     basis: 'Piaget sensorimotor stage research • CDC cognitive milestones',
   },
+  {
+    key: 'processing', label: 'Attention & Memory', emoji: '🦉', color: '#0E7490', light: '#ECFEFF',
+    basis: 'CDC milestones • attention, memory and flexible-thinking research',
+  },
 ];
 
 // ─── TODDLER 12–23 months ─────────────────────────────────────────────────────
@@ -67,6 +71,10 @@ const TODDLER_DOMAINS: Domain[] = [
   {
     key: 'math', label: 'Problem Solving & Play', emoji: '🧩', color: '#D97706', light: '#FFFBEB',
     basis: 'CDC cognitive milestones • Piaget developmental theory • educational research',
+  },
+  {
+    key: 'processing', label: 'Attention & Memory', emoji: '🦉', color: '#0E7490', light: '#ECFEFF',
+    basis: 'CDC milestones • attention, memory and flexible-thinking research',
   },
 ];
 
@@ -90,6 +98,10 @@ const PRESCHOOL_DOMAINS: Domain[] = [
     key: 'math', label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', light: '#FFFBEB',
     basis: 'CDC cognitive milestones • early numeracy research • developmental science',
   },
+  {
+    key: 'processing', label: 'Attention, Memory & Directions', emoji: '🦉', color: '#0E7490', light: '#ECFEFF',
+    basis: 'CDC milestones • attention, memory and flexible-thinking research',
+  },
 ];
 
 // ─── SCHOOL AGE 5–12 years (parent report option) ────────────────────────────
@@ -111,6 +123,10 @@ const SCHOOLAGE_DOMAINS: Domain[] = [
   {
     key: 'math', label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', light: '#FFFBEB',
     basis: 'Early numeracy research • school readiness benchmarks • developmental science', // internally informed by math achievement research
+  },
+  {
+    key: 'processing', label: 'Attention, Memory & Planning', emoji: '🦉', color: '#0E7490', light: '#ECFEFF',
+    basis: 'CDC milestones • attention, memory and flexible-thinking research',
   },
 ];
 
@@ -136,7 +152,10 @@ export default function ChecklistPage() {
   const router = useRouter();
 
   const group   = (state.ageGroup ?? 'preschool') as string;
-  const domains = DOMAINS_BY_GROUP[group] ?? PRESCHOOL_DOMAINS;
+  const allDomains = DOMAINS_BY_GROUP[group] ?? PRESCHOOL_DOMAINS;
+  // After the school-age placement games, the parent answers only the
+  // attention / memory part here (the games don't cover it).
+  const domains = state.assessmentType === 'games' ? allDomains.filter(d => d.key === 'processing') : allDomains;
   const age     = chronoMonths ?? 36;
 
   const [step, setStep] = useState(0);
@@ -169,7 +188,7 @@ export default function ChecklistPage() {
     setDomainEvidence(domainKey, evidence);
     // Legacy 0–10 score (share of "yes" credit) — still drives the stage name and the bars.
     const share = evidence.reduce((t, e) => t + e.r, 0) / evidence.length;
-    setDomainScore(domainKey, Math.round(share * 10));
+    if (domainKey !== 'processing') setDomainScore(domainKey, Math.round(share * 10));
 
     if (isLast) { completeAssessment(); router.push(state.sensoryCompleted ? '/results' : '/assessment/sensory'); return; }
     const next = domains[step + 1].key as MilestoneDomain;

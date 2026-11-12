@@ -34,8 +34,8 @@
 // Tuning knobs are the constants just below. Item ages can be edited
 // freely; nothing else needs to change.
 
-export type MilestoneDomain = 'communication' | 'reading' | 'writing' | 'math';
-export const MILESTONE_DOMAINS: MilestoneDomain[] = ['communication', 'reading', 'writing', 'math'];
+export type MilestoneDomain = 'communication' | 'reading' | 'writing' | 'math' | 'processing';
+export const MILESTONE_DOMAINS: MilestoneDomain[] = ['communication', 'reading', 'writing', 'math', 'processing'];
 
 export interface Milestone {
   id: string;
@@ -207,6 +207,33 @@ export const LADDERS: Record<MilestoneDomain, Milestone[]> = {
     { id: 'm-equivfrac',  months: 120, src: 'CCSS', q: 'Does your child know that 2/4 is the same as 1/2?' },
     { id: 'm-decimals',   months: 132, src: 'CCSS', q: 'Does your child add fractions and work with decimals, like 0.5 + 0.25?' },
     { id: 'm-ratio',      months: 144, src: 'CCSS', q: 'Does your child solve ratio or percent problems, like "20% off"?' },
+  ],
+  // Processing = attention, working memory, following directions and
+  // flexible thinking (Owl's Tower). Ages: CDC where it has an item;
+  // forward digit span ≈ 3 digits at 3½, 4 at 5½, 5 at 8, 6 at 11
+  // (Wechsler-style norms); rule-switch sorting (Zelazo's DCCS) passes
+  // around 4½–5; executive-function items from typical school expectations.
+  // These are the least standardised items in the app — review first.
+  processing: [
+    { id: 'p-twotoys',    months: 6,   src: 'Dev', q: 'Does your baby look back and forth between two toys or two people?' },
+    { id: 'p-stays',      months: 9,   src: 'Dev', q: 'Does your baby stay interested in one toy for a minute or two?' },
+    { id: 'p-copygame',   months: 12,  src: 'Dev', q: 'Does your child copy a simple game you show them, like pat-a-cake or peekaboo?' },
+    { id: 'p-wheretoys',  months: 18,  src: 'Dev', q: 'Does your child remember where a favorite toy is kept and go get it?' },
+    { id: 'p-2min',       months: 24,  src: 'Dev', q: 'Does your child stay with one toy or activity for 2 to 3 minutes?' },
+    { id: 'p-2step',      months: 30,  src: 'CDC', q: 'Does your child follow two-step directions, like "put the toy down and close the door"?' },
+    { id: 'p-5min',       months: 36,  src: 'Dev', q: 'Does your child stay with one activity, like a puzzle or play-doh, for about 5 minutes?' },
+    { id: 'p-span3',      months: 42,  src: 'Dev', q: 'Can your child say 3 numbers back to you in the same order, like "4, 1, 7"?' },
+    { id: 'p-wait',       months: 48,  src: 'Dev', q: 'Does your child take turns in a simple game and wait for their turn?' },
+    { id: 'p-switch',     months: 60,  src: 'Dev', q: 'Can your child sort toys by one rule (color), then switch when you change the rule (shape)?' },
+    { id: 'p-storytime',  months: 60,  src: 'CDC', q: 'Does your child pay attention for 5 to 10 minutes during an activity like story time?' },
+    { id: 'p-span4',      months: 66,  src: 'Dev', q: 'Can your child say 4 numbers back to you in the same order?' },
+    { id: 'p-routine',    months: 72,  src: 'Dev', q: 'Does your child do a short routine (get dressed, brush teeth, shoes on) with only one reminder?' },
+    { id: 'p-15min',      months: 84,  src: 'Dev', q: 'Does your child stay focused on a quiet task, like homework or a craft, for about 15 minutes?' },
+    { id: 'p-span5',      months: 96,  src: 'Dev', q: 'Can your child say 5 numbers back to you in the same order?' },
+    { id: 'p-plan',       months: 108, src: 'Dev', q: 'Does your child plan the steps of a simple project on their own, like building a model?' },
+    { id: 'p-tasks',      months: 120, src: 'Dev', q: 'Does your child keep track of 2 or 3 tasks (like homework pieces) and finish them without reminders?' },
+    { id: 'p-span6',      months: 132, src: 'Dev', q: 'Can your child say 6 numbers back in order, or 4 numbers backwards?' },
+    { id: 'p-timeplan',   months: 144, src: 'Dev', q: 'Does your child plan their time for a bigger assignment over several days?' },
   ],
 };
 
