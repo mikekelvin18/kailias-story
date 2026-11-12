@@ -395,6 +395,13 @@ export default function SnackQuestPage() {
         metricsRef.current.partialTrips += 1;
         sfx.pickup();
         setKept(k => k + delivered);
+        // Kailia steps just out of the nest so she never stands on the dragon
+        const out = [{ r: 2, c: 6 }, { r: 2, c: 5 }, { r: 1, c: 4 }, { r: 0, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 6 }]
+          .find(t => !walls.some(w => w.r === t.r && w.c === t.c) && !itemsRef.current.some(i => i.r === t.r && i.c === t.c));
+        if (out) {
+          setPos(out);
+          setPetTile(t => petSpot(t, out, walls, itemsRef.current) ?? t);
+        }
         setDelivered(0);
         setRevealed(0);
         setCarried(0);
