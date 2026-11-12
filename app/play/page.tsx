@@ -9,7 +9,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import LiveArt from '@/components/characters/LiveArt';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
-  LANDS, BONUS_LANDS, Land, AdventureProgress, loadProgress, recordQuestPlay, markCelebrated,
+  LANDS, BONUS_LANDS, Land, AdventureProgress, loadProgress, rememberLaunchLand, markCelebrated,
   landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, currentLandIndex, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
@@ -239,10 +239,12 @@ export default function AdventureMap() {
     setNoelMood('excited');
   }
 
-  function startQuest(land: Land, href: string) {
+  function startQuest(land: Land) {
     sfx.play();
     clearReturnPath();
-    setProgress(recordQuestPlay(land.id, href));
+    // the quest's star lights up when the child finishes it (see
+    // recordQuestWin), not just for opening it
+    rememberLaunchLand(land.id);
     // navigation happens via the <Link>
   }
 
@@ -760,7 +762,7 @@ export default function AdventureMap() {
                 const locked = !premium && !isQuestFree(qi);
                 return (
                   <Link key={q.href} href={locked ? '/upgrade' : q.href}
-                    onClick={() => !locked && startQuest(openLand, q.href)}
+                    onClick={() => !locked && startQuest(openLand)}
                     className="flex items-center gap-3 rounded-2xl p-3 bg-white shadow transition-transform hover:scale-[1.02] active:scale-[0.98]"
                     style={locked ? { opacity: 0.75 } : undefined}>
                     <span className="text-4xl" style={locked ? { filter: 'grayscale(0.6)' } : undefined}>{q.emoji}</span>

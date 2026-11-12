@@ -8,7 +8,8 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { recordQuestWin } from '@/lib/adventure';
 import Stage from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
@@ -515,7 +516,8 @@ export default function SkyMailPage() {
     });
     // ✨ starlight: base for finishing, minus a little for wrong swipes,
     // never below the floor — effort always pays
-    awardStarlight(Math.max(6, 12 - m.wrong * 2));
+    awardStarlight(levelStarlight(1, m.wrong));
+    recordQuestWin('/play/sky-mail'); // one finished mailbag counts as playing the quest
     const newDone = doneDecks.includes(deckId) ? doneDecks : [...doneDecks, deckId];
     setDoneDecks(newDone);
     if (newDone.length === availableDecks.length) {

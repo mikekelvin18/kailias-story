@@ -7,7 +7,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import Stage from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
@@ -195,7 +195,7 @@ export default function StorySparksPage() {
           logQuestMetric('communication', 'story-sparks', {
             level, beats: story.beats.length, sillyPicks: s.silly, totalMs: Date.now() - s.startedAt,
           });
-          awardStarlight(Math.max(8, 12 + level * 2 - s.silly));
+          awardStarlight(levelStarlight(level, s.silly));
           recordGameLevel('story-sparks', level);
           sfx.fanfare();
           setPhase('levelDone');
@@ -368,7 +368,7 @@ export default function StorySparksPage() {
             pet={pet}
             trophy={<span className="inline-block" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Book size={92} open /></span>}
             message={<>The story lives again! &ldquo;{story.title}&rdquo; is back on the Story Keepers&apos; shelf.</>}
-            earned={Math.max(8, 12 + level * 2 - statsRef.current.silly)}
+            earned={levelStarlight(level, statsRef.current.silly)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next story ▶</PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>

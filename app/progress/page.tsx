@@ -9,38 +9,7 @@ import { loadCustomTasks, CustomTask } from '@/lib/customTasks';
 import BottomNav from '@/components/BottomNav';
 import BackButton from '@/components/ui/BackButton';
 import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
-import { getQuestMetrics } from '@/lib/metrics';
-import { LANDS } from '@/lib/adventure';
-import type { ActivityDomain } from '@/lib/activities';
-
-// One row per game played: what it was, which skill, how often, the
-// highest level reached and when it was last played.
-interface GameRow { id: string; name: string; skill: string; plays: number; level: number | null; last: number }
-
-function gameName(taskId: string): string {
-  for (const land of LANDS) {
-    const q = land.quests.find(x => x.href === `/play/${taskId}`);
-    if (q) return q.title;
-  }
-  return taskId.replace(/^(world|pet)-/, '').split('-').map(w => w[0]?.toUpperCase() + w.slice(1)).join(' ');
-}
-
-function gameRows(): GameRow[] {
-  const rows = new Map<string, GameRow>();
-  for (const m of getQuestMetrics()) {
-    if (m.taskId.startsWith('parent-')) continue; // daily quest reports have their own section
-    const r = rows.get(m.taskId) ?? {
-      id: m.taskId, name: gameName(m.taskId),
-      skill: DOMAIN_META[m.domain as ActivityDomain]?.label ?? m.domain,
-      plays: 0, level: null, last: 0,
-    };
-    r.plays += 1;
-    if (typeof m.data.level === 'number') r.level = Math.max(r.level ?? 0, m.data.level);
-    r.last = Math.max(r.last, m.ts);
-    rows.set(m.taskId, r);
-  }
-  return [...rows.values()].sort((a, b) => b.last - a.last);
-}
+import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
 // A parent-facing, printable rollup for handing to a child's care team
@@ -49,19 +18,19 @@ function gameRows(): GameRow[] {
 // reports), never anything new collected just for this page.
 
 export default function ProgressReportPage() {
-  const { state, estimates, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
+  const { state, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
   const [summaries, setSummaries] = useState<DomainSummary[]>([]);
   const [entries, setEntries] = useState<ReportEntry[]>([]);
   const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
-  const [games, setGames] = useState<GameRow[]>([]);
+  const [games, setGames] = useState<GameSummary[]>([]);
 
   useEffect(() => {
     setChild(activeChild());
     setSummaries(domainSummaries());
     setEntries(allReportEntries());
     setCustomTasks(loadCustomTasks());
-    setGames(gameRows());
+    setGames(gameSummaries());
   }, []);
 
   const recent = [...entries].reverse().slice(0, 20);
@@ -111,8 +80,7 @@ export default function ProgressReportPage() {
                 ['✍️ Fine Motor / Writing', 'writing'],
                 ['🗣️ Communication', 'communication'],
                 ['🔢 Math', 'math'],
-                ['🦉 Attention & Memory', 'processing'],
-              ] as [string, MilestoneDomain][]).filter(([, key]) => key !== 'processing' || estimates.processing).map(([label, key]) => {
+              ] as [string, MilestoneDomain][]).map(([label, key]) => {
                 const cmp = domainComparison(key);
                 return (
                   <div key={label} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">
@@ -135,23 +103,23 @@ export default function ProgressReportPage() {
           </section>
         )}
 
-        {/* Games played on the map, so the report shows what the child actually did */}
+        {/* What the child actually played in the app's games */}
         <section className="mb-6">
           <h2 className="text-sm font-extrabold text-slate-700 mb-2">Games Played</h2>
           {games.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No games finished yet. Each finished game shows up here.</p>
+            <p className="text-sm text-slate-400 italic">No games finished yet. Each game your child finishes will show up here.</p>
           ) : (
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {games.map(g => (
                 <div key={g.id} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-700 truncate">{g.name}</p>
-                    <p className="text-[11px] text-slate-500">{g.skill} · last played {new Date(g.last).toLocaleDateString()}</p>
+                    <p className="text-sm font-bold text-slate-700 truncate">{g.title}</p>
+                    <p className="text-[11px] text-slate-400"><span className="capitalize">{DOMAIN_META[g.domain as keyof typeof DOMAIN_META]?.label ?? g.domain}</span> · last played {new Date(g.lastPlayed).toLocaleDateString()}</p>
                   </div>
-                  <p className="text-right text-xs font-bold text-slate-600 flex-shrink-0">
-                    {g.plays} {g.plays === 1 ? 'time' : 'times'}
-                    {g.level != null && <span className="block text-[11px] font-semibold text-slate-500">up to level {g.level}</span>}
-                  </p>
+                  <span className="text-right flex-shrink-0">
+                    <span className="block text-xs font-bold text-slate-600">finished {g.finished}×</span>
+                    {g.highestLevel > 0 && <span className="block text-[11px] text-slate-400">up to level {g.highestLevel}</span>}
+                  </span>
                 </div>
               ))}
             </div>
@@ -201,9 +169,9 @@ export default function ProgressReportPage() {
 
         {/* Recent log */}
         <section className="mb-6">
-          <h2 className="text-sm font-extrabold text-slate-700 mb-2">Recent Daily Quest Reports</h2>
+          <h2 className="text-sm font-extrabold text-slate-700 mb-2">Recent At-Home Quests</h2>
           {recent.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No daily quests reported yet. Tap Did it / Tried with help / Not yet on a quest to add one.</p>
+            <p className="text-sm text-slate-400 italic">No at-home quest reports yet. Games played in the app are listed under Games Played above.</p>
           ) : (
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {recent.map((e, i) => (

@@ -9,7 +9,7 @@ import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -265,7 +265,7 @@ export default function FireflyCatchPage() {
       totalMs: Date.now() - m.startedAt,
     });
     // ✨ higher levels shine brighter
-    awardStarlight(15 + level * 5);
+    awardStarlight(levelStarlight(level, m.misses));
     recordGameLevel('firefly-catch', level);
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
@@ -572,7 +572,7 @@ export default function FireflyCatchPage() {
             pet={pet}
             trophy={<span className="inline-block"><Lantern glow={1} size={96} /></span>}
             message={<>Every firefly made it home. {pet.name} is doing a happy dance!</>}
-            earned={15 + level * 5}
+            earned={levelStarlight(level, metricsRef.current.misses)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>

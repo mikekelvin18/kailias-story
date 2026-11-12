@@ -8,7 +8,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
@@ -271,7 +271,7 @@ export default function WordWizardPage() {
       avgReadMs: Math.round(s.readMs / Math.max(1, round.length)),
       totalMs: Date.now() - s.startedAt,
     });
-    const stars = Math.max(10, 14 + level * 2 - s.misses * 2);
+    const stars = levelStarlight(level, s.misses);
     awardStarlight(stars);
     recordGameLevel('word-wizard', level);
     setEarned(stars);

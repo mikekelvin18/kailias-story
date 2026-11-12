@@ -19,6 +19,7 @@ export interface RewardsState {
 }
 
 import { scopedKey } from './family';
+import { recordQuestWin } from './adventure';
 
 const KEY = 'kailia_rewards_v1';
 const empty: RewardsState = { starlight: 0, gameLevels: {}, celebratedCompanions: [] };
@@ -63,10 +64,27 @@ export function awardStarlight(amount: number): RewardsState {
 }
 
 // Remembers the highest level beaten per game; returns the updated state.
+// ── ONE starlight rule for every game ──
+// Finishing a level earns 12, plus 2 for every level number (so later
+// levels shine brighter, capped at level 40), minus 1 for each slip
+// (wrong tap, wall touch, missed potion…). Effort always pays: never
+// fewer than 10. Every game uses this, so the numbers make sense together.
+export function levelStarlight(level: number, slips = 0): number {
+  return Math.max(10, 12 + 2 * Math.min(Math.max(1, level), 40) - Math.max(0, Math.round(slips)));
+}
+
+// game id → its route on the world map, for the ones that differ
+const GAME_HREF: Record<string, string> = {
+  'word-wizard': '/play/reading',
+  'sense-explorer': '/play/sensory',
+};
+
 export function recordGameLevel(gameId: string, level: number): RewardsState {
   const r = loadRewards();
   r.gameLevels[gameId] = Math.max(r.gameLevels[gameId] ?? 0, level);
   save(r);
+  // a finished level is what lights up the quest's star on the map
+  recordQuestWin(GAME_HREF[gameId] ?? `/play/${gameId}`);
   return r;
 }
 

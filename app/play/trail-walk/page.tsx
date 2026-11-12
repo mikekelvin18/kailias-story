@@ -9,7 +9,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
@@ -185,7 +185,7 @@ export default function TrailWalkPage() {
     } else {
       const totalMs = Date.now() - startedRef.current;
       logQuestMetric('processing', 'trail-walk', { level, friends: STOPS, wrongAnswers: wrongsRef.current, totalMs });
-      const stars = Math.max(10, 16 + level * 2 - wrongsRef.current * 2);
+      const stars = levelStarlight(level, wrongsRef.current);
       awardStarlight(stars);
       recordGameLevel('trail-walk', level);
       setEarned(stars);

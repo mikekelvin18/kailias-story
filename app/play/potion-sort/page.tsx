@@ -9,7 +9,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -257,7 +257,7 @@ export default function PotionSortPage() {
       bestCombo: m.bestCombo,
       totalMs: Date.now() - m.startedAt,
     });
-    const light = Math.max(12, 16 + level * 3 - m.missed * 2);
+    const light = levelStarlight(level, m.missed);
     awardStarlight(light);
     setEarned(light);
     recordGameLevel('potion-sort', level);

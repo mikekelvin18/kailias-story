@@ -10,7 +10,7 @@ import LevelPath from '@/components/LevelPath';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { makeChallenge, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import { COMPANIONS } from '@/lib/rewards';
@@ -316,7 +316,7 @@ export default function JourneyPage() {
     if (party.length >= world.required) {
       const totalMs = Date.now() - startedRef.current;
       logQuestMetric('processing', 'journey', { level, friends: world.required, wrongAnswers: wrongRef.current, steps: stepsRef.current, totalMs });
-      const stars = Math.max(10, 16 + level * 2 - wrongRef.current * 2);
+      const stars = levelStarlight(level, wrongRef.current);
       awardStarlight(stars);
       recordGameLevel('journey', level);
       setEarned(stars);

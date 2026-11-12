@@ -9,7 +9,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
@@ -234,7 +234,9 @@ export default function MoonlightMatchPage() {
         setHintId(null);
         setPetX(p => besideKailia(p, kx));
         setCards(prev => prev.map(c => (c.state === 'up' ? { ...c, state: 'down' } : c)));
-        busyRef.current = false;
+        // wait for the two feathers to finish turning back over before the
+        // next tap counts, so a quick tap never lands on a half-turned card
+        setTimeout(() => { busyRef.current = false; }, 450);
       }, 750);
     }
   }
@@ -254,7 +256,7 @@ export default function MoonlightMatchPage() {
       bestStreak: s.bestStreak,
       totalMs: Date.now() - s.startedAt,
     });
-    awardStarlight(Math.max(8, 12 + level * 3 - s.mismatches));
+    awardStarlight(levelStarlight(level, s.mismatches));
     recordGameLevel('moonlight-match', level);
     sfx.fanfare();
     setNoelMood('celebrating');
@@ -404,7 +406,7 @@ export default function MoonlightMatchPage() {
             pet={pet}
             trophy={<span className="inline-block" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Shape kind="moon" size={84} /></span>}
             message={<>Every friend found their twin under the moon. {pet.name} is doing a happy dance!{statsRef.current.bestStreak >= 2 && <><br />Best combo ×{statsRef.current.bestStreak}!</>}</>}
-            earned={Math.max(8, 12 + level * 3 - statsRef.current.mismatches)}
+            earned={levelStarlight(level, statsRef.current.mismatches)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} ▶</PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>

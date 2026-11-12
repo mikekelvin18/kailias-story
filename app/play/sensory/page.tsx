@@ -9,7 +9,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
@@ -301,7 +301,7 @@ export default function SenseExplorerPage() {
       oddFirstTry: s.oddFirstTry, smallestHueDelta: s.smallestDelta === 999 ? 0 : Math.round(s.smallestDelta),
       totalMs: Date.now() - s.startedAt,
     });
-    const stars = Math.max(10, 14 + level * 2 - (s.huntMisses + s.oddMisses));
+    const stars = levelStarlight(level, s.huntMisses + s.oddMisses);
     awardStarlight(stars);
     recordGameLevel('sense-explorer', level);
     setEarned(stars);
