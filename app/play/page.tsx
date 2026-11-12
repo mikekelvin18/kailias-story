@@ -25,6 +25,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import { PineTree, Mushroom, Rainbow } from '@/components/scenery/Scenery';
+import { Thing } from '@/components/art/things';
 import { Sun, Moon, Sparkle, Butterfly, Flower, Birds, StarIcon, LockIcon } from '@/components/scenery/SkyDecor';
 import LivingSky from '@/components/scenery/LivingSky';
 
@@ -384,7 +385,7 @@ export default function AdventureMap() {
                     boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
                     filter: unlocked ? 'none' : (isBonus ? 'blur(1.5px) grayscale(0.5)' : 'grayscale(0.9)'),
                   }}>
-                  {unlocked ? land.emoji : (isBonus ? '✨' : '🔒')}
+                  {unlocked ? land.emoji : (isBonus ? <Sparkle size={30} color="#FDE68A" /> : <LockIcon size={28} />)}
                   {/* Done / not-done corner badge, so it's clear at a glance
                       which lands are finished even though the next land
                       opens after just one quest. */}
@@ -457,7 +458,7 @@ export default function AdventureMap() {
         <div className="flex items-center justify-between gap-2 flex-wrap pt-3 pb-1 sm:pt-5 sm:pb-2 px-1 flex-shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <h1 className={`text-lg sm:text-2xl font-extrabold ${theme.title} truncate`}>
-              🗺️ Kailia&apos;s World
+              <Thing id="map" size={26} /> Kailia&apos;s World
             </h1>
             {child && (
               <Link href="/family" title={`Playing as ${child.nickname} — tap to switch`}

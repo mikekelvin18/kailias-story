@@ -28,69 +28,71 @@ import { Book } from '../_pieces/pieces';
 // stone further toward the Story Keepers' book with every page that comes
 // back, the friend cheers, wobbles with a giggle at silly picks and, after
 // two silly picks on one page, runs under the bubble that really happens.
-// The scene and choice pictures are still emoji (Noel's 🐼 is drawn as
-// Noel); titles, buttons and rewards use drawn art.
+// Every scene and choice picture is painted (components/art/things), and
+// Noel is drawn as Noel himself.
 
-interface Choice { t: string; e: string; }
-interface Beat { scene: string; text: string; good: Choice; silly: Choice; }
-interface Story { title: string; emoji: string; beats: Beat[]; }
+// pictures are painted picture ids (components/art/things); 'noel' is Noel
+interface Choice { t: string; e: string[]; }
+interface Beat { scene: string[]; text: string; good: Choice; silly: Choice; }
+interface Story { title: string; beats: Beat[]; }
 
 const STORIES: Story[] = [
   {
-    title: 'The Fallen Ice Cream', emoji: '🍦',
+    title: 'The Fallen Ice Cream',
     beats: [
-      { scene: '🍦😊', text: 'Kailia got a big strawberry ice cream!',
-        good: { t: 'She says thank you and smiles', e: '😊💕' }, silly: { t: 'She wears it like a hat', e: '🍦🎩' } },
-      { scene: '🍦💥', text: 'Oh no — the ice cream fell on the ground!',
-        good: { t: 'Kailia feels sad', e: '😢' }, silly: { t: 'The ground says "yum!"', e: '😋🌍' } },
-      { scene: '😢', text: "Kailia's eyes fill with tears.",
-        good: { t: 'Noel shares his ice cream', e: '🐼🍨' }, silly: { t: 'Noel eats a cloud', e: '🐼☁️' } },
-      { scene: '🍨💕', text: 'They share the ice cream together!',
-        good: { t: 'Both friends feel happy', e: '😊😊' }, silly: { t: 'The spoon runs away', e: '🥄💨' } },
+      { scene: ['icecream', 'happy'], text: 'Kailia got a big strawberry ice cream!',
+        good: { t: 'She says thank you and smiles', e: ['happy', 'heart-pink'] }, silly: { t: 'She wears it like a hat', e: ['icecream', 'hat'] } },
+      { scene: ['icecream-fallen', 'splat'], text: 'Oh no — the ice cream fell on the ground!',
+        good: { t: 'Kailia feels sad', e: ['sad'] }, silly: { t: 'The ground says "yum!"', e: ['yum', 'ground'] } },
+      { scene: ['sad'], text: "Kailia's eyes fill with tears.",
+        good: { t: 'Noel shares his ice cream', e: ['noel', 'icecream'] }, silly: { t: 'Noel eats a cloud', e: ['noel', 'cloud'] } },
+      { scene: ['icecream', 'heart-pink'], text: 'They share the ice cream together!',
+        good: { t: 'Both friends feel happy', e: ['happy', 'happy'] }, silly: { t: 'The spoon runs away', e: ['spoon'] } },
     ],
   },
   {
-    title: 'The Lost Teddy', emoji: '🧸',
+    title: 'The Lost Teddy',
     beats: [
-      { scene: '🧸❓', text: 'Teddy is missing at bedtime!',
-        good: { t: 'Kailia looks under the bed', e: '🔦🛏️' }, silly: { t: 'She looks inside a banana', e: '🍌👀' } },
-      { scene: '🛏️🔦', text: 'Teddy is not under the bed…',
-        good: { t: 'She asks Noel for help', e: '🐼🙏' }, silly: { t: 'She asks the wall', e: '🧱💬' } },
-      { scene: '🐼💡', text: 'Noel remembers — the garden!',
-        good: { t: 'They look outside together', e: '🌳👀' }, silly: { t: 'They dig to the moon', e: '🌙⛏️' } },
-      { scene: '🧸🌼', text: 'Teddy was napping in the flowers!',
-        good: { t: 'Kailia hugs Teddy tight', e: '🤗🧸' }, silly: { t: 'Teddy drives away in a car', e: '🧸🚗' } },
+      { scene: ['teddy', 'bed'], text: 'Teddy is missing at bedtime!',
+        good: { t: 'Kailia looks under the bed', e: ['flashlight', 'bed'] }, silly: { t: 'She looks inside a banana', e: ['banana'] } },
+      { scene: ['bed', 'flashlight'], text: 'Teddy is not under the bed…',
+        good: { t: 'She asks Noel for help', e: ['noel', 'speech'] }, silly: { t: 'She asks the wall', e: ['bricks', 'speech'] } },
+      { scene: ['noel', 'bulb'], text: 'Noel remembers — the garden!',
+        good: { t: 'They look outside together', e: ['tree', 'flower'] }, silly: { t: 'They dig to the moon', e: ['shovel', 'moon'] } },
+      { scene: ['teddy', 'flower'], text: 'Teddy was napping in the flowers!',
+        good: { t: 'Kailia hugs Teddy tight', e: ['teddy', 'heart-red'] }, silly: { t: 'Teddy drives away in a car', e: ['teddy', 'car'] } },
     ],
   },
   {
-    title: 'The Rainy Day', emoji: '🌧️',
+    title: 'The Rainy Day',
     beats: [
-      { scene: '🌧️😮', text: "Rain! The picnic can't happen outside.",
-        good: { t: 'The friends feel a little sad', e: '😔' }, silly: { t: 'They drink the rain with straws', e: '🥤🌧️' } },
-      { scene: '😔🏠', text: 'Kailia and Noel stay inside.',
-        good: { t: 'Noel gets an idea!', e: '💡🐼' }, silly: { t: 'Noel turns into a fish', e: '🐟' } },
-      { scene: '💡✨', text: '"Let\'s picnic on the living room floor!"',
-        good: { t: 'They spread a blanket inside', e: '🧺🏠' }, silly: { t: 'They put the blanket on the roof', e: '🏠🧺' } },
-      { scene: '🧺😊', text: 'An inside picnic — cozy and dry!',
-        good: { t: 'They share snacks and giggle', e: '🍪😄' }, silly: { t: 'The sandwiches sing a song', e: '🥪🎤' } },
+      { scene: ['rain', 'basket'], text: "Rain! The picnic can't happen outside.",
+        good: { t: 'The friends feel a little sad', e: ['sad'] }, silly: { t: 'They drink the rain with straws', e: ['cup-straw', 'rain'] } },
+      { scene: ['house', 'rain'], text: 'Kailia and Noel stay inside.',
+        good: { t: 'Noel gets an idea!', e: ['noel', 'bulb'] }, silly: { t: 'Noel turns into a fish', e: ['fish'] } },
+      { scene: ['bulb', 'sparkle'], text: '"Let\'s picnic on the living room floor!"',
+        good: { t: 'They spread a blanket inside', e: ['basket', 'house'] }, silly: { t: 'They put the blanket on the roof', e: ['house', 'cloud'] } },
+      { scene: ['basket', 'happy'], text: 'An inside picnic — cozy and dry!',
+        good: { t: 'They share snacks and giggle', e: ['cookie', 'happy'] }, silly: { t: 'The sandwiches sing a song', e: ['sandwich', 'note'] } },
     ],
   },
   {
-    title: 'The Little Seed', emoji: '🌱',
+    title: 'The Little Seed',
     beats: [
-      { scene: '🌱', text: 'Kailia plants a tiny seed.',
-        good: { t: 'She waters it gently', e: '💧🌱' }, silly: { t: 'She reads it a bedtime story', e: '📖🌱' } },
-      { scene: '💧☀️', text: 'Water and sunshine, every single day…',
-        good: { t: 'A little sprout peeks out!', e: '🌿✨' }, silly: { t: 'A pizza grows instead', e: '🍕' } },
-      { scene: '🌿😊', text: 'The sprout grows taller and taller.',
-        good: { t: 'Kailia keeps caring for it', e: '💚🌿' }, silly: { t: 'She teaches it karate', e: '🥋🌿' } },
-      { scene: '🌸', text: 'One day — a beautiful flower!',
-        good: { t: 'She shows Noel proudly', e: '🐼🌸' }, silly: { t: 'The flower flies to school', e: '🌸✈️' } },
+      { scene: ['seed'], text: 'Kailia plants a tiny seed.',
+        good: { t: 'She waters it gently', e: ['drop', 'seed'] }, silly: { t: 'She reads it a bedtime story', e: ['book', 'seed'] } },
+      { scene: ['drop', 'sun'], text: 'Water and sunshine, every single day…',
+        good: { t: 'A little sprout peeks out!', e: ['sprout', 'sparkle'] }, silly: { t: 'A pizza grows instead', e: ['pizza'] } },
+      { scene: ['sprout', 'happy'], text: 'The sprout grows taller and taller.',
+        good: { t: 'Kailia keeps caring for it', e: ['heart-green', 'sprout'] }, silly: { t: 'She teaches it to dance', e: ['sprout', 'note'] } },
+      { scene: ['flower'], text: 'One day — a beautiful flower!',
+        good: { t: 'She shows Noel proudly', e: ['noel', 'flower'] }, silly: { t: 'The flower flies away like a rocket', e: ['flower', 'rocket'] } },
     ],
   },
 ];
 
 import { soundEnabled } from '@/lib/accessibility';
+import { Things } from '@/components/art/things';
 import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
@@ -121,17 +123,9 @@ const BUBBLE_X = [26, 74];
 
 const clampPct = (v: number) => Math.max(10, Math.min(90, v));
 
-// a scene or choice picture: emoji stay as they are, but Noel (🐼) is
-// drawn as Noel himself
-function Pic({ s, size }: { s: string; size: number }) {
-  const parts = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s), x => x.segment);
-  return (
-    <span className="inline-flex items-end justify-center" style={{ fontSize: size, lineHeight: 1.1 }}>
-      {parts.map((g, i) => g === '🐼'
-        ? <PandaSprite key={i} size={Math.round(size * 0.95)} expression="happy" />
-        : <span key={i}>{g}</span>)}
-    </span>
-  );
+// a scene or choice picture: a little row of painted pictures
+function Pic({ s, size }: { s: string[]; size: number }) {
+  return <Things ids={s} size={size} />;
 }
 
 export default function StorySparksPage() {
@@ -286,7 +280,7 @@ export default function StorySparksPage() {
             <div key={beatKey} className="rounded-3xl px-5 py-4 mt-1 text-center bounce-in shadow-2xl relative"
               style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)', border: '3px solid #3b2416' }}>
               <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">{story.title} · page {beatIdx + 1}</p>
-              <span className="block my-2 float"><Pic s={beat.scene} size={52} /></span>
+              <span className="block my-2 float"><Pic s={beat.scene} size={66} /></span>
               <p className="text-lg font-extrabold text-amber-950 leading-snug">{beat.text}</p>
             </div>
 
@@ -325,7 +319,7 @@ export default function StorySparksPage() {
                           className={`w-full flex flex-col items-center gap-1.5 rounded-[26px] px-2.5 py-3 text-center transition-transform active:scale-[0.96] ${glow ? 'hint-glow' : ''}`}
                           style={{ background: glow ? 'linear-gradient(180deg, #FFFDF0, #FFF3C4)' : 'linear-gradient(180deg, #FFFFFF, #FFF4FB)', border: '3px solid #3b2416',
                             boxShadow: glow ? '0 6px 0 rgba(59,36,22,0.25), 0 0 0 4px #FDE047, 0 0 22px rgba(253,224,71,0.9)' : '0 6px 0 rgba(59,36,22,0.25), 0 0 18px rgba(255,214,245,0.5)', minHeight: 150 }}>
-                          <Pic s={o.c.e} size={38} />
+                          <Pic s={o.c.e} size={48} />
                           <span className="font-extrabold text-purple-950 leading-snug" style={{ fontSize: 16 }}>{o.c.t}</span>
                         </button>
                         {/* bubble tail */}
