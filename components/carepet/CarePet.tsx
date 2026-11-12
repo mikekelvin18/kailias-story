@@ -195,8 +195,8 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       say('Crack, crack! The egg is hatching!');
       later(() => {
         // the friend picked as the practice focus, else the buddy picked
-        // at sign-up, hatches straight away; only with neither (e.g. the
-        // Noel buddy) does the child choose who is inside
+        // at sign-up, hatches straight away; only a profile with neither
+        // (none today) would let the child choose who is inside
         const focus = getFocusCompanion() ?? signupFriend();
         if (focus) {
           const f = COMPANIONS.find(c => c.name === focus)!;

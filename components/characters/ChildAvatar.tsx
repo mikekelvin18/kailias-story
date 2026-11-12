@@ -7,7 +7,7 @@ import { CritterSprite, SpeciesKey } from './CritterSprite';
 import { AvatarId, CHILD_AVATARS } from './characters.config';
 
 const LEGACY_EMOJI: Record<string, AvatarId> = {
-  '🦊': 'fox', '🦄': 'unicorn', rabbit: 'unicorn', '🐰': 'unicorn', '🦉': 'owl', '🐢': 'turtle', '🐼': 'panda', koala: 'panda', '🐉': 'dragon', '🐲': 'dragon',
+  '🦊': 'fox', '🦄': 'unicorn', rabbit: 'unicorn', '🐰': 'unicorn', '🦉': 'owl', '🐢': 'turtle', '🐼': 'parrot', koala: 'parrot', panda: 'parrot', '🦜': 'parrot', '🐉': 'dragon', '🐲': 'dragon',
 };
 
 export function resolveAvatar(stored: string) {

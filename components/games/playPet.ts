@@ -11,18 +11,19 @@
 import { useEffect, useState } from 'react';
 import { COMPANIONS, getFocusCompanion, loadRewards, unlockedCompanions } from '@/lib/rewards';
 import { activeChild } from '@/lib/family';
-import { CHILD_AVATARS } from '@/components/characters/characters.config';
+import { resolveAvatar } from '@/components/characters/ChildAvatar';
 
 export type PlayPet = (typeof COMPANIONS)[number];
 
 const FLICK = COMPANIONS.find(c => c.name === 'Flick')!;
 
-// The sign-up buddy as a friend's name, when that buddy is one of the
-// friends (Noel the panda is already the guide, so he isn't one).
+// The sign-up buddy as a friend's name. Every buddy is one of the
+// friends (Noel is the guide, so he isn't offered as a buddy).
 export function signupFriend(): string | null {
   const id = activeChild()?.avatar;
-  const name = CHILD_AVATARS.find(a => a.id === id)?.name;
-  return COMPANIONS.some(c => c.name === name) ? name! : null;
+  if (!id) return null;
+  const name = resolveAvatar(id).name;
+  return COMPANIONS.some(c => c.name === name) ? name : null;
 }
 
 export function pickPlayPet(): PlayPet {

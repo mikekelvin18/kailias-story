@@ -62,7 +62,9 @@ export const CHARACTER_IMAGES: Record<'kailia' | 'noel', Partial<Record<Characte
 // and Noel's portrait; any without an `image` shows the matching drawn critter from CritterSprite.tsx. To swap in
 // a real picture: drop e.g. `avatar-fox.png` into `public/avatars/` and fill
 // in its `image` line below — nothing else changes.
-export type AvatarId = 'turtle' | 'fox' | 'owl' | 'unicorn' | 'panda' | 'dragon';
+// 'panda' (Noel) was a buddy until 2026-11-12; Noel is the guide in every
+// game, so he is no longer offered. Old 'panda' profiles show Kiko.
+export type AvatarId = 'turtle' | 'fox' | 'owl' | 'unicorn' | 'parrot' | 'dragon';
 
 export const CHILD_AVATARS: { id: AvatarId; name: string; tint: string; image?: string;
   // Head-and-shoulders crop of a full-body picture, in the picture's own
@@ -73,5 +75,5 @@ export const CHILD_AVATARS: { id: AvatarId; name: string; tint: string; image?: 
   { id: 'owl',     name: 'Sage',   tint: '#EDE9FE', image: '/art/pets/sage.webp', crop: [210, 170, 370, 408] },
   { id: 'unicorn', name: 'Nova',   tint: '#FCE7F3', image: '/art/pets/nova.webp', crop: [290, 175, 310, 438] },
   { id: 'dragon',  name: 'Ember',  tint: '#FEF9C3', image: '/art/pets/ember.webp', crop: [222, 160, 320, 422] },
-  { id: 'panda',   name: 'Noel',   tint: '#E0F2FE', image: '/characters/noel/portrait-front.png', crop: [188, 140, 340, 376] },
+  { id: 'parrot',  name: 'Kiko',   tint: '#ECFCCB', image: '/art/pets/kiko.webp', crop: [232, 165, 330, 485] },
 ];
