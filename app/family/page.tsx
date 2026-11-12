@@ -20,6 +20,10 @@ import BackButton from '@/components/ui/BackButton';
 import StepGuide from '@/components/ui/StepGuide';
 import Section from '@/components/ui/Section';
 import FocusPicker from '@/components/FocusPicker';
+import AvatarPicker from '@/components/ui/AvatarPicker';
+import ChildAvatar from '@/components/characters/ChildAvatar';
+import { CHILD_AVATARS } from '@/components/characters/characters.config';
+import VoicePicker from '@/components/VoicePicker';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -28,10 +32,6 @@ const DEV_TOOLS = process.env.NODE_ENV === 'development';
 // Consent first, then a minimal child profile, then full parental rights:
 // view every piece of stored data, delete the child profile, delete it all.
 
-const AVATARS = [
-  '🐱', '🐶', '🦊', '🐰', '🐻', '🐼', '🦁', '🐯',
-  '🐨', '🐘', '🐧', '🦉', '🐸', '🦄', '🐢', '🐝', '🦋', '🐬',
-];
 // "Age 4", or "14 months" for little ones (childAgeYears rounds those to 0.5/1).
 function ageLabel(c: { birthYear: number; birthMonth: number }) {
   const now = new Date();
@@ -54,7 +54,7 @@ export default function ParentZonePage() {
   const [nickname, setNickname] = useState('');
   const [birthMonth, setBirthMonth] = useState(0);
   const [birthYear, setBirthYear] = useState(0);
-  const [avatar, setAvatar] = useState(AVATARS[0]);
+  const [avatar, setAvatar] = useState<string>(CHILD_AVATARS[0].id);
   const [formError, setFormError] = useState('');
   const [showData, setShowData] = useState(false);
   const [inventory, setInventory] = useState<DataSection[]>([]);
@@ -83,12 +83,10 @@ export default function ParentZonePage() {
   }
 
   function updateA11y(patch: Partial<AccessibilityPrefs>) {
-    setA11y(prev => {
-      const next = { ...prev, ...patch };
-      saveA11y(next);
-      applyA11y(next);
-      return next;
-    });
+    const next = { ...a11y, ...patch };
+    saveA11y(next);
+    applyA11y(next);
+    setA11y(next);
   }
 
   const consented = !!family?.consent;
@@ -109,7 +107,7 @@ export default function ParentZonePage() {
     if (!birthMonth || !birthYear) { setFormError('Please pick the birth month and year.'); return; }
     setFamily(addChild({ nickname, birthYear, birthMonth, avatar }));
     setFormError('');
-    setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(AVATARS[0]);
+    setNickname(''); setBirthMonth(0); setBirthYear(0); setAvatar(CHILD_AVATARS[0].id);
     setShowAddChild(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -193,9 +191,8 @@ export default function ParentZonePage() {
               <p className="text-xs text-amber-900">
                 <strong>Where it lives:</strong> only on this device. Nothing is uploaded, sold, or
                 shared. <strong>Never collected:</strong> audio, video, location, email, or a last
-                name. The one exception is Printable Worksheets, where a parent may optionally
-                photograph a completed paper sheet — that photo stays on this device only and has
-                its own separate consent, asked the first time you try it. <strong>How long:</strong>{' '}
+                name, and never photos — printable worksheets are marked done with a simple tap.{' '}
+                <strong>How long:</strong>{' '}
                 only while the profile exists — deleting it erases everything (within 30 days on
                 any future servers).
               </p>
@@ -230,7 +227,7 @@ export default function ParentZonePage() {
         {consented && family && child && (
           <div className="rounded-3xl p-4 mb-4" style={{ background: theme.surface }}>
             <div className="flex items-center gap-3">
-              <span className="text-5xl" aria-hidden="true">{child.avatar}</span>
+              <ChildAvatar avatar={child.avatar} size={56} />
               <div className="flex-1 min-w-0">
                 <p className="text-xl font-extrabold text-gray-800 truncate">{child.nickname}</p>
                 <p className="text-sm text-gray-500">{ageLabel(child)} · born {MONTHS[child.birthMonth - 1]} {child.birthYear}</p>
@@ -242,7 +239,7 @@ export default function ParentZonePage() {
                 <button key={c.id} onClick={() => handleSwitchChild(c.id)} aria-pressed={c.id === family.activeChildId}
                   className="flex items-center gap-1.5 min-h-[40px] px-3 rounded-full text-sm font-extrabold transition-transform active:scale-95"
                   style={{ background: c.id === family.activeChildId ? '#7C3AED' : '#F1F5F9', color: c.id === family.activeChildId ? 'white' : '#334155' }}>
-                  <span>{c.avatar}</span> {c.nickname}
+                  <ChildAvatar avatar={c.avatar} size={26} /> {c.nickname}
                 </button>
               ))}
               <button onClick={() => setShowAddChild(true)}
@@ -286,15 +283,9 @@ export default function ParentZonePage() {
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5">Pick an avatar</label>
-            <div className="flex gap-2 flex-wrap mb-4">
-              {AVATARS.map(a => (
-                <button key={a} onClick={() => setAvatar(a)} className="w-12 h-12 rounded-2xl text-2xl transition-transform hover:scale-110"
-                  style={{ background: avatar === a ? '#DBEAFE' : '#F8FAFC', border: avatar === a ? '2.5px solid #2563EB' : '2px solid #E2E8F0' }}>
-                  {a}
-                </button>
-              ))}
-            </div>
+            <p className="block text-sm font-bold text-gray-700">Pick a buddy</p>
+            <p className="text-sm text-gray-500 mb-3">This buddy also becomes your child&apos;s daily pet friend in the games. You can change it later.</p>
+            <div className="mb-6"><AvatarPicker value={avatar} onChange={setAvatar} /></div>
             {formError && <p className="text-sm font-bold text-rose-600 mb-2">{formError}</p>}
             <button onClick={handleAddChild}
               className="w-full py-3.5 rounded-full text-lg font-extrabold text-white" style={{ background: '#2563EB' }}>
@@ -432,6 +423,17 @@ export default function ParentZonePage() {
             <span className={`text-sm font-semibold text-gray-700`}>🔇 Reduce sound effects</span>
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games</span>
+            <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
+          </label>
+
+          <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
+            <p className={`text-sm font-semibold text-gray-700 mb-0.5`}>🐼 Noel&apos;s read-aloud voice</p>
+            <p className="text-xs text-gray-500 mb-2">Automatic picks the warmest voice this device has. Tap Hear it to try one.</p>
+            <VoicePicker value={a11y.voiceName} onChange={name => updateA11y({ voiceName: name })} />
+          </div>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
             <span className={`text-sm font-semibold text-gray-700`}>📖 Dyslexia-friendly text spacing</span>

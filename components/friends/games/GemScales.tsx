@@ -162,7 +162,7 @@ export default function GemScales({ difficulty, say, onDone, pet, reaction }: Ro
             ))}
           </div>
         </div>
-        <Actor art={pet.art} name={pet.name} x={13} y={97} h={92} mood={mood} moodKey={moodKey} z={5} />
+        <Actor art={pet.art} name={pet.name} x={13} y={97} h={92} mood={mood} moodKey={moodKey} z={5} halo="#FFD08A" />
         {layer}
       </Stage>
 

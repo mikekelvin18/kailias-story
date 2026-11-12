@@ -5,21 +5,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import { usePlayCount } from '@/hooks/usePlayCount';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { characterArt } from '@/components/characters/characters.config';
 import { loadRewards, awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { logQuestMetric } from '@/lib/metrics';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import LevelPath from '@/components/LevelPath';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import SkillIntro from '@/components/SkillIntro';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
 import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,6 +138,23 @@ function closestOnPath(p: Pt, path: Pt[]): number {
   for (let i=0;i<path.length-1;i++) { const d=distToSeg(p,path[i],path[i+1]); if(d<min) min=d; }
   return min;
 }
+// how far along the path (in px of path length) the point nearest p sits
+function arcAlong(p: Pt, path: Pt[]): number {
+  let best=Infinity, arc=0, run=0;
+  for (let i=0;i<path.length-1;i++) {
+    const a=path[i], b=path[i+1], dx=b.x-a.x, dy=b.y-a.y, l2=dx*dx+dy*dy, l=Math.sqrt(l2);
+    const t=l2?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l2)):0;
+    const d=Math.hypot(p.x-(a.x+t*dx), p.y-(a.y+t*dy));
+    if (d<best) { best=d; arc=run+t*l; }
+    run+=l;
+  }
+  return arc;
+}
+function pathLength(path: Pt[]): number {
+  let run=0;
+  for (let i=0;i<path.length-1;i++) run+=Math.hypot(path[i+1].x-path[i].x, path[i+1].y-path[i].y);
+  return run;
+}
 
 // ─── Canvas star helper ───────────────────────────────────────────────────────
 
@@ -190,6 +205,11 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+// The trace has to really follow the path: it starts on GO, picks up near
+// where Kailia stands after a lift, and only counts progress that moves
+// along the path a little at a time (no tapping the flag, no shortcuts
+// between two corridors that run side by side).
+const START_R=34, LEAP=70, FINISH_SLACK=60;
 const STAR_LINES=['Ooh, a star!','Sparkly! Keep going!','Another star!','Star catcher!'];
 const TOUCH_LINE=()=>typeof window!=='undefined'&&'ontouchstart' in window
   ? 'Put your finger on GO and follow the glowing path to the flag!'
@@ -318,6 +338,8 @@ export default function MazeRunnerPage() {
   const lastHitRef   = useRef(0);
   const hitFlashRef  = useRef(false);
   const doneRef      = useRef(false);
+  const progressRef  = useRef(0);       // furthest path length really traced
+  const lengthRef    = useRef(0);       // whole path length
   const levelRef     = useRef(LEVELS[0]);
   const animRef      = useRef(0);
   // Kailia on the canvas: a 5-frame run cycle while she follows the
@@ -509,6 +531,8 @@ export default function MazeRunnerPage() {
     lastHitRef.current   = 0;
     hitFlashRef.current  = false;
     doneRef.current      = false;
+    progressRef.current  = 0;
+    lengthRef.current    = pathLength(path);
     charRef.current      = null;
     shownRef.current     = null;
     trailRef.current     = [];
@@ -561,7 +585,7 @@ export default function MazeRunnerPage() {
 
   // Where the friend goes: on the ground beside Kailia, on the side she
   // came from (so behind her on the path, or next to it on the way up or
-  // down), or sitting just below GO before the run begins. During a hint
+  // down), or waiting on the path just past GO before the run begins. During a hint
   // it holds its spot.
   useEffect(() => {
     if (phase !== 'playing') return;
@@ -572,8 +596,12 @@ export default function MazeRunnerPage() {
       if (hint) { hintRef.current = null; setHinting(false); }
       const k = shownRef.current ?? path[0];
       const back = -facingRef.current;
+      // before the run: standing on the glowing path a little way past GO,
+      // as if showing the way (not squeezed under GO against the walls)
+      const ahead = (d: number) => path.find(q => Math.hypot(q.x - path[0].x, q.y - path[0].y) >= d);
       const options: Pt[] = !charRef.current
-        ? [{ x: path[0].x, y: path[0].y + 64 }]
+        ? [...[ahead(78), ahead(100), ahead(124)].filter((q): q is Pt => !!q).map(q => ({ x: q.x, y: q.y + 16 })),
+            { x: path[0].x, y: path[0].y + 64 }]
         : [
             { x: k.x + back * 46, y: k.y + 4 }, { x: k.x - back * 46, y: k.y + 4 },
             { x: k.x + back * 46, y: k.y + 52 }, { x: k.x - back * 46, y: k.y + 52 },
@@ -626,7 +654,24 @@ export default function MazeRunnerPage() {
 
   const onStart = (e: React.MouseEvent|React.TouchEvent) => {
     e.preventDefault();
-    const p=getPos(e); if(!p) return;
+    const p=getPos(e); if(!p || doneRef.current) return;
+    const path=pathRef.current; if(!path.length) return;
+    if (!charRef.current) {
+      // the very first touch has to land on GO
+      if (Math.hypot(p.x-path[0].x,p.y-path[0].y)>START_R) {
+        setNoelLine('Start on the green GO circle, where Kailia is standing!');
+        return;
+      }
+    } else {
+      // after a lift, carry on from where Kailia is (not further ahead)
+      const onPath=closestOnPath(p,path)<=corridorRef.current;
+      const arc=arcAlong(p,path);
+      const nearKailia=Math.hypot(p.x-charRef.current.x,p.y-charRef.current.y)<=START_R+10;
+      if (!nearKailia && !(onPath && arc<=progressRef.current+LEAP)) {
+        setNoelLine('Put your finger back on Kailia and keep going!');
+        return;
+      }
+    }
     if (!started) setNoelLine('Nice and steady! Grab the stars on the way.');
     setStarted(true); setDrawing(true);
     charRef.current=p; drawCanvas();
@@ -639,6 +684,14 @@ export default function MazeRunnerPage() {
 
     const dist=closestOnPath(p,pathRef.current);
     const ok=dist<=corridorRef.current;
+    if (ok) {
+      // a quick swipe may cover a lot of path between two events; a jump
+      // across a wall covers lots of path with very little finger movement
+      const prev=charRef.current;
+      const moved=prev?Math.hypot(p.x-prev.x,p.y-prev.y):0;
+      const arc=arcAlong(p,pathRef.current);
+      if (arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
+    }
     trailRef.current=[...trailRef.current,{x:p.x,y:p.y,ok}];
     charRef.current=p;
 
@@ -674,7 +727,8 @@ export default function MazeRunnerPage() {
 
     // Reached end?
     const end=pathRef.current[pathRef.current.length-1];
-    if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current) {
+    if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
+        && progressRef.current>=lengthRef.current-FINISH_SLACK) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);
@@ -714,37 +768,23 @@ export default function MazeRunnerPage() {
   // impression — Kailia, Noel and the friend open it together (matching the
   // story voice used everywhere else) instead of a bare title screen.
   if (phase==='intro') return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-6"
-      style={{background:'linear-gradient(135deg,#050f05,#020510)'}}>
-      <div className="max-w-sm w-full text-center">
-        <div className="flex items-end justify-center gap-1 mb-2">
-          <PandaSprite size={104} expression="excited" className="float" style={{ animationDelay: '0.2s' }} />
-          <KailiaSprite size={84} expression="excited" className="float" />
-          <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 62)} kind="pet" />
-        </div>
-        <h1 className="text-3xl font-extrabold text-white mb-2" style={{textShadow:'0 0 20px #4ade80'}}>Maze Runner</h1>
-        <div className="rounded-2xl px-4 py-3 mb-4 text-left" style={{background:'rgba(255,255,255,0.95)'}}>
-          <p className="text-gray-900 text-base font-bold leading-snug">
-            Ooh, the fireflies lost their way! Trace the glowing trail with your finger to the flag.
-            Stay off the walls, and grab every star! {pet.name} will run along with Kailia.
-          </p>
-        </div>
+    <GameIntro
+      title="Maze Runner"
+      theme={{ bg: 'radial-gradient(120% 80% at 50% 0%, #14532d 0%, #052e16 50%, #020510 100%)', accent: '#4ADE80', accent2: '#059669' }}
+      pet={pet}
+      story={<p>Ooh, the fireflies lost their way! Trace the glowing trail with your finger to the flag.
+        Stay off the walls, and grab every star! {pet.name} will run along with Kailia.</p>}
+      levels={<>
         <LevelPath gameId="fine-motor" level={level} onPick={setLevel} />
-        <p className="mt-3 mb-4 text-sm font-bold text-green-200">
+        <p className="mt-3 text-sm font-bold text-green-200">
           <span className="inline-block w-3 h-3 rounded-full align-middle mr-1.5" style={{ background: lv.accent, boxShadow: `0 0 8px ${lv.accent}` }} />
           Next up: {lv.name}{corridor < 28 ? ', a narrower path!' : ''}
         </p>
-        <button onClick={()=>setPhase('playing')}
-          className="px-10 py-4 rounded-full font-extrabold text-white text-xl transition-all hover:scale-105 active:scale-95"
-          style={{background:'linear-gradient(135deg,#059669,#2563eb)',boxShadow:'0 0 30px rgba(74,222,128,0.35)'}}>
-          <span className="whitespace-nowrap">Play level {level}</span>
-        </button>
-        <div className="mt-4">
-          <Link href="/play" className="text-green-400 text-sm hover:text-green-200">← Back to the map</Link>
-        </div>
-        <SkillIntro gameId="fine-motor" />
-      </div>
-    </main>
+      </>}
+      startLabel={<>Play level {level}</>}
+      onStart={()=>setPhase('playing')}
+      footer={<SkillIntro gameId="fine-motor" />}
+    />
   );
 
   // ─ Level complete ──────────────────────────────────────────────────────────────
@@ -755,69 +795,30 @@ export default function MazeRunnerPage() {
     // the app feels worth coming back to.
     const bigWin = isFirstEver && level===1;
     return (
-      <main className="min-h-screen flex items-center justify-center px-4 py-6 relative overflow-hidden"
-        style={{background:`linear-gradient(135deg,${lv.floor},${lv.wall})`}}>
-        {bigWin && (
-          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }} aria-hidden="true">
-            {Array.from({ length: 24 }).map((_, i) => (
-              <span key={i} className="absolute confetti-fall" style={{
-                left: `${(i * 41) % 100}%`,
-                top: -40,
-                animationDelay: `${(i % 8) * 0.15}s`,
-                animationDuration: `${2.2 + (i % 5) * 0.3}s`,
-              }}>
-                {i % 2 === 0
-                  ? <StarIcon size={18 + (i % 3) * 7} />
-                  : <span className="block rounded-full" style={{ width: 12 + (i % 3) * 3, height: 12 + (i % 3) * 3, background: ['#FF9EC7', '#8BE3FF', '#86EFAC'][i % 3], border: '2px solid #3b2416' }} />}
-              </span>
-            ))}
-          </div>
-        )}
-        <style>{`@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(115vh) rotate(360deg);opacity:0.9}} .confetti-fall{animation:confettiFall linear forwards}`}</style>
-        <div className="max-w-sm w-full text-center relative bounce-in" style={{ zIndex: 2 }}>
-          <div className="flex items-end justify-center gap-2 mb-4">
-            <PandaSprite size={112} expression="celebrating" className="float" />
-            <KailiaSprite size={88} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-            <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 80)} kind="pet" />
-            </span>
-          </div>
-          <h2 className="text-3xl font-extrabold text-white mb-1 drop-shadow-lg">
-            {bigWin ? 'You did it, Kailia!' : `Level ${level} complete!`}
-          </h2>
-          <p className="font-bold text-base mb-4 text-white/90">
-            {bigWin ? `Level ${level} complete! Your very first quest: ${lv.name} conquered!` : `${lv.name} conquered! ${pet.name} is doing a happy dance.`}
-          </p>
-          {/* only the stars found are shown: something to celebrate, never a grade */}
-          <div className="flex justify-center gap-3 mb-3">
+      <GameFinish
+        title={bigWin ? 'You did it, Kailia!' : `Level ${level} complete!`}
+        theme={{ bg: `linear-gradient(135deg,${lv.floor},${lv.wall})`, accent: '#4ADE80', accent2: '#059669' }}
+        pet={pet}
+        trophy={/* only the stars found are shown: something to celebrate, never a grade */
+          <div className="flex justify-center gap-3">
             {Array.from({ length: earned }, (_, n) => (
-              <span key={n} className="star-burst inline-block" style={{ animationDelay: `${n * 0.15}s`, filter: 'drop-shadow(0 0 10px #FFD700)' }}>
+              <span key={n} className="star-burst inline-block" style={{ animationDelay: `${0.4 + n * 0.15}s`, filter: 'drop-shadow(0 0 10px #FFD700)' }}>
                 <StarIcon size={48} />
               </span>
             ))}
-          </div>
-          <p className="text-yellow-300 font-extrabold text-lg mb-2"><StarIcon /> +{earnedLight} starlight</p>
-          <p className="text-white/80 text-sm mb-6">{snapStars === 3 ? 'Every star! ' : ''}{chapter.name} path-finder!</p>
-          {showReassess && <ReassessBanner onGo={()=>router.push('/assessment/games')} />}
-          <div className="flex gap-3 justify-center flex-wrap">
-            <button onClick={retryLevel}
-              className="px-6 py-3.5 rounded-full font-extrabold text-lg transition-all hover:scale-105"
-              style={{border:'2px solid rgba(255,255,255,0.6)',color:'#FFFFFF',background:'rgba(255,255,255,0.12)'}}>
-              <span className="whitespace-nowrap">Play again</span>
-            </button>
-            <button onClick={nextLevel}
-              className="px-8 py-3.5 rounded-full font-extrabold text-lg shadow-xl transition-all hover:scale-105"
-              style={{background:'white',color:'#14532d'}}>
-              <span className="whitespace-nowrap">Level {level+1} ▶</span>
-            </button>
-            <Link href="/play"
-              className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105 inline-block"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              <span className="whitespace-nowrap">Back to the map</span>
-            </Link>
-          </div>
-        </div>
-      </main>
+          </div>}
+        message={<>
+          {bigWin ? `Level ${level} complete! Your very first quest: ${lv.name} conquered!` : `${lv.name} conquered! ${pet.name} is doing a happy dance.`}
+          <span className="block text-sm text-white/80 mt-1">{snapStars === 3 ? 'Every star! ' : ''}{chapter.name} path-finder!</span>
+          {showReassess && <div className="mt-3"><ReassessBanner onGo={()=>router.push('/assessment/games')} /></div>}
+        </>}
+        earned={earnedLight}
+        actions={<>
+          <PlayButton theme={GOLD} onClick={nextLevel}>Level {level+1} ▶</PlayButton>
+          <SoftButton onClick={retryLevel}>Play again</SoftButton>
+          <SoftButton href="/play">Back to the map</SoftButton>
+        </>}
+      />
     );
   }
 
@@ -874,7 +875,7 @@ export default function MazeRunnerPage() {
         <div className="flex items-center gap-3 rounded-2xl p-2.5"
           style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
           <PandaSprite size={46} expression={hinting ? 'thinking' : started ? 'excited' : 'happy'} style={{ flexShrink: 0 }} />
-          <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
+          <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
         </div>
       </div>
     </main>

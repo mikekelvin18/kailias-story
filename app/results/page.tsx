@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
 import { loadProgress } from '@/lib/adventure';
 import StepGuide from '@/components/ui/StepGuide';
 import BackButton from '@/components/ui/BackButton';
+import { Sparkle } from '@/components/scenery/SkyDecor';
 
 function getFineMotorStage(score: number) {
   if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', color: '#059669' };
@@ -136,13 +138,15 @@ const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> 
 export default function ResultsPage() {
   const {
     state, totalScore, learningStage, stageEmoji, stageDescription,
-    developmentalAge, domainAge, resetAssessment,
+    developmentalAge, domainRange, domainComparison, estimates, chronoMonths, devMonths, resetAssessment,
     primarySensoryPattern, sensoryPatternEmoji, sensoryPatternDescription,
   } = useAssessment();
   const router = useRouter();
   const [showCelebration, setShowCelebration] = useState(true);
   const [confirmingRetake, setConfirmingRetake] = useState(false);
-  const band = developmentalBand(state.ageGroup, totalScore);
+  const band = developmentalBand(state.ageGroup, totalScore, devMonths);
+  const answersUsed = Object.values(estimates).reduce((t, e) => t + (e?.items ?? 0), 0);
+  const anyGrowing = (['reading', 'writing', 'communication', 'math'] as const).some(k => domainComparison(k) === 'growing');
   // Right after the first adventure check (nothing played on the map
   // yet) this is the last of the four setup steps; afterwards it's a
   // regular results page reached from the map or the Parent Zone.
@@ -167,16 +171,18 @@ export default function ResultsPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-8"
+      className={`min-h-screen flex flex-col items-center justify-start px-4 py-8 ${firstVisit ? 'pb-28' : ''}`}
       style={{ background: 'linear-gradient(180deg, #1A2238 0%, #222849 60%, #1E2F4D 100%)' }}
     >
       {/* Celebration burst */}
+      {/* Celebration: drawn sparkles burst around the edges for a few
+          seconds (no emoji, and nothing lands on top of the heading). */}
       {showCelebration && (
-        <div className="fixed inset-0 pointer-events-none z-[5] flex items-center justify-center">
-          <div className="text-8xl bounce-in">🎉</div>
-          {['🌟','⭐','✨','💫','🎊','🎈','🏆','🌈'].map((e, i) => (
-            <span key={i} className="absolute float" style={{ left: `${10 + i * 12}%`, top: `${5 + (i % 4) * 22}%`, fontSize: 36, animationDelay: `${i * 0.15}s` }}>
-              {e}
+        <div className="fixed inset-0 pointer-events-none z-[5] print:hidden" aria-hidden="true">
+          {[...Array(14)].map((_, i) => (
+            <span key={i} className="absolute bounce-in"
+              style={{ left: `${i % 2 ? 88 - (i % 5) * 3 : 4 + (i % 5) * 3}%`, top: `${8 + (i * 13) % 84}%`, animationDelay: `${i * 0.08}s` }}>
+              <Sparkle size={18 + (i % 4) * 8} color={['#FDE68A', '#F5D0FE', '#FFFFFF', '#A7F3D0'][i % 4]} />
             </span>
           ))}
         </div>
@@ -214,16 +220,24 @@ export default function ResultsPage() {
               Estimated Developmental Level
             </p>
             <p className="text-white text-3xl font-extrabold">{developmentalAge}</p>
-            <p className="text-purple-200 text-xs mt-1">Based on performance across all 4 domains</p>
+            <p className="text-purple-200 text-xs mt-1">
+              A range, not one number: the likeliest 8 in 10 ages, based on all 4 skill areas
+            </p>
           </div>
 
           <div className="flex justify-center gap-4 text-white text-sm font-semibold">
-            <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-              Score: {totalScore} / 40
-            </span>
-            {state.childAge && (
+            {answersUsed > 0 ? (
               <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-                Chronological age: {state.childAge} yrs
+                {answersUsed} milestones checked
+              </span>
+            ) : (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Score: {totalScore} / 40
+              </span>
+            )}
+            {chronoMonths != null && (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Age today: {chronoMonths < 24 ? `${Math.floor(chronoMonths)} months` : `${Math.floor(chronoMonths / 12)} yrs ${Math.floor(chronoMonths % 12)} mo`}
               </span>
             )}
           </div>
@@ -239,8 +253,14 @@ export default function ResultsPage() {
           <div className="space-y-5">
             {DOMAIN_INFO.map(d => {
               const score = state.scores[d.key as keyof typeof state.scores];
-              const pct = Math.round((score / d.max) * 100);
-              const age = domainAge(score);
+              // Bar: where the range's middle sits next to the child's age
+              // (about two-thirds full = right at their age).
+              const est = estimates[d.key as MilestoneDomain];
+              const pct = est && chronoMonths
+                ? Math.round(Math.min(100, (est.mid / chronoMonths) * 66))
+                : Math.round((score / d.max) * 100);
+              const age = domainRange(d.key as MilestoneDomain);
+              const cmp = domainComparison(d.key as MilestoneDomain);
               const isWriting = d.key === 'writing';
               const inputMethod = state.fineMotorInputMethod;
               const graspInfo = state.graspPattern ? GRASP_LOOKUP[state.graspPattern] : null;
@@ -257,9 +277,13 @@ export default function ResultsPage() {
                       >
                         {age}
                       </span>
-                      <span className="text-slate-300 text-xs">{score}/{d.max}</span>
                     </div>
                   </div>
+                  {cmp && (
+                    <p className="text-xs font-semibold mb-1" style={{ color: cmp === 'growing' ? '#FCD34D' : cmp === 'ahead' ? '#6EE7B7' : '#BFDBFE' }}>
+                      {COMPARISON_TEXT[cmp].label}
+                    </p>
+                  )}
                   <div className="h-3 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
                     <div
                       className="h-3 rounded-full transition-all"
@@ -299,6 +323,12 @@ export default function ResultsPage() {
               );
             })}
           </div>
+          {anyGrowing && (
+            <p className="text-sm mt-5 rounded-2xl p-4" style={{ background: 'rgba(252,211,77,0.12)', color: '#FDE68A' }}>
+              {COMPARISON_TEXT.growing.note} You know your child best: if anything worries you, ask your
+              child&apos;s doctor about a developmental check. Getting help early makes a real difference.
+            </p>
+          )}
         </div>
 
         {/* Sensory section */}
@@ -490,6 +520,19 @@ export default function ResultsPage() {
           </button>
         </div>
       </div>
+
+      {/* First visit: the way forward stays on screen while the parent
+          reads, instead of waiting at the very bottom of a long page. */}
+      {firstVisit && (
+        <div className="fixed bottom-0 inset-x-0 z-20 px-4 pb-4 pt-3 print:hidden"
+          style={{ background: 'linear-gradient(180deg, rgba(26,34,56,0), rgba(26,34,56,0.92) 35%)' }}>
+          <button onClick={() => router.push('/play')}
+            className="block w-full max-w-2xl mx-auto py-4 rounded-full font-extrabold text-lg sm:text-xl text-white shadow-2xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #059669, #2563EB, #7C3AED)' }}>
+            Open Kailia&rsquo;s World →
+          </button>
+        </div>
+      )}
     </main>
   );
 }

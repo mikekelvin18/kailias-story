@@ -3,23 +3,21 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import KailiaActor from '@/components/games/KailiaActor';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 import styles from './game.module.css';
+import { audioCtx } from '@/lib/sfx';
 
 // ─── Echo Song ────────────────────────────────────────────────────────────────
 // Simon-style sequence memory in Echo Caves: the crystals sing a little
@@ -48,8 +46,8 @@ const CRYSTAL_W = 92;      // px, drawn size (the button is a little bigger)
 function tone(f: number, d = 0.32) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine'; osc.frequency.value = f;
@@ -73,8 +71,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'cheer' | 'levelDone'>('intro');
@@ -152,7 +150,9 @@ export default function EchoSongPage() {
   }
 
   function tap(c: number) {
-    if (phase !== 'echo') return;
+    // a fast second tap can land before the 'cheer' screen renders; the
+    // song is already finished then, so it must not count as a slip
+    if (phase !== 'echo' || posRef.current >= seq.length) return;
     sing(c, 0.25);
     timersRef.current.push(setTimeout(() => setLit(null), 260));
     runTo(c);
@@ -239,31 +239,26 @@ export default function EchoSongPage() {
         </div>
 
         {phase === 'intro' && (
-          <div className="text-center mt-6 bounce-in relative z-10">
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={120} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={90} expression="excited" className="float" />
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 64)} kind="pet" />
-              <svg viewBox="0 0 100 120" width={54} height={65} aria-hidden="true" style={{ overflow: 'visible' }}>
-                <Crystal c={0} lit={false} />
-              </svg>
-            </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Echo Song"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #164e63 50%, #082f49 100%)', accent: '#22D3EE', accent2: '#0891B2' }}
+              pet={pet}
+              story={<><p>
                 Deep in Echo Caves, the <strong>crystals sing</strong>!
               </p>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+              <p>
                 Listen to their little song… then <strong>echo it back</strong> by tapping the
                 crystals in the same order!
-              </p>
-            </div>
-            <LevelPath gameId="echo-song" level={level} onPick={setLevel} />
-            <button onClick={() => startLevel(level)}
-              className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-cyan-950 shadow-xl transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Level {level} — listen!
-            </button>
-            <SkillIntro gameId="echo-song" />
+              </p></>}
+              extras={<div className="flex items-end justify-center gap-3"><svg viewBox="0 0 100 120" width={54} height={65} aria-hidden="true" style={{ overflow: 'visible' }}>
+                <Crystal c={0} lit={false} />
+              </svg></div>}
+              levels={<LevelPath gameId="echo-song" level={level} onPick={setLevel} />}
+              startLabel={<>Level {level} — listen!</>}
+              onStart={() => startLevel(level)}
+              footer={<SkillIntro gameId="echo-song" />}
+            />
           </div>
         )}
 
@@ -328,7 +323,9 @@ export default function EchoSongPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div
+                // Noel stays quiet while the crystals sing, so the song is easy to hear
+                data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
@@ -339,39 +336,25 @@ export default function EchoSongPage() {
       </div>
 
       {phase === 'levelDone' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #164e63, #0e7490)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-flex items-end gap-1 mb-10 star-burst" aria-hidden="true">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #164e63, #0e7490)', accent: '#22D3EE', accent2: '#0891B2' }}
+            pet={pet}
+            trophy={<span className="inline-flex items-end gap-1" aria-hidden="true">
               {[0, 2, 1, 3].map(i => (
                 <svg key={i} viewBox="0 0 100 120" width={i === 2 || i === 1 ? 58 : 44} height={(i === 2 || i === 1 ? 58 : 44) * 1.2} style={{ overflow: 'visible' }}>
                   <Crystal c={i} lit />
                 </svg>
               ))}
-            </span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={120} expression="celebrating" className="float" />
-              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-cyan-100 font-semibold mb-1">A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-cyan-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-cyan-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+            </span>}
+            message={<>A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

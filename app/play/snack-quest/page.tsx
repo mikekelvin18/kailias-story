@@ -6,13 +6,13 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import LevelPath from '@/components/LevelPath';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import LiveArt from '@/components/characters/LiveArt';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet, type PlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -91,11 +91,12 @@ const PRAISE = [
 ];
 
 import { soundEnabled } from '@/lib/accessibility';
+import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -165,7 +166,7 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore } = useAssessment();
+  const { state, totalScore, devMonths } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
@@ -178,6 +179,9 @@ export default function SnackQuestPage() {
   const [carried, setCarried] = useState(0);
   const [delivered, setDelivered] = useState(0);
   const [revealed, setRevealed] = useState(0);
+  // snacks the dragon already ate this round from earlier trips: a child
+  // may bring them one or two at a time, the dragon keeps every one
+  const [kept, setKept] = useState(0);
   const [showSlots, setShowSlots] = useState(true);
   const [guideLine, setGuideLine] = useState('Who will gather snacks for the baby dragon?');
   const [guideMood, setGuideMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
@@ -192,9 +196,10 @@ export default function SnackQuestPage() {
   const firstPickupRef = useRef(false);
   const [tilePx, setTilePx] = useState(56);
   const attemptsRef = useRef(0);          // wrong deliveries this round
+  const tripsRef = useRef(0);             // deliveries this round (1 = all in one go)
   const roundStartRef = useRef(0);
   const itemIdRef = useRef(0);
-  const metricsRef = useRef({ attempts: 0, firstTry: 0, deliverMs: [] as number[], maxNumber: 0, startedAt: 0 });
+  const metricsRef = useRef({ attempts: 0, firstTry: 0, partialTrips: 0, deliverMs: [] as number[], maxNumber: 0, startedAt: 0 });
 
   // the friend playing along (Ember is the hungry baby dragon here, so if
   // Ember is the chosen friend, Flick keeps everyone company instead)
@@ -234,7 +239,7 @@ export default function SnackQuestPage() {
   // the field never overflows), and "how many more?" rounds start from a
   // bigger pile — counting, then adding, with ever-larger numbers.
   const buildRounds = useCallback((lvl: number): RoundCfg[] => {
-    const tier = difficultyTier(state.ageGroup, totalScore);
+    const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
     tierRef.current = tier;
     const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
       tiny:  { w: [1, 2, 2, 3], h: [0, 0, 1, 1] },   // developmental level under ~2½ yrs
@@ -255,7 +260,7 @@ export default function SnackQuestPage() {
       const have = h[i] > 0 ? Math.min(want - 1, h[i] + Math.floor(bump / 2)) : 0;
       return { want, have, intro: intros[i] };
     });
-  }, [state.ageGroup, totalScore]);
+  }, [state.ageGroup, totalScore, devMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
@@ -282,6 +287,7 @@ export default function SnackQuestPage() {
     const round = roundPlan[idx];
     const wallSet = WALLS[idx % WALLS.length];
     attemptsRef.current = 0;
+    tripsRef.current = 0;
     roundStartRef.current = Date.now();
     setWalls(wallSet);
     setItems(spawnItems(round, wallSet));
@@ -289,6 +295,7 @@ export default function SnackQuestPage() {
     setCarried(0);
     setDelivered(0);
     setRevealed(0);
+    setKept(0);
     setWalking(false);
     setHintItem(null);
     setPetTile(petSpot({ r: 7, c: 2 }, START, wallSet, []) ?? { r: 7, c: 2 });
@@ -306,7 +313,7 @@ export default function SnackQuestPage() {
 
   function choose(which: 'kailia' | 'noel', lvl = level) {
     const plan = buildRounds(lvl);
-    metricsRef.current = { attempts: 0, firstTry: 0, deliverMs: [], maxNumber: plan[plan.length - 1].want, startedAt: Date.now() };
+    metricsRef.current = { attempts: 0, firstTry: 0, partialTrips: 0, deliverMs: [], maxNumber: plan[plan.length - 1].want, startedAt: Date.now() };
     setSkin(SKINS[which]);
     setRounds(plan);
     sfx.yay();
@@ -380,10 +387,33 @@ export default function SnackQuestPage() {
       timers.push(setTimeout(() => { setRevealed(i); sfx.count(); }, i * 380));
     }
     timers.push(setTimeout(() => {
-      const total = cfg.have + delivered;
+      const total = cfg.have + kept + delivered;
+      tripsRef.current += 1;
+      if (total < cfg.want) {
+        // not enough yet: she keeps what came and waits for more (bringing
+        // snacks a few at a time is fine, it just isn't a one-go count)
+        metricsRef.current.partialTrips += 1;
+        sfx.pickup();
+        setKept(k => k + delivered);
+        // Kailia steps just out of the nest so she never stands on the dragon
+        const out = [{ r: 2, c: 6 }, { r: 2, c: 5 }, { r: 1, c: 4 }, { r: 0, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 6 }]
+          .find(t => !walls.some(w => w.r === t.r && w.c === t.c) && !itemsRef.current.some(i => i.r === t.r && i.c === t.c));
+        if (out) {
+          setPos(out);
+          setPetTile(t => petSpot(t, out, walls, itemsRef.current) ?? t);
+        }
+        setDelivered(0);
+        setRevealed(0);
+        setCarried(0);
+        setPetMood('cheer');
+        setGuideLine(`Yum! That makes ${total}. She wished for ${cfg.want}. Bring her some more!`);
+        setGuideMood('excited');
+        setPhase('playing');
+        return;
+      }
       if (total === cfg.want) {
         metricsRef.current.deliverMs.push(Date.now() - roundStartRef.current);
-        if (attemptsRef.current === 0) metricsRef.current.firstTry += 1;
+        if (attemptsRef.current === 0 && tripsRef.current === 1) metricsRef.current.firstTry += 1;
         const line = PRAISE[Math.floor(Math.random() * PRAISE.length)];
         setPraise(line);
         setGuideLine(line);
@@ -399,9 +429,7 @@ export default function SnackQuestPage() {
         metricsRef.current.attempts += 1;
         sfx.hmm();
         const diff = Math.abs(total - cfg.want);
-        setGuideLine(total > cfg.want
-          ? `The dragon counted ${total}, that's ${diff} too many! Let's try again together!`
-          : `The dragon counted ${total}, she wished for ${cfg.want}! Just ${diff} more!`);
+        setGuideLine(`The dragon counted ${total}, that's ${diff} too many! Let's try again together!`);
         setGuideMood('thinking');
         if (attemptsRef.current >= 2) setShowSlots(true); // scaffold appears when struggling
         const fresh = spawnItems(cfg, walls);
@@ -419,14 +447,15 @@ export default function SnackQuestPage() {
             setPetTile(spot);
             setPetMood('talk');
           }
-          setGuideLine(total > cfg.want
-            ? `The dragon counted ${total}, that's ${diff} too many! ${pet.name} found a snack to start again with.`
-            : `The dragon counted ${total}, she wished for ${cfg.want}! Just ${diff} more! ${pet.name} found a snack to start with.`);
+          setGuideLine(`The dragon counted ${total}, that's ${diff} too many! ${pet.name} found a snack to start again with.`);
         }
+        // too many: she hands them back and the round starts over
+        tripsRef.current = 0;
         setPos(START);
         setCarried(0);
         setDelivered(0);
         setRevealed(0);
+        setKept(0);
         setPhase('playing');
       }
     }, delivered * 380 + 700));
@@ -448,6 +477,7 @@ export default function SnackQuestPage() {
       level,
       firstTryRounds: m.firstTry,
       wrongDeliveries: m.attempts,
+      partialTrips: m.partialTrips,
       avgRoundMs: Math.round(avg(m.deliverMs)),
       maxNumber: m.maxNumber,
       totalMs: Date.now() - m.startedAt,
@@ -490,42 +520,42 @@ export default function SnackQuestPage() {
 
         {/* ── Character select ── */}
         {phase === 'select' && (
-          <div className="text-center mt-4 bounce-in">
-            <div className="flex items-end justify-center gap-3 mb-3">
-              <span className="relative inline-block">
-                <span aria-hidden="true" className="absolute left-[8%] right-[8%] bottom-[-4%] h-[16%] rounded-[50%]" style={{ background: 'radial-gradient(ellipse, #F2C14E 0%, #C9822F 70%)', border: '2px solid #3b2416' }} />
-                <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 112)} kind="pet" />
-              </span>
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 68)} kind="pet" />
-            </div>
-            <div className="rounded-3xl p-5 mx-1 mb-5 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Snack Quest"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #b45309 0%, #78350f 55%, #431407 100%)', accent: '#FB923C', accent2: '#C2410C' }}
+              pet={pet}
+              story={<p>
                 A <strong>baby dragon</strong> is hungry, and she only eats <strong>exactly</strong> the
                 right amount! Who will gather her snacks?
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 px-1">
-              <button onClick={() => choose('kailia')}
-                className="rounded-3xl p-5 shadow-xl transition-transform hover:scale-105 active:scale-95"
-                style={{ background: '#FFF7ED', border: '3px solid #FDBA74' }}>
-                <KailiaSprite size={90} className="mx-auto" />
-                <span className="block mt-2 font-extrabold text-amber-700">Play as Kailia</span>
-                <span className="block text-sm text-gray-700 mt-1">
-                  Gather cookies <Snack cave size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the treasure cave!
-                </span>
-              </button>
-              <button onClick={() => choose('noel')}
-                className="rounded-3xl p-5 shadow-xl transition-transform hover:scale-105 active:scale-95"
-                style={{ background: '#ECFDF5', border: '3px solid #6EE7B7' }}>
-                <PandaSprite size={90} className="mx-auto" />
-                <span className="block mt-2 font-extrabold text-emerald-700">Play as Noel</span>
-                <span className="block text-sm text-gray-700 mt-1">
-                  Gather bamboo <Snack cave={false} size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the meadow!
-                </span>
-              </button>
-            </div>
-            <LevelPath gameId="snack-quest" level={level} onPick={setLevel} />
-            <SkillIntro gameId="snack-quest" />
+              </p>}
+              extras={<>
+                <div className="flex justify-center mb-4">
+                  <span className="relative inline-block gf-drop-in" style={{ animationDelay: '1.5s' }}>
+                    <span aria-hidden="true" className="absolute left-[8%] right-[8%] bottom-[-4%] h-[16%] rounded-[50%]" style={{ background: 'radial-gradient(ellipse, #F2C14E 0%, #C9822F 70%)', border: '2px solid #3b2416' }} />
+                    <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 112)} kind="pet" />
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 px-1">
+                  <button onClick={() => choose('kailia')} className="gf-choice" style={{ background: '#FFF7ED' }}>
+                    <KailiaSprite size={90} className="mx-auto" />
+                    <span className="block mt-2 font-extrabold text-amber-700 text-lg">Play as Kailia</span>
+                    <span className="block text-sm text-gray-700 mt-1">
+                      Gather cookies <Snack cave size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the treasure cave!
+                    </span>
+                  </button>
+                  <button onClick={() => choose('noel')} className="gf-choice" style={{ background: '#ECFDF5', animationDelay: '0.15s' }}>
+                    <PandaSprite size={90} className="mx-auto" />
+                    <span className="block mt-2 font-extrabold text-emerald-700 text-lg">Play as Noel</span>
+                    <span className="block text-sm text-gray-700 mt-1">
+                      Gather bamboo <Snack cave={false} size={20} style={{ display: 'inline-block', verticalAlign: '-0.3em' }} /> in the meadow!
+                    </span>
+                  </button>
+                </div>
+              </>}
+              levels={<LevelPath gameId="snack-quest" level={level} onPick={setLevel} />}
+              footer={<SkillIntro gameId="snack-quest" />}
+            />
           </div>
         )}
 
@@ -547,8 +577,8 @@ export default function SnackQuestPage() {
               {showSlots && (
                 <p className="leading-none mt-1.5 flex items-center justify-center gap-1 flex-wrap">
                   {Array.from({ length: cfg.want }).map((_, i) => (
-                    i < cfg.have + revealed
-                      ? <span key={i} className={i >= cfg.have ? 'star-burst' : undefined} style={{ display: 'inline-block' }}><Snack cave={cave} size={30} /></span>
+                    i < cfg.have + kept + revealed
+                      ? <span key={i} className={i >= cfg.have + kept ? 'star-burst' : undefined} style={{ display: 'inline-block' }}><Snack cave={cave} size={30} /></span>
                       : <span key={i} className="inline-flex items-center justify-center rounded-full"
                           style={{ width: 26, height: 26, margin: 2, border: '2.5px dashed #9CA3AF' }} />
                   ))}
@@ -588,10 +618,10 @@ export default function SnackQuestPage() {
                 {/* the dragon's own stash sits in a little white tray — a
                     clearly different look from the loose snacks in the
                     field, so it's obvious these are already hers */}
-                {(cfg.have + revealed) > 0 && (
+                {(cfg.have + kept + revealed) > 0 && (
                   <span className="absolute bottom-0 inline-flex items-center justify-center flex-wrap rounded-xl"
                     style={{ maxWidth: '100%', padding: '1px 3px', background: 'rgba(255,255,255,0.92)', border: '2px solid #3b2416' }}>
-                    {Array.from({ length: cfg.have + revealed }).map((_, i) => <Snack key={i} cave={cave} size={Math.max(10, tilePx * 0.24)} />)}
+                    {Array.from({ length: cfg.have + kept + revealed }).map((_, i) => <Snack key={i} cave={cave} size={Math.max(10, tilePx * 0.24)} />)}
                   </span>
                 )}
               </div>
@@ -661,7 +691,7 @@ export default function SnackQuestPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <Guide size={54} expression={guideMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative">
+              <div data-read-aloud className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {guideLine}
@@ -676,38 +706,21 @@ export default function SnackQuestPage() {
 
       {/* ── Finale ── */}
       {phase === 'done' && skin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overflow-y-auto"
-          style={{ background: cave ? 'linear-gradient(135deg, #92400e, #b45309)' : 'linear-gradient(135deg, #065f46, #15803d)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-block mb-2 star-burst">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #FDE047, #FBBF24)', accent: '#FB923C', accent2: '#C2410C' }}
+            pet={pet}
+            trophy={<span className="inline-block mb-2">
               <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 104)} kind="pet" />
-            </span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={116} expression="celebrating" className="float" />
-              <KailiaSprite size={88} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 76)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-white font-bold text-lg mb-1">The dragon is full and happy! {pet.name} is doing a happy dance!</p>
-            <p className="text-white/90 font-semibold mb-2 inline-flex items-center gap-1.5 justify-center flex-wrap">
-              She gives you a treasure from her cave <Gem size={26} />
-            </p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}
-                className={`px-8 py-3.5 rounded-full text-lg font-extrabold shadow-xl transition-transform hover:scale-105 ${cave ? 'text-amber-900' : 'text-emerald-900'}`}
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-amber-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+            </span>}
+            message={<>The dragon is full and happy! {pet.name} is doing a happy dance!</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>
@@ -790,7 +803,7 @@ function Floor({ cave }: { cave: boolean }) {
               ? <><stop offset="0" stopColor="#9A6845" /><stop offset="0.65" stopColor="#7A4E33" /><stop offset="1" stopColor="#4E2F1F" /></>
               : <><stop offset="0" stopColor="#A6DB86" /><stop offset="0.7" stopColor="#86C56C" /><stop offset="1" stopColor="#5E9F4E" /></>}
           </radialGradient>
-          <radialGradient id={`${g}-glow`}><stop offset="0" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity="0.75" /><stop offset="1" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity="0" /></radialGradient>
+          <radialGradient id={`${g}-glow`}><stop offset="0" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity={cave ? 0.75 : 0.35} /><stop offset="1" stopColor={cave ? '#FF9AD5' : '#FFFBD0'} stopOpacity="0" /></radialGradient>
         </defs>
         <rect width="70" height="80" fill={`url(#${g})`} />
         <g filter="url(#kp-brush)">

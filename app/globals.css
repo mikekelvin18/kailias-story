@@ -681,11 +681,21 @@ button:active {
 }
 .fg-twinkle { animation: fg-twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes fg-burst {
-  0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.4) rotate(0deg); opacity: 1; }
-  70%  { opacity: 1; }
-  100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; }
+  0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.3) rotate(0deg); opacity: 1; animation-timing-function: cubic-bezier(.15,.75,.35,1); }
+  45%  { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.8), calc(var(--dy) * 0.8 - 14px)) scale(1.15) rotate(calc(var(--rot) * 0.6)); opacity: 1; animation-timing-function: cubic-bezier(.5,0,.9,.6); }
+  100% { transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) + 46px)) scale(0.6) rotate(var(--rot)); opacity: 0; }
 }
-.fg-burst { animation: fg-burst 0.8s cubic-bezier(.2,.8,.3,1) forwards; }
+.fg-burst { opacity: 0; animation: fg-burst 1.05s linear both; }
+@keyframes fg-ring {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; border-width: 7px; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
+}
+.fg-ring { animation: fg-ring 0.55s cubic-bezier(.1,.7,.3,1) forwards; left: 0; top: 0; }
+@keyframes fg-flash {
+  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+}
+.fg-flash { animation: fg-flash 0.35s ease-out forwards; }
 @keyframes fg-drift {
   from { transform: translateX(-40vw); }
   to   { transform: translateX(140vw); }
@@ -750,6 +760,7 @@ button:active {
 @media (prefers-reduced-motion: reduce) {
   .fg-cheer, .fg-oops, .fg-fly, .fg-talk, .fg-dance, .fg-twinkle, .fg-drift, .fg-rise, .fg-fall,
   .fg-sway, .fg-bob, .fg-glow, .fg-swim { animation: none; }
+  .fg-burst, .fg-ring, .fg-flash { display: none; }
 }
 
 /* ── Game-feel kit (components/games) ── */
@@ -774,4 +785,279 @@ button:active {
 .lantern-gulp { animation: lantern-gulp 0.45s ease-out; transform-origin: 50% 100%; }
 @media (prefers-reduced-motion: reduce) {
   .nf-sway-far, .nf-sway-mid, .gb-wing, .gb-wing-slow, .gb-pulse, .lantern-swing, .lantern-gulp { animation: none; }
+}
+
+/* ── Adventure world (components/world) ──
+   Motion for places like Kailia's Garden. Timings follow the art bible
+   (lib/world/artBible.ts): one-shots under 1.2 s, nothing flashes, and
+   "Reduce motion" stills the loops. */
+.gw-touch { -webkit-tap-highlight-color: transparent; }
+.gw-touch:focus-visible { outline: 6px solid #FFF6E5; outline-offset: 4px; border-radius: 28px; }
+.gw-held > span { transform: translateY(-4px) scale(1.06); filter: drop-shadow(0 14px 8px rgba(59,36,22,0.25)); transition: transform 0.12s ease-out; }
+@keyframes gw-ripple { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 0.85; } 100% { transform: translate(6px, 60px); opacity: 0; } }
+.gw-ripple { animation: gw-ripple 5.4s linear infinite; }
+@keyframes gw-petwalk {
+  0%, 100% { transform: translateY(0) rotate(-2deg) scale(1.02, 0.98); }
+  50% { transform: translateY(-9%) rotate(2deg) scale(0.98, 1.03); }
+}
+.gw-petwalk { animation: gw-petwalk 0.34s ease-in-out infinite; }
+@keyframes gw-sniff {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  20% { transform: rotate(9deg) translateY(4%); }
+  35% { transform: rotate(7deg) translateY(3%); }
+  50% { transform: rotate(10deg) translateY(5%); }
+  65% { transform: rotate(7deg) translateY(3%); }
+  85% { transform: rotate(4deg) translateY(1%); }
+}
+.gw-sniff { animation: gw-sniff 1.3s ease-in-out infinite; }
+@keyframes gw-sad { 0% { transform: scale(1, 1); } 100% { transform: scale(1.03, 0.93) rotate(-3deg) translateY(2%); } }
+.gw-sad { animation: gw-sad 0.6s ease-out forwards; filter: saturate(0.85); }
+@keyframes gw-wiggle { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-7deg); } 30% { transform: rotate(6deg); } 45% { transform: rotate(-4deg); } 60% { transform: rotate(3deg); } }
+.gw-wiggle > span { animation: gw-wiggle 0.8s ease-in-out 2; transform-origin: 50% 100%; }
+@keyframes gw-shake { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-4deg) scale(1.04, 0.96); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } 80% { transform: rotate(1deg); } }
+.gw-shake { animation: gw-shake 0.6s ease-out; transform-origin: 50% 100%; }
+@keyframes gw-drip { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(14px, 110px); opacity: 0; } }
+.gw-drip { animation: gw-drip 0.6s ease-in infinite; }
+@keyframes gw-zzz { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 0.9; transform: translateY(-8px); } }
+.gw-zzz { animation: gw-zzz 2.4s ease-in-out infinite; }
+@keyframes gw-flyaway { 0% { transform: translate(0, 40px) scale(0.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(140px, -260px) scale(1); opacity: 0; } }
+.gw-flyaway { animation: gw-flyaway 1.8s ease-out forwards; }
+.gw-flap { animation: gw-flap 0.22s ease-in-out infinite; }
+@keyframes gw-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.3); } }
+@keyframes gw-peek { 0% { transform: translateY(40px); opacity: 0; } 20%, 75% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
+.gw-peek { animation: gw-peek 2.2s ease-in-out forwards; }
+@keyframes gw-hop { 0% { transform: translateY(0) scale(1, 1); } 15% { transform: scale(1.12, 0.86); } 45% { transform: translateY(-60px) scale(0.9, 1.12); } 75% { transform: translateY(0) scale(1.1, 0.9); } 100% { transform: scale(1, 1); } }
+.gw-hop { animation: gw-hop 0.7s ease-out; }
+@keyframes gw-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 0.97); } }
+.gw-breathe { animation: gw-breathe 2.6s ease-in-out infinite; }
+@keyframes gw-crawl { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(6px) rotate(6deg); } }
+.gw-crawl { animation: gw-crawl 3.2s ease-in-out infinite; }
+@keyframes gw-slot { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.gw-slot { animation: gw-slot 1.6s ease-in-out infinite; }
+@keyframes gw-say { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.gw-say { animation: gw-say 0.3s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .gw-ripple, .gw-petwalk, .gw-sniff, .gw-drip, .gw-zzz, .gw-flap, .gw-breathe, .gw-crawl, .gw-slot { animation: none; }
+}
+
+/* ── Game frame (components/games/GameFrame.tsx) ──
+   The opening title card and the end-of-level party every game shares.
+   Entrances overshoot and settle; the Play button breathes and shines;
+   confetti flutters down. "Reduce motion" shows it all still. */
+.gf-screen { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; }
+.gf-back {
+  display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px;
+  color: #fff; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.35);
+  backdrop-filter: blur(4px);
+}
+.gf-title {
+  margin: 6px 0 4px; font-size: 40px; line-height: 1.05; font-weight: 900; letter-spacing: 0.5px; color: #fff;
+  -webkit-text-stroke: 1.5px #3b2416; paint-order: stroke fill;
+  text-shadow: 0 4px 0 #3b2416, 0 0 26px var(--gf-accent, #A855F7), 0 0 4px var(--gf-accent, #A855F7);
+}
+@keyframes gf-letter {
+  0%   { transform: translateY(-60px) scale(0.4, 1.6) rotate(-12deg); opacity: 0; }
+  55%  { transform: translateY(6px) scale(1.25, 0.78) rotate(4deg); opacity: 1; }
+  75%  { transform: translateY(-4px) scale(0.92, 1.1) rotate(-2deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0deg); opacity: 1; }
+}
+@keyframes gf-letter-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-3px) rotate(-2deg); }
+}
+.gf-letter {
+  display: inline-block; opacity: 0; transform-origin: 50% 100%;
+  animation: gf-letter 0.6s cubic-bezier(.3,.6,.4,1) forwards;
+}
+.gf-title:hover .gf-letter { animation: gf-letter-idle 0.5s ease-in-out; opacity: 1; }
+@keyframes gf-dust {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translateY(-70vh) scale(1.1); opacity: 0; }
+}
+.gf-dust {
+  background: radial-gradient(circle, #FFFFFF 0%, rgba(255,247,200,0.9) 35%, rgba(255,247,200,0) 70%);
+  animation: gf-dust linear infinite;
+}
+@keyframes gf-stage { 0%, 100% { transform: scale(1, 1); opacity: 0.85; } 50% { transform: scale(1.06, 1.1); opacity: 1; } }
+.gf-stage { animation: gf-stage 2.6s ease-in-out infinite; }
+@keyframes gf-enter-right {
+  0%   { transform: translateX(60vw) rotate(10deg); opacity: 0; }
+  60%  { transform: translateX(-10px) rotate(-6deg); opacity: 1; }
+  80%  { transform: translateX(4px) rotate(3deg); }
+  100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+}
+.gf-enter-right { display: inline-block; opacity: 0; transform-origin: 50% 100%; animation: gf-enter-right 0.9s cubic-bezier(.3,.7,.4,1) forwards; }
+@keyframes gf-drop-in {
+  0%   { transform: translateY(-140px) scale(0.8, 1.25); opacity: 0; }
+  55%  { transform: translateY(0) scale(1.28, 0.74); opacity: 1; }
+  72%  { transform: translateY(-14px) scale(0.92, 1.1); }
+  88%  { transform: translateY(0) scale(1.06, 0.94); }
+  100% { transform: translateY(0) scale(1, 1); opacity: 1; }
+}
+.gf-drop-in { opacity: 0; transform-origin: 50% 100%; animation: gf-drop-in 0.7s ease-out forwards; }
+@keyframes gf-bubble {
+  0%   { transform: scale(0.3) translateY(30px); opacity: 0; }
+  60%  { transform: scale(1.06) translateY(-4px); opacity: 1; }
+  80%  { transform: scale(0.98); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.gf-bubble {
+  position: relative; padding: 14px 16px; border-radius: 22px; background: #FFFDF6;
+  border: 3px solid #3b2416; box-shadow: 0 6px 0 rgba(59,36,22,0.35);
+  opacity: 0; transform-origin: 18% 0%; animation: gf-bubble 0.55s cubic-bezier(.3,.7,.4,1) forwards;
+}
+.gf-bubble-tail {
+  position: absolute; top: -14px; left: 22%; width: 22px; height: 22px; background: #FFFDF6;
+  border-left: 3px solid #3b2416; border-top: 3px solid #3b2416; transform: rotate(45deg) skew(8deg, 8deg); border-radius: 4px 0 0 0;
+}
+@keyframes gf-rise-in {
+  0%   { transform: translateY(26px); opacity: 0; }
+  70%  { transform: translateY(-3px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.gf-rise-in { opacity: 0; animation: gf-rise-in 0.5s ease-out forwards; }
+/* the Play button */
+@keyframes gf-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 7px 0 #3b2416, 0 0 0 0 var(--gf-accent, #A855F7); }
+  50%      { transform: scale(1.06); box-shadow: 0 7px 0 #3b2416, 0 0 0 12px rgba(255,255,255,0); }
+}
+@keyframes gf-shine { 0%, 55% { transform: translateX(-130%) skewX(-20deg); } 100% { transform: translateX(260%) skewX(-20deg); } }
+.gf-cta {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+  min-width: 220px; padding: 18px 40px; border-radius: 999px; font-size: 22px; font-weight: 900;
+  border: 3px solid #3b2416; box-shadow: 0 7px 0 #3b2416;
+  animation: gf-breathe 1.8s ease-in-out infinite; transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.gf-cta:active { animation: none; transform: translateY(5px) scale(0.95, 0.9); box-shadow: 0 2px 0 #3b2416; }
+.gf-shine {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.65), rgba(255,255,255,0));
+  animation: gf-shine 2.8s ease-in-out infinite;
+}
+.gf-soft {
+  display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px;
+  font-size: 18px; font-weight: 800; color: #3b2416; background: #FFFDF6; border: 3px solid #3b2416;
+  box-shadow: 0 5px 0 #3b2416; transition: transform 0.1s;
+}
+.gf-soft:active { transform: translateY(4px) scale(0.96, 0.92); box-shadow: 0 1px 0 #3b2416; }
+/* the party */
+@keyframes gf-confetti {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(var(--sway), 30vh) rotate(calc(var(--spin) * 0.25)); }
+  50%  { transform: translate(0, 60vh) rotate(calc(var(--spin) * 0.5)); }
+  75%  { transform: translate(calc(var(--sway) * -0.6), 88vh) rotate(calc(var(--spin) * 0.75)); }
+  100% { transform: translate(0, 116vh) rotate(var(--spin)); }
+}
+.gf-confetti { animation: gf-confetti linear infinite; }
+@keyframes gf-flutter { 0%, 100% { transform: rotateX(0deg) rotateY(0deg); } 50% { transform: rotateX(70deg) rotateY(50deg); } }
+.gf-flutter { animation: gf-flutter 0.7s ease-in-out infinite; }
+@keyframes gf-rays { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+.gf-rays {
+  width: 560px; height: 560px; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(rgba(255,255,255,0.16) 0deg 10deg, rgba(255,255,255,0) 10deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 68%); mask-image: radial-gradient(circle, #000 18%, transparent 68%);
+  animation: gf-rays 22s linear infinite;
+}
+@keyframes gf-ribbon {
+  0%   { transform: scale(0.2) rotate(-14deg); opacity: 0; }
+  55%  { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  75%  { transform: scale(0.96) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.gf-ribbon {
+  display: inline-block; padding: 12px 30px; font-size: 28px; font-weight: 900; color: #fff; line-height: 1.1;
+  background: linear-gradient(180deg, var(--gf-accent, #A855F7), color-mix(in srgb, var(--gf-accent, #A855F7) 70%, #3b2416));
+  border: 3px solid #3b2416; border-radius: 18px; box-shadow: 0 6px 0 #3b2416;
+  -webkit-text-stroke: 1px #3b2416; paint-order: stroke fill; text-shadow: 0 3px 0 #3b2416;
+  opacity: 0; animation: gf-ribbon 0.7s cubic-bezier(.3,.7,.4,1) forwards;
+}
+@keyframes gf-party-hop {
+  0%   { transform: translateY(0) scale(1, 1); }
+  14%  { transform: translateY(0) scale(1.12, 0.86); }
+  42%  { transform: translateY(-36%) scale(0.92, 1.1); }
+  70%  { transform: translateY(0) scale(1.1, 0.9); }
+  85%  { transform: translateY(-4%) scale(0.98, 1.02); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.gf-party-hop { animation: gf-party-hop 0.85s ease-in-out; }
+@keyframes gf-fly-star {
+  0%   { transform: translate(var(--from-x), var(--from-y)) scale(0.4) rotate(-90deg); opacity: 0; }
+  20%  { opacity: 1; transform: translate(calc(var(--from-x) * 0.9), calc(var(--from-y) * 0.9)) scale(1.3) rotate(0deg); }
+  100% { transform: translate(-60px, 0) scale(0.5) rotate(180deg); opacity: 0; }
+}
+.gf-fly-star { opacity: 0; animation: gf-fly-star 0.85s cubic-bezier(.5,0,.7,.4) forwards; }
+@keyframes gf-counter { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.gf-counter {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 999px;
+  font-size: 24px; font-weight: 900; color: #3b2416; background: #FFF6C8; border: 3px solid #3b2416;
+  box-shadow: 0 5px 0 #3b2416, 0 0 24px #FDE04788; animation: gf-counter 0.18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-letter, .gf-enter-right, .gf-drop-in, .gf-bubble, .gf-rise-in, .gf-ribbon, .gf-fly-star { animation: none; opacity: 1; }
+  .gf-dust, .gf-stage, .gf-cta, .gf-shine, .gf-confetti, .gf-flutter, .gf-rays, .gf-party-hop, .gf-counter { animation: none; }
+}
+:root[data-reduced-motion="true"] :is(.gf-letter, .gf-enter-right, .gf-drop-in, .gf-bubble, .gf-rise-in, .gf-ribbon, .gf-fly-star) { animation: none; opacity: 1; }
+:root[data-reduced-motion="true"] :is(.gf-dust, .gf-stage, .gf-cta, .gf-shine, .gf-confetti, .gf-flutter, .gf-rays, .gf-party-hop, .gf-counter) { animation: none; }
+/* a big tappable choice card inside a game's opening (pick a hero, pick a mailbag) */
+@keyframes gf-choice-in {
+  0%   { transform: translateY(30px) scale(0.9); opacity: 0; }
+  70%  { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.gf-choice {
+  border-radius: 24px; padding: 18px; border: 3px solid #3b2416; box-shadow: 0 6px 0 #3b2416;
+  opacity: 0; animation: gf-choice-in 0.5s ease-out 1.5s forwards; transition: transform 0.1s;
+}
+.gf-choice:hover { transform: translateY(-2px); }
+.gf-choice:active { transform: translateY(4px) scale(0.97, 0.94); box-shadow: 0 2px 0 #3b2416; }
+@media (prefers-reduced-motion: reduce) { .gf-choice { animation: none; opacity: 1; } }
+:root[data-reduced-motion="true"] .gf-choice { animation: none; opacity: 1; }
+:root[data-reduced-motion="true"] .fg-burst,
+:root[data-reduced-motion="true"] .fg-ring,
+:root[data-reduced-motion="true"] .fg-flash { display: none; }
+
+/* ── Daily care pet "moment" (components/carepet) ── */
+@keyframes pm-enter { 0% { transform: translateY(-60px) scale(0.6); opacity: 0; } 55% { transform: translateY(8px) scale(1.06, 0.92); opacity: 1; } 75% { transform: translateY(-4px) scale(0.97, 1.04); } 100% { transform: none; } }
+.pm-enter { animation: pm-enter 0.7s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
+@keyframes pm-card { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.pm-card { animation: pm-card 0.35s cubic-bezier(.3,1.3,.5,1) both; }
+@keyframes pm-bubble { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
+.pm-bubble { animation: pm-bubble 0.35s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
+@keyframes pm-chomp { 0%,100% { transform: none; } 20% { transform: scale(1.12, 0.86); } 40% { transform: scale(0.94, 1.08); } 60% { transform: scale(1.08, 0.9); } 80% { transform: scale(0.98, 1.03); } }
+.pm-chomp { animation: pm-chomp 0.9s ease-in-out; transform-origin: 50% 100%; }
+@keyframes pm-food { 0% { transform: translate(0, 0) scale(0.6); opacity: 1; } 18% { transform: translate(0, 0) scale(1.1); } 35% { transform: translate(0, 0) scale(1); } 80% { transform: translate(0, var(--pm-fly, -260px)) scale(0.45); opacity: 1; } 100% { transform: translate(0, var(--pm-fly, -260px)) scale(0.1); opacity: 0; } }
+.pm-food { animation: pm-food 1.3s cubic-bezier(.45,0,.55,1) forwards; }
+@keyframes pm-crumb { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; } }
+.pm-crumb { animation: pm-crumb 0.8s ease-out forwards; }
+@keyframes pm-heart { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; transform: translate(0,-10px) scale(1); } 100% { transform: translate(var(--dx, 0px), -140px) scale(0.8); opacity: 0; } }
+.pm-heart { animation: pm-heart 1.6s ease-out forwards; }
+@keyframes pm-confetti { 0% { transform: translate(0, -20px) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), 420px) rotate(var(--rot)); opacity: 0; } }
+.pm-confetti { animation: pm-confetti 2.2s cubic-bezier(.2,.6,.4,1) forwards; }
+@keyframes pm-glow { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.06); } }
+.pm-glow { animation: pm-glow 3s ease-in-out infinite; }
+@keyframes pm-node { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.pm-node { animation: pm-node 0.6s cubic-bezier(.3,1.5,.5,1); }
+/* the pet showing a move: a calm loop the child copies */
+@keyframes pm-stretch { 0%,100% { transform: scale(1,1); } 25% { transform: scale(0.9,1.18); } 50% { transform: scale(1,1); } 75% { transform: scale(1.18,0.9); } }
+@keyframes pm-hop { 0%,100% { transform: translateY(0) scale(1,1); } 15% { transform: translateY(0) scale(1.1,0.9); } 45% { transform: translateY(-34px) scale(0.94,1.08); } 75% { transform: translateY(0) scale(1.08,0.92); } }
+@keyframes pm-balance { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes pm-push { 0%,100% { transform: translateX(0) skewX(0); } 50% { transform: translateX(14px) skewX(-6deg); } }
+@keyframes pm-cross { 0%,100% { transform: rotate(-8deg) translateY(0); } 25% { transform: rotate(0) translateY(-8px); } 50% { transform: rotate(8deg) translateY(0); } 75% { transform: rotate(0) translateY(-8px); } }
+@keyframes pm-march { 0%,100% { transform: translateY(0) rotate(-3deg); } 25% { transform: translateY(-10px) rotate(0); } 50% { transform: translateY(0) rotate(3deg); } 75% { transform: translateY(-10px) rotate(0); } }
+@keyframes pm-dance { 0%,100% { transform: rotate(0) translateY(0); } 20% { transform: rotate(-10deg) translateY(-12px); } 40% { transform: rotate(8deg) translateY(0); } 60% { transform: rotate(-6deg) translateY(-8px); } 80% { transform: rotate(10deg) translateY(0); } }
+.pm-move-stretch { animation: pm-stretch 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-star { animation: pm-stretch 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-hop { animation: pm-hop 1.1s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-balance { animation: pm-balance 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-push { animation: pm-push 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-cross { animation: pm-cross 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-march { animation: pm-march 1s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-dance { animation: pm-dance 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .pm-enter, .pm-card, .pm-bubble, .pm-chomp, .pm-node, .pm-glow,
+  .pm-move-stretch, .pm-move-star, .pm-move-hop, .pm-move-balance, .pm-move-push,
+  .pm-move-cross, .pm-move-march, .pm-move-dance { animation: none; }
+  .pm-food, .pm-crumb, .pm-confetti, .pm-heart { animation-duration: 0.01s; }
 }

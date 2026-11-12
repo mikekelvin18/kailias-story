@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -13,13 +13,10 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
-import LiveArt from '@/components/characters/LiveArt';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
-import { petWidth } from '@/lib/companionTrails';
 import { Mountain, PineTree, Cloud, Mushroom } from '@/components/scenery/Scenery';
 import { Sun, Flower, Butterfly } from '@/components/scenery/SkyDecor';
 
@@ -57,11 +54,12 @@ const askText = (ch: Challenge) =>
   ch.type === 'count' ? ch.ask.replace(ch.creature, `${nameOf(ch.creature)}s`) : ch.ask;
 
 import { soundEnabled } from '@/lib/accessibility';
+import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = 'sine'; o.frequency.value = f;
@@ -81,8 +79,8 @@ type NearKind = 'pine' | 'tree' | 'flower' | 'mushroom' | 'rock' | 'bush';
 type FarKind = 'mountain' | 'hill' | 'cloud';
 
 export default function TrailWalkPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'walking' | 'challenge' | 'memoryShow' | 'done'>('intro');
@@ -264,28 +262,23 @@ export default function TrailWalkPage() {
         </div>
 
         {phase === 'intro' && (
-          <div className="text-center mt-6 bounce-in">
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={120} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={90} expression="excited" className="float" />
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 66)} kind="pet" />
-            </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Kailia's Trail"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #0f5f4a 55%, #14532d 100%)', accent: '#4ADE80', accent2: '#15803D' }}
+              pet={pet}
+              story={<><p>
                 A brand-new trail stretches past the meadows!
               </p>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+              <p>
                 Walk with Kailia, meet the creatures along the way, and solve each one&apos;s little
                 riddle. Every solved friend <strong>joins your party</strong> until you reach the flag!
-              </p>
-            </div>
-            <LevelPath gameId="trail-walk" level={level} onPick={setLevel} />
-            <button onClick={startWalk}
-              className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-sky-950 shadow-xl transition-transform hover:scale-105 inline-flex items-center gap-2"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              <span className="whitespace-nowrap">Start the walk!</span> <TrailFlag size={26} />
-            </button>
-            <div style={{ filter: 'invert(0.85)' }}><SkillIntro gameId="trail-walk" /></div>
+              </p></>}
+              levels={<LevelPath gameId="trail-walk" level={level} onPick={setLevel} />}
+              startLabel={<><span className="whitespace-nowrap">Start the walk!</span> <TrailFlag size={26} /></>}
+              onStart={startWalk}
+              footer={<SkillIntro gameId="trail-walk" />}
+            />
           </div>
         )}
 
@@ -368,7 +361,7 @@ export default function TrailWalkPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-3"
               style={{ background: 'rgba(255,255,255,0.85)', border: '2px solid rgba(14,116,144,0.25)' }}>
               <PandaSprite size={54} expression={phase === 'challenge' ? 'thinking' : 'happy'} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
+              <div data-read-aloud className="rounded-2xl px-4 py-2.5 text-lg font-bold text-gray-900 bg-white relative shadow-sm flex-1">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                 {noelLine}
@@ -438,37 +431,19 @@ export default function TrailWalkPage() {
       </div>
 
       {phase === 'done' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overflow-y-auto"
-          style={{ background: 'linear-gradient(135deg, #0e7490, #15803d)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-block mb-2 star-burst"><TrailFlag size={80} raised /></span>
-            <div className="flex items-end justify-center gap-2 mb-2">
-              <PandaSprite size={116} expression="celebrating" className="float" />
-              <KailiaSprite size={88} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 76)} kind="pet" />
-              </span>
-            </div>
-            <div className="flex gap-2 justify-center flex-wrap mb-2">
-              {party.map((p, i) => <Critter key={i} emoji={p} size={44} />)}
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-emerald-50 font-bold text-lg mb-1">You reached the flag!</p>
-            <p className="text-emerald-100 font-semibold mb-2">{party.length} new friends walked the whole way with you, and {pet.name} is dancing!</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{earned} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #0e7490, #15803d)', accent: '#4ADE80', accent2: '#15803D' }}
+            pet={pet}
+            trophy={<span className="inline-block mb-2"><TrailFlag size={80} raised /></span>}
+            message={<>You reached the flag!</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

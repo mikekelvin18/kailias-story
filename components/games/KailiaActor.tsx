@@ -4,7 +4,8 @@
 // Kailia is not a portrait beside the game; she does the action. Give her
 // a spot (x, y in % of the scene, at her feet) and she runs there with her
 // drawn run cycle, turning to face the way she goes, then stands and
-// breathes. `hop` (change the number) makes her jump for joy.
+// breathes. `hop` (change the number) makes her jump for joy, with the
+// drawn jump frames.
 
 import { useEffect, useState } from 'react';
 import RunnerSprite from '@/components/characters/RunnerSprite';
@@ -37,6 +38,15 @@ export default function KailiaActor({ x, y, h, moveMs = 700, hop = 0, z = 6 }: P
     return () => clearTimeout(t);
   }, [move.n, move.ms]);
   const running = move.n > stoppedAt;
+  // a hop plays the drawn jump (crouch, take off, air, land) for ~550 ms,
+  // with the kp-hop lift on top so she really leaves the ground
+  const [jumpedAt, setJumpedAt] = useState(hop);
+  useEffect(() => {
+    if (!hop) return;
+    const t = setTimeout(() => setJumpedAt(hop), 550);
+    return () => clearTimeout(t);
+  }, [hop]);
+  const jumping = !!hop && hop !== jumpedAt;
   const { ms, faceLeft } = move;
   const w = Math.round(h * 0.78);
   return (
@@ -47,7 +57,7 @@ export default function KailiaActor({ x, y, h, moveMs = 700, hop = 0, z = 6 }: P
       <span aria-hidden="true" className="absolute left-[20%] right-[20%] -bottom-[3%] h-[8%] rounded-[50%]" style={{ background: 'rgba(0,0,0,0.3)', filter: 'blur(2px)' }} />
       <div style={{ transform: `scaleX(${faceLeft ? -1 : 1})`, transition: 'transform 0.18s', transformOrigin: '50% 100%' }}>
         <div key={hop} className={hop ? 'kp-hop' : undefined} style={{ transformOrigin: '50% 100%' }}>
-          <RunnerSprite character="kailia" action={running ? 'run' : 'idle'} width={w} height={h} fps={10} />
+          <RunnerSprite character="kailia" action={jumping ? 'jump' : running ? 'run' : 'idle'} width={w} height={h} fps={10} />
         </div>
       </div>
     </div>

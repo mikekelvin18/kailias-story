@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -13,13 +13,11 @@ import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import KailiaActor from '@/components/games/KailiaActor';
-import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
+import { ShapeKind, shapePoints, toPath } from '@/lib/traceShapes';
 
 // ─── Firefly Trails ───────────────────────────────────────────────────────────
 // Gamified tracing with a cognitive twist: a firefly draws a glowing
@@ -33,7 +31,6 @@ import { petWidth } from '@/lib/companionTrails';
 // friend plays along: cheers, wobbles when a stroke wakes nothing, and
 // after two such strokes runs under the next dot to point it out.
 
-type ShapeKind = 'line' | 'circle' | 'zigzag' | 'wave' | 'star' | 'spiral';
 type Mode = 'guide' | 'faint' | 'memory';
 
 const SHAPES: { kind: ShapeKind; name: string }[] = [
@@ -45,27 +42,13 @@ const SHAPES: { kind: ShapeKind; name: string }[] = [
   { kind: 'spiral', name: 'The Snail Path' },
 ];
 
-function shapePoints(kind: ShapeKind, n = 64): { x: number; y: number }[] {
-  const pts: { x: number; y: number }[] = [];
-  const push = (x: number, y: number) => pts.push({ x, y });
-  if (kind === 'line') for (let i = 0; i < n; i++) push(0.1 + 0.8 * (i / (n - 1)), 0.5);
-  if (kind === 'circle') for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + 2 * Math.PI * (i / (n - 1)); push(0.5 + 0.34 * Math.cos(a), 0.5 + 0.34 * Math.sin(a)); }
-  if (kind === 'zigzag') { const vs = [[0.08, 0.7], [0.3, 0.3], [0.5, 0.7], [0.7, 0.3], [0.92, 0.7]]; const per = Math.floor(n / (vs.length - 1)); for (let s = 0; s < vs.length - 1; s++) for (let i = 0; i < per; i++) { const t = i / per; push(vs[s][0] + (vs[s + 1][0] - vs[s][0]) * t, vs[s][1] + (vs[s + 1][1] - vs[s][1]) * t); } }
-  if (kind === 'wave') for (let i = 0; i < n; i++) { const t = i / (n - 1); push(0.08 + 0.84 * t, 0.5 + 0.22 * Math.sin(t * Math.PI * 3)); }
-  if (kind === 'star') { const vs: number[][] = []; for (let k = 0; k < 5; k++) { const a1 = -Math.PI / 2 + k * (2 * Math.PI / 5); const a2 = a1 + Math.PI / 5; vs.push([0.5 + 0.36 * Math.cos(a1), 0.5 + 0.36 * Math.sin(a1)]); vs.push([0.5 + 0.15 * Math.cos(a2), 0.5 + 0.15 * Math.sin(a2)]); } vs.push(vs[0]); const per = Math.max(2, Math.floor(n / (vs.length - 1))); for (let s = 0; s < vs.length - 1; s++) for (let i = 0; i < per; i++) { const t = i / per; push(vs[s][0] + (vs[s + 1][0] - vs[s][0]) * t, vs[s][1] + (vs[s + 1][1] - vs[s][1]) * t); } }
-  if (kind === 'spiral') for (let i = 0; i < n; i++) { const t = i / (n - 1); const a = t * Math.PI * 4; const r = 0.06 + 0.3 * t; push(0.5 + r * Math.cos(a), 0.5 + r * Math.sin(a)); }
-  return pts;
-}
-
-const toPath = (pts: { x: number; y: number }[], scale = 100) =>
-  pts.map((p, i) => `${i ? 'L' : 'M'}${(p.x * scale).toFixed(1)} ${(p.y * scale).toFixed(1)}`).join(' ');
-
 import { soundEnabled } from '@/lib/accessibility';
+import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
       osc.type = 'sine'; osc.frequency.value = f;
@@ -93,8 +76,8 @@ const SCENE_H = 1.27;
 const GROUND_Y = 97; // feet line, % of the whole scene
 
 export default function FireflyTrailsPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'watch' | 'trace' | 'shine' | 'done'>('intro');
@@ -329,31 +312,25 @@ export default function FireflyTrailsPage() {
         </div>
 
         {phase === 'intro' && (
-          <div className="text-center mt-6 bounce-in">
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={120} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={90} expression="excited" className="float" />
-              <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 66)} kind="pet" />
-              <span className="self-start mt-2 fg-bob inline-block"><GlowBug size={40} seed={3} /></span>
-            </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Firefly Trails"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #1e3a5f 0%, #0b2440 50%, #04111f 100%)', accent: '#A3E635', accent2: '#16A34A' }}
+              pet={pet}
+              story={<><p>
                 The night sky pictures went dark!
               </p>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+              <p>
                 A little firefly knows every trail. <strong>Trace her glowing paths</strong> to wake
                 the sky pictures, one star-dot at a time!
                 {mode === 'memory' && <> Tonight is tricky: the trail <strong>fades</strong>, so remember it!</>}
-              </p>
-            </div>
-            <LevelPath gameId="firefly-trails" level={level} onPick={setLevel} />
-            <button onClick={startLevel}
-              className="mt-6 px-8 py-3 rounded-full text-xl font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105 inline-flex items-center gap-2"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              <ShapeGlyph kind={shape.kind} size={40} />
-              <span className="whitespace-nowrap">Level {level}: {shape.name}</span>
-            </button>
-            <SkillIntro gameId="firefly-trails" />
+              </p></>}
+              extras={<div className="flex items-end justify-center gap-3"><span className="self-start mt-2 fg-bob inline-block"><GlowBug size={40} seed={3} /></span></div>}
+              levels={<LevelPath gameId="firefly-trails" level={level} onPick={setLevel} />}
+              startLabel={<><ShapeGlyph kind={shape.kind} size={40} /> <span className="whitespace-nowrap">Level {level}: {shape.name}</span></>}
+              onStart={startLevel}
+              footer={<SkillIntro gameId="firefly-trails" />}
+            />
           </div>
         )}
 
@@ -443,7 +420,7 @@ export default function FireflyTrailsPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={phase === 'watch' ? 'thinking' : noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
@@ -454,40 +431,18 @@ export default function FireflyTrailsPage() {
       </div>
 
       {phase === 'done' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 overflow-y-auto"
-          style={{ background: 'linear-gradient(135deg, #0b2440, #14532d)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-flex items-center justify-center mb-3 star-burst rounded-full" style={{
-              width: 128, height: 128, background: 'radial-gradient(circle, #1C2E6B 0%, #0B1238 70%)',
-              border: '4px solid #FDE047', boxShadow: '0 0 28px rgba(253,224,71,0.55)' }}>
-              <ShapeGlyph kind={shape.kind} size={92} light />
-            </span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={116} expression="celebrating" className="float" />
-              <KailiaSprite size={88} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 80)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-emerald-100 font-semibold mb-1">
-              {shape.name} shines again! {mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}
-            </p>
-            <p className="text-emerald-100 font-semibold mb-2">{pet.name} is doing a happy dance!</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6"><StarIcon /> +{stars} starlight</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Level {level + 1} ▶</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-emerald-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #0b2440, #14532d)', accent: '#A3E635', accent2: '#16A34A' }}
+            pet={pet}
+            message={<>{shape.name} shines again! {mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}</>}
+            earned={stars}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>

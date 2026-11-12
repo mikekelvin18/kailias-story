@@ -1,6 +1,6 @@
 // ── Family account (parent-first, COPPA-aligned) ──
 // Parents own the account and create child profiles. A child profile holds
-// the ABSOLUTE MINIMUM: nickname, birth month/year, avatar emoji. Nothing
+// the ABSOLUTE MINIMUM: nickname, birth month/year, avatar pick. Nothing
 // else — no photos, no email, no location, no last name.
 //
 // Everything lives on this device (localStorage). When cloud sync is added
@@ -9,6 +9,7 @@
 // verification via the payment system) plugs in.
 
 import { deleteAllPhotos, deletePhotosForChild } from './photos';
+import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 export interface ParentConsent {
   agreedAt: string;               // ISO timestamp of active agreement
@@ -21,7 +22,7 @@ export interface ChildProfile {
   nickname: string;               // first name or nickname ONLY
   birthYear: number;              // for developmental-age comparison
   birthMonth: number;             // 1–12
-  avatar: string;                 // emoji chosen by the parent
+  avatar: string;                 // buddy id chosen by the parent (older profiles: an emoji)
   createdAt: string;
 }
 
@@ -61,6 +62,9 @@ export const CHILD_DATA_KEYS = [
   'kailia_worksheet_progress_v1', // printable worksheet completion records
   'kailia_custom_tasks_v1',    // parent-authored custom quest goals
   'kailia_daily_history_v1',   // no-repeat rotation history for daily quests
+  'kailia_pet_v1',             // daily care pet: growth, today's task, difficulty steps
+  'kailia_walletpet_v1',       // wallet lab (experiment): the pet card's device key + card number
+  'kailia_world_v1',           // adventure world: quest steps, discoveries, grown-up task settings
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -215,6 +219,7 @@ export async function deleteChildAndData(childId: string) {
   f.children = f.children.filter(c => c.id !== childId);
   if (f.activeChildId === childId) f.activeChildId = f.children[0]?.id ?? null;
   save(f);
+  await releaseWalletCards([childId]);
   CHILD_DATA_KEYS.forEach(base => {
     localStorage.removeItem(`${base}::${childId}`);
     // also clear the un-namespaced legacy key — it only ever held data
@@ -227,10 +232,24 @@ export async function deleteChildAndData(childId: string) {
 
 export async function deleteEverything() {
   const f = loadFamily();
+  await releaseWalletCards(f?.children.map(c => c.id) ?? []);
   f?.children.forEach(c => CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(`${base}::${c.id}`)));
   CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(base));
   localStorage.removeItem(FAMILY_KEY);
   await deleteAllPhotos();
+}
+
+// Wallet lab (experiment): a child's pet card also exists on a test
+// blockchain and its card server, so deleting asks the server to delete
+// the card too. Loaded only when a card exists, so the wallet code never
+// ships to families who don't use it.
+async function releaseWalletCards(childIds: string[]) {
+  const has = childIds.some(id => localStorage.getItem(`kailia_walletpet_v1::${id}`) !== null);
+  if (!has) return;
+  try {
+    const { releaseWalletCard } = await import('./walletLab/device');
+    await Promise.all(childIds.map(id => releaseWalletCard(id)));
+  } catch { /* keys are still removed below */ }
 }
 
 // ── "View my child's data" — everything stored, in readable form ──
@@ -240,7 +259,9 @@ export interface DataSection { label: string; items: string[]; }
 export function childDataInventory(): DataSection[] {
   if (typeof window === 'undefined') return [];
   const sections: DataSection[] = [];
-  const read = (k: string) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { return null; } };
+  // every child-data key is stored per child (scopedKey), so read the
+  // active child's copy, not the old shared one
+  const read = (k: string) => { try { return JSON.parse(localStorage.getItem(scopedKey(k)) ?? 'null'); } catch { return null; } };
 
   const fam = loadFamily();
   const child = activeChild(fam);
@@ -248,7 +269,7 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '👤 Profile', items: [
       `Nickname: ${child.nickname}`,
       `Born: ${String(child.birthMonth).padStart(2, '0')}/${child.birthYear}`,
-      `Avatar: ${child.avatar}`,
+      `Avatar: ${CHILD_AVATARS.find(a => a.id === child.avatar)?.name ?? child.avatar}`,
       `Profile created: ${new Date(child.createdAt).toLocaleDateString()}`,
     ]});
   }
@@ -286,6 +307,27 @@ export function childDataInventory(): DataSection[] {
     ]});
   }
 
+  const card = read(scopedKey('kailia_walletpet_v1'));
+  if (card?.v === 1) {
+    sections.push({ label: '🪪 Wallet pet card (test)', items: [
+      `Card number ${card.tokenId} on test network ${card.chainId}`,
+      `Made: ${String(card.madeAt).slice(0, 10)}`,
+      'Stored on the card: pet kind, growth stage, happy days, hellos. Nothing about your child.',
+      'This device also keeps the card\'s private key, which proves the card is yours.',
+    ]});
+  }
+
+  const pet = read(scopedKey('kailia_pet_v1'));
+  if (pet?.v === 1) {
+    sections.push({ label: '🥚 Daily care pet', items: [
+      `Happy days so far: ${pet.happyDays ?? 0}`,
+      `Started: ${pet.startedDay}`,
+      `Difficulty steps (1–6): feed ${pet.steps?.feed}, play ${pet.steps?.play}, care ${pet.steps?.care}`,
+      ...((pet.history ?? []) as { day: string; need: string; step: number; outcome: string }[]).slice(-14)
+        .map(h => `${h.day} — ${h.need} at step ${h.step}: ${h.outcome === 'win' ? 'easy win' : h.outcome === 'help' ? 'with help' : 'not yet'}`),
+    ]});
+  }
+
   const daily = read('kailia_daily_v1');
   if (daily && Object.keys(daily).length) {
     const labels = ['not yet', 'tried with help', 'did it'];
@@ -308,6 +350,16 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '📝 Custom quests (parent-authored)', items:
       (customTasks as { text: string; domain: string }[]).map(t => `"${t.text}" (${t.domain})`),
     });
+  }
+
+  const world = read('kailia_world_v1');
+  if (world?.garden) {
+    const g = world.garden;
+    sections.push({ label: '🏡 Adventure world', items: [
+      `Kailia's Garden quest: ${g.quest?.complete ? 'finished' : g.quest?.done?.length ? `${g.quest.done.length} step(s) done` : 'not started'}${g.finished ? ` (finished ${g.finished} time(s))` : ''}`,
+      `Ladybugs found: ${g.ladybugs?.length ?? 0}, stickers: ${(g.stickers ?? []).join(', ') || 'none'}`,
+      `Grown-up settings: challenge ${world.grownUp?.challenge ?? 'auto'}, hints ${world.grownUp?.hints ?? 'auto'}, tap to move ${world.grownUp?.tapToMove ? 'on' : 'off'}`,
+    ]});
   }
 
   if (!sections.length) sections.push({ label: 'Nothing yet', items: ['No data has been stored on this device.'] });

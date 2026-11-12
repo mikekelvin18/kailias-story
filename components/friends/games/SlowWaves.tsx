@@ -149,7 +149,7 @@ export default function SlowWaves({ difficulty, say, onDone, pet, reaction }: Ro
           )}
           <Actor art={pet.art} name={pet.name} x={50} y={wave(50) + 6} h={112} mood={mood} moodKey={moodKey} moveMs={60} shadow={false} />
         </div>
-        <div className="absolute inset-x-0 top-[40%] text-center pointer-events-none" style={{ zIndex: 4 }}>
+        <div className="absolute inset-x-0 bottom-[12%] text-center pointer-events-none" style={{ zIndex: 4 }}>
           <span key={ready ? 'r' : inPhase ? 'i' : 'o'} className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-2xl font-extrabold bounce-in"
             style={{ background: 'rgba(255,255,255,0.85)', color: '#0F3E4A' }}>
             {!ready && (

@@ -146,7 +146,7 @@ function KikoBoard({ round, say, onDone, pet, reaction }: { round: KikoRound } &
             <ellipse cx="78" cy="31" rx="4" ry="2" fill="#6CC35B" stroke="#3b2416" strokeWidth="0.4" transform="rotate(20 78 31)" />
             {/* leaf pads for the shape friends */}
             {SPOTS.map(([x, y], i) => (
-              <ellipse key={i} cx={x} cy={y + 2} rx="13" ry="3.6" fill={i % 2 ? '#4E9F44' : '#5DB04E'} stroke="#3b2416" strokeWidth="0.5" />
+              <ellipse key={i} cx={x} cy={y + 2} rx="13" ry="3.6" fill={i % 2 ? '#B5763F' : '#C8874E'} stroke="#3b2416" strokeWidth="0.6" />
             ))}
           </g>
         </svg>

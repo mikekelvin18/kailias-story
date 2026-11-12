@@ -1,5 +1,6 @@
 'use client';
 
+import ChildAvatar from '@/components/characters/ChildAvatar';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +18,9 @@ import { loadRewards, explorerLevel, COMPANIONS, RewardsState, pendingCompanionR
 import { isPremium } from '@/lib/premium';
 import { takeReturnPath, clearReturnPath } from '@/lib/returnTo';
 import { TRAILS, companionFor } from '@/lib/companionTrails';
+import { characterArt } from '@/components/characters/characters.config';
 import BottomNav from '@/components/BottomNav';
+import CarePet from '@/components/carepet/CarePet';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -36,11 +39,12 @@ const DAILY_SEEN_KEY = 'kailia_daily_seen_v1';
 // ── Tiny sound effects (no audio files needed) ────────────────────────────────
 
 import { soundEnabled } from '@/lib/accessibility';
+import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -110,8 +114,8 @@ const DOMAIN_LAND: Record<string, string> = {
 };
 
 export default function AdventureMap() {
-  const { state, totalScore } = useAssessment();
-  const band = developmentalBand(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const band = developmentalBand(state.ageGroup, totalScore, devMonths);
   const [progress, setProgress] = useState<AdventureProgress>({ played: {}, celebrated: [] });
   const [hydrated, setHydrated] = useState(false);
   const [openLand, setOpenLand] = useState<Land | null>(null);
@@ -120,6 +124,9 @@ export default function AdventureMap() {
   const [noelLine, setNoelLine] = useState(IDLE_LINES[0]);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [dailyPrompt, setDailyPrompt] = useState<ParentActivity[] | null>(null);
+  // one pop-up per visit: if today's quests popped up, the care pet waits
+  // to be tapped instead of popping up right after
+  const [dailyPopped, setDailyPopped] = useState(false);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {}, celebratedCompanions: [] });
   const [showGuide, setShowGuide] = useState(false);
   const [newCompanion, setNewCompanion] = useState<(typeof COMPANIONS)[number] | null>(null);
@@ -178,6 +185,7 @@ export default function AdventureMap() {
       const reports = getTodayReports();
       if (quests.every(q => reports[q.id] !== undefined)) return;
       setDailyPrompt(quests);
+      setDailyPopped(true);
     } catch { /* never block the map */ }
   }, [band]);
 
@@ -329,7 +337,7 @@ export default function AdventureMap() {
               {isBonus && (
                 <span className={`absolute left-1/2 top-1/2 rounded-full portal-ring ${unlocked ? 'portal-pulse' : ''}`}
                   style={{
-                    width: '5.4rem', height: '5.4rem',
+                    width: '4.6rem', height: '4.6rem',
                     background: unlocked
                       ? `conic-gradient(from 0deg, ${land.color}, ${land.glow}, #FBBF24, ${land.color})`
                       : 'conic-gradient(from 0deg, rgba(255,255,255,0.35), rgba(255,255,255,0.05), rgba(255,255,255,0.35))',
@@ -369,7 +377,7 @@ export default function AdventureMap() {
                   )}
                 </span>
               ) : (
-              <span className={`relative inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
+              <span className={`relative inline-flex items-center justify-center rounded-full transition-transform hover:scale-110 ${isBonus ? 'w-14 h-14 text-2xl sm:w-16 sm:h-16 sm:text-3xl' : 'w-16 h-16 text-3xl sm:w-20 sm:h-20 sm:text-4xl lg:w-24 lg:h-24 lg:text-5xl'} ${isCurrent && unlocked && !complete ? 'pulse' : ''}`}
                   style={{
                     background: unlocked ? land.sky : (isBonus ? 'rgba(80,70,120,0.55)' : 'rgba(120,120,140,0.45)'),
                     border: `3.5px solid ${complete ? '#FBBF24' : unlocked ? land.color : 'rgba(255,255,255,0.25)'}`,
@@ -453,9 +461,9 @@ export default function AdventureMap() {
             </h1>
             {child && (
               <Link href="/family" title={`Playing as ${child.nickname} — tap to switch`}
-                className="text-base rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0"
-                style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-                {child.avatar}
+                className="rounded-full flex-shrink-0 flex"
+                style={{ border: `1.5px solid ${theme.badgeBorder}` }}>
+                <ChildAvatar avatar={child.avatar} size={28} />
               </Link>
             )}
           </div>
@@ -513,6 +521,20 @@ export default function AdventureMap() {
           <div className="hidden sm:landscape:flex flex-1 min-h-0">{renderMap('landscape')}</div>
         </div>
 
+        {/* ── Kailia's Garden ──
+            The adventure world's home base (app/play/garden): walk around,
+            help a friend, find things. Always open. */}
+        <Link href="/play/garden" onClick={() => sfx.open()}
+          className="flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-sm sm:text-base flex-shrink-0 transition-transform active:scale-[0.98]"
+          style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={characterArt('kailia', 'portrait-front')} alt="" width={30} height={30} aria-hidden="true"
+            className="rounded-full flex-shrink-0"
+            style={{ width: 30, height: 30, objectFit: 'cover', objectPosition: '50% 12%', background: '#FFF6E5', border: '2px solid #FFFFFF' }} />
+          <span className={`flex-1 ${theme.subtitle}`}>Kailia&apos;s Garden</span>
+          <span aria-hidden="true" className={theme.subtitle}>→</span>
+        </Link>
+
         {/* ── Friends' adventures ──
             Each companion's own trail (lib/companionTrails.ts). They open
             once all six lands are finished; before that the button stays
@@ -559,6 +581,8 @@ export default function AdventureMap() {
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
             {noelLine}
           </div>
+          {/* the daily care pet (components/carepet) — pops up once a day */}
+          <CarePet holdAutoOpen={dailyPopped || showGuide || !!openLand || !!celebrating || !!newCompanion} />
         </div>
 
         {/* Companions no longer sit in a permanent row here — unlocking one
@@ -644,9 +668,7 @@ export default function AdventureMap() {
             </p>
             <p className="text-xs text-amber-800 mb-4 px-2 leading-snug rounded-xl py-2"
               style={{ background: 'rgba(255,255,255,0.55)' }}>
-              💡 {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure check showed a
-              developmental age of {BAND_INFO[band].ages} — and at the{' '}
-              {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
+              💡 At the {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
               <strong>together with you</strong>. That&apos;s why Noel suggests these quests first!
               Only ~{dailyPrompt.reduce((s, q) => s + q.minutes, 0)} minutes all together.
             </p>

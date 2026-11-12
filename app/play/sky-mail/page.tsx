@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel } from '@/lib/rewards';
@@ -16,8 +16,6 @@ import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
-import LiveArt from '@/components/characters/LiveArt';
-import { petWidth } from '@/lib/companionTrails';
 import {
   Arrow, Berry, Book, Check, Envelope, Face, Mailbox, Notes, Pebbles, Rider, Shape, Squiggle, Treat,
   RIDER_KINDS, type BerryKind, type RiderKind, type ShapeKind, type TreatKind,
@@ -146,11 +144,12 @@ const RHYME_FALSE: [string, string][] = [
 ];
 
 import { soundEnabled } from '@/lib/accessibility';
+import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -339,8 +338,8 @@ const BOX_PX = 64; // drawn mailbox width
 const clampPct = (v: number) => Math.max(10, Math.min(90, v));
 
 export default function SkyMailPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
   const [deckId, setDeckId] = useState<DeckId | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
@@ -597,42 +596,39 @@ export default function SkyMailPage() {
 
         {/* ── Mailbag select ── */}
         {(phase === 'select' || phase === 'deckDone') && (
-          <div className="relative z-10">
-            <div className="text-center mb-4 mt-1">
-              <div className="flex items-end justify-center gap-1">
-                <PandaSprite size={84} expression={noelMood} className="float" style={{ animationDelay: '0.2s' }} />
-                <KailiaSprite size={66} expression="excited" className="float" />
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 50)} kind="pet" />
-                <Mailbox size={52} flagUp={phase === 'deckDone'} />
-              </div>
-              <p className="text-sky-950 font-bold text-sm mt-2 px-6">
-                The wind stole Noel&apos;s letters over Owl&apos;s Tower! Swipe each one into the right mailbox.
-              </p>
-            </div>
-            {phase === 'deckDone' && (
-              <div className="text-center mb-3 bounce-in">
-                <p className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-lg font-extrabold text-amber-900" style={{ background: '#FEF9C3', border: '2px solid #3b2416' }}>
-                  <StarIcon /> Mailbag sorted! <StarIcon />
-                </p>
-              </div>
-            )}
-            <div className="space-y-3">
-              {availableDecks.map(d => (
-                <button key={d} onClick={() => startDeck(d)}
-                  className="w-full flex items-center gap-3 rounded-3xl p-4 bg-white shadow-xl transition-transform hover:scale-[1.02] active:scale-[0.98] text-left"
-                  style={{ border: '2.5px solid #3b2416' }}>
-                  <span className="w-12 h-12 flex items-center justify-center shrink-0"><DeckIcon deck={d} /></span>
-                  <span className="flex-1">
-                    <span className="flex items-center gap-1 font-extrabold text-indigo-900">{DECKS[d].title} {doneDecks.includes(d) && <StarIcon size={18} />}</span>
-                    <span className="block text-xs text-gray-600">{DECKS[d].desc}</span>
-                  </span>
-                  <span className="px-4 py-2 rounded-full font-extrabold text-white text-sm whitespace-nowrap" style={{ background: '#4F46E5' }}>
-                    {doneDecks.includes(d) ? 'Again!' : 'Sort!'}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <SkillIntro gameId="sky-mail" />
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Sky Mail"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #38BDF8 0%, #0369a1 55%, #1e3a8a 100%)', accent: '#38BDF8', accent2: '#4F46E5' }}
+              pet={pet}
+              story={<p>The wind stole Noel&apos;s letters over Owl&apos;s Tower! Swipe each one into the right mailbox.</p>}
+              extras={<>
+                <div className="flex justify-center mb-3"><Mailbox size={52} flagUp={phase === 'deckDone'} /></div>
+                {phase === 'deckDone' && (
+                  <div className="text-center mb-3 bounce-in">
+                    <p className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-lg font-extrabold text-amber-900" style={{ background: '#FEF9C3', border: '2px solid #3b2416' }}>
+                      <StarIcon /> Mailbag sorted! <StarIcon />
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {availableDecks.map((d, i) => (
+                    <button key={d} onClick={() => startDeck(d)} className="gf-choice w-full flex items-center gap-3 text-left"
+                      style={{ background: '#FFFFFF', padding: 16, animationDelay: `${1.5 + i * 0.07}s` }}>
+                      <span className="w-12 h-12 flex items-center justify-center shrink-0"><DeckIcon deck={d} /></span>
+                      <span className="flex-1">
+                        <span className="flex items-center gap-1 font-extrabold text-indigo-900">{DECKS[d].title} {doneDecks.includes(d) && <StarIcon size={18} />}</span>
+                        <span className="block text-xs text-gray-600">{DECKS[d].desc}</span>
+                      </span>
+                      <span className="px-4 py-2 rounded-full font-extrabold text-white text-sm whitespace-nowrap" style={{ background: '#4F46E5', border: '2px solid #3b2416' }}>
+                        {doneDecks.includes(d) ? 'Again!' : 'Sort!'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>}
+              footer={<SkillIntro gameId="sky-mail" />}
+            />
           </div>
         )}
 
@@ -733,7 +729,7 @@ export default function SkyMailPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.35)', border: '1.5px solid rgba(255,255,255,0.6)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
@@ -745,31 +741,18 @@ export default function SkyMailPage() {
 
       {/* ── All mailbags done ── */}
       {phase === 'allDone' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #0369a1, #4f46e5)' }}>
-          <div className="text-center bounce-in">
-            <span className="inline-block mb-3 star-burst"><Mailbox size={96} flagUp /></span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={120} expression="celebrating" className="float" />
-              <KailiaSprite size={92} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-              <span className="fg-dance inline-block" style={{ transformOrigin: '50% 100%' }}>
-                <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, 84)} kind="pet" />
-              </span>
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Every letter made it home!</h2>
-            <p className="text-sky-100 font-semibold mb-6">The wise owl hoots with joy — what a wind-fast sorter! {pet.name} is doing a happy dance!</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <button onClick={() => { setDoneDecks([]); setPhase('select'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-indigo-900 shadow-xl transition-transform hover:scale-105" style={{ background: 'white' }}>
-                <span className="whitespace-nowrap">Play again!</span>
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-indigo-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                <span className="whitespace-nowrap">Back to the map</span>
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title="Every letter made it home!"
+            theme={{ bg: 'linear-gradient(135deg, #0369a1, #4f46e5)', accent: '#38BDF8', accent2: '#4F46E5' }}
+            pet={pet}
+            trophy={<Mailbox size={96} flagUp />}
+            message={<>The wise owl hoots with joy — what a wind-fast sorter! {pet.name} is doing a happy dance!</>}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { setDoneDecks([]); setPhase('select'); }}>Play again!</PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>
