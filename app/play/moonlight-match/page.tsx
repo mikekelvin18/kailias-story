@@ -37,12 +37,13 @@ interface CardT {
   state: 'down' | 'up' | 'matched';
 }
 
-// the sleeping creatures are still emoji pictures (no drawn animals yet)
-const CREATURES = ['🦊', '🐰', '🦉', '🐸', '🦋', '🐝', '🐢', '🦄', '🐞', '🐿️'];
+// the sleeping creatures, painted (components/art/things)
+const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel'];
 const SHAPES = SHAPE_KINDS.map(k => `shape:${k}`);
 const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
 
 import { soundEnabled } from '@/lib/accessibility';
+import { Thing } from '@/components/art/things';
 import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
@@ -83,6 +84,7 @@ const GROUND = 112; // px of glade below the board, where Kailia and the friend 
 function CardFace({ face, cols }: { face: string; cols: number }) {
   const big = cols <= 3 ? 1.35 : cols === 4 ? 1.1 : 0.9;
   if (face.startsWith('shape:')) return <Shape kind={face.slice(6) as ShapeKind} size={Math.round(44 * big)} />;
+  if (face.startsWith('pic:')) return <Thing id={face.slice(4)} size={Math.round(50 * big)} />;
   const isLetter = face.length === 1 && /[A-Za-z]/.test(face);
   return <span style={{ fontSize: Math.round((isLetter ? 36 : 32) * big), lineHeight: 1 }}>{face}</span>;
 }
@@ -331,7 +333,7 @@ export default function MoonlightMatchPage() {
                 {cards.map(c => (
                   <button key={c.id} ref={el => { cardEls.current[c.id] = el; }}
                     data-mkey={c.matchKey} data-state={c.state} onClick={() => flip(c.id)}
-                    aria-label={c.state === 'down' ? 'Sleeping feather' : c.face.replace('shape:', '')}
+                    aria-label={c.state === 'down' ? 'Sleeping feather' : c.face.replace(/^(shape|pic):/, '')}
                     className="relative w-full"
                     style={{ aspectRatio: '3 / 4', perspective: 600 }}>
                     {hintId === c.id && c.state === 'down' && (

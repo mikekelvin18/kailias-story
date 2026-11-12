@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import { Thing } from '@/components/art/things';
 
 // ── Persistent bottom navigation ──
 // The single biggest "where do I even find this" complaint: every hub
@@ -14,10 +15,10 @@ import { useHubTheme } from '@/hooks/useHubTheme';
 // there would eat into precious play space.
 
 const TABS = [
-  { href: '/play', label: 'Map', emoji: '🗺️' },
-  { href: '/activities', label: 'Quests', emoji: '🎒' },
-  { href: '/printables', label: 'Print', emoji: '🖨️' },
-  { href: '/family', label: 'Family', emoji: '👪' },
+  { href: '/play', label: 'Map', pic: 'map' },
+  { href: '/activities', label: 'Quests', pic: 'backpack' },
+  { href: '/printables', label: 'Print', pic: 'printer' },
+  { href: '/family', label: 'Family', pic: 'house' },
 ] as const;
 
 export default function BottomNav() {
@@ -43,10 +44,10 @@ export default function BottomNav() {
               {/* The active tab gets a filled pill behind its icon (the
                   iOS/Android pattern) — far easier to spot than the old
                   tiny dot, especially for pre-readers. */}
-              <span className="flex items-center justify-center rounded-full text-2xl sm:text-[1.7rem] leading-none transition-colors"
+              <span className="flex items-center justify-center rounded-full leading-none transition-colors"
                 style={{ width: 56, height: 32, background: active ? theme.navActiveBg : 'transparent',
                   filter: active ? 'none' : 'saturate(0.75)' }}>
-                {tab.emoji}
+                <Thing id={tab.pic} size={28} />
               </span>
               <span className={`text-xs sm:text-sm ${active ? 'font-extrabold' : 'font-bold'}`}>{tab.label}</span>
             </Link>

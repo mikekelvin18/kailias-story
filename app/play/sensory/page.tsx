@@ -18,7 +18,7 @@ import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
-import { Thing } from './things';
+import { Thing } from '@/components/art/things';
 import { audioCtx } from '@/lib/sfx';
 
 // ─── Sense Explorer ───────────────────────────────────────────────────────────
@@ -35,8 +35,7 @@ import { audioCtx } from '@/lib/sfx';
 // right piece starts to glow and the friend runs underneath it.
 // Measures visual discrimination accuracy.
 
-// e: a drawn piece id from ./things (or, for the animals that are not
-// drawn yet, the emoji itself)
+// e: a painted picture id from components/art/things
 interface HuntItem { e: string; c: string }
 interface Hunt { prompt: string; say: string; target: string; color: string; fromChapter: number; items: HuntItem[] }
 
@@ -58,17 +57,17 @@ const HUNTS: Hunt[] = [
       { e: 'pizza', c: 'tri' }, { e: 'block-red', c: 'square' }, { e: 'gem-blue', c: 'diamond' }, { e: 'star', c: 'star' }, { e: 'box', c: 'square' },
       { e: 'tri-block', c: 'tri' }, { e: 'cheese', c: 'tri' }, { e: 'block-green', c: 'square' }, { e: 'heart-red', c: 'heart' }] },
   { prompt: 'Catch everything with WINGS!', say: 'Catch everything with wings!', target: 'wings', color: '#10B981', fromChapter: 2,
-    items: [{ e: '🦋', c: 'wings' }, { e: '🐦', c: 'wings' }, { e: '🐝', c: 'wings' }, { e: '🦜', c: 'wings' }, { e: '🐞', c: 'wings' },
-      { e: '🐟', c: 'fins' }, { e: '🐛', c: 'crawl' }, { e: '🐢', c: 'crawl' }, { e: '🐍', c: 'crawl' }, { e: '🐕', c: 'legs' },
-      { e: '🐌', c: 'crawl' }, { e: '🐙', c: 'fins' }, { e: '🐈', c: 'legs' }, { e: '🦀', c: 'legs' }] },
+    items: [{ e: 'butterfly', c: 'wings' }, { e: 'bird', c: 'wings' }, { e: 'bee', c: 'wings' }, { e: 'parrot', c: 'wings' }, { e: 'ladybug', c: 'wings' },
+      { e: 'fish', c: 'fins' }, { e: 'caterpillar', c: 'crawl' }, { e: 'turtle', c: 'crawl' }, { e: 'snake', c: 'crawl' }, { e: 'dog', c: 'legs' },
+      { e: 'snail', c: 'crawl' }, { e: 'octopus', c: 'fins' }, { e: 'cat', c: 'legs' }, { e: 'crab', c: 'legs' }] },
   { prompt: 'Catch every SWEET treat!', say: 'Catch every sweet treat!', target: 'sweet', color: '#EC4899', fromChapter: 3,
     items: [{ e: 'cake', c: 'sweet' }, { e: 'lollipop', c: 'sweet' }, { e: 'chocolate', c: 'sweet' }, { e: 'donut', c: 'sweet' }, { e: 'cookie', c: 'sweet' },
       { e: 'broccoli', c: 'veg' }, { e: 'carrot', c: 'veg' }, { e: 'onion', c: 'veg' }, { e: 'peas', c: 'veg' }, { e: 'cucumber', c: 'veg' },
       { e: 'corn', c: 'veg' }, { e: 'potato', c: 'veg' }, { e: 'pepper', c: 'veg' }, { e: 'eggplant', c: 'veg' }] },
   { prompt: 'Catch every animal with FOUR legs!', say: 'Catch every animal with four legs!', target: '4legs', color: '#D97706', fromChapter: 3,
-    items: [{ e: '🐶', c: '4legs' }, { e: '🐱', c: '4legs' }, { e: '🐮', c: '4legs' }, { e: '🦁', c: '4legs' }, { e: '🐘', c: '4legs' },
-      { e: '🐦', c: 'wings' }, { e: '🐟', c: 'fins' }, { e: '🐍', c: 'crawl' }, { e: '🦋', c: 'wings' }, { e: '🐠', c: 'fins' },
-      { e: '🦅', c: 'wings' }, { e: '🐙', c: 'fins' }, { e: '🐧', c: 'wings' }, { e: '🐌', c: 'crawl' }] },
+    items: [{ e: 'dog', c: '4legs' }, { e: 'cat', c: '4legs' }, { e: 'cow', c: '4legs' }, { e: 'lion', c: '4legs' }, { e: 'elephant', c: '4legs' },
+      { e: 'bird', c: 'wings' }, { e: 'fish', c: 'fins' }, { e: 'snake', c: 'crawl' }, { e: 'butterfly', c: 'wings' }, { e: 'fish-orange', c: 'fins' },
+      { e: 'owl', c: 'wings' }, { e: 'octopus', c: 'fins' }, { e: 'penguin', c: 'wings' }, { e: 'snail', c: 'crawl' }] },
 ];
 
 type Round =

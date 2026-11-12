@@ -18,6 +18,7 @@ import { useBursts } from '@/components/friends/kit/Burst';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import { audioCtx } from '@/lib/sfx';
+import { Thing } from '@/components/art/things';
 
 // ─── Word Wizard ──────────────────────────────────────────────────────────────
 // The Whispering Signposts lost their words — they floated away as word
@@ -35,7 +36,8 @@ import { audioCtx } from '@/lib/sfx';
 
 interface ReadingQ {
   prompt: string;
-  visual: string;     // emoji or sentence shown on the signpost
+  visual: string;     // word or sentence shown on the signpost
+  pic?: string;       // a painted picture (components/art/things) shown above it
   choices: string[];
   answer: string;
 }
@@ -43,40 +45,40 @@ interface ReadingQ {
 const BANKS: ReadingQ[][] = [
   // Chapter 1: picture → word (about 3–4 years)
   [
-    { visual: '🐱', prompt: 'Which word says this?', choices: ['cat', 'dog', 'bird'], answer: 'cat' },
-    { visual: '🍎', prompt: 'Which word says this?', choices: ['apple', 'orange', 'banana'], answer: 'apple' },
-    { visual: '🌙', prompt: 'Which word says this?', choices: ['sun', 'moon', 'star'], answer: 'moon' },
-    { visual: '🚗', prompt: 'Which word says this?', choices: ['car', 'bus', 'bike'], answer: 'car' },
-    { visual: '🌸', prompt: 'Which word says this?', choices: ['flower', 'tree', 'leaf'], answer: 'flower' },
-    { visual: '🐶', prompt: 'Which word says this?', choices: ['cat', 'dog', 'fish'], answer: 'dog' },
-    { visual: '⭐', prompt: 'Which word says this?', choices: ['moon', 'cloud', 'star'], answer: 'star' },
-    { visual: '🏠', prompt: 'Which word says this?', choices: ['house', 'school', 'shop'], answer: 'house' },
-    { visual: '🐟', prompt: 'Which word says this?', choices: ['fish', 'frog', 'fox'], answer: 'fish' },
-    { visual: '🐸', prompt: 'Which word says this?', choices: ['frog', 'dog', 'log'], answer: 'frog' },
-    { visual: '☀️', prompt: 'Which word says this?', choices: ['sun', 'run', 'bun'], answer: 'sun' },
-    { visual: '🐝', prompt: 'Which word says this?', choices: ['bee', 'bed', 'bat'], answer: 'bee' },
+    { pic: 'cat', visual: '', prompt: 'Which word says this?', choices: ['cat', 'dog', 'bird'], answer: 'cat' },
+    { pic: 'apple', visual: '', prompt: 'Which word says this?', choices: ['apple', 'orange', 'banana'], answer: 'apple' },
+    { pic: 'moon', visual: '', prompt: 'Which word says this?', choices: ['sun', 'moon', 'star'], answer: 'moon' },
+    { pic: 'car', visual: '', prompt: 'Which word says this?', choices: ['car', 'bus', 'bike'], answer: 'car' },
+    { pic: 'flower', visual: '', prompt: 'Which word says this?', choices: ['flower', 'tree', 'leaf'], answer: 'flower' },
+    { pic: 'dog', visual: '', prompt: 'Which word says this?', choices: ['cat', 'dog', 'fish'], answer: 'dog' },
+    { pic: 'star', visual: '', prompt: 'Which word says this?', choices: ['moon', 'cloud', 'star'], answer: 'star' },
+    { pic: 'house', visual: '', prompt: 'Which word says this?', choices: ['house', 'school', 'shop'], answer: 'house' },
+    { pic: 'fish', visual: '', prompt: 'Which word says this?', choices: ['fish', 'frog', 'fox'], answer: 'fish' },
+    { pic: 'frog', visual: '', prompt: 'Which word says this?', choices: ['frog', 'dog', 'log'], answer: 'frog' },
+    { pic: 'sun', visual: '', prompt: 'Which word says this?', choices: ['sun', 'run', 'bun'], answer: 'sun' },
+    { pic: 'bee', visual: '', prompt: 'Which word says this?', choices: ['bee', 'bed', 'bat'], answer: 'bee' },
   ],
   // Chapter 2: first letters and rhymes (about 4–5 years)
   [
-    { visual: '🐱', prompt: 'CAT starts with…', choices: ['C', 'D', 'B', 'F'], answer: 'C' },
-    { visual: '🍎', prompt: 'APPLE starts with…', choices: ['A', 'E', 'O', 'I'], answer: 'A' },
-    { visual: '🐶', prompt: 'DOG starts with…', choices: ['B', 'D', 'G', 'P'], answer: 'D' },
-    { visual: '🌟', prompt: 'STAR starts with…', choices: ['T', 'P', 'S', 'R'], answer: 'S' },
-    { visual: '🦁', prompt: 'LION starts with…', choices: ['N', 'M', 'L', 'K'], answer: 'L' },
-    { visual: '🐘', prompt: 'ELEPHANT starts with…', choices: ['E', 'A', 'I', 'O'], answer: 'E' },
-    { visual: '🦇', prompt: 'Which word rhymes with CAT?', choices: ['bat', 'cup', 'pig', 'log'], answer: 'bat' },
-    { visual: '☀️', prompt: 'Which word rhymes with FUN?', choices: ['sun', 'cat', 'dog', 'big'], answer: 'sun' },
-    { visual: '🐷', prompt: 'Which word rhymes with PIG?', choices: ['wig', 'pot', 'hen', 'cup'], answer: 'wig' },
-    { visual: '🪵', prompt: 'Which word rhymes with LOG?', choices: ['frog', 'leg', 'bag', 'sun'], answer: 'frog' },
+    { pic: 'cat', visual: '', prompt: 'CAT starts with…', choices: ['C', 'D', 'B', 'F'], answer: 'C' },
+    { pic: 'apple', visual: '', prompt: 'APPLE starts with…', choices: ['A', 'E', 'O', 'I'], answer: 'A' },
+    { pic: 'dog', visual: '', prompt: 'DOG starts with…', choices: ['B', 'D', 'G', 'P'], answer: 'D' },
+    { pic: 'star', visual: '', prompt: 'STAR starts with…', choices: ['T', 'P', 'S', 'R'], answer: 'S' },
+    { pic: 'lion', visual: '', prompt: 'LION starts with…', choices: ['N', 'M', 'L', 'K'], answer: 'L' },
+    { pic: 'elephant', visual: '', prompt: 'ELEPHANT starts with…', choices: ['E', 'A', 'I', 'O'], answer: 'E' },
+    { pic: 'bat', visual: '', prompt: 'Which word rhymes with CAT?', choices: ['bat', 'cup', 'pig', 'log'], answer: 'bat' },
+    { pic: 'sun', visual: '', prompt: 'Which word rhymes with FUN?', choices: ['sun', 'cat', 'dog', 'big'], answer: 'sun' },
+    { pic: 'pig', visual: '', prompt: 'Which word rhymes with PIG?', choices: ['wig', 'pot', 'hen', 'cup'], answer: 'wig' },
+    { pic: 'log', visual: '', prompt: 'Which word rhymes with LOG?', choices: ['frog', 'leg', 'bag', 'sun'], answer: 'frog' },
   ],
   // Chapter 3: blending and sight words (about 5–6 years)
   [
     { visual: 'sh + ip', prompt: 'Blend the sounds. What word?', choices: ['ship', 'shop', 'chip', 'drip'], answer: 'ship' },
     { visual: 'fl + ower', prompt: 'Blend the sounds. What word?', choices: ['flower', 'flour', 'power', 'tower'], answer: 'flower' },
-    { visual: '🌙 n + ight', prompt: 'What word do you make?', choices: ['night', 'might', 'light', 'right'], answer: 'night' },
+    { pic: 'moon', visual: 'n + ight', prompt: 'What word do you make?', choices: ['night', 'might', 'light', 'right'], answer: 'night' },
     { visual: 'The cat SAT on the mat.', prompt: 'What did the cat do?', choices: ['ran', 'sat', 'ate', 'slept'], answer: 'sat' },
-    { visual: '🏃 zoom!', prompt: 'Which word means moving quickly?', choices: ['slow', 'fast', 'sit', 'nap'], answer: 'fast' },
-    { visual: 'The 🐶 is big.', prompt: 'Which word tells what the dog is like?', choices: ['The', 'dog', 'is', 'big'], answer: 'big' },
+    { pic: 'rocket', visual: 'zoom!', prompt: 'Which word means moving quickly?', choices: ['slow', 'fast', 'sit', 'nap'], answer: 'fast' },
+    { pic: 'dog', visual: 'The dog is big.', prompt: 'Which word tells what the dog is like?', choices: ['The', 'dog', 'is', 'big'], answer: 'big' },
     { visual: 'b + ug', prompt: 'Blend the sounds. What word?', choices: ['bug', 'bag', 'big', 'hug'], answer: 'bug' },
     { visual: 'tr + ee', prompt: 'Blend the sounds. What word?', choices: ['tree', 'free', 'three', 'try'], answer: 'tree' },
   ],
@@ -103,10 +105,10 @@ const BANKS: ReadingQ[][] = [
   ],
 ];
 
-// Kelvin's painted pictures for the signpost (public/art/words/), keyed by
-// the stand-in emoji they replace. Any picture not drawn yet keeps its emoji.
+// Kelvin's own painted pictures for the signpost (public/art/words/), by
+// picture id; they win over the drawn library picture of the same id.
 const WORD_ART: Record<string, string> = {
-  '🏠': '/art/words/house.webp',
+  house: '/art/words/house.webp',
 };
 
 const QUESTIONS_PER_LEVEL = 5;
@@ -281,7 +283,6 @@ export default function WordWizardPage() {
   const hintOn = triesThisQ >= 2;
   // Kailia stands on the last stone she lit, and runs to the flag at the end
   const kailiaX = lit === 0 ? 8 : lit >= round.length ? stoneX(round.length) - 6 : stoneX(lit - 1);
-  const isWordVisual = q ? !/^\p{Extended_Pictographic}️?$/u.test(q.visual) : false;
 
   return (
     <main className="min-h-screen pb-8 overflow-hidden"
@@ -326,12 +327,13 @@ export default function WordWizardPage() {
             <div key={qIdx} className="mx-auto mt-1 drop-in" style={{ maxWidth: 320 }}>
               <div className="rounded-2xl px-4 py-3 text-center shadow-lg"
                 style={{ background: 'linear-gradient(180deg,#fde68a,#f59e0b)', border: '4px solid #92400e' }}>
-                {WORD_ART[q.visual] ? (
+                {q.pic && WORD_ART[q.pic] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={WORD_ART[q.visual]} alt="" className="mx-auto h-24 w-auto drop-shadow" />
-                ) : (
-                  <p className={`font-extrabold text-amber-950 leading-tight ${isWordVisual ? 'text-xl' : 'text-6xl'}`}>{q.visual}</p>
-                )}
+                  <img src={WORD_ART[q.pic]} alt="" className="mx-auto h-24 w-auto drop-shadow" />
+                ) : q.pic ? (
+                  <div className="flex justify-center drop-shadow"><Thing id={q.pic} size={q.visual ? 64 : 88} /></div>
+                ) : null}
+                {q.visual && <p className="font-extrabold text-amber-950 leading-tight text-xl">{q.visual}</p>}
                 <p className="mt-1 text-base font-bold text-amber-900">{q.prompt}</p>
                 {popped && (
                   <p className="bounce-in mt-1 inline-block px-3 py-0.5 rounded-full text-lg font-extrabold text-amber-950"

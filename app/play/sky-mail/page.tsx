@@ -45,7 +45,7 @@ type Dir = 'left' | 'right' | 'up' | 'down';
 // what a card or a mailbox sign shows
 type Piece =
   | { t: 'text'; s: string }
-  | { t: 'emoji'; s: string }
+  | { t: 'pics'; ids: string[] }
   | { t: 'treats'; kind: TreatKind; n: number }
   | { t: 'berries'; kind: BerryKind; n: number }
   | { t: 'rider'; kind: RiderKind; dir: Dir }
@@ -127,11 +127,11 @@ const WIND_RIDERS = RIDER_KINDS;
 const SHAPES: ShapeKind[] = ['circle', 'triangle', 'square', 'star', 'heart', 'purple'];
 
 // little moments → how would that feel? (emotion inference, no reading needed)
-// these little scenes are still emoji pictures
-const FEELING_CARDS: [string, 'happy' | 'sad'][] = [
-  ['🎂🎈', 'happy'], ['💔🧸', 'sad'], ['🍦☀️', 'happy'], ['🌧️⚽', 'sad'],
-  ['🎁🎀', 'happy'], ['🤕🩹', 'sad'], ['🐶💕', 'happy'], ['🍪❌', 'sad'],
-  ['🎠🎡', 'happy'], ['😿🥛', 'sad'],
+// each little scene is two painted pictures (components/art/things)
+const FEELING_CARDS: [string[], 'happy' | 'sad'][] = [
+  [['cake', 'balloon-red'], 'happy'], [['teddy', 'rain'], 'sad'], [['icecream', 'sun'], 'happy'], [['rain', 'ball'], 'sad'],
+  [['box', 'heart-pink'], 'happy'], [['icecream-fallen', 'splat'], 'sad'], [['dog', 'heart-red'], 'happy'], [['cookie-broken', 'drop'], 'sad'],
+  [['carousel', 'kite'], 'happy'], [['kite', 'tree'], 'sad'],
 ];
 
 const RHYME_TRUE: [string, string][] = [
@@ -144,6 +144,7 @@ const RHYME_FALSE: [string, string][] = [
 ];
 
 import { soundEnabled } from '@/lib/accessibility';
+import { Things } from '@/components/art/things';
 import { audioCtx } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
@@ -240,7 +241,7 @@ function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
   if (deck === 'feelings') {
     const shuffled = [...FEELING_CARDS].sort(() => Math.random() - 0.5).slice(0, count);
     for (const [scene, mood] of shuffled) {
-      cards.push({ main: { t: 'emoji', s: scene }, sub: 'How would that feel?', correct: mood === 'happy' ? 'right' : 'left',
+      cards.push({ main: { t: 'pics', ids: scene }, sub: 'How would that feel?', correct: mood === 'happy' ? 'right' : 'left',
         targets: { left: { t: 'face', mood: 'sad' }, right: { t: 'face', mood: 'happy' } } });
     }
   }
@@ -291,7 +292,7 @@ function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
 function PieceView({ p, size, onCard }: { p: Piece; size: number; onCard?: boolean }) {
   switch (p.t) {
     case 'text': return <>{p.s}</>;
-    case 'emoji': return <span style={{ fontSize: size, lineHeight: 1.1 }}>{p.s}</span>;
+    case 'pics': return <Things ids={p.ids} size={size} />;
     case 'shape': return <Shape kind={p.kind} size={size} />;
     case 'arrow': return <Arrow dir={p.dir} size={size} />;
     case 'face': return <Face mood={p.mood} size={size} />;
@@ -707,7 +708,7 @@ export default function SkyMailPage() {
                       </div>
                     ) : (
                       <span className={`font-extrabold text-indigo-900 text-center leading-snug flex justify-center ${deckId === 'sentence' ? 'text-2xl' : card.main.t === 'text' && card.main.s.length > 8 ? 'text-3xl' : 'text-5xl'}`}>
-                        <PieceView p={card.main} size={card.main.t === 'rider' ? 54 : card.main.t === 'emoji' ? 46 : 64} onCard />
+                        <PieceView p={card.main} size={card.main.t === 'rider' ? 54 : card.main.t === 'pics' ? 66 : 64} onCard />
                       </span>
                     )}
                     {card.sub && (
