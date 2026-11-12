@@ -19,18 +19,18 @@ import BackButton from '@/components/ui/BackButton';
 const SHOW_DEMO_CONTROLS = process.env.NODE_ENV === 'development';
 
 const FREE = [
-  'The adventure check and your child\'s results',
-  'Levels 1 to 5 of every game, in every land',
-  'The daily friend for the first 3 days',
-  '3 Parent & Baby quests every day',
+  'The adventure check-in, with results in plain words',
+  'The whole first chapter of every game, in every land (levels 1 to 5)',
+  'A friend who hatches and grows with your child, free for 3 days',
+  '3 fresh Parent & Baby quests every day',
 ];
 
 const PLUS = [
-  'Every level of every game, and new worlds as they arrive',
-  'The daily friend, every day',
-  'The friends\' own adventures',
-  'The full Parent & Baby Quest Library and progress over time',
-  'Every child in the family',
+  'Every level of every game, plus new worlds as they arrive',
+  'A daily friend to feed, play with and care for, every single day',
+  'Each friend\'s own adventure trail, built around one skill',
+  'All 100+ Parent & Baby quests, and progress you can watch grow',
+  'Room for every child in the family',
 ];
 
 function PlanList({ title, items, accent }: { title: string; items: string[]; accent: string }) {
@@ -96,26 +96,26 @@ function UpgradeContent() {
             <KailiaSprite size={76} expression="excited" className="float" />
           </div>
           <h1 className="text-2xl font-extrabold text-white mb-1">Kailia Plus</h1>
-          <p className="text-indigo-200 text-sm">The whole adventure for your family</p>
+          <p className="text-indigo-200 text-sm">More adventure, more giggles, more time together</p>
         </div>
 
         {!paywallOn ? (
           <>
             <div className="rounded-3xl p-5 mb-4 text-center" style={{ background: 'rgba(253,224,71,0.12)', border: '2px solid rgba(253,224,71,0.45)' }}>
-              <p className="text-yellow-200 font-extrabold text-lg mb-1">Everything is free right now</p>
+              <p className="text-yellow-200 font-extrabold text-lg mb-1">Right now, it&apos;s all free!</p>
               <p className="text-indigo-200 text-sm leading-relaxed">
-                Kailia&apos;s Story is in early access, so every land, game and friend is open for your
-                family at no cost. Nothing to set up, no card needed.
+                We&apos;re in early access, so every world, game and friend is open for your family.
+                No card, no catch. Just play.
               </p>
             </div>
-            <p className="text-center text-xs font-bold text-indigo-300 mb-3">Later, the app will have a free plan and Kailia Plus:</p>
-            <PlanList title="Always free" items={FREE} accent="#A5B4FC" />
+            <p className="text-center text-xs font-bold text-indigo-300 mb-3">Here&apos;s how it will work once Kailia Plus arrives:</p>
+            <PlanList title="Free for every family" items={FREE} accent="#A5B4FC" />
             <PlanList title="Kailia Plus" items={PLUS} accent="#FDE047" />
           </>
         ) : premium ? (
           <div className="rounded-3xl p-5 mb-4 text-center" style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.5)' }}>
             <p className="text-yellow-300 font-extrabold text-lg mb-1">You have Kailia Plus</p>
-            <p className="text-indigo-200 text-sm mb-4">Every level, every friend and the full activity library are open.</p>
+            <p className="text-indigo-200 text-sm mb-4">Every level, every friend and every quest is open. Enjoy the adventure!</p>
             {SHOW_DEMO_CONTROLS && (
               <button onClick={resetDemo}
                 className="text-xs font-bold text-indigo-300 underline underline-offset-2">
@@ -125,7 +125,7 @@ function UpgradeContent() {
           </div>
         ) : (
           <>
-            <PlanList title="Always free" items={FREE} accent="#A5B4FC" />
+            <PlanList title="Free for every family" items={FREE} accent="#A5B4FC" />
             <PlanList title="Kailia Plus" items={PLUS} accent="#FDE047" />
 
             {SHOW_DEMO_CONTROLS && (
@@ -142,7 +142,7 @@ function UpgradeContent() {
             )}
 
             <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <p className="text-xs font-bold text-indigo-200 mb-2">Have a friends &amp; family code?</p>
+              <p className="text-xs font-bold text-indigo-200 mb-2">Got a friends &amp; family code?</p>
               <div className="flex gap-2">
                 <input value={codeInput} onChange={e => { setCodeInput(e.target.value); setCodeMsg(null); }}
                   placeholder="Enter code" aria-label="Friends and family code"
@@ -157,6 +157,10 @@ function UpgradeContent() {
             </div>
           </>
         )}
+
+        <p className="text-center text-xs font-semibold text-indigo-300 mt-2">
+          No ads. No selling your family&apos;s data. Ever.
+        </p>
 
         <div className="mt-6 text-center">
           <Link href="/play" className="text-sm font-bold text-indigo-300 hover:text-indigo-100">← Back to the map</Link>
