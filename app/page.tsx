@@ -72,6 +72,14 @@ export default function LandingPage() {
         >
           {returning ? `Continue${state.childName ? ` with ${state.childName}` : ' the adventure'} →` : 'Start the Adventure →'}
         </Link>
+        {!returning && (
+          <div className="mt-3">
+            <Link href="/try" className="inline-block px-6 py-2.5 rounded-full text-base font-extrabold text-white transition-transform hover:scale-105"
+              style={{ background: 'rgba(255,255,255,0.18)', border: '2px solid rgba(255,255,255,0.75)' }}>
+              Try one game first, no sign-up
+            </Link>
+          </div>
+        )}
         <p className="mt-3 text-sm font-semibold text-white" style={{ opacity: 0.92 }}>
           {returning
             ? 'Welcome back! Kailia and Noel saved your place on the map.'

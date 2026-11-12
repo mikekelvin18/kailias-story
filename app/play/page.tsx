@@ -13,7 +13,7 @@ import {
   landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, currentLandIndex, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
-import { todaysQuests, getTodayReports, todayKey, ParentActivity } from '@/lib/activities';
+import { todaysQuests, getTodayReports, todayKey, ParentActivity, DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState, pendingCompanionReveal, markCompanionCelebrated } from '@/lib/rewards';
 import { isPremium } from '@/lib/premium';
 import { takeReturnPath, clearReturnPath } from '@/lib/returnTo';
@@ -411,7 +411,7 @@ export default function AdventureMap() {
               {unlocked && (
                 <span className="relative block text-[11px] sm:text-sm mt-0.5" style={{ letterSpacing: 1 }}>
                   {land.quests.map((q, qi) => (
-                    <StarIcon key={q.href} size={13} dim={(progress.played[land.id] ?? []).length <= qi} />
+                    <StarIcon key={q.href} size={13} dim={qi >= landStars(progress, land)} />
                   ))}
                 </span>
               )}
@@ -709,6 +709,14 @@ export default function AdventureMap() {
               <div>
                 <h2 className="text-xl font-extrabold leading-tight" style={{ color: openLand.color }}>{openLand.name}</h2>
                 <p className="text-xs font-semibold text-gray-500">{openLand.tagline}</p>
+                {/* The same skill name the Parent Zone and Quest Library use,
+                    so grown-ups can match each land to a skill. */}
+                {DOMAIN_META[openLand.domain as ActivityDomain] && (
+                  <p className="inline-block mt-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold"
+                    style={{ background: 'rgba(255,255,255,0.8)', color: '#334155' }}>
+                    Skill: {DOMAIN_META[openLand.domain as ActivityDomain].label}
+                  </p>
+                )}
               </div>
             </div>
 

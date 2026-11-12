@@ -237,8 +237,12 @@ export function markCelebrated(landId: string): AdventureProgress {
   return p;
 }
 
+// One star per quest of this land that has been played. Counts only the
+// land's current quests, so an old or renamed quest saved in progress can
+// never make the stars and the "2/3" badge disagree.
 export function landStars(p: AdventureProgress, land: Land): number {
-  return (p.played[land.id] ?? []).length;
+  const played = p.played[land.id] ?? [];
+  return land.quests.filter(q => played.includes(q.href)).length;
 }
 
 export function isLandComplete(p: AdventureProgress, land: Land): boolean {
