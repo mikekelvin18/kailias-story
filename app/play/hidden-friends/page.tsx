@@ -10,7 +10,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { CritterSprite, type SpeciesKey } from '@/components/characters/CritterSprite';
 import { characterArt } from '@/components/characters/characters.config';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -251,7 +251,7 @@ export default function WheresNoelPage() {
       logQuestMetric('processing', 'hidden-friends', {
         level, targets: targets.length, wrongTaps: s.wrongTaps, totalMs: Date.now() - s.startedAt,
       });
-      const stars = Math.max(8, 14 + level * 2 - s.wrongTaps);
+      const stars = levelStarlight(level, s.wrongTaps);
       awardStarlight(stars);
       recordGameLevel('hidden-friends', level);
       setEarned(stars);

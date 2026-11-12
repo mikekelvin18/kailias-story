@@ -230,6 +230,27 @@ export function recordQuestPlay(landId: string, href: string): AdventureProgress
   return p;
 }
 
+// ── A quest counts once it is finished, not when it is opened ──
+// The map remembers which land a quest was started from (for this visit
+// only), so a game shared by two lands (e.g. Snack Quest in Dragon's Cave
+// and the Space Outpost) lights up the land the child actually came from.
+const LAUNCH_KEY = 'kailia_launch_land';
+
+export function rememberLaunchLand(landId: string) {
+  try { sessionStorage.setItem(LAUNCH_KEY, landId); } catch { /* fine without */ }
+}
+
+/** Call when a quest's level (or round) is finished. Effort counts, not score. */
+export function recordQuestWin(href: string): AdventureProgress | null {
+  if (typeof window === 'undefined') return null;
+  let landId: string | null = null;
+  try { landId = sessionStorage.getItem(LAUNCH_KEY); } catch { /* ignore */ }
+  const all = [...LANDS, ...BONUS_LANDS];
+  const launched = all.find(l => l.id === landId && l.quests.some(q => q.href === href));
+  const land = launched ?? LANDS.find(l => l.quests.some(q => q.href === href));
+  return land ? recordQuestPlay(land.id, href) : null;
+}
+
 export function markCelebrated(landId: string): AdventureProgress {
   const p = loadProgress();
   if (!p.celebrated.includes(landId)) p.celebrated = [...p.celebrated, landId];

@@ -9,7 +9,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import LevelPath from '@/components/LevelPath';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import LiveArt from '@/components/characters/LiveArt';
@@ -483,7 +483,7 @@ export default function SnackQuestPage() {
       totalMs: Date.now() - m.startedAt,
     });
     // ✨ starlight for the feast: perfect first tries shine extra
-    const stars = 15 + level * 2 + m.firstTry * 3;
+    const stars = levelStarlight(level, m.attempts);
     awardStarlight(stars);
     recordGameLevel('snack-quest', level);
     const t = setTimeout(() => { setEarned(stars); setPhase('done'); }, 1500);

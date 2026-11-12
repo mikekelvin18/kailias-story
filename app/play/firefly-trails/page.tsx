@@ -9,7 +9,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -266,7 +266,7 @@ export default function FireflyTrailsPage() {
         coverage: Math.round((litNow / lit.length) * 100), avgDeviationPx: avgDev,
         peeks, totalMs: Date.now() - s.startedAt,
       });
-      awardStarlight(Math.max(8, 12 + level * 2 - peeks * 2));
+      awardStarlight(levelStarlight(level, peeks));
       recordGameLevel('firefly-trails', level);
       sfx.fanfare();
       // the whole picture lights up and everyone celebrates before the finale
@@ -292,7 +292,7 @@ export default function FireflyTrailsPage() {
     const a = pts[bugIdx], b = pts[Math.min(pts.length - 1, bugIdx + 1)];
     return a && b && (a.x !== b.x || a.y !== b.y) ? Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI : 0;
   })();
-  const stars = Math.max(8, 12 + level * 2 - peeks * 2);
+  const stars = levelStarlight(level, peeks);
 
   return (
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #071527 0%, #0b2440 60%, #0f3d2e 130%)' }}>

@@ -7,7 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import { usePlayCount } from '@/hooks/usePlayCount';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { characterArt } from '@/components/characters/characters.config';
-import { loadRewards, awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { loadRewards, awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { logQuestMetric } from '@/lib/metrics';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import LevelPath from '@/components/LevelPath';
@@ -18,6 +18,7 @@ import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
 import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
+import { activeChild } from '@/lib/family';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -319,7 +320,9 @@ export default function MazeRunnerPage() {
   // finishes a quest, since a new player's first win is the moment that
   // decides whether the app feels special enough to come back to.
   const [isFirstEver, setIsFirstEver] = useState(false);
-  useEffect(() => { setIsFirstEver(loadRewards().starlight === 0); }, []);
+  // the player's own first name, from the parent-made profile (never Kailia's)
+  const [playerName, setPlayerName] = useState('');
+  useEffect(() => { setIsFirstEver(loadRewards().starlight === 0); setPlayerName(activeChild()?.nickname ?? ''); }, []);
   // snapshot values for levelcomplete display (avoids ref-in-render)
   const [snapStars, setSnapStars]   = useState(0);
   useEffect(() => { setLevel(nextGameLevel('fine-motor')); }, []);
@@ -738,7 +741,7 @@ export default function MazeRunnerPage() {
         starsCollected:col, totalMs:Date.now()-startedAtRef.current,
       });
       // ✨ effort floor: wall touches reduce the glow, never to zero
-      const light=Math.max(10, 12+lvl*2+col*2-touchesRef.current);
+      const light=levelStarlight(lvl, touchesRef.current);
       awardStarlight(light); setEarnedLight(light);
       recordGameLevel('fine-motor',lvl);
       if (lvl%LEVELS_PER_CHAPTER===0 && increment()%10===0) setShowReassess(true);
@@ -796,7 +799,7 @@ export default function MazeRunnerPage() {
     const bigWin = isFirstEver && level===1;
     return (
       <GameFinish
-        title={bigWin ? 'You did it, Kailia!' : `Level ${level} complete!`}
+        title={bigWin ? (playerName ? `You did it, ${playerName}!` : 'You did it!') : `Level ${level} complete!`}
         theme={{ bg: `linear-gradient(135deg,${lv.floor},${lv.wall})`, accent: '#4ADE80', accent2: '#059669' }}
         pet={pet}
         trophy={/* only the stars found are shown: something to celebrate, never a grade */

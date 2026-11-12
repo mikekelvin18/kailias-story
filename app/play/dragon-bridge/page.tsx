@@ -8,7 +8,7 @@ import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, COMPANIONS } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak } from '@/lib/speak';
 import { chapterFor, endlessRamp, isStarLevel } from '@/lib/levels';
@@ -347,7 +347,7 @@ export default function DragonBridgePage() {
       maxNumber: x.maxNumber,
       totalMs: now() - x.startedAt,
     });
-    const light = Math.max(12, 16 + Math.min(level, 40) * 3 - x.misses - x.unfairMoments);
+    const light = levelStarlight(level, x.misses);
     awardStarlight(light);
     setEarned(light);
     recordGameLevel('dragon-bridge', level);

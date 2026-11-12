@@ -16,7 +16,7 @@ import { useBursts } from './kit/Burst';
 import SkillIntro from '@/components/SkillIntro';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, nextGameLevel, recordGameLevel, COMPANIONS } from '@/lib/rewards';
+import { awardStarlight, nextGameLevel, recordGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
 import { logQuestMetric } from '@/lib/metrics';
 import { findTrail } from '@/lib/companionTrails';
 import { clearReturnPath } from '@/lib/returnTo';
@@ -123,7 +123,7 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
       ms: Date.now() - s.startedAt, ...s.data,
     });
     // effort floor: playing always earns light, wins add more
-    awardStarlight(Math.max(6, 8 + correct * 2 + level));
+    awardStarlight(levelStarlight(level, res.length - correct));
     recordGameLevel(game.id, level);
     chime.fanfare();
     setPhase('done');

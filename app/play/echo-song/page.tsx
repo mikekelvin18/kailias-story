@@ -9,7 +9,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/component
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
@@ -170,7 +170,7 @@ export default function EchoSongPage() {
           level, sequenceLength: seq.length, wrongTaps: s.attempts,
           replays: s.replays, totalMs: Date.now() - s.startedAt,
         });
-        const stars = Math.max(8, 10 + seq.length * 2 - s.attempts * 2);
+        const stars = levelStarlight(level, s.attempts);
         awardStarlight(stars);
         recordGameLevel('echo-song', level);
         setEarned(stars);
