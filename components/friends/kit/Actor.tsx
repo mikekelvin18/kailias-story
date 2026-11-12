@@ -4,14 +4,16 @@
 // The friend is not a picture in the corner; it lives in the scene. It
 // can fly or walk to a spot (x, y in % of the stage, measured at its
 // feet), turn to face where it is going, talk, cheer, wobble ("oops",
-// never "no"), and dance. Tapping it makes it giggle.
+// never "no"), and dance. Tapping it makes it giggle and call out
+// in its own voice (lib/petSounds.ts).
 //
 // usePetMood() gives a mood plus a setter; one-shot moods (cheer, oops)
 // fall back to the resting mood by themselves.
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
+import { petCall } from '@/lib/petSounds';
 
 export type Mood = 'idle' | 'fly' | 'talk' | 'cheer' | 'oops' | 'dance';
 
@@ -53,6 +55,12 @@ interface Props {
 export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, moveMs = 600, flip, onTap, shadow = true, z = 5, halo }: Props) {
   const w = petWidth(art, h);
   const cls = mood === 'idle' ? '' : `fg-${mood}`;
+  // the friend answers with its own call when it cheers or dances (not on
+  // every single cheer: at most every few seconds, so it stays a treat)
+  useEffect(() => {
+    if (mood === 'cheer' || mood === 'dance') petCall(art, { cheer: true });
+  }, [mood, moodKey, art]);
+  const tap = onTap ? () => { petCall(art); onTap(); } : undefined;
   return (
     <div className="absolute" style={{
       left: `${x}%`, top: `${y}%`, width: w, height: h, marginLeft: -w / 2, marginTop: -h, zIndex: z,
@@ -67,7 +75,7 @@ export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, 
       )}
       <div style={{ transform: `scaleX(${flip ? -1 : 1})`, transition: 'transform 0.25s', transformOrigin: '50% 100%' }}>
         <div key={moodKey} className={cls} style={{ transformOrigin: '50% 100%' }}
-          onClick={onTap} role={onTap ? 'button' : undefined} aria-label={onTap ? `Tickle ${name}` : undefined}>
+          onClick={tap} role={onTap ? 'button' : undefined} aria-label={onTap ? `Tickle ${name}` : undefined}>
           <LiveArt src={art} alt={name} size={w} kind="pet" pokeable={false} />
         </div>
       </div>

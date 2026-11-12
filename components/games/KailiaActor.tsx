@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import RunnerSprite from '@/components/characters/RunnerSprite';
+import { kailiaCheer } from '@/lib/kailiaVoice';
 
 interface Props {
   x: number;
@@ -43,6 +44,7 @@ export default function KailiaActor({ x, y, h, moveMs = 700, hop = 0, z = 6 }: P
   const [jumpedAt, setJumpedAt] = useState(hop);
   useEffect(() => {
     if (!hop) return;
+    kailiaCheer(); // sometimes she says "Yay!" as she jumps
     const t = setTimeout(() => setJumpedAt(hop), 550);
     return () => clearTimeout(t);
   }, [hop]);

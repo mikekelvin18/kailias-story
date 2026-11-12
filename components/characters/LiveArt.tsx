@@ -19,6 +19,7 @@
 import { useCallback, useId, useRef, useState } from 'react';
 import RigCanvas from './RigCanvas';
 import { rigFor } from './rigs';
+import { petCall } from '@/lib/petSounds';
 
 interface Props {
   src: string;
@@ -46,6 +47,7 @@ export default function LiveArt({ src, alt, size, kind = 'pet', pokeable = kind 
   const rig = kind === 'pet' ? rigFor(src) : null;
 
   const poke = () => {
+    if (kind === 'pet') petCall(src); // each friend answers with its own call
     setPoked(p => p + 1);
     setTaps(t => t + 1);
     // restart the squish if it is already playing (the body is not

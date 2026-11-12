@@ -101,6 +101,13 @@ This app is child-directed (under 13), so children's privacy law (COPPA) applies
 - Celebrate effort, not just correctness (animations, sounds, companion reactions).
 - Accessible: works with touch and mouse, high-contrast friendly, no rapid flashing.
 
+## Voice & sound
+- **Noel reads every game aloud.** A game marks Noel's speech bubble and its intro story card with `data-read-aloud`; `components/NoelVoice.tsx` (mounted in `app/play/layout.tsx`) reads whatever appears or changes there, and a tap replays it. A game that speaks for itself through `say()` in `lib/voice.ts` leaves the attribute off; a listening game drops it while its sounds play (see Echo Song).
+- **Recorded voices, made here, for free.** `scripts/voice-lines.mjs` gathers every fixed sentence into `voice/lines.json`; `scripts/record-voice.py` records them offline with the open-source Kokoro voice (Apache-2.0) into `public/voice/` + `manifest.json`. `lib/voice.ts` plays a line from recordings when every sentence has one, else the device voice (lines with the child's name or a number). Kailia's short cheers (`lib/kailiaVoice.ts`, `voice/kailia-lines.json`, `--speaker kailia`) play now and then when she jumps; she stays quiet without recordings. After adding or changing game text, re-run both scripts. Names are said via `NAME_SOUNDS` in the script (Noel = "no-EL").
+- **Pet calls.** Each friend has its own short call made in code by `scripts/pet-sounds.py` into `public/sounds/pets/<kind>.mp3`; `lib/petSounds.ts` plays it when a pet is tapped or cheers (at most every 5 s).
+- **Music.** `lib/music.ts` is a soft generated loop in every game except listening games (`LISTENING_GAMES` in `components/GameMusic.tsx`); it dips while anyone talks. Keep it low and mellow: no long high tones.
+- Privacy: all voices and sounds are made ahead of time and shipped as static files. The app never calls a voice service and never records the child.
+
 ## Engineering conventions
 - Build on the existing app and its current `/play` route — extend, don't rewrite, unless a rewrite is clearly justified and approved first.
 - Keep game logic separate from measurement logic: games emit events; a scoring module interprets them.
