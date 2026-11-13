@@ -44,6 +44,18 @@ for (const root of ROOTS) {
     for (const m of src.matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`([^`$]*)`/g)) {
       add((m[1] ?? m[2] ?? m[3] ?? '').replace(/\\(['"`\\])/g, '$1'));
     }
+    // the intro story of each game: story={<p>…</p>} on the shared game frame
+    for (const m of src.matchAll(/story=\{/g)) {
+      let depth = 1, i = m.index + m[0].length;
+      const startAt = i;
+      while (i < src.length && depth) { const ch = src[i++]; if (ch === '{') depth++; else if (ch === '}') depth--; }
+      const jsx = src.slice(startAt, i - 1);
+      // each paragraph is one or more sentences; skip any with {dynamic} bits
+      const paras = [...jsx.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)].map(x => x[1]);
+      const flat = paras.filter(t => !/[{}]/.test(t)).map(t => t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+      flat.forEach(add);
+      add(flat.join(' '));
+    }
     // JSX text inside read-aloud story cards (<strong> etc. flattened)
     for (const m of src.matchAll(/data-read-aloud[^>]*>([\s\S]*?)<\/div>/g)) {
       const text = m[1].replace(/\{[^}]*\}/g, ' ').replace(/<[^>]+>/g, ' ');

@@ -294,7 +294,7 @@ export default function WheresNoelPage() {
               title="Where's Noel?"
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #475569 0%, #1e293b 55%, #0f172a 100%)', accent: '#FB923C', accent2: '#EA580C' }}
               pet={pet}
-              story={<><p className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+              story={<><p data-no-read className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
                 <PieceIcon kind={scene.treasure.piece} size={22} /> Chapter {level}: {scene.name}
               </p>
               <p>{scene.story}</p></>}

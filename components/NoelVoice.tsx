@@ -21,7 +21,13 @@ function wordsOf(el: Element): string {
   const h = el as HTMLElement;
   // innerText skips hidden bits and puts each line on its own row; a
   // heading row with no end punctuation gets a full stop so Noel pauses
-  return (h.innerText ?? h.textContent ?? '')
+  // bits marked data-no-read (a small "Chapter 3" heading) are shown, not spoken
+  let text = h.innerText ?? h.textContent ?? '';
+  h.querySelectorAll<HTMLElement>('[data-no-read]').forEach(skip => {
+    const t = skip.innerText ?? '';
+    if (t) text = text.replace(t, '');
+  });
+  return text
     .split(/\n+/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
     .map((l, i, all) => (i < all.length - 1 && !/[.!?…:,;—-]$/.test(l) ? `${l}.` : l))
     .join(' ');

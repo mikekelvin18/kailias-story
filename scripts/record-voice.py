@@ -8,7 +8,7 @@ offline once the model is downloaded: nothing is sent to any service, and
 lines with a child's name are never in lines.json.
 
 Setup (once):
-  python3 -m venv .venv-voice && .venv-voice/bin/pip install kokoro-onnx soundfile numpy
+  python3 -m venv .venv-voice && .venv-voice/bin/pip install kokoro-onnx soundfile numpy pyworld 'setuptools<81'
   mkdir -p ~/kokoro && cd ~/kokoro
   curl -LO https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
   curl -LO https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
@@ -27,11 +27,11 @@ from kokoro_onnx import Kokoro
 
 # ── Who's speaking ── (voices picked by Kelvin from the samples)
 SPEAKERS = {
-    # Noel: every instruction and line in the games
-    'noel':   dict(voice=os.environ.get('NOEL_VOICE', 'am_fenrir'), speed=0.95, pitch=1.0,
+    # Noel: every instruction and line in the games ("big gentle bear", made livelier: Kelvin's take 1)
+    'noel':   dict(voice=os.environ.get('NOEL_VOICE', 'am_fenrir'), speed=1.0, pitch=1.0, lively=1.5,
                    lines='voice/lines.json', out='public/voice', key='sentence'),
     # Kailia: short happy cheers, a young girl's voice (a grown voice lifted a little)
-    'kailia': dict(voice=os.environ.get('KAILIA_VOICE', 'af_heart'), speed=1.0, pitch=1.16,
+    'kailia': dict(voice=os.environ.get('KAILIA_VOICE', 'af_heart'), speed=1.0, pitch=1.16, lively=0,
                    lines='voice/kailia-lines.json', out='public/voice/kailia', key='exact'),
 }
 SPEAKER = sys.argv[sys.argv.index('--speaker') + 1] if '--speaker' in sys.argv else 'noel'
@@ -41,8 +41,7 @@ LANG = 'en-gb' if VOICE.startswith('b') else 'en-us'
 
 # How names are said, as phonemes (the voice guesses names wrong otherwise).
 NAME_SOUNDS = {
-    'nˈoʊl': 'noʊˈɛl',          # Noel: "no-EL", like Christmas
-    # 'kˈaɪliə': 'kˈeɪliə',     # Kailia: set once Kelvin confirms
+    'kˈaɪliə': 'keɪlˈiːə',      # Kailia: "kay-LEE-uh" (Kelvin, 2026-11-13). Noel stays "Nole".
 }
 
 OUT = CFG['out']
@@ -65,8 +64,22 @@ def spoken(sentence: str) -> str:
 def phonemes(k: Kokoro, text: str) -> str:
     p = k.tokenizer.phonemize(text, LANG)
     for wrong, right in NAME_SOUNDS.items():
-        p = re.sub(rf'(?<![\wʰ-˿]){re.escape(wrong)}(?![\wʰ-˿])', right, p)
+        p = p.replace(wrong, right)
     return p
+
+
+def expressive(audio: np.ndarray, sr: int, amount: float, lift: float = 1.06) -> np.ndarray:
+    """Cheerful intonation: widen the voice's ups and downs around its middle
+    pitch (the plain voice is a bit flat) and brighten it slightly."""
+    import pyworld as pw
+    x = audio.astype(np.float64)
+    f0, t = pw.harvest(x, sr, f0_floor=60, f0_ceil=500)
+    sp = pw.cheaptrick(x, f0, t, sr); ap = pw.d4c(x, f0, t, sr)
+    v = f0 > 0
+    if v.sum() > 5:
+        lf = np.log(f0[v]); med = np.median(lf)
+        f0[v] = np.clip(np.exp(med + (lf - med) * amount) * lift, 70, 480)
+    return pw.synthesize(f0, sp, ap, sr)[:len(x)].astype(np.float32)
 
 
 def tidy(audio: np.ndarray, sr: int) -> np.ndarray:
@@ -103,6 +116,8 @@ def main():
         if not key or (key in manifest and os.path.exists(f'{OUT}/{manifest[key]}')):
             continue
         audio, sr = k.create(phonemes(k, spoken(sentence)), voice=VOICE, speed=SPEED, is_phonemes=True)
+        if CFG['lively']:
+            audio = expressive(audio, sr, CFG['lively'])
         audio = tidy(audio, sr)
         name = hashlib.sha1(f'{VOICE}|{SPEED}|{key}'.encode()).hexdigest()[:12] + '.mp3'
         with tempfile.NamedTemporaryFile(suffix='.wav') as wav:
