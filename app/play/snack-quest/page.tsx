@@ -429,7 +429,7 @@ export default function SnackQuestPage() {
         metricsRef.current.attempts += 1;
         sfx.hmm();
         const diff = Math.abs(total - cfg.want);
-        setGuideLine(`The dragon counted ${total}, that's ${diff} too many! Let's try again together!`);
+        setGuideLine(`The dragon counted ${total}. That's ${diff} too many! Let's try again together!`);
         setGuideMood('thinking');
         if (attemptsRef.current >= 2) setShowSlots(true); // scaffold appears when struggling
         const fresh = spawnItems(cfg, walls);
@@ -447,7 +447,7 @@ export default function SnackQuestPage() {
             setPetTile(spot);
             setPetMood('talk');
           }
-          setGuideLine(`The dragon counted ${total}, that's ${diff} too many! ${pet.name} found a snack to start again with.`);
+          setGuideLine(`The dragon counted ${total}. That's ${diff} too many! ${pet.name} found a snack to start again with.`);
         }
         // too many: she hands them back and the round starts over
         tripsRef.current = 0;

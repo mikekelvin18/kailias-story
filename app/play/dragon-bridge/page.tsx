@@ -421,7 +421,7 @@ export default function DragonBridgePage() {
           setHop(n => n + 1);
           fire(16, 86, ['#818CF8', '#FFFFFF', '#FDE047'], 10, 40);
         }, 500);
-        later(() => roundWon(`Fair and square! Every baby has ${lo}, and ${left === 1 ? 'one berry is' : `${left} berries are`} left for Kailia. Yum!`), 700);
+        later(() => roundWon(`Fair and square! Every baby has ${lo}. ${left === 1 ? 'One berry is' : `${left} berries are`} left for Kailia. Yum!`), 700);
       } else {
         later(() => roundWon(`Fair and square! Every baby dragon has ${lo}!`), 500);
       }
