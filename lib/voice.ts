@@ -128,7 +128,7 @@ function whenVoicesReady(go: () => void) {
 /** Split into sentences where end punctuation is followed by a new capitalised
     sentence, so "3.5" and "their little song… then echo it" stay whole. */
 function sentences(text: string): string[] {
-  const parts = text.split(/(?<=[.!?…])\s+(?=[A-Z"'“‘])/).map(p => p.trim()).filter(Boolean);
+  const parts = text.split(/(?<=[.!?…])\s+(?=[A-Z0-9"'“‘])/).map(p => p.trim()).filter(Boolean);
   return parts.length ? parts : [text];
 }
 
