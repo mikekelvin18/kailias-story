@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import PandaSprite from '@/components/characters/PandaSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import LiveArt from '@/components/characters/LiveArt';
@@ -59,6 +60,28 @@ function Title({ text, accent }: { text: string; accent: string }) {
 }
 
 /** Slow sparkles drifting up the whole screen, behind everything. */
+// ── painted land backdrops ──
+// Kelvin's full-screen land paintings (public/art/backdrops/) sit behind a
+// game's opening and end screens in place of the plain colour. A soft dark
+// veil keeps the words and cards easy to read. A game with no painting yet
+// keeps its theme colour.
+const BACKDROPS: Record<string, string> = {
+  'fine-motor': '/art/backdrops/forest-falls.webp',
+  'firefly-catch': '/art/backdrops/forest-falls.webp',
+  'firefly-trails': '/art/backdrops/forest-path.webp',
+};
+function Backdrop() {
+  const game = (usePathname() ?? '').match(/\/play\/([^/]+)/)?.[1];
+  const src = game ? BACKDROPS[game] : undefined;
+  if (!src) return null;
+  return (
+    <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ zIndex: -1 }}>
+      <div className="absolute inset-0" style={{ backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(6,10,30,0.30) 0%, rgba(6,10,30,0.48) 45%, rgba(6,10,30,0.34) 100%)' }} />
+    </div>
+  );
+}
+
 function StarDust({ n = 22, seed = 5 }: { n?: number; seed?: number }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
@@ -164,6 +187,7 @@ interface IntroProps {
 export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play', readAloud = true }: IntroProps) {
   return (
     <main className="gf-screen" style={{ background: theme.bg }}>
+      <Backdrop />
       <StarDust />
       <div className="relative max-w-sm w-full mx-auto px-4 pt-3 pb-8 text-center">
         <div className="flex justify-start">
@@ -273,6 +297,7 @@ export function GameFinish({ title, theme, pet, message, earned, trophy, actions
   const reduced = useReducedMotion();
   return (
     <main className="gf-screen flex items-center" style={{ background: theme.bg }}>
+      <Backdrop />
       {!reduced && <Confetti colors={['#FDE047', '#F472B6', '#60A5FA', '#4ADE80', '#FFFFFF', '#FB923C', theme.accent]} />}
       <div className="relative max-w-sm w-full mx-auto px-4 py-8 text-center" style={{ zIndex: 2 }}>
         <div className="relative">

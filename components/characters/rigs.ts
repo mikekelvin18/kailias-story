@@ -209,6 +209,208 @@ export const JUMP_RIGS: Record<'kailia' | 'noel', PetRig> = {
   },
 };
 
+
+// The side animals in the games (public/art/critters/, Kelvin's pictures
+// from 2026-11-14). Measured the same way as the pets above.
+export const CRITTER_RIGS: Record<string, PetRig> = {
+  '/art/critters/koala.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.4, cy: 0.37, rx: 0.055, ry: 0.06 },
+      { cx: 0.65, cy: 0.33, rx: 0.055, ry: 0.06 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.5, 0.56], region: { cx: 0.5, cy: 0.3, rx: 0.5, ry: 0.3, soft: 0.35 },
+        swing: { deg: 3, period: 5 }, poke: { deg: 6, period: 0.7 } },
+      { name: 'ear-left', pivot: [0.3, 0.25], region: { cx: 0.17, cy: 0.22, rx: 0.15, ry: 0.17, soft: 0.35 },
+        swing: { deg: 5, period: 2.8, phase: 0.2 }, poke: { deg: 12, period: 0.3 } },
+      { name: 'ear-right', pivot: [0.66, 0.2], region: { cx: 0.8, cy: 0.2, rx: 0.16, ry: 0.17, soft: 0.35 },
+        swing: { deg: -5, period: 3.1, phase: 0.5 }, poke: { deg: -12, period: 0.3 } },
+      { name: 'arm-left', pivot: [0.33, 0.65], region: { cx: 0.27, cy: 0.67, rx: 0.09, ry: 0.08, soft: 0.35 },
+        swing: { deg: 9, period: 1.7 }, poke: { deg: 18, period: 0.3 } },
+      { name: 'arm-right', pivot: [0.68, 0.65], region: { cx: 0.77, cy: 0.68, rx: 0.08, ry: 0.08, soft: 0.35 },
+        swing: { deg: -9, period: 1.7, phase: 0.5 }, poke: { deg: -18, period: 0.3 } },
+    ],
+  },
+  '/art/critters/peacock.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.43, cy: 0.47, rx: 0.045, ry: 0.05 },
+      { cx: 0.61, cy: 0.45, rx: 0.045, ry: 0.05 },
+    ],
+    bones: [
+      { name: 'fan-left', pivot: [0.5, 0.7], region: { cx: 0.18, cy: 0.55, rx: 0.16, ry: 0.3, soft: 0.35 },
+        swing: { deg: 3, period: 3.2 }, poke: { deg: 8, period: 0.5 } },
+      { name: 'fan-right', pivot: [0.5, 0.7], region: { cx: 0.84, cy: 0.55, rx: 0.16, ry: 0.3, soft: 0.35 },
+        swing: { deg: -3, period: 3.2 }, poke: { deg: -8, period: 0.5 } },
+      { name: 'head', pivot: [0.5, 0.6], region: { cx: 0.5, cy: 0.42, rx: 0.2, ry: 0.2, soft: 0.35 },
+        swing: { deg: 3.5, period: 4.6 }, poke: { deg: 7, period: 0.65 } },
+      { name: 'crest', pivot: [0.5, 0.27], region: { cx: 0.5, cy: 0.13, rx: 0.17, ry: 0.13, soft: 0.35 },
+        swing: { deg: 6, period: 2.2, phase: 0.3 }, poke: { deg: 14, period: 0.3 } },
+      { name: 'wing-left', pivot: [0.42, 0.68], region: { cx: 0.3, cy: 0.7, rx: 0.12, ry: 0.09, soft: 0.35 },
+        swing: { deg: 10, period: 1.6 }, poke: { deg: 20, period: 0.28 } },
+      { name: 'wing-right', pivot: [0.6, 0.68], region: { cx: 0.72, cy: 0.7, rx: 0.12, ry: 0.09, soft: 0.35 },
+        swing: { deg: -10, period: 1.6 }, poke: { deg: -20, period: 0.28 } },
+    ],
+  },
+  '/art/critters/rabbit.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.42, cy: 0.43, rx: 0.05, ry: 0.055 },
+      { cx: 0.62, cy: 0.43, rx: 0.05, ry: 0.055 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.52, 0.6], region: { cx: 0.5, cy: 0.42, rx: 0.28, ry: 0.2, soft: 0.35 },
+        swing: { deg: 3, period: 5 }, poke: { deg: 6, period: 0.7 } },
+      { name: 'ear-left', pivot: [0.4, 0.28], region: { cx: 0.32, cy: 0.15, rx: 0.12, ry: 0.15, soft: 0.35 },
+        swing: { deg: 7, period: 2.4 }, poke: { deg: 16, period: 0.3 } },
+      { name: 'ear-right', pivot: [0.6, 0.28], region: { cx: 0.7, cy: 0.15, rx: 0.12, ry: 0.16, soft: 0.35 },
+        swing: { deg: -5, period: 2.9, phase: 0.4 }, poke: { deg: -14, period: 0.3 } },
+      { name: 'tail', pivot: [0.36, 0.8], region: { cx: 0.27, cy: 0.8, rx: 0.08, ry: 0.1, soft: 0.35 },
+        swing: { deg: 10, period: 1.2 }, poke: { deg: 18, period: 0.25 } },
+    ],
+  },
+  '/art/critters/parrot.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.42, cy: 0.36, rx: 0.055, ry: 0.06 },
+      { cx: 0.65, cy: 0.32, rx: 0.055, ry: 0.06 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.5, 0.55], region: { cx: 0.5, cy: 0.3, rx: 0.28, ry: 0.28, soft: 0.35 },
+        swing: { deg: 3.5, period: 4.6 }, poke: { deg: 7, period: 0.65 } },
+      { name: 'wing-left', pivot: [0.38, 0.6], region: { cx: 0.2, cy: 0.55, rx: 0.2, ry: 0.2, soft: 0.35 },
+        swing: { deg: 12, period: 1.4 }, poke: { deg: 22, period: 0.28 } },
+      { name: 'wing-right', pivot: [0.65, 0.6], region: { cx: 0.8, cy: 0.55, rx: 0.16, ry: 0.2, soft: 0.35 },
+        swing: { deg: -12, period: 1.4 }, poke: { deg: -22, period: 0.28 } },
+      { name: 'tail', pivot: [0.35, 0.8], region: { cx: 0.2, cy: 0.85, rx: 0.15, ry: 0.1, soft: 0.35 },
+        swing: { deg: 6, period: 2.3, phase: 0.3 }, poke: { deg: 12, period: 0.28 } },
+    ],
+  },
+  '/art/critters/deer.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.43, cy: 0.44, rx: 0.05, ry: 0.055 },
+      { cx: 0.62, cy: 0.42, rx: 0.05, ry: 0.055 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.52, 0.6], region: { cx: 0.5, cy: 0.35, rx: 0.36, ry: 0.33, soft: 0.35 },
+        swing: { deg: 3, period: 5.2 }, poke: { deg: 7, period: 0.7 } },
+      { name: 'ear-left', pivot: [0.34, 0.36], region: { cx: 0.22, cy: 0.32, rx: 0.1, ry: 0.1, soft: 0.35 },
+        swing: { deg: 8, period: 2.6, phase: 0.2 }, poke: { deg: 16, period: 0.3 } },
+      { name: 'ear-right', pivot: [0.68, 0.34], region: { cx: 0.77, cy: 0.3, rx: 0.09, ry: 0.1, soft: 0.35 },
+        swing: { deg: -8, period: 3, phase: 0.6 }, poke: { deg: -16, period: 0.3 } },
+      { name: 'tail', pivot: [0.3, 0.66], region: { cx: 0.25, cy: 0.64, rx: 0.07, ry: 0.09, soft: 0.35 },
+        swing: { deg: 12, period: 1.1 }, poke: { deg: 20, period: 0.25 } },
+    ],
+  },
+  '/art/critters/raccoon.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.44, cy: 0.38, rx: 0.055, ry: 0.055 },
+      { cx: 0.67, cy: 0.35, rx: 0.055, ry: 0.055 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.58, 0.56], region: { cx: 0.55, cy: 0.3, rx: 0.36, ry: 0.28, soft: 0.35 },
+        swing: { deg: 3, period: 5 }, poke: { deg: 6, period: 0.7 } },
+      { name: 'ear-left', pivot: [0.36, 0.25], region: { cx: 0.3, cy: 0.17, rx: 0.1, ry: 0.12, soft: 0.35 },
+        swing: { deg: 6, period: 2.7, phase: 0.2 }, poke: { deg: 12, period: 0.3 } },
+      { name: 'ear-right', pivot: [0.76, 0.2], region: { cx: 0.78, cy: 0.12, rx: 0.09, ry: 0.11, soft: 0.35 },
+        swing: { deg: -5, period: 3.1, phase: 0.6 }, poke: { deg: -12, period: 0.3 } },
+      { name: 'arm-left', pivot: [0.42, 0.62], region: { cx: 0.33, cy: 0.64, rx: 0.08, ry: 0.07, soft: 0.35 },
+        swing: { deg: 10, period: 1.6 }, poke: { deg: 20, period: 0.3 } },
+      { name: 'arm-right', pivot: [0.74, 0.62], region: { cx: 0.82, cy: 0.63, rx: 0.07, ry: 0.07, soft: 0.35 },
+        swing: { deg: -10, period: 1.6, phase: 0.5 }, poke: { deg: -20, period: 0.3 } },
+      { name: 'tail', pivot: [0.4, 0.85], region: { cx: 0.22, cy: 0.72, rx: 0.14, ry: 0.2, soft: 0.35 },
+        swing: { deg: 7, period: 2.2 }, poke: { deg: 14, period: 0.36 } },
+    ],
+  },
+  '/art/critters/swan.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.5, cy: 0.32, rx: 0.05, ry: 0.06 },
+      { cx: 0.68, cy: 0.3, rx: 0.045, ry: 0.06 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.55, 0.52], region: { cx: 0.55, cy: 0.25, rx: 0.22, ry: 0.26, soft: 0.35 },
+        swing: { deg: 4, period: 4.8 }, poke: { deg: 8, period: 0.7 } },
+      { name: 'wing-left', pivot: [0.42, 0.62], region: { cx: 0.22, cy: 0.58, rx: 0.22, ry: 0.24, soft: 0.35 },
+        swing: { deg: 9, period: 1.8 }, poke: { deg: 18, period: 0.3 } },
+      { name: 'wing-right', pivot: [0.68, 0.6], region: { cx: 0.82, cy: 0.56, rx: 0.14, ry: 0.2, soft: 0.35 },
+        swing: { deg: -9, period: 1.8 }, poke: { deg: -18, period: 0.3 } },
+    ],
+  },
+  '/art/critters/frog.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.3, cy: 0.22, rx: 0.08, ry: 0.09 },
+      { cx: 0.72, cy: 0.19, rx: 0.08, ry: 0.09 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.5, 0.55], region: { cx: 0.5, cy: 0.28, rx: 0.42, ry: 0.28, soft: 0.35 },
+        swing: { deg: 3, period: 4.4 }, poke: { deg: 7, period: 0.6 } },
+    ],
+  },
+  '/art/critters/squirrel.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.56, cy: 0.38, rx: 0.055, ry: 0.06 },
+      { cx: 0.81, cy: 0.35, rx: 0.05, ry: 0.06 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.68, 0.58], region: { cx: 0.68, cy: 0.32, rx: 0.3, ry: 0.28, soft: 0.35 },
+        swing: { deg: 3, period: 5 }, poke: { deg: 6, period: 0.7 } },
+      { name: 'tail', pivot: [0.42, 0.85], region: { cx: 0.25, cy: 0.5, rx: 0.22, ry: 0.38, soft: 0.35 },
+        swing: { deg: 5, period: 2.4 }, poke: { deg: 10, period: 0.36 } },
+    ],
+  },
+  '/art/critters/hedgehog.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.39, cy: 0.38, rx: 0.05, ry: 0.055 },
+      { cx: 0.63, cy: 0.4, rx: 0.05, ry: 0.055 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.5, 0.6], region: { cx: 0.5, cy: 0.38, rx: 0.3, ry: 0.22, soft: 0.35 },
+        swing: { deg: 2.5, period: 5 }, poke: { deg: 6, period: 0.7 } },
+      { name: 'arm-left', pivot: [0.3, 0.62], region: { cx: 0.28, cy: 0.66, rx: 0.07, ry: 0.07, soft: 0.35 },
+        swing: { deg: 9, period: 1.6 }, poke: { deg: 18, period: 0.3 } },
+      { name: 'arm-right', pivot: [0.66, 0.66], region: { cx: 0.66, cy: 0.69, rx: 0.07, ry: 0.06, soft: 0.35 },
+        swing: { deg: -9, period: 1.6, phase: 0.5 }, poke: { deg: -18, period: 0.3 } },
+    ],
+  },
+  '/art/critters/bee.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.45, cy: 0.42, rx: 0.05, ry: 0.06 },
+      { cx: 0.68, cy: 0.39, rx: 0.05, ry: 0.06 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.56, 0.56], region: { cx: 0.56, cy: 0.35, rx: 0.26, ry: 0.28, soft: 0.35 },
+        swing: { deg: 3, period: 4.2 }, poke: { deg: 7, period: 0.6 } },
+      { name: 'wing-left', pivot: [0.38, 0.5], region: { cx: 0.2, cy: 0.5, rx: 0.2, ry: 0.25, soft: 0.35 },
+        swing: { deg: 14, period: 0.45 }, poke: { deg: 20, period: 0.2 } },
+      { name: 'wing-right', pivot: [0.72, 0.45], region: { cx: 0.85, cy: 0.42, rx: 0.13, ry: 0.25, soft: 0.35 },
+        swing: { deg: -14, period: 0.45 }, poke: { deg: -20, period: 0.2 } },
+    ],
+  },
+  '/art/critters/butterfly.webp': {
+    pad: 0.1,
+    eyes: [
+      { cx: 0.44, cy: 0.47, rx: 0.04, ry: 0.05 },
+      { cx: 0.63, cy: 0.45, rx: 0.04, ry: 0.05 },
+    ],
+    bones: [
+      { name: 'head', pivot: [0.53, 0.6], region: { cx: 0.53, cy: 0.4, rx: 0.19, ry: 0.25, soft: 0.35 },
+        swing: { deg: 3, period: 4.4 }, poke: { deg: 7, period: 0.6 } },
+      { name: 'wing-left', pivot: [0.4, 0.55], region: { cx: 0.2, cy: 0.52, rx: 0.2, ry: 0.38, soft: 0.35 },
+        swing: { deg: 12, period: 0.9 }, poke: { deg: 20, period: 0.25 } },
+      { name: 'wing-right', pivot: [0.66, 0.55], region: { cx: 0.82, cy: 0.5, rx: 0.16, ry: 0.36, soft: 0.35 },
+        swing: { deg: -12, period: 0.9 }, poke: { deg: -20, period: 0.25 } },
+    ],
+  },
+};
+
 export function rigFor(src: string): PetRig | null {
-  return PET_RIGS[src] ?? CHARACTER_RIGS[src] ?? null;
+  return PET_RIGS[src] ?? CRITTER_RIGS[src] ?? CHARACTER_RIGS[src] ?? null;
 }
