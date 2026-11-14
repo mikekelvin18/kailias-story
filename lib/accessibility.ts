@@ -10,6 +10,10 @@ export interface AccessibilityPrefs {
   textSize: 'normal' | 'large' | 'xlarge';
   dyslexiaFriendly: boolean;
   colorblindSafe: boolean;
+  /** Soft background music in the games. */
+  musicOn: boolean;
+  /** A grown-up's hand-picked read-aloud voice ('' = pick the nicest automatically). */
+  voiceName: string;
 }
 
 export const DEFAULT_A11Y: AccessibilityPrefs = {
@@ -18,6 +22,8 @@ export const DEFAULT_A11Y: AccessibilityPrefs = {
   textSize: 'normal',
   dyslexiaFriendly: false,
   colorblindSafe: false,
+  musicOn: true,
+  voiceName: '',
 };
 
 const KEY = 'kailia_a11y_v1';
@@ -32,6 +38,7 @@ export function loadA11y(): AccessibilityPrefs {
 
 export function saveA11y(prefs: AccessibilityPrefs) {
   try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+  try { window.dispatchEvent(new Event(A11Y_EVENT)); } catch { /* ignore */ }
 }
 
 // Applies prefs as attributes on <html> so plain CSS (globals.css) can
@@ -49,4 +56,19 @@ export function applyA11y(prefs: AccessibilityPrefs) {
 // Games check this before playing any sound effect.
 export function soundEnabled(): boolean {
   return !loadA11y().reducedSound;
+}
+
+// Background music plays only when music is on AND sound isn't turned down.
+export function musicEnabled(): boolean {
+  const a = loadA11y();
+  return a.musicOn && !a.reducedSound;
+}
+
+// Other parts of the app (the music player) listen for changes made anywhere.
+export const A11Y_EVENT = 'kailia-a11y-change';
+export function updateA11yPrefs(patch: Partial<AccessibilityPrefs>): AccessibilityPrefs {
+  const next = { ...loadA11y(), ...patch };
+  saveA11y(next);
+  applyA11y(next);
+  return next;
 }

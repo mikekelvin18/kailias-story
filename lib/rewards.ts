@@ -13,19 +13,29 @@ export interface RewardsState {
   gameLevels: Record<string, number>; // gameId -> highest level beaten
   celebratedCompanions: string[];     // companion names already revealed,
                                        // so the reveal moment fires once
+  focusCompanion?: string | null;      // the friend (= skill) a parent or
+                                       // child picked to practice; shared by
+                                       // friends' adventures and the care pet
 }
 
 import { scopedKey } from './family';
+import { recordQuestWin } from './adventure';
 
 const KEY = 'kailia_rewards_v1';
 const empty: RewardsState = { starlight: 0, gameLevels: {}, celebratedCompanions: [] };
 
-export const COMPANIONS: { at: number; emoji: string; name: string }[] = [
-  { at: 30,  emoji: '🐢', name: 'Shelly' },
-  { at: 80,  emoji: '🦊', name: 'Flick' },
-  { at: 150, emoji: '🦉', name: 'Sage' },
-  { at: 250, emoji: '🦄', name: 'Nova' },
-  { at: 400, emoji: '🐉', name: 'Ember' },
+// `art` = Kelvin's painted picture of each pet (public/art/pets/); `emoji`
+// stays only as a fallback and for plain-text spots. `skill` = the land
+// domain this pet owns: each pet will get its own adventures for that
+// skill (agreed with Kelvin 2026-10-21). Who each pet is (personality,
+// colors) lives in the art kit doc.
+export const COMPANIONS: { at: number; emoji: string; name: string; art: string; kind: string; skill: string }[] = [
+  { at: 30,  emoji: '🐢', name: 'Shelly', art: '/art/pets/shelly.webp', kind: 'turtle',  skill: 'sensory' },
+  { at: 80,  emoji: '🦊', name: 'Flick',  art: '/art/pets/flick.webp',  kind: 'fox',     skill: 'fine motor' },
+  { at: 150, emoji: '🦉', name: 'Sage',   art: '/art/pets/sage.webp',   kind: 'owl',     skill: 'processing' },
+  { at: 250, emoji: '🦄', name: 'Nova',   art: '/art/pets/nova.webp',   kind: 'unicorn', skill: 'reading' },
+  { at: 400, emoji: '🐉', name: 'Ember',  art: '/art/pets/ember.webp',  kind: 'dragon',  skill: 'math' },
+  { at: 550, emoji: '🦜', name: 'Kiko',   art: '/art/pets/kiko.webp',   kind: 'parrot',  skill: 'communication' },
 ];
 
 function consented(): boolean {
@@ -54,10 +64,27 @@ export function awardStarlight(amount: number): RewardsState {
 }
 
 // Remembers the highest level beaten per game; returns the updated state.
+// ── ONE starlight rule for every game ──
+// Finishing a level earns 12, plus 2 for every level number (so later
+// levels shine brighter, capped at level 40), minus 1 for each slip
+// (wrong tap, wall touch, missed potion…). Effort always pays: never
+// fewer than 10. Every game uses this, so the numbers make sense together.
+export function levelStarlight(level: number, slips = 0): number {
+  return Math.max(10, 12 + 2 * Math.min(Math.max(1, level), 40) - Math.max(0, Math.round(slips)));
+}
+
+// game id → its route on the world map, for the ones that differ
+const GAME_HREF: Record<string, string> = {
+  'word-wizard': '/play/reading',
+  'sense-explorer': '/play/sensory',
+};
+
 export function recordGameLevel(gameId: string, level: number): RewardsState {
   const r = loadRewards();
   r.gameLevels[gameId] = Math.max(r.gameLevels[gameId] ?? 0, level);
   save(r);
+  // a finished level is what lights up the quest's star on the map
+  recordQuestWin(GAME_HREF[gameId] ?? `/play/${gameId}`);
   return r;
 }
 
@@ -85,6 +112,21 @@ export function pendingCompanionReveal(r: RewardsState) {
 export function markCompanionCelebrated(name: string): RewardsState {
   const r = loadRewards();
   if (!r.celebratedCompanions.includes(name)) r.celebratedCompanions = [...r.celebratedCompanions, name];
+  save(r);
+  return r;
+}
+
+// The friend picked as the practice focus (a COMPANIONS name), or null.
+// One source of truth: friends' adventures and the daily care pet both
+// read and write it through these two helpers.
+export function getFocusCompanion(): string | null {
+  const name = loadRewards().focusCompanion ?? null;
+  return COMPANIONS.some(c => c.name === name) ? name : null;
+}
+
+export function setFocusCompanion(name: string | null): RewardsState {
+  const r = loadRewards();
+  r.focusCompanion = name && COMPANIONS.some(c => c.name === name) ? name : null;
   save(r);
   return r;
 }
