@@ -11,6 +11,7 @@
 
 import type { CSSProperties } from 'react';
 import { CRITTER_ART } from './critterArt';
+import LiveArt from './LiveArt';
 
 export type SpeciesKey =
   | 'dragon' | 'owl' | 'raccoon' | 'parrot' | 'peacock' | 'rabbit' | 'koala'
@@ -35,13 +36,39 @@ interface Props {
   animate?: boolean; // set false for tiny inline usages (option buttons) to save motion
 }
 
-// The drawings themselves live in ./critterArt (one per species).
+// Each side animal is one of Kelvin's painted pictures. Fox, owl, turtle
+// and dragon are the pets Flick, Sage, Shelly and Ember. With `animate`
+// the picture is alive (LiveArt: breathing, hops, blinking, and moving
+// ears, wings, arms and tails from its rig in rigs.ts); without it, it is
+// a still picture. The old code drawings in ./critterArt are only a
+// fallback for a species with no picture.
+const PET_FOR: Partial<Record<SpeciesKey, [string, number]>> = {
+  // picture, width as a share of its height
+  fox: ['/art/pets/flick.webp', 0.75], owl: ['/art/pets/sage.webp', 0.8],
+  turtle: ['/art/pets/shelly.webp', 0.77], dragon: ['/art/pets/ember.webp', 0.82],
+};
+const NO_PICTURE = new Set<SpeciesKey>([]);
+
 export function CritterSprite({ species, size = 64, className, style, animate = true }: Props) {
+  if (NO_PICTURE.has(species)) {
+    return (
+      <svg viewBox="-4 -16 128 136" width={size} height={size} className={`${animate ? 'critter-bob' : ''} ${className ?? ''}`}
+        style={{ overflow: 'visible', ...style }} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        {CRITTER_ART[species](animate)}
+      </svg>
+    );
+  }
+  const pet = PET_FOR[species];
+  const src = pet ? pet[0] : `/art/critters/${species}.webp`;
+  const width = Math.round(size * Math.min(1, pet ? pet[1] : 1));
   return (
-    <svg viewBox="-4 -16 128 136" width={size} height={size} className={`${animate ? 'critter-bob' : ''} ${className ?? ''}`}
-      style={{ overflow: 'visible', ...style }} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      {CRITTER_ART[species](animate)}
-    </svg>
+    <span className={className} aria-hidden="true"
+      style={{ display: 'inline-flex', alignItems: 'flex-end', justifyContent: 'center', width: size, height: size, verticalAlign: 'middle', ...style }}>
+      {animate
+        ? <LiveArt src={src} alt="" size={width} />
+        // eslint-disable-next-line @next/next/no-img-element
+        : <img src={src} alt="" draggable={false} style={{ display: 'block', width, height: 'auto', maxHeight: size }} />}
+    </span>
   );
 }
 
