@@ -59,51 +59,142 @@ body {
   --no-color: #EA580C;
 }
 
+/* ── Motion style: "punchy & bouncy", animated on twos ──
+   Idle loops (float, wiggle, sparkle, critter-bob) are sampled at 12
+   frames a second and HELD between frames (step-end), like hand-drawn
+   animation shot "on twos": it reads as made by hand instead of a
+   smooth computer tween. Every hop squashes on landing and stretches on
+   take-off. Entrances and rewards stay smooth but get anticipation and
+   overshoot so they land with a "boing".
+   The 12 fps keyframes are generated; to retune, edit the curves in
+   scripts/motion-keyframes.mjs and paste its output back here. */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0% { transform: scale(1.07, 0.935); }
+  2.778% { transform: translate(0px, -0.328px) scale(1.056, 0.947); }
+  5.556% { transform: translate(0px, -0.862px) scale(1.025, 0.976); }
+  8.333% { transform: translate(0px, -1.507px) scale(0.994, 1.006); }
+  11.111% { transform: translate(0px, -2.227px) scale(0.975, 1.025); }
+  13.889% { transform: translate(0px, -2.995px) scale(0.968, 1.033); }
+  16.667% { transform: translate(0px, -3.789px) scale(0.967, 1.034); }
+  19.444% { transform: translate(0px, -4.592px) scale(0.968, 1.033); }
+  22.222% { transform: translate(0px, -5.386px) scale(0.97, 1.031); }
+  25% { transform: translate(0px, -6.156px) scale(0.972, 1.028); }
+  27.778% { transform: translate(0px, -6.886px) scale(0.975, 1.026); }
+  30.556% { transform: translate(0px, -7.563px) scale(0.978, 1.023); }
+  33.333% { transform: translate(0px, -8.176px) scale(0.98, 1.02); }
+  36.111% { transform: translate(0px, -8.713px) scale(0.983, 1.017); }
+  38.889% { transform: translate(0px, -9.166px) scale(0.987, 1.014); }
+  41.667% { transform: translate(0px, -9.526px) scale(0.99, 1.01); }
+  44.444% { transform: translate(0px, -9.788px) scale(0.993, 1.007); }
+  47.222% { transform: translate(0px, -9.947px) scale(0.997, 1.003); }
+  50% { transform: translate(0px, -10px) scale(1, 1); }
+  52.778% { transform: translate(0px, -9.947px) scale(0.997, 1.003); }
+  55.556% { transform: translate(0px, -9.788px) scale(0.993, 1.007); }
+  58.333% { transform: translate(0px, -9.526px) scale(0.99, 1.01); }
+  61.111% { transform: translate(0px, -9.166px) scale(0.987, 1.014); }
+  63.889% { transform: translate(0px, -8.713px) scale(0.983, 1.017); }
+  66.667% { transform: translate(0px, -8.176px) scale(0.98, 1.02); }
+  69.444% { transform: translate(0px, -7.563px) scale(0.978, 1.023); }
+  72.222% { transform: translate(0px, -6.886px) scale(0.975, 1.026); }
+  75% { transform: translate(0px, -6.156px) scale(0.972, 1.028); }
+  77.778% { transform: translate(0px, -5.386px) scale(0.97, 1.031); }
+  80.556% { transform: translate(0px, -4.592px) scale(0.968, 1.033); }
+  83.333% { transform: translate(0px, -3.789px) scale(0.967, 1.034); }
+  86.111% { transform: translate(0px, -2.995px) scale(0.968, 1.033); }
+  88.889% { transform: translate(0px, -2.227px) scale(0.975, 1.025); }
+  91.667% { transform: translate(0px, -1.507px) scale(0.994, 1.006); }
+  94.444% { transform: translate(0px, -0.862px) scale(1.025, 0.976); }
+  97.222% { transform: translate(0px, -0.328px) scale(1.056, 0.947); }
+  100% { transform: scale(1.07, 0.935); }
 }
 
 @keyframes wiggle {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(3deg); }
+  0% { transform: scale(1, 1); }
+  4.167% { transform: rotate(1.035deg) scale(1.01, 0.99); }
+  8.333% { transform: rotate(2deg) scale(1.017, 0.983); }
+  12.5% { transform: rotate(2.828deg) scale(1.02, 0.98); }
+  16.667% { transform: rotate(3.464deg) scale(1.017, 0.983); }
+  20.833% { transform: rotate(3.864deg) scale(1.01, 0.99); }
+  25% { transform: rotate(4deg) scale(1, 1); }
+  29.167% { transform: rotate(3.864deg) scale(0.99, 1.01); }
+  33.333% { transform: rotate(3.464deg) scale(0.983, 1.017); }
+  37.5% { transform: rotate(2.828deg) scale(0.98, 1.02); }
+  41.667% { transform: rotate(2deg) scale(0.983, 1.017); }
+  45.833% { transform: rotate(1.035deg) scale(0.99, 1.01); }
+  50% { transform: rotate(0deg) scale(1, 1); }
+  54.167% { transform: rotate(-1.035deg) scale(1.01, 0.99); }
+  58.333% { transform: rotate(-2deg) scale(1.017, 0.983); }
+  62.5% { transform: rotate(-2.828deg) scale(1.02, 0.98); }
+  66.667% { transform: rotate(-3.464deg) scale(1.017, 0.983); }
+  70.833% { transform: rotate(-3.864deg) scale(1.01, 0.99); }
+  75% { transform: rotate(-4deg) scale(1, 1); }
+  79.167% { transform: rotate(-3.864deg) scale(0.99, 1.01); }
+  83.333% { transform: rotate(-3.464deg) scale(0.983, 1.017); }
+  87.5% { transform: rotate(-2.828deg) scale(0.98, 1.02); }
+  91.667% { transform: rotate(-2deg) scale(0.983, 1.017); }
+  95.833% { transform: rotate(-1.035deg) scale(0.99, 1.01); }
+  100% { transform: scale(1, 1); }
 }
 
 @keyframes bounce-in {
-  0% { transform: scale(0.5); opacity: 0; }
-  60% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
+  0%   { transform: scale(0.3, 0.3); opacity: 0; }
+  45%  { transform: scale(1.14, 0.88); opacity: 1; }
+  62%  { transform: scale(0.92, 1.1); }
+  78%  { transform: scale(1.04, 0.97); }
+  90%  { transform: scale(0.99, 1.01); }
+  100% { transform: scale(1, 1); opacity: 1; }
 }
 
 @keyframes sparkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  0% { transform: scale(1, 1); opacity: 1; }
+  5.556% { transform: rotate(4.104deg) scale(0.995, 0.995); opacity: 0.986; }
+  11.111% { transform: rotate(7.713deg) scale(0.979, 0.979); opacity: 0.947; }
+  16.667% { transform: rotate(10.392deg) scale(0.955, 0.955); opacity: 0.888; }
+  22.222% { transform: rotate(11.818deg) scale(0.926, 0.926); opacity: 0.814; }
+  27.778% { transform: rotate(11.818deg) scale(0.894, 0.894); opacity: 0.736; }
+  33.333% { transform: rotate(10.392deg) scale(0.865, 0.865); opacity: 0.663; }
+  38.889% { transform: rotate(7.713deg) scale(0.841, 0.841); opacity: 0.603; }
+  44.444% { transform: rotate(4.104deg) scale(0.825, 0.825); opacity: 0.564; }
+  50% { transform: rotate(0deg) scale(0.82, 0.82); opacity: 0.55; }
+  55.556% { transform: rotate(-4.104deg) scale(0.825, 0.825); opacity: 0.564; }
+  61.111% { transform: rotate(-7.713deg) scale(0.841, 0.841); opacity: 0.603; }
+  66.667% { transform: rotate(-10.392deg) scale(0.865, 0.865); opacity: 0.662; }
+  72.222% { transform: rotate(-11.818deg) scale(0.894, 0.894); opacity: 0.736; }
+  77.778% { transform: rotate(-11.818deg) scale(0.926, 0.926); opacity: 0.814; }
+  83.333% { transform: rotate(-10.392deg) scale(0.955, 0.955); opacity: 0.888; }
+  88.889% { transform: rotate(-7.713deg) scale(0.979, 0.979); opacity: 0.947; }
+  94.444% { transform: rotate(-4.104deg) scale(0.995, 0.995); opacity: 0.986; }
+  100% { transform: scale(1, 1); opacity: 1; }
 }
 
 @keyframes slide-up {
-  0% { transform: translateY(30px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0%   { transform: translateY(34px) scale(0.96, 1.06); opacity: 0; }
+  60%  { transform: translateY(-6px) scale(1.02, 0.98); opacity: 1; }
+  80%  { transform: translateY(2px) scale(0.99, 1.01); }
+  100% { transform: translateY(0) scale(1, 1); opacity: 1; }
 }
 
-.float { animation: float 3s ease-in-out infinite; }
-.wiggle { animation: wiggle 2s ease-in-out infinite; }
-.bounce-in { animation: bounce-in 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards; }
-.sparkle { animation: sparkle 1.5s ease-in-out infinite; }
-.slide-up { animation: slide-up 0.4s ease-out forwards; }
+.float { animation: float 3s step-end infinite; transform-origin: 50% 100%; }
+.wiggle { animation: wiggle 2s step-end infinite; }
+.bounce-in { animation: bounce-in 0.6s ease-out forwards; }
+.sparkle { animation: sparkle 1.5s step-end infinite; }
+.slide-up { animation: slide-up 0.5s ease-out forwards; }
 
 button:active {
   transform: scale(0.97);
 }
 
 @keyframes pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.3); }
-  100% { transform: scale(0); opacity: 0; }
+  0%   { transform: scale(1, 1); }
+  22%  { transform: scale(1.35, 0.72); }
+  42%  { transform: scale(0.82, 1.32) rotate(-6deg); opacity: 1; }
+  100% { transform: scale(0) rotate(25deg); opacity: 0; }
 }
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
+  0%, 100% { transform: rotate(0deg) scale(1, 1); }
+  20% { transform: rotate(-5deg) scale(1.06, 0.94); }
+  45% { transform: rotate(4deg) scale(0.96, 1.05); }
+  70% { transform: rotate(-2deg) scale(1.02, 0.98); }
 }
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
@@ -111,14 +202,18 @@ button:active {
   100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
 }
 @keyframes drop-in {
-  0% { transform: translateY(-40px) scale(0.7); opacity: 0; }
-  70% { transform: translateY(4px) scale(1.05); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+  0%   { transform: translateY(-46px) scale(0.85, 1.2); opacity: 0; }
+  55%  { transform: translateY(0) scale(0.92, 1.1); opacity: 1; }
+  68%  { transform: translateY(2px) scale(1.18, 0.82); }
+  82%  { transform: translateY(-4px) scale(0.96, 1.05); }
+  100% { transform: translateY(0) scale(1, 1); opacity: 1; }
 }
 @keyframes star-burst {
-  0% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.4) rotate(15deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0%   { transform: scale(1, 1) rotate(0deg); }
+  20%  { transform: scale(0.85, 0.85) rotate(-8deg); }
+  50%  { transform: scale(1.45, 1.45) rotate(18deg); }
+  70%  { transform: scale(0.93, 0.93) rotate(-4deg); }
+  100% { transform: scale(1, 1) rotate(0deg); }
 }
 /* Bonus-realm "portal" ring — a slowly spinning conic gradient behind the
    land icon, for the Space Outpost / Coral Reef reveal moment. */
@@ -136,6 +231,17 @@ button:active {
 .portal-pulse {
   animation: portal-pulse 2.6s ease-in-out infinite;
 }
+/* Same gentle pulse without the centering translate, for SVG shapes and
+   icons that are already positioned (vine tips, the next star to tap). */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+.soft-pulse {
+  animation: soft-pulse 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
 /* Slow rising bubbles/motes for game backgrounds that want more "life"
    than static decoration — loops forever, drifting up and fading. */
 @keyframes rise-fade {
@@ -151,17 +257,38 @@ button:active {
   0% { transform: translateX(-30px); opacity: 0; }
   100% { transform: translateX(0); opacity: 1; }
 }
-.pop       { animation: pop 0.35s ease-out forwards; }
-.shake     { animation: shake 0.35s ease-in-out; }
+.pop       { animation: pop 0.42s ease-out forwards; }
+.shake     { animation: shake 0.5s ease-in-out; }
 .pulse     { animation: pulse-ring 1.2s infinite; }
-.drop-in   { animation: drop-in 0.45s cubic-bezier(0.36,0.07,0.19,0.97) forwards; }
-.star-burst{ animation: star-burst 0.5s ease-in-out; }
+.drop-in   { animation: drop-in 0.6s ease-out forwards; }
+.star-burst{ animation: star-burst 0.6s ease-out; }
 .slide-right { animation: slide-right 0.35s ease-out forwards; }
 
 /* ── Critter animation kit ── */
 @keyframes critter-bob {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-5px) rotate(-2deg); }
+  0% { transform: scale(1.1, 0.909); }
+  4.545% { transform: translate(0px, -0.391px) rotate(-0.845deg) scale(1.052, 0.95); }
+  9.091% { transform: translate(0px, -1.018px) rotate(-1.622deg) scale(0.983, 1.017); }
+  13.636% { transform: translate(0px, -1.754px) rotate(-2.267deg) scale(0.956, 1.046); }
+  18.182% { transform: translate(0px, -2.536px) rotate(-2.729deg) scale(0.955, 1.047); }
+  22.727% { transform: translate(0px, -3.317px) rotate(-2.969deg) scale(0.959, 1.042); }
+  27.273% { transform: translate(0px, -4.054px) rotate(-2.969deg) scale(0.965, 1.037); }
+  31.818% { transform: translate(0px, -4.71px) rotate(-2.729deg) scale(0.971, 1.03); }
+  36.364% { transform: translate(0px, -5.255px) rotate(-2.267deg) scale(0.977, 1.023); }
+  40.909% { transform: translate(0px, -5.663px) rotate(-1.622deg) scale(0.984, 1.016); }
+  45.455% { transform: translate(0px, -5.915px) rotate(-0.845deg) scale(0.992, 1.008); }
+  50% { transform: translate(0px, -6px) rotate(0deg) scale(1, 1); }
+  54.545% { transform: translate(0px, -5.915px) rotate(0.845deg) scale(0.992, 1.008); }
+  59.091% { transform: translate(0px, -5.663px) rotate(1.622deg) scale(0.984, 1.016); }
+  63.636% { transform: translate(0px, -5.255px) rotate(2.267deg) scale(0.977, 1.023); }
+  68.182% { transform: translate(0px, -4.71px) rotate(2.729deg) scale(0.971, 1.03); }
+  72.727% { transform: translate(0px, -4.054px) rotate(2.969deg) scale(0.965, 1.037); }
+  77.273% { transform: translate(0px, -3.317px) rotate(2.969deg) scale(0.959, 1.042); }
+  81.818% { transform: translate(0px, -2.536px) rotate(2.729deg) scale(0.955, 1.047); }
+  86.364% { transform: translate(0px, -1.754px) rotate(2.267deg) scale(0.956, 1.046); }
+  90.909% { transform: translate(0px, -1.018px) rotate(1.622deg) scale(0.983, 1.017); }
+  95.455% { transform: translate(0px, -0.391px) rotate(0.845deg) scale(1.052, 0.95); }
+  100% { transform: scale(1.1, 0.909); }
 }
 @keyframes critter-blink {
   0%, 88%, 100% { transform: scaleY(1); }
@@ -175,7 +302,7 @@ button:active {
   0%, 100% { transform: rotate(-12deg); }
   50% { transform: rotate(12deg); }
 }
-.critter-bob     { animation: critter-bob 1.8s ease-in-out infinite; transform-origin: center bottom; }
+.critter-bob     { animation: critter-bob 1.8s step-end infinite; transform-origin: center bottom; }
 .critter-blink   { animation: critter-blink 3.2s ease-in-out infinite; transform-origin: center; }
 .critter-flutter { animation: critter-flutter 0.5s ease-in-out infinite; transform-origin: 100% 50%; }
 .critter-wag     { animation: critter-wag 0.9s ease-in-out infinite; transform-origin: top center; }
@@ -188,5 +315,749 @@ button:active {
 }
 .overworld-bob { animation: overworld-bob 0.28s ease-in-out infinite; }
 .character-art-shadow {
-  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.30));
+  /* thin light rim + a soft shadow cast down-right, matching the light
+     direction LiveCharacter uses, so game sprites look rounded too */
+  filter: drop-shadow(0 0 0.6px rgba(255,255,255,0.85)) drop-shadow(2px 4px 3px rgba(30,20,50,0.28));
+}
+
+/* ── Hand-painted paper ──
+   A fixed, click-through layer of canvas grain + faint brush sweeps laid
+   over every child-facing screen (mounted by AssessmentGate), so flat
+   colour backgrounds read as paint on paper. The texture is an SVG noise
+   image the browser rasterises ONCE and tiles — no per-frame cost.
+   soft-light blending lightens and darkens around whatever is beneath,
+   so it works on the bright daytime lands and the dark night ones. */
+.kp-paper {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 45;
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .4  0 0 0 1.1 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005 0.013' numOctaves='2' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 .97  0 0 0 0 .9  0 0 0 0.9 -.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)'/%3E%3C/svg%3E");
+}
+@media print { .kp-paper { display: none; } }
+
+/* ── Extra motion moves for games to use ── */
+/* A big happy hop with squash & stretch — tap feedback, "yay!" moments. */
+@keyframes kp-hop {
+  0%   { transform: translateY(0) scale(1, 1); }
+  15%  { transform: translateY(0) scale(1.18, 0.8); }   /* anticipation crouch */
+  40%  { transform: translateY(-26px) scale(0.86, 1.18); }
+  60%  { transform: translateY(-30px) scale(1, 1) rotate(-4deg); }
+  80%  { transform: translateY(0) scale(1.15, 0.85); }  /* landing squash */
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.kp-hop { animation: kp-hop 0.65s ease-in-out; transform-origin: 50% 100%; }
+
+/* Jelly wobble — celebrate a creature, a collected gem, a finished quest. */
+@keyframes kp-jelly {
+  0%, 100% { transform: scale(1, 1); }
+  25% { transform: scale(1.22, 0.8); }
+  40% { transform: scale(0.82, 1.18); }
+  55% { transform: scale(1.1, 0.92); }
+  70% { transform: scale(0.96, 1.04); }
+}
+.kp-jelly { animation: kp-jelly 0.7s ease-out; }
+
+/* ── Live characters (components/characters/LiveCharacter.tsx) ──
+   Game-style idle motion for the Kailia/Noel portraits. */
+@keyframes live-breathe {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); }
+  25%      { transform: scale(0.992, 1.018) rotate(-0.8deg); }
+  50%      { transform: scale(1, 1.024) rotate(0deg); }
+  75%      { transform: scale(0.994, 1.012) rotate(0.8deg); }
+}
+.live-breathe { animation: live-breathe 3.4s ease-in-out infinite; }
+
+@keyframes live-hop {
+  0%, 100% { transform: translateY(0) scale(1.06, 0.94); }
+  12%      { transform: translateY(0) scale(1.12, 0.88); }
+  35%      { transform: translateY(-16%) scale(0.92, 1.1) rotate(-3deg); }
+  55%      { transform: translateY(-19%) scale(1, 1) rotate(3deg); }
+  80%      { transform: translateY(0) scale(1.1, 0.9); }
+  90%      { transform: translateY(0) scale(0.98, 1.02); }
+}
+.live-hop { animation: live-hop 0.9s ease-in-out infinite; }
+
+@keyframes live-poke {
+  0%   { transform: scale(1, 1); }
+  15%  { transform: scale(1.18, 0.82); }
+  40%  { transform: translateY(-14%) scale(0.88, 1.14) rotate(-4deg); }
+  65%  { transform: translateY(0) scale(1.1, 0.9) rotate(2deg); }
+  82%  { transform: scale(0.96, 1.04); }
+  100% { transform: scale(1, 1); }
+}
+.live-poke { animation: live-poke 0.7s ease-out; }
+
+@keyframes live-lid {
+  0%, 90%, 100% { transform: scaleY(0); }
+  93%, 95%      { transform: scaleY(1); }
+}
+.live-lid { animation: live-lid 4.2s linear infinite; transform: scaleY(0); }
+
+/* ── Level map (components/LevelPath.tsx) ── */
+@keyframes lp-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(253,224,71,0.7); }
+  60%      { box-shadow: 0 0 0 12px rgba(253,224,71,0); }
+}
+.lp-chosen { animation: lp-glow 1.4s ease-out infinite; }
+@keyframes lp-march { to { stroke-dashoffset: -26; } }
+.lp-trail { animation: lp-march 1.6s linear infinite; }
+
+/* ── Floating game pieces (Word Wizard balloons, Sense Explorer crystals) ──
+   Rise in once, then bob/drift in place forever. Each piece sets its own
+   --dx/--dy drift and animation-duration so a crowd never moves in step. */
+@keyframes float-up-in {
+  0%   { transform: translateY(160px) scale(0.6); opacity: 0; }
+  70%  { transform: translateY(-8px) scale(1.04); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.float-up-in { animation: float-up-in 0.9s cubic-bezier(.2,.8,.3,1.2) both; }
+@keyframes bob-drift {
+  0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+  25%      { transform: translate(var(--dx, 6px), calc(var(--dy, 8px) * -1)) rotate(1deg); }
+  50%      { transform: translate(0, calc(var(--dy, 8px) * -1.6)) rotate(2deg); }
+  75%      { transform: translate(calc(var(--dx, 6px) * -1), calc(var(--dy, 8px) * -0.6)) rotate(-1deg); }
+}
+.bob-drift { animation: bob-drift 4s ease-in-out infinite; }
+/* a wider wander for crowded scenes — pieces roam a little patch */
+@keyframes wander {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(var(--dx, 20px), calc(var(--dy, 14px) * -1)); }
+  45% { transform: translate(calc(var(--dx, 20px) * -0.6), calc(var(--dy, 14px) * -1.4)); }
+  70% { transform: translate(calc(var(--dx, 20px) * -1), calc(var(--dy, 14px) * 0.4)); }
+}
+.wander { animation: wander 7s ease-in-out infinite; }
+/* gentle "not that one" wobble — never red, never a buzzer */
+@keyframes soft-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-10deg); }
+  45% { transform: rotate(8deg); }
+  70% { transform: rotate(-4deg); }
+}
+.soft-wobble { animation: soft-wobble 0.55s ease-in-out; }
+/* sparkle burst when a piece is caught */
+@keyframes burst-ring {
+  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+.burst-ring { animation: burst-ring 0.6s ease-out forwards; }
+@keyframes hint-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(253,224,71,0)); }
+  50%      { filter: drop-shadow(0 0 14px rgba(253,224,71,0.95)); }
+}
+.hint-glow { animation: hint-glow 1.1s ease-in-out infinite; }
+/* Kailia walking along a trail of stepping stones */
+@keyframes walk-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+.walk-bounce { animation: walk-bounce 0.35s ease-in-out infinite; }
+
+/* ── Living sky (components/scenery/LivingSky.tsx) ──
+   Each cloud rides a full-width "lane" that slides from just off the left
+   edge to just off the right edge; the cloud itself never repaints, so
+   this is a cheap, smooth GPU slide even on old tablets. */
+.sky-lane {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  animation-name: sky-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes sky-drift {
+  from { transform: translateX(calc(-1 * var(--cw))); }
+  to   { transform: translateX(100%); }
+}
+@keyframes sky-twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1.1); }
+}
+.sky-twinkle { animation: sky-twinkle 4.5s ease-in-out infinite; }
+/* Reduce motion: park every cloud where it is instead of drifting (the
+   generic reduced-motion rule above would otherwise jump it off-screen). */
+:root[data-reduced-motion="true"] .sky-lane,
+:root[data-reduced-motion="true"] .sky-twinkle { animation: none !important; }
+:root[data-reduced-motion="true"] .sky-lane { transform: translateX(var(--rest)); }
+@media (prefers-reduced-motion: reduce) {
+  .sky-lane, .sky-twinkle { animation: none; }
+  .sky-lane { transform: translateX(var(--rest)); }
+}
+
+/* ── Living decorations (components/scenery/SkyDecor.tsx) ──
+   Each decoration gets its own natural motion. All slow and soft. */
+@keyframes deco-spin { to { transform: rotate(360deg); } }
+.deco-spin { animation: deco-spin 40s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes deco-breathe {
+  0%, 100% { transform: scale(0.92); opacity: 0.8; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+.deco-breathe { animation: deco-breathe 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes deco-twinkle {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.55; }
+  45%      { transform: scale(1.1) rotate(20deg); opacity: 1; }
+  60%      { transform: scale(0.95) rotate(28deg); opacity: 0.9; }
+}
+.deco-twinkle { animation: deco-twinkle 3.2s ease-in-out infinite; }
+@keyframes deco-wing {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.25); }
+}
+.deco-wing { animation: deco-wing 0.38s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes deco-flutter-path {
+  0%   { transform: translate(0, 0) rotate(-6deg); }
+  25%  { transform: translate(14px, -10px) rotate(8deg); }
+  50%  { transform: translate(26px, 2px) rotate(-4deg); }
+  75%  { transform: translate(10px, 10px) rotate(6deg); }
+  100% { transform: translate(0, 0) rotate(-6deg); }
+}
+.deco-flutter-path { animation: deco-flutter-path 9s ease-in-out infinite; }
+@keyframes deco-sway {
+  0%, 100% { transform: rotate(-5deg); }
+  50%      { transform: rotate(5deg); }
+}
+.deco-sway { animation: deco-sway 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes deco-glide {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(22px, -6px); }
+}
+.deco-glide { animation: deco-glide 12s ease-in-out infinite; }
+@keyframes deco-flap {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(0.35); }
+}
+.deco-flap { animation: deco-flap 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .deco-spin, .deco-breathe, .deco-twinkle, .deco-wing, .deco-flutter-path,
+  .deco-sway, .deco-glide, .deco-flap { animation: none; }
+}
+
+/* ── Live character depth (LiveCharacter.tsx) ──
+   Light comes from the upper left: a soft glow there, gentle shade on the
+   lower right and under the chin/feet. Both layers are masked to the
+   character's own outline, so nothing spills onto the background. */
+.live-art {
+  /* thin warm rim + a soft shadow cast slightly down-right = lifted off the page */
+  filter: drop-shadow(0 0 0.6px rgba(255,255,255,0.9)) drop-shadow(3px 5px 4px rgba(40,24,70,0.18));
+}
+.live-light {
+  background:
+    radial-gradient(ellipse 55% 40% at 32% 22%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%),
+    radial-gradient(ellipse 30% 22% at 26% 58%, rgba(255,250,235,0.35), rgba(255,250,235,0) 70%);
+  mix-blend-mode: soft-light;
+}
+.live-shade {
+  background:
+    radial-gradient(ellipse 60% 70% at 92% 70%, rgba(48,28,92,0.32), rgba(48,28,92,0) 70%),
+    linear-gradient(180deg, rgba(48,28,92,0) 62%, rgba(48,28,92,0.22) 100%);
+  mix-blend-mode: multiply;
+}
+.live-ground {
+  position: absolute;
+  left: 18%; right: 18%; bottom: -3%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(30,20,50,0.32) 0%, rgba(30,20,50,0.12) 50%, rgba(30,20,50,0) 72%);
+  pointer-events: none;
+}
+/* a slow, small turn of the body, as if glancing around */
+@keyframes live-turn {
+  0%, 100% { transform: perspective(600px) rotateY(0deg); }
+  30%      { transform: perspective(600px) rotateY(9deg); }
+  45%      { transform: perspective(600px) rotateY(9deg); }
+  75%      { transform: perspective(600px) rotateY(-7deg); }
+  88%      { transform: perspective(600px) rotateY(-7deg); }
+}
+.live-turn { animation: live-turn 11s ease-in-out infinite; transform-origin: 50% 100%; }
+/* shadows that move with each body motion */
+@keyframes live-breathe-shadow {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.96); }
+}
+.live-breathe-shadow { animation: live-breathe-shadow 3.4s ease-in-out infinite; }
+@keyframes live-hop-shadow {
+  0%, 100% { transform: scaleX(1.06); opacity: 1; }
+  12%      { transform: scaleX(1.1); opacity: 1; }
+  35%      { transform: scaleX(0.7); opacity: 0.5; }
+  55%      { transform: scaleX(0.66); opacity: 0.45; }
+  80%      { transform: scaleX(1.08); opacity: 1; }
+}
+.live-hop-shadow { animation: live-hop-shadow 0.9s ease-in-out infinite; }
+@keyframes live-poke-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  15%      { transform: scaleX(1.12); }
+  40%      { transform: scaleX(0.72); opacity: 0.5; }
+  65%      { transform: scaleX(1.08); opacity: 1; }
+}
+.live-poke-shadow { animation: live-poke-shadow 0.7s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .live-turn, .live-breathe, .live-hop, .live-lid, .live-breathe-shadow, .live-hop-shadow { animation: none; }
+}
+
+/* ── Live art (components/characters/LiveArt.tsx) ──
+   Pets: two slow breaths, then a small happy hop with squash & stretch.
+   Lands: a slow island float. Shadows follow each move. */
+@keyframes art-breathe {
+  0%, 30%, 60%, 100% { transform: translateY(0) scale(1, 1); }
+  15%, 45% { transform: translateY(0) scale(1.012, 0.985); }
+  68%  { transform: translateY(0) scale(1.08, 0.92); }
+  76%  { transform: translateY(-10%) scale(0.94, 1.07) rotate(-2deg); }
+  84%  { transform: translateY(-12%) scale(1, 1) rotate(2deg); }
+  92%  { transform: translateY(0) scale(1.07, 0.93); }
+  96%  { transform: translateY(0) scale(0.98, 1.02); }
+}
+.art-breathe { animation: art-breathe 6.5s ease-in-out infinite; }
+@keyframes art-breathe-shadow {
+  0%, 68%, 92%, 100% { transform: scaleX(1); opacity: 1; }
+  76%, 84% { transform: scaleX(0.72); opacity: 0.5; }
+}
+.art-breathe-shadow { animation: art-breathe-shadow 6.5s ease-in-out infinite; }
+@keyframes art-float {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50%      { transform: translateY(-5%) rotate(0.6deg); }
+}
+.art-float { animation: art-float 5.5s ease-in-out infinite; }
+@keyframes art-float-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50%      { transform: scaleX(0.85); opacity: 0.6; }
+}
+.art-float-shadow { animation: art-float-shadow 5.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .art-breathe, .art-breathe-shadow, .art-float, .art-float-shadow { animation: none; }
+}
+
+/* ── Friends' games (components/friends/kit) ──
+   The friend acts inside each game: flies, cheers, wobbles, talks. The
+   scene around it drifts, twinkles and rises. "Reduce motion" stills it. */
+@keyframes fg-cheer {
+  0%   { transform: translateY(0) scale(1, 1); }
+  10%  { transform: translateY(0) scale(1.16, 0.84); }
+  28%  { transform: translateY(-34%) scale(0.88, 1.14) rotate(-8deg); }
+  44%  { transform: translateY(0) scale(1.14, 0.86); }
+  60%  { transform: translateY(-26%) scale(0.9, 1.1) rotate(8deg); }
+  78%  { transform: translateY(0) scale(1.1, 0.9); }
+  90%  { transform: translateY(0) scale(0.97, 1.03); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.fg-cheer { animation: fg-cheer 1.1s ease-in-out; }
+@keyframes fg-oops {
+  0%, 100% { transform: rotate(0deg) scale(1, 1); }
+  20% { transform: rotate(-9deg) scale(1.04, 0.96); }
+  45% { transform: rotate(7deg) scale(0.97, 1.03); }
+  65% { transform: rotate(-4deg); }
+  82% { transform: rotate(2deg); }
+}
+.fg-oops { animation: fg-oops 0.9s ease-in-out; }
+@keyframes fg-fly {
+  0%, 100% { transform: translateY(0) rotate(-5deg) scale(1.02, 0.98); }
+  50%      { transform: translateY(-9%) rotate(5deg) scale(0.98, 1.03); }
+}
+.fg-fly { animation: fg-fly 0.42s ease-in-out infinite; }
+@keyframes fg-talk {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); }
+  30% { transform: scale(1.04, 0.95) rotate(-2deg); }
+  60% { transform: scale(0.97, 1.04) rotate(2deg); }
+}
+.fg-talk { animation: fg-talk 0.36s ease-in-out infinite; }
+@keyframes fg-dance {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  12% { transform: translateY(0) scale(1.1, 0.9); }
+  25% { transform: translateY(-14%) rotate(-10deg) scale(0.94, 1.08); }
+  37% { transform: translateY(0) scale(1.1, 0.9); }
+  50% { transform: translateY(0) rotate(0deg) scale(1, 1); }
+  62% { transform: translateY(0) scale(1.1, 0.9); }
+  75% { transform: translateY(-14%) rotate(10deg) scale(0.94, 1.08); }
+  87% { transform: translateY(0) scale(1.1, 0.9); }
+}
+.fg-dance { animation: fg-dance 1.6s ease-in-out infinite; }
+@keyframes fg-twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.fg-twinkle { animation: fg-twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes fg-burst {
+  0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.3) rotate(0deg); opacity: 1; animation-timing-function: cubic-bezier(.15,.75,.35,1); }
+  45%  { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.8), calc(var(--dy) * 0.8 - 14px)) scale(1.15) rotate(calc(var(--rot) * 0.6)); opacity: 1; animation-timing-function: cubic-bezier(.5,0,.9,.6); }
+  100% { transform: translate(-50%, -50%) translate(var(--dx), calc(var(--dy) + 46px)) scale(0.6) rotate(var(--rot)); opacity: 0; }
+}
+.fg-burst { opacity: 0; animation: fg-burst 1.05s linear both; }
+@keyframes fg-ring {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; border-width: 7px; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; border-width: 1px; }
+}
+.fg-ring { animation: fg-ring 0.55s cubic-bezier(.1,.7,.3,1) forwards; left: 0; top: 0; }
+@keyframes fg-flash {
+  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; }
+}
+.fg-flash { animation: fg-flash 0.35s ease-out forwards; }
+@keyframes fg-drift {
+  from { transform: translateX(-40vw); }
+  to   { transform: translateX(140vw); }
+}
+.fg-drift { animation: fg-drift linear infinite; }
+@keyframes fg-rise {
+  0%   { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15%  { opacity: 0.9; }
+  50%  { transform: translate(var(--sway, 8px), calc(var(--rise, 200px) * -0.5)) scale(1); }
+  100% { transform: translate(0, calc(var(--rise, 200px) * -1)) scale(0.8); opacity: 0; }
+}
+.fg-rise { animation: fg-rise ease-in-out infinite; }
+@keyframes fg-fall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { transform: translate(var(--sway, 18px), calc(var(--fall, 260px) * 0.5)) rotate(140deg); }
+  100% { transform: translate(0, var(--fall, 260px)) rotate(300deg); opacity: 0; }
+}
+.fg-fall { animation: fg-fall ease-in-out infinite; }
+@keyframes fg-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+.fg-sway { animation: fg-sway 4s ease-in-out infinite; }
+@keyframes fg-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.fg-bob { animation: fg-bob 2.6s ease-in-out infinite; }
+@keyframes fg-drop {
+  0%   { transform: translateY(-160px) scale(0.8, 1.2); opacity: 0; }
+  55%  { transform: translateY(0) scale(1.25, 0.75); opacity: 1; }
+  72%  { transform: translateY(-10px) scale(0.92, 1.1); }
+  88%  { transform: translateY(0) scale(1.05, 0.95); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.fg-drop { animation: fg-drop 0.6s ease-out both; }
+@keyframes fg-draw { to { stroke-dashoffset: 0; } }
+.fg-draw { animation: fg-draw 0.35s ease-out forwards; }
+@keyframes fg-sprout {
+  0%   { transform: scale(0) rotate(-40deg); }
+  70%  { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.fg-sprout { animation: fg-sprout 0.45s ease-out both; transform-box: fill-box; transform-origin: 0% 50%; }
+@keyframes fg-bloom {
+  0%   { transform: scale(1) rotate(0deg); }
+  40%  { transform: scale(1.7) rotate(40deg); }
+  100% { transform: scale(1.45) rotate(72deg); }
+}
+.fg-bloom { animation: fg-bloom 0.9s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+@keyframes fg-glow {
+  0%, 100% { opacity: calc(var(--glow, 1) * 0.55); }
+  50% { opacity: var(--glow, 1); }
+}
+.fg-glow { animation: fg-glow 3s ease-in-out infinite; }
+@keyframes fg-swim {
+  from { transform: translateX(-30%) scaleX(-1); }
+  to   { transform: translateX(130vw) scaleX(-1); }
+}
+.fg-swim { animation: fg-swim linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .fg-cheer, .fg-oops, .fg-fly, .fg-talk, .fg-dance, .fg-twinkle, .fg-drift, .fg-rise, .fg-fall,
+  .fg-sway, .fg-bob, .fg-glow, .fg-swim { animation: none; }
+  .fg-burst, .fg-ring, .fg-flash { display: none; }
+}
+
+/* ── Game-feel kit (components/games) ── */
+@keyframes nf-sway { 0%, 100% { transform: rotate(-1.6deg); } 50% { transform: rotate(1.6deg); } }
+.nf-sway-far { animation: nf-sway 7s ease-in-out infinite; }
+.nf-sway-mid { animation: nf-sway 4.6s ease-in-out infinite; }
+@keyframes gb-wing { 0%, 100% { transform: rotate(0deg) scaleY(1); } 50% { transform: rotate(-28deg) scaleY(0.55); } }
+.gb-wing { animation: gb-wing 0.16s linear infinite; }
+.gb-wing-slow { animation: gb-wing 0.9s ease-in-out infinite; }
+@keyframes gb-pulse { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+.gb-pulse { animation: gb-pulse 1.4s ease-in-out infinite; }
+/* a caught firefly zooms in an arc into the lantern: --fx/--fy = start offset from the lantern */
+@keyframes ff-home {
+  0%   { transform: translate(var(--fx), var(--fy)) scale(1); opacity: 1; }
+  55%  { transform: translate(calc(var(--fx) * 0.35), calc(var(--fy) * 0.35 - 40px)) scale(0.8); opacity: 1; }
+  100% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+}
+.ff-home { animation: ff-home 0.7s cubic-bezier(.5,0,.6,1) forwards; }
+@keyframes lantern-swing { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.lantern-swing { animation: lantern-swing 2.6s ease-in-out infinite; transform-origin: 50% 0; }
+@keyframes lantern-gulp { 0% { transform: scale(1); } 35% { transform: scale(1.18, 0.88); } 70% { transform: scale(0.94, 1.08); } 100% { transform: scale(1); } }
+.lantern-gulp { animation: lantern-gulp 0.45s ease-out; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .nf-sway-far, .nf-sway-mid, .gb-wing, .gb-wing-slow, .gb-pulse, .lantern-swing, .lantern-gulp { animation: none; }
+}
+
+/* ── Adventure world (components/world) ──
+   Motion for places like Kailia's Garden. Timings follow the art bible
+   (lib/world/artBible.ts): one-shots under 1.2 s, nothing flashes, and
+   "Reduce motion" stills the loops. */
+.gw-touch { -webkit-tap-highlight-color: transparent; }
+.gw-touch:focus-visible { outline: 6px solid #FFF6E5; outline-offset: 4px; border-radius: 28px; }
+.gw-held > span { transform: translateY(-4px) scale(1.06); filter: drop-shadow(0 14px 8px rgba(59,36,22,0.25)); transition: transform 0.12s ease-out; }
+@keyframes gw-ripple { 0% { transform: translate(0, 0); opacity: 0; } 20% { opacity: 0.85; } 100% { transform: translate(6px, 60px); opacity: 0; } }
+.gw-ripple { animation: gw-ripple 5.4s linear infinite; }
+@keyframes gw-petwalk {
+  0%, 100% { transform: translateY(0) rotate(-2deg) scale(1.02, 0.98); }
+  50% { transform: translateY(-9%) rotate(2deg) scale(0.98, 1.03); }
+}
+.gw-petwalk { animation: gw-petwalk 0.34s ease-in-out infinite; }
+@keyframes gw-sniff {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  20% { transform: rotate(9deg) translateY(4%); }
+  35% { transform: rotate(7deg) translateY(3%); }
+  50% { transform: rotate(10deg) translateY(5%); }
+  65% { transform: rotate(7deg) translateY(3%); }
+  85% { transform: rotate(4deg) translateY(1%); }
+}
+.gw-sniff { animation: gw-sniff 1.3s ease-in-out infinite; }
+@keyframes gw-sad { 0% { transform: scale(1, 1); } 100% { transform: scale(1.03, 0.93) rotate(-3deg) translateY(2%); } }
+.gw-sad { animation: gw-sad 0.6s ease-out forwards; filter: saturate(0.85); }
+@keyframes gw-wiggle { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-7deg); } 30% { transform: rotate(6deg); } 45% { transform: rotate(-4deg); } 60% { transform: rotate(3deg); } }
+.gw-wiggle > span { animation: gw-wiggle 0.8s ease-in-out 2; transform-origin: 50% 100%; }
+@keyframes gw-shake { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-4deg) scale(1.04, 0.96); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } 80% { transform: rotate(1deg); } }
+.gw-shake { animation: gw-shake 0.6s ease-out; transform-origin: 50% 100%; }
+@keyframes gw-drip { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(14px, 110px); opacity: 0; } }
+.gw-drip { animation: gw-drip 0.6s ease-in infinite; }
+@keyframes gw-zzz { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 0.9; transform: translateY(-8px); } }
+.gw-zzz { animation: gw-zzz 2.4s ease-in-out infinite; }
+@keyframes gw-flyaway { 0% { transform: translate(0, 40px) scale(0.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(140px, -260px) scale(1); opacity: 0; } }
+.gw-flyaway { animation: gw-flyaway 1.8s ease-out forwards; }
+.gw-flap { animation: gw-flap 0.22s ease-in-out infinite; }
+@keyframes gw-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.3); } }
+@keyframes gw-peek { 0% { transform: translateY(40px); opacity: 0; } 20%, 75% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
+.gw-peek { animation: gw-peek 2.2s ease-in-out forwards; }
+@keyframes gw-hop { 0% { transform: translateY(0) scale(1, 1); } 15% { transform: scale(1.12, 0.86); } 45% { transform: translateY(-60px) scale(0.9, 1.12); } 75% { transform: translateY(0) scale(1.1, 0.9); } 100% { transform: scale(1, 1); } }
+.gw-hop { animation: gw-hop 0.7s ease-out; }
+@keyframes gw-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 0.97); } }
+.gw-breathe { animation: gw-breathe 2.6s ease-in-out infinite; }
+@keyframes gw-crawl { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(6px) rotate(6deg); } }
+.gw-crawl { animation: gw-crawl 3.2s ease-in-out infinite; }
+@keyframes gw-slot { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.gw-slot { animation: gw-slot 1.6s ease-in-out infinite; }
+@keyframes gw-say { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.gw-say { animation: gw-say 0.3s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .gw-ripple, .gw-petwalk, .gw-sniff, .gw-drip, .gw-zzz, .gw-flap, .gw-breathe, .gw-crawl, .gw-slot { animation: none; }
+}
+
+/* ── Game frame (components/games/GameFrame.tsx) ──
+   The opening title card and the end-of-level party every game shares.
+   Entrances overshoot and settle; the Play button breathes and shines;
+   confetti flutters down. "Reduce motion" shows it all still. */
+.gf-screen { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; }
+.gf-back {
+  display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px;
+  color: #fff; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.35);
+  backdrop-filter: blur(4px);
+}
+.gf-title {
+  margin: 6px 0 4px; font-size: 40px; line-height: 1.05; font-weight: 900; letter-spacing: 0.5px; color: #fff;
+  -webkit-text-stroke: 1.5px #3b2416; paint-order: stroke fill;
+  text-shadow: 0 4px 0 #3b2416, 0 0 26px var(--gf-accent, #A855F7), 0 0 4px var(--gf-accent, #A855F7);
+}
+@keyframes gf-letter {
+  0%   { transform: translateY(-60px) scale(0.4, 1.6) rotate(-12deg); opacity: 0; }
+  55%  { transform: translateY(6px) scale(1.25, 0.78) rotate(4deg); opacity: 1; }
+  75%  { transform: translateY(-4px) scale(0.92, 1.1) rotate(-2deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0deg); opacity: 1; }
+}
+@keyframes gf-letter-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-3px) rotate(-2deg); }
+}
+.gf-letter {
+  display: inline-block; opacity: 0; transform-origin: 50% 100%;
+  animation: gf-letter 0.6s cubic-bezier(.3,.6,.4,1) forwards;
+}
+.gf-title:hover .gf-letter { animation: gf-letter-idle 0.5s ease-in-out; opacity: 1; }
+@keyframes gf-dust {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translateY(-70vh) scale(1.1); opacity: 0; }
+}
+.gf-dust {
+  background: radial-gradient(circle, #FFFFFF 0%, rgba(255,247,200,0.9) 35%, rgba(255,247,200,0) 70%);
+  animation: gf-dust linear infinite;
+}
+@keyframes gf-stage { 0%, 100% { transform: scale(1, 1); opacity: 0.85; } 50% { transform: scale(1.06, 1.1); opacity: 1; } }
+.gf-stage { animation: gf-stage 2.6s ease-in-out infinite; }
+@keyframes gf-enter-right {
+  0%   { transform: translateX(60vw) rotate(10deg); opacity: 0; }
+  60%  { transform: translateX(-10px) rotate(-6deg); opacity: 1; }
+  80%  { transform: translateX(4px) rotate(3deg); }
+  100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+}
+.gf-enter-right { display: inline-block; opacity: 0; transform-origin: 50% 100%; animation: gf-enter-right 0.9s cubic-bezier(.3,.7,.4,1) forwards; }
+@keyframes gf-drop-in {
+  0%   { transform: translateY(-140px) scale(0.8, 1.25); opacity: 0; }
+  55%  { transform: translateY(0) scale(1.28, 0.74); opacity: 1; }
+  72%  { transform: translateY(-14px) scale(0.92, 1.1); }
+  88%  { transform: translateY(0) scale(1.06, 0.94); }
+  100% { transform: translateY(0) scale(1, 1); opacity: 1; }
+}
+.gf-drop-in { opacity: 0; transform-origin: 50% 100%; animation: gf-drop-in 0.7s ease-out forwards; }
+@keyframes gf-bubble {
+  0%   { transform: scale(0.3) translateY(30px); opacity: 0; }
+  60%  { transform: scale(1.06) translateY(-4px); opacity: 1; }
+  80%  { transform: scale(0.98); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.gf-bubble {
+  position: relative; padding: 14px 16px; border-radius: 22px; background: #FFFDF6;
+  border: 3px solid #3b2416; box-shadow: 0 6px 0 rgba(59,36,22,0.35);
+  opacity: 0; transform-origin: 18% 0%; animation: gf-bubble 0.55s cubic-bezier(.3,.7,.4,1) forwards;
+}
+.gf-bubble-tail {
+  position: absolute; top: -14px; left: 22%; width: 22px; height: 22px; background: #FFFDF6;
+  border-left: 3px solid #3b2416; border-top: 3px solid #3b2416; transform: rotate(45deg) skew(8deg, 8deg); border-radius: 4px 0 0 0;
+}
+@keyframes gf-rise-in {
+  0%   { transform: translateY(26px); opacity: 0; }
+  70%  { transform: translateY(-3px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.gf-rise-in { opacity: 0; animation: gf-rise-in 0.5s ease-out forwards; }
+/* the Play button */
+@keyframes gf-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 7px 0 #3b2416, 0 0 0 0 var(--gf-accent, #A855F7); }
+  50%      { transform: scale(1.06); box-shadow: 0 7px 0 #3b2416, 0 0 0 12px rgba(255,255,255,0); }
+}
+@keyframes gf-shine { 0%, 55% { transform: translateX(-130%) skewX(-20deg); } 100% { transform: translateX(260%) skewX(-20deg); } }
+.gf-cta {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+  min-width: 220px; padding: 18px 40px; border-radius: 999px; font-size: 22px; font-weight: 900;
+  border: 3px solid #3b2416; box-shadow: 0 7px 0 #3b2416;
+  animation: gf-breathe 1.8s ease-in-out infinite; transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.gf-cta:active { animation: none; transform: translateY(5px) scale(0.95, 0.9); box-shadow: 0 2px 0 #3b2416; }
+.gf-shine {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.65), rgba(255,255,255,0));
+  animation: gf-shine 2.8s ease-in-out infinite;
+}
+.gf-soft {
+  display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px;
+  font-size: 18px; font-weight: 800; color: #3b2416; background: #FFFDF6; border: 3px solid #3b2416;
+  box-shadow: 0 5px 0 #3b2416; transition: transform 0.1s;
+}
+.gf-soft:active { transform: translateY(4px) scale(0.96, 0.92); box-shadow: 0 1px 0 #3b2416; }
+/* the party */
+@keyframes gf-confetti {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(var(--sway), 30vh) rotate(calc(var(--spin) * 0.25)); }
+  50%  { transform: translate(0, 60vh) rotate(calc(var(--spin) * 0.5)); }
+  75%  { transform: translate(calc(var(--sway) * -0.6), 88vh) rotate(calc(var(--spin) * 0.75)); }
+  100% { transform: translate(0, 116vh) rotate(var(--spin)); }
+}
+.gf-confetti { animation: gf-confetti linear infinite; }
+@keyframes gf-flutter { 0%, 100% { transform: rotateX(0deg) rotateY(0deg); } 50% { transform: rotateX(70deg) rotateY(50deg); } }
+.gf-flutter { animation: gf-flutter 0.7s ease-in-out infinite; }
+@keyframes gf-rays { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+.gf-rays {
+  width: 560px; height: 560px; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(rgba(255,255,255,0.16) 0deg 10deg, rgba(255,255,255,0) 10deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 68%); mask-image: radial-gradient(circle, #000 18%, transparent 68%);
+  animation: gf-rays 22s linear infinite;
+}
+@keyframes gf-ribbon {
+  0%   { transform: scale(0.2) rotate(-14deg); opacity: 0; }
+  55%  { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  75%  { transform: scale(0.96) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.gf-ribbon {
+  display: inline-block; padding: 12px 30px; font-size: 28px; font-weight: 900; color: #fff; line-height: 1.1;
+  background: linear-gradient(180deg, var(--gf-accent, #A855F7), color-mix(in srgb, var(--gf-accent, #A855F7) 70%, #3b2416));
+  border: 3px solid #3b2416; border-radius: 18px; box-shadow: 0 6px 0 #3b2416;
+  -webkit-text-stroke: 1px #3b2416; paint-order: stroke fill; text-shadow: 0 3px 0 #3b2416;
+  opacity: 0; animation: gf-ribbon 0.7s cubic-bezier(.3,.7,.4,1) forwards;
+}
+@keyframes gf-party-hop {
+  0%   { transform: translateY(0) scale(1, 1); }
+  14%  { transform: translateY(0) scale(1.12, 0.86); }
+  42%  { transform: translateY(-36%) scale(0.92, 1.1); }
+  70%  { transform: translateY(0) scale(1.1, 0.9); }
+  85%  { transform: translateY(-4%) scale(0.98, 1.02); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.gf-party-hop { animation: gf-party-hop 0.85s ease-in-out; }
+@keyframes gf-fly-star {
+  0%   { transform: translate(var(--from-x), var(--from-y)) scale(0.4) rotate(-90deg); opacity: 0; }
+  20%  { opacity: 1; transform: translate(calc(var(--from-x) * 0.9), calc(var(--from-y) * 0.9)) scale(1.3) rotate(0deg); }
+  100% { transform: translate(-60px, 0) scale(0.5) rotate(180deg); opacity: 0; }
+}
+.gf-fly-star { opacity: 0; animation: gf-fly-star 0.85s cubic-bezier(.5,0,.7,.4) forwards; }
+@keyframes gf-counter { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.gf-counter {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 999px;
+  font-size: 24px; font-weight: 900; color: #3b2416; background: #FFF6C8; border: 3px solid #3b2416;
+  box-shadow: 0 5px 0 #3b2416, 0 0 24px #FDE04788; animation: gf-counter 0.18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-letter, .gf-enter-right, .gf-drop-in, .gf-bubble, .gf-rise-in, .gf-ribbon, .gf-fly-star { animation: none; opacity: 1; }
+  .gf-dust, .gf-stage, .gf-cta, .gf-shine, .gf-confetti, .gf-flutter, .gf-rays, .gf-party-hop, .gf-counter { animation: none; }
+}
+:root[data-reduced-motion="true"] :is(.gf-letter, .gf-enter-right, .gf-drop-in, .gf-bubble, .gf-rise-in, .gf-ribbon, .gf-fly-star) { animation: none; opacity: 1; }
+:root[data-reduced-motion="true"] :is(.gf-dust, .gf-stage, .gf-cta, .gf-shine, .gf-confetti, .gf-flutter, .gf-rays, .gf-party-hop, .gf-counter) { animation: none; }
+/* a big tappable choice card inside a game's opening (pick a hero, pick a mailbag) */
+@keyframes gf-choice-in {
+  0%   { transform: translateY(30px) scale(0.9); opacity: 0; }
+  70%  { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.gf-choice {
+  border-radius: 24px; padding: 18px; border: 3px solid #3b2416; box-shadow: 0 6px 0 #3b2416;
+  opacity: 0; animation: gf-choice-in 0.5s ease-out 1.5s forwards; transition: transform 0.1s;
+}
+.gf-choice:hover { transform: translateY(-2px); }
+.gf-choice:active { transform: translateY(4px) scale(0.97, 0.94); box-shadow: 0 2px 0 #3b2416; }
+@media (prefers-reduced-motion: reduce) { .gf-choice { animation: none; opacity: 1; } }
+:root[data-reduced-motion="true"] .gf-choice { animation: none; opacity: 1; }
+:root[data-reduced-motion="true"] .fg-burst,
+:root[data-reduced-motion="true"] .fg-ring,
+:root[data-reduced-motion="true"] .fg-flash { display: none; }
+
+/* ── Daily care pet "moment" (components/carepet) ── */
+@keyframes pm-enter { 0% { transform: translateY(-60px) scale(0.6); opacity: 0; } 55% { transform: translateY(8px) scale(1.06, 0.92); opacity: 1; } 75% { transform: translateY(-4px) scale(0.97, 1.04); } 100% { transform: none; } }
+.pm-enter { animation: pm-enter 0.7s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
+@keyframes pm-card { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
+.pm-card { animation: pm-card 0.35s cubic-bezier(.3,1.3,.5,1) both; }
+@keyframes pm-bubble { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
+.pm-bubble { animation: pm-bubble 0.35s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
+@keyframes pm-chomp { 0%,100% { transform: none; } 20% { transform: scale(1.12, 0.86); } 40% { transform: scale(0.94, 1.08); } 60% { transform: scale(1.08, 0.9); } 80% { transform: scale(0.98, 1.03); } }
+.pm-chomp { animation: pm-chomp 0.9s ease-in-out; transform-origin: 50% 100%; }
+@keyframes pm-food { 0% { transform: translate(0, 0) scale(0.6); opacity: 1; } 18% { transform: translate(0, 0) scale(1.1); } 35% { transform: translate(0, 0) scale(1); } 80% { transform: translate(0, var(--pm-fly, -260px)) scale(0.45); opacity: 1; } 100% { transform: translate(0, var(--pm-fly, -260px)) scale(0.1); opacity: 0; } }
+.pm-food { animation: pm-food 1.3s cubic-bezier(.45,0,.55,1) forwards; }
+@keyframes pm-crumb { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; } }
+.pm-crumb { animation: pm-crumb 0.8s ease-out forwards; }
+@keyframes pm-heart { 0% { transform: translate(0, 0) scale(0.4); opacity: 0; } 15% { opacity: 1; transform: translate(0,-10px) scale(1); } 100% { transform: translate(var(--dx, 0px), -140px) scale(0.8); opacity: 0; } }
+.pm-heart { animation: pm-heart 1.6s ease-out forwards; }
+@keyframes pm-confetti { 0% { transform: translate(0, -20px) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), 420px) rotate(var(--rot)); opacity: 0; } }
+.pm-confetti { animation: pm-confetti 2.2s cubic-bezier(.2,.6,.4,1) forwards; }
+@keyframes pm-glow { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.06); } }
+.pm-glow { animation: pm-glow 3s ease-in-out infinite; }
+@keyframes pm-node { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.pm-node { animation: pm-node 0.6s cubic-bezier(.3,1.5,.5,1); }
+/* the pet showing a move: a calm loop the child copies */
+@keyframes pm-stretch { 0%,100% { transform: scale(1,1); } 25% { transform: scale(0.9,1.18); } 50% { transform: scale(1,1); } 75% { transform: scale(1.18,0.9); } }
+@keyframes pm-hop { 0%,100% { transform: translateY(0) scale(1,1); } 15% { transform: translateY(0) scale(1.1,0.9); } 45% { transform: translateY(-34px) scale(0.94,1.08); } 75% { transform: translateY(0) scale(1.08,0.92); } }
+@keyframes pm-balance { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes pm-push { 0%,100% { transform: translateX(0) skewX(0); } 50% { transform: translateX(14px) skewX(-6deg); } }
+@keyframes pm-cross { 0%,100% { transform: rotate(-8deg) translateY(0); } 25% { transform: rotate(0) translateY(-8px); } 50% { transform: rotate(8deg) translateY(0); } 75% { transform: rotate(0) translateY(-8px); } }
+@keyframes pm-march { 0%,100% { transform: translateY(0) rotate(-3deg); } 25% { transform: translateY(-10px) rotate(0); } 50% { transform: translateY(0) rotate(3deg); } 75% { transform: translateY(-10px) rotate(0); } }
+@keyframes pm-dance { 0%,100% { transform: rotate(0) translateY(0); } 20% { transform: rotate(-10deg) translateY(-12px); } 40% { transform: rotate(8deg) translateY(0); } 60% { transform: rotate(-6deg) translateY(-8px); } 80% { transform: rotate(10deg) translateY(0); } }
+.pm-move-stretch { animation: pm-stretch 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-star { animation: pm-stretch 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-hop { animation: pm-hop 1.1s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-balance { animation: pm-balance 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-push { animation: pm-push 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-cross { animation: pm-cross 1.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-march { animation: pm-march 1s ease-in-out infinite; transform-origin: 50% 100%; }
+.pm-move-dance { animation: pm-dance 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: reduce) {
+  .pm-enter, .pm-card, .pm-bubble, .pm-chomp, .pm-node, .pm-glow,
+  .pm-move-stretch, .pm-move-star, .pm-move-hop, .pm-move-balance, .pm-move-push,
+  .pm-move-cross, .pm-move-march, .pm-move-dance { animation: none; }
+  .pm-food, .pm-crumb, .pm-confetti, .pm-heart { animation-duration: 0.01s; }
 }

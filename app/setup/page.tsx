@@ -3,10 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ageInMonths } from '@/lib/milestones';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
+import ChildAvatar from '@/components/characters/ChildAvatar';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { ChildProfile, activeChild, childAgeYears } from '@/lib/family';
+import StepGuide from '@/components/ui/StepGuide';
+import { Sparkle } from '@/components/scenery/SkyDecor';
 
 // COPPA: children never type personal information anywhere in the app.
 // The child's nickname and birth month/year come from the profile the
@@ -43,7 +47,7 @@ export default function SetupPage() {
 
   const handleStart = () => {
     if (!child) return;
-    setChildInfo(child.nickname, ageNum);
+    setChildInfo(child.nickname, ageNum, ageInMonths(child.birthYear, child.birthMonth));
     const type = willUseChecklist ? 'checklist' : 'games';
     setAssessmentType(type);
     router.push(type === 'checklist' ? '/assessment/checklist' : '/assessment/games');
@@ -51,29 +55,31 @@ export default function SetupPage() {
 
   const pathLabel = () => {
     if (!group) return null;
-    if (group === 'infant')    return { icon: '📋', text: 'Parent Questionnaire — Infant (6–11 months)', note: 'You answer on behalf of your baby. Takes about 3 minutes.', color: '#EC4899' };
-    if (group === 'toddler')   return { icon: '📋', text: 'Parent Questionnaire — Toddler (12–23 months)', note: 'You answer on behalf of your toddler. Takes about 3 minutes.', color: '#F97316' };
-    if (group === 'preschool') return { icon: '📋', text: 'Parent Questionnaire — Preschool (2–4 years)', note: 'You answer for your child. Takes about 4 minutes.', color: '#F59E0B' };
-    if (preferParent)          return { icon: '📋', text: 'Parent Questionnaire — School Age (5–12 years)', note: 'You answer on behalf of your child.', color: '#059669' };
-    return { icon: '🎮', text: 'Fun Placement Games — School Age (5–12 years)', note: 'Your child plays 4 short mini-games with Kailia. Takes about 8 minutes.', color: '#7C3AED' };
+    if (group === 'infant')    return { icon: '📋', text: 'Parent Questionnaire — Infant (6–11 months)', note: 'You answer on behalf of your baby, then a few questions about their senses. About 6 minutes.', color: '#EC4899' };
+    if (group === 'toddler')   return { icon: '📋', text: 'Parent Questionnaire — Toddler (12–23 months)', note: 'You answer on behalf of your toddler, then a few questions about their senses. About 6 minutes.', color: '#F97316' };
+    if (group === 'preschool') return { icon: '📋', text: 'Parent Questionnaire — Preschool (2–4 years)', note: 'You answer for your child, then a few questions about their senses. About 7 minutes.', color: '#F59E0B' };
+    if (preferParent)          return { icon: '📋', text: 'Parent Questionnaire — School Age (5–12 years)', note: 'You answer on behalf of your child, then a few questions about their senses.', color: '#059669' };
+    return { icon: '🎮', text: 'Fun Placement Games — School Age (5–12 years)', note: 'Your child plays 4 short mini-games with Kailia (about 8 minutes), then you answer a few questions about their senses (about 3 minutes).', color: '#7C3AED' };
   };
 
   const path = pathLabel();
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-10 relative"
       style={{ background: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 50%, #667EEA 100%)' }}
     >
+      {/* Drawn sparkles twinkling behind the card (no emoji art) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {['⭐','🌟','✨','💫','🎈','🎀'].map((s, i) => (
-          <span key={i} className="absolute float" style={{ left: `${(i*19+3)%92}%`, top: `${(i*29+5)%85}%`, fontSize: 24, animationDelay: `${i*0.4}s`, opacity: 0.6 }}>
-            {s}
+        {[...Array(8)].map((_, i) => (
+          <span key={i} className="absolute" style={{ left: `${(i*19+3)%92}%`, top: `${(i*29+5)%85}%` }}>
+            <Sparkle size={14 + (i % 3) * 6} color={['#FFF3B0', '#FFFFFF', '#FDE68A'][i % 3]} style={{ animationDelay: `${i*0.4}s` }} />
           </span>
         ))}
       </div>
 
       <div className="relative z-10 max-w-lg w-full">
+        <StepGuide step={loaded && !child ? 2 : 3} tone="dark" className="mb-6" />
         <div className="text-center mb-6">
           <div className="float inline-block mb-3"><KailiaAvatar size={80} /></div>
           <h1 className="text-4xl font-extrabold text-white drop-shadow-md mb-1">Ready for the Adventure?</h1>
@@ -103,7 +109,7 @@ export default function SetupPage() {
 
             {/* The profile the parent created — nothing for the child to type */}
             <div className="flex items-center gap-3 rounded-2xl p-4 mb-5" style={{ background: '#F5F3FF', border: '2px solid #DDD6FE' }}>
-              <span className="text-5xl">{child.avatar}</span>
+              <ChildAvatar avatar={child.avatar} size={60} />
               <div className="flex-1">
                 <p className="text-xl font-extrabold text-gray-800">{child.nickname}</p>
                 <p className="text-xs text-gray-500">

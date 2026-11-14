@@ -7,6 +7,9 @@ import { activeChild } from '@/lib/family';
 import { DOMAIN_META, domainSummaries, allReportEntries, DomainSummary, ReportEntry } from '@/lib/activities';
 import { loadCustomTasks, CustomTask } from '@/lib/customTasks';
 import BottomNav from '@/components/BottomNav';
+import BackButton from '@/components/ui/BackButton';
+import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
+import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
 // A parent-facing, printable rollup for handing to a child's care team
@@ -15,17 +18,19 @@ import BottomNav from '@/components/BottomNav';
 // reports), never anything new collected just for this page.
 
 export default function ProgressReportPage() {
-  const { state, domainAge, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
+  const { state, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
   const [summaries, setSummaries] = useState<DomainSummary[]>([]);
   const [entries, setEntries] = useState<ReportEntry[]>([]);
   const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
+  const [games, setGames] = useState<GameSummary[]>([]);
 
   useEffect(() => {
     setChild(activeChild());
     setSummaries(domainSummaries());
     setEntries(allReportEntries());
     setCustomTasks(loadCustomTasks());
+    setGames(gameSummaries());
   }, []);
 
   const recent = [...entries].reverse().slice(0, 20);
@@ -37,7 +42,7 @@ export default function ProgressReportPage() {
       <style>{`@media print { .no-print { display: none !important; } }`}</style>
       <div className="max-w-md sm:max-w-2xl mx-auto px-4 pt-6 print:pt-0">
         <div className="flex items-center justify-between mb-3 no-print">
-          <Link href="/family" className="text-sm font-bold text-indigo-700">← Family</Link>
+          <BackButton href="/family" label="Family" />
           <button onClick={() => window.print()}
             className="px-4 py-2 rounded-full font-bold text-sm text-white" style={{ background: '#2563EB' }}>
             🖨️ Print / Save as PDF
@@ -64,18 +69,29 @@ export default function ProgressReportPage() {
         {state.childName && (
           <section className="mb-6">
             <h2 className="text-sm font-extrabold text-slate-700 mb-2">Developmental Snapshot (from screening)</h2>
+            <p className="text-[11px] text-slate-500 mb-2">
+              Each range is the likeliest 8 in 10 developmental ages, worked out from age-tagged milestones
+              (CDC 2022 checklists under 5, OT norms for hand skills and pencil grasp, end-of-grade standards for
+              school age), asked with a basal and ceiling so the range isn&apos;t capped by the child&apos;s age.
+            </p>
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {([
-                ['📖 Reading', state.scores.reading],
-                ['✍️ Fine Motor / Writing', state.scores.writing],
-                ['🗣️ Communication', state.scores.communication],
-                ['🔢 Math', state.scores.math],
-              ] as [string, number][]).map(([label, score]) => (
-                <div key={label} className="flex items-center justify-between px-3 py-2 bg-white border-b border-slate-100 last:border-0">
-                  <span className="text-sm font-semibold text-slate-700">{label}</span>
-                  <span className="text-sm font-bold text-slate-500">{domainAge(score)}</span>
-                </div>
-              ))}
+                ['📖 Reading', 'reading'],
+                ['✍️ Fine Motor / Writing', 'writing'],
+                ['🗣️ Communication', 'communication'],
+                ['🔢 Math', 'math'],
+              ] as [string, MilestoneDomain][]).map(([label, key]) => {
+                const cmp = domainComparison(key);
+                return (
+                  <div key={label} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">
+                    <span className="text-sm font-semibold text-slate-700">{label}</span>
+                    <span className="text-right">
+                      <span className="block text-sm font-bold text-slate-500">{domainRange(key)}</span>
+                      {cmp && <span className="block text-[11px] font-semibold" style={{ color: COMPARISON_TEXT[cmp].color }}>{COMPARISON_TEXT[cmp].label}</span>}
+                    </span>
+                  </div>
+                );
+              })}
               {primarySensoryPattern && (
                 <div className="px-3 py-2 bg-white">
                   <span className="text-sm font-semibold text-slate-700">🌈 Sensory pattern: </span>
@@ -86,6 +102,29 @@ export default function ProgressReportPage() {
             </div>
           </section>
         )}
+
+        {/* What the child actually played in the app's games */}
+        <section className="mb-6">
+          <h2 className="text-sm font-extrabold text-slate-700 mb-2">Games Played</h2>
+          {games.length === 0 ? (
+            <p className="text-sm text-slate-400 italic">No games finished yet. Each game your child finishes will show up here.</p>
+          ) : (
+            <div className="rounded-2xl overflow-hidden border border-slate-200">
+              {games.map(g => (
+                <div key={g.id} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-700 truncate">{g.title}</p>
+                    <p className="text-[11px] text-slate-400"><span className="capitalize">{DOMAIN_META[g.domain as keyof typeof DOMAIN_META]?.label ?? g.domain}</span> · last played {new Date(g.lastPlayed).toLocaleDateString()}</p>
+                  </div>
+                  <span className="text-right flex-shrink-0">
+                    <span className="block text-xs font-bold text-slate-600">finished {g.finished}×</span>
+                    {g.highestLevel > 0 && <span className="block text-[11px] text-slate-400">up to level {g.highestLevel}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Daily quest activity, tallied per skill */}
         <section className="mb-6">
@@ -130,9 +169,9 @@ export default function ProgressReportPage() {
 
         {/* Recent log */}
         <section className="mb-6">
-          <h2 className="text-sm font-extrabold text-slate-700 mb-2">Recent Activity Log</h2>
+          <h2 className="text-sm font-extrabold text-slate-700 mb-2">Recent At-Home Quests</h2>
           {recent.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">Nothing logged yet.</p>
+            <p className="text-sm text-slate-400 italic">No at-home quest reports yet. Games played in the app are listed under Games Played above.</p>
           ) : (
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {recent.map((e, i) => (

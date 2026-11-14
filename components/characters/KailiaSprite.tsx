@@ -3,7 +3,7 @@
 // in two buns with soft cat ears, long twin-tails, and big warm eyes.
 // Placeholder SVG drawing; swap in real art via characters.config.ts.
 
-import Image from 'next/image';
+import LiveCharacter from './LiveCharacter';
 import { CHARACTER_IMAGES, type CharacterExpression } from './characters.config';
 
 type Expression = Extract<CharacterExpression, 'happy' | 'excited' | 'thinking' | 'celebrating'>;
@@ -19,14 +19,9 @@ export default function KailiaSprite({ size = 120, expression = 'happy', classNa
   const imagePath = CHARACTER_IMAGES.kailia[expression];
   if (imagePath) {
     return (
-      <Image
-        src={imagePath}
-        alt="Kailia"
-        width={size}
-        height={size * 1.3}
-        className={className}
-        style={{ objectFit: 'contain', ...style }}
-      />
+      <LiveCharacter character="kailia" src={imagePath} size={size}
+        mood={expression === 'excited' || expression === 'celebrating' ? 'excited' : 'calm'}
+        className={className} style={style} />
     );
   }
 

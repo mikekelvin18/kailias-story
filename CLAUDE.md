@@ -13,7 +13,7 @@ Two characters appear throughout the whole adventure — every land, every quest
 - **Kailia** — the main character and the child's avatar on the adventure. A chibi-style girl, about 6 years old, with short brown hair and bangs. Brave, curious, and kind. She travels through the world map, and the child helps her complete quests.
 - **Noel** — a giant panda, Kailia's companion and adventure partner. Warm, gentle, a little goofy. Noel is the "guide" character: he explains every quest in short simple words, gives hints when the child struggles, celebrates every attempt with big reactions, and NEVER says anything is wrong — a miss is always "let's try again together!" Noel also appears in parent-assist moments.
 
-**Placeholder art today:** Kailia and Noel are currently drawn as code-based cartoon (SVG) sprites — no image files needed, so the app works right now without final artwork.
+**Art today:** Kailia and Noel use the real artwork in `public/characters/{kailia,noel}/` (shown in its brush-painted version, see "Art & motion style" below). The code-based SVG sprites remain as a fallback for any expression with no image.
 - All character art/code lives in one folder: `components/characters/`
 - All swap-in logic lives in one config file: `components/characters/characters.config.ts`
 
@@ -24,6 +24,13 @@ Two characters appear throughout the whole adventure — every land, every quest
 4. Save. The app automatically uses your image instead of the placeholder drawing for that expression — nothing else needs to change.
 
 Any expression you don't fill in keeps using the placeholder drawing, so you can swap art in gradually, one image at a time.
+
+## Art & motion style (hand-painted, bouncy)
+- **Painted characters.** Every Kailia/Noel picture is shown from `public/characters/painted/`, a brush-stroke repaint of the original art made by `scripts/paint-art.py` (needs Python 3 with Pillow + numpy). `PAINTED_ART` in `characters.config.ts` flips the whole app back to the originals. When new character art is added, repaint it: `python3 scripts/paint-art.py public/characters/kailia/new.png public/characters/painted/kailia/new.png`.
+- **Painted drawings.** `components/art/PaintKit.tsx` (mounted once in `app/layout.tsx`) defines shared SVG brush filters: `kp-brush` (static), `kp-boil` (edges re-wobble 8×/s like hand-drawn animation), `kp-edge`. New SVG illustrations wrap their contents in `<g filter="url(#kp-brush)">` or `kp-boil`, and use the warm brown outline `#3b2416`, not black. Every child-facing screen gets the `.kp-paper` grain overlay from `AssessmentGate`.
+- **Motion.** Idle loops (`float`, `wiggle`, `sparkle`, `critter-bob`) are animated "on twos" (12 fps, held frames) with squash & stretch; entrances (`bounce-in`, `drop-in`, `pop`, `star-burst`) overshoot and settle. Extra moves: `.kp-hop`, `.kp-jelly`. A miss uses `.shake`, which is a friendly jelly wobble, never a "no" head-shake. To retune the 12 fps loops, edit `scripts/motion-keyframes.mjs` and paste its output into `app/globals.css`. Everything respects Reduce motion.
+- **Live characters.** `components/characters/LiveCharacter.tsx` makes the Kailia/Noel portraits move like game characters: breathing, blinking eyelids (eye positions measured on `portrait-front.png`, update them if that art changes), a hop loop for excited/celebrating, and a squish when tapped.
+- **Grip pictures.** The pencil-grip step (`app/assessment/games/page.tsx`) shows Kelvin's own cartoon hand pictures, one per grip, in `public/grasp/{palmar,digital_pronate,quadrupod,immature_tripod,dynamic_tripod}.webp` (his originals, title text cropped off; use them as they are, never redraw them). Code-drawn hands were tried five ways and Kelvin found every one scary, so don't draw hands in code.
 
 ## The adventure structure
 The child travels with Kailia through a world map. Each region assesses one domain:
@@ -43,6 +50,7 @@ Kailia and Noel travel together through every one of these lands — Kailia atte
 - Each difficulty level maps to an approximate developmental age band per domain. Store this mapping in a single config file (e.g. `lib/milestones.ts`) so it is easy to review and adjust with real data.
 - Kids see only story rewards: map regions unlocked, companion creatures collected, badges. No scores, timers, or grades on the child-facing screens.
 - Parents get a separate dashboard: per-domain developmental-age estimate, trend over time, and plain-language notes. Include a disclaimer that this is a screening/guidance tool, not a clinical diagnosis.
+- **Where ages may appear (Kelvin, 2026-10-21):** developmental-age estimates are shown ONLY on the assessment results (`/results`) and the progress report (`/progress`), and always as a range ("about 2–3 yrs"), never a single age. Every other screen (world map, activity library, games, Parent Zone, adventure world) may name a stage such as "Little Explorer" but never an age. Gameplay never computes or changes an age; it only logs numbers.
 
 ## Developmental bands & the Parent & Baby Quest Library
 For children below preschool developmental level, screens teach very little by themselves — so the app coaches the parent instead:
@@ -51,9 +59,18 @@ For children below preschool developmental level, screens teach very little by t
 - `/activities` shows 3 date-stable daily quests plus the browsable library; parents report each with one tap (Did it / Tried with help / Not yet) — reports persist per day and feed `lib/metrics.ts` for the future parent dashboard.
 - The world map and results page surface a prominent library card whenever a band is detected.
 
+## Daily care pet
+- The child's companion friend is also a Tamagotchi-style pet. It sits beside Noel on the world map and pops up by itself once a day (never mid-game, never when another pop-up just showed) with ONE short task, rotating Feed (tracing) → Play (movement/calming) → Care (talking/routine). Then it rests until tomorrow.
+- The pop-up is a full-screen "pet moment" centered on the screen (a centered card on tablets): the pet drops onto its cushion, asks in a read-aloud speech bubble, and a growth path (egg → baby → little one → grown up, pictures only) sits on top. Feed = trace food on a plate, which then flies to the pet; Play/Care steps 4–6 are on-screen games set by each card's `game` in `lib/petTasks.ts` (breathe along, copy the pet's move and tap, or tick off steps); steps 1–3 show a grown-up card with one-tap report. Components live in `components/carepet/`.
+- It hatches from an egg after the first day as the buddy picked at sign-up (or the parent's practice focus, same `focusCompanion` as Friends' adventures; Noel is the guide, never a buddy or pet) and grows baby → little one → grown up with each day played. It never gets sick, sad-hungry or dies; a missed day only gets "I missed you!".
+- `lib/carepet/engine.ts` holds the rules with NO Kailia code (shared later with the older-adult app Pip): stages, the one-task-a-day scheduler, difficulty steps 1–6 (two easy wins up, one miss down, "with help" stays), free days. Keep it import-free; checks run with `node scripts/carepet.test.mjs`.
+- `lib/kailiaPet.ts` is Kailia's adapter (consent-gated `kailia_pet_v1`, start step from the assessment band/tier, activities, metrics). Steps 1–3 use Parent & Baby Quest Library cards; steps 4–6 use `lib/petTasks.ts` (draft content for OT review).
+- After 3 free days the daily task is part of the paid plan (only once `PAYWALL_ENABLED` is on in `lib/premium.ts`); the pet still visits happily and only a grown-up check leads to /upgrade.
+
 ## Rewards & the growing game library
 - `lib/rewards.ts`: ✨ Starlight points (earned per quest, never framed as grades), Explorer level (sqrt curve), per-game highest-level, and companion creatures unlocked at starlight milestones — the hook for future real rewards. Key `kailia_rewards_v1` is consent-gated and registered in `CHILD_DATA_KEYS`.
 - **Library strategy — engines × content × levels, not hand-built games.** The goal of 50+ games per age group per skill is reached multiplicatively: a few polished engines (swipe cards in `sky-mail`, tap-moving-targets in `firefly-catch`, walk-and-collect in `snack-quest`, tracing in `fine-motor`), each accepting new content decks (a card list = a "new game", no engine code) and infinite level scaling (speed/size/number curves per level). When adding variety, prefer a new content deck or level curve on an existing engine over a new engine; add a new engine only for a genuinely new interaction (e.g. pinch, rhythm tap, drag-to-sort).
+- **Level ladder (`lib/levels.ts`, `components/LevelPath.tsx`).** Every leveled game shares one ladder: 30 levels in 6 chapters of 5 (Sprout → Sapling → Explorer → Ranger → Hero → Legend), each chapter mapped to an approximate age band (parent-facing only; review with a clinician), then endless ⭐ Star levels. Each game's intro shows the animated level map so a child can see progress and replay any level reached. A new game plugs in by keeping a `level` state, loading `nextGameLevel(id)`, rendering `<LevelPath>`, and scaling its own curve from `level`.
 - Games award starlight on completion (effort floor — wrong answers reduce but never zero it) and call `recordGameLevel` so progress persists.
 
 ## Privacy & COPPA Rules (MANDATORY for every feature)
@@ -63,6 +80,7 @@ This app is child-directed (under 13), so children's privacy law (COPPA) applies
 2. **Children never enter personal info.** No child-facing screen may contain an input that could collect personal information. Name/age always come from the parent-created profile. Any new input field on a child-reachable screen needs explicit justification here.
 3. **Data minimization.** Quest/game events log ONLY: child profile id, domain, task id, difficulty, accuracy, attempts, timing (`lib/metrics.ts` enforces the shape). No free text, no media, no device fingerprinting.
 4. **Never record audio or video. Photos are allowed in exactly ONE narrow, safeguarded case — nowhere else.** Communication games use parent-assist tap ratings instead of voice recording; never request microphone access. The single photo exception is the **Printable Worksheets** feature (`lib/worksheets.ts`, `lib/photos.ts`, `/printables`): a parent photographs a completed paper tracing sheet so the app can mark it done and award starlight. Every use of that exception MUST keep all of these:
+   - **Currently switched OFF for launch** (`PHOTO_VERIFY_ENABLED = false` in `lib/worksheets.ts`, decided 2026-10-19 to avoid needing a lawyer before launch): every worksheet uses the "We did it!" tap and no screen offers an upload. Turning it back on requires the lawyer review below first.
    - **On-device only, forever.** Photos live in IndexedDB (`lib/photos.ts`) on the family's own device and are NEVER uploaded, emailed, or sent to any server or third party. If cloud sync is ever added to this app, worksheet photos are explicitly excluded unless this rule is revisited with a lawyer.
    - **Its own separate consent**, distinct from the general child-data consent — `family.photoConsent` in `lib/family.ts` — shown the first time a parent tries to attach a photo, in plain language, before the file picker ever opens.
    - **Parent-initiated only.** The upload control is a `<input type="file">` the parent taps; the app never programmatically opens a camera or auto-captures anything, and no child-facing screen contains a camera control.
@@ -74,6 +92,7 @@ This app is child-directed (under 13), so children's privacy law (COPPA) applies
 7. **Parental rights.** `/family` must always offer: view all stored child data (`childDataInventory()`), delete child profile + all data, delete entire account. When adding a new localStorage key or (later) server table that holds child data, ADD IT to `CHILD_DATA_KEYS` in `lib/family.ts` and to the data inventory, or deletion becomes incomplete — this is a compliance bug, not a nice-to-have.
 8. **Retention.** Child data lives only while the profile is active. Deletion is immediate on-device; any future server copies must purge within 30 days. Policy pages live at `/privacy` and `/retention` (both marked DRAFT until legal review).
 9. **Security.** No child data in URLs or query strings. When cloud sync is added: per-family access control (RLS) from day one, TLS in transit, encryption at rest. See SECURITY.md.
+10. **Wallet lab (ERC-8426 pet card) is an off-by-default experiment and the ONLY code path that sends anything to a server.** It lives behind `WALLET_LAB_ENABLED=1`, a grown-up check, on a test blockchain only, linked from no child screen. It sends pet data only (kind, stage, happy days, hellos) plus Apple device push tokens; never child data. Cards cannot be sold or traded and hold no value. Its device key `kailia_walletpet_v1` is in `CHILD_DATA_KEYS`, and `deleteChildAndData`/`deleteEverything` also delete the card on the server. Do not enable it for real families, add fields to the card, or move it to a real-money network without a privacy lawyer's review. Details: `docs/wallet-lab.md`.
 
 ## Tone & UX conventions
 - Warm, encouraging narrator voice. Kailia speaks in short, simple sentences.
@@ -81,6 +100,13 @@ This app is child-directed (under 13), so children's privacy law (COPPA) applies
 - Sessions are short: each land is completable in 3–5 minutes.
 - Celebrate effort, not just correctness (animations, sounds, companion reactions).
 - Accessible: works with touch and mouse, high-contrast friendly, no rapid flashing.
+
+## Voice & sound
+- **Noel reads every game aloud.** A game marks Noel's speech bubble and its intro story card with `data-read-aloud`; `components/NoelVoice.tsx` (mounted in `app/play/layout.tsx`) reads whatever appears or changes there, and a tap replays it. A game that speaks for itself through `say()` in `lib/voice.ts` leaves the attribute off; a listening game drops it while its sounds play (see Echo Song).
+- **Recorded voices, made here, for free.** `scripts/voice-lines.mjs` gathers every fixed sentence into `voice/lines.json`; `scripts/record-voice.py` records them offline with the open-source Kokoro voice (Apache-2.0) into `public/voice/` + `manifest.json`. `lib/voice.ts` plays a line from recordings when every sentence has one, else the device voice (only lines with the child's name, and any changing sentence not yet listed). Sentences with a changing word (a number, a friend's name, a shape, an animal) are listed once in `scripts/voice-dynamic.mjs` with the words that can fill them, and every version is recorded; keep one changing word per sentence so the list stays small. Kailia's short cheers (`lib/kailiaVoice.ts`, `voice/kailia-lines.json`, `--speaker kailia`) play now and then when she jumps; she stays quiet without recordings. After adding or changing game text, re-run both scripts. Names are said via `NAME_SOUNDS` in the script (Kailia = "kay-LEE-uh", Noel = "Nole"). Kailia has no recorded voice yet: Kelvin rejected the free ones as robotic, so she stays silent.
+- **Pet calls.** Each friend has its own short call made in code by `scripts/pet-sounds.py` into `public/sounds/pets/<kind>.mp3`; `lib/petSounds.ts` plays it when a pet is tapped or cheers (at most every 5 s).
+- **Music.** `lib/music.ts` is a soft generated loop in every game except listening games (`LISTENING_GAMES` in `components/GameMusic.tsx`); it dips while anyone talks. Keep it low and mellow: no long high tones.
+- Privacy: all voices and sounds are made ahead of time and shipped as static files. The app never calls a voice service and never records the child.
 
 ## Engineering conventions
 - Build on the existing app and its current `/play` route — extend, don't rewrite, unless a rewrite is clearly justified and approved first.

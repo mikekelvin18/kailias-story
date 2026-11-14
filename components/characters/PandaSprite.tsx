@@ -1,7 +1,7 @@
 // Noel — Giant Panda best friend. Bold sticker-style. Simple = cute.
 // Placeholder SVG drawing; swap in real art via characters.config.ts.
 
-import Image from 'next/image';
+import LiveCharacter from './LiveCharacter';
 import { CHARACTER_IMAGES, type CharacterExpression } from './characters.config';
 
 type Expression = CharacterExpression;
@@ -17,14 +17,9 @@ export default function PandaSprite({ size = 120, expression = 'happy', classNam
   const imagePath = CHARACTER_IMAGES.noel[expression];
   if (imagePath) {
     return (
-      <Image
-        src={imagePath}
-        alt="Noel"
-        width={size}
-        height={size * 1.2}
-        className={className}
-        style={{ objectFit: 'contain', ...style }}
-      />
+      <LiveCharacter character="noel" src={imagePath} size={size}
+        mood={expression === 'excited' || expression === 'celebrating' ? 'excited' : 'calm'}
+        className={className} style={style} />
     );
   }
 
