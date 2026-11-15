@@ -35,20 +35,21 @@ export default function NightForest({ glow = 0 }: { glow?: number }) {
             <stop offset="0.55" stopColor="#1C2E6B" />
             <stop offset="1" stopColor="#24557A" />
           </linearGradient>
-          <radialGradient id={g('moon')}><stop offset="0.4" stopColor="#FFF4C2" stopOpacity="0.6" /><stop offset="1" stopColor="#FFF4C2" stopOpacity="0" /></radialGradient>
+          <radialGradient id={g('moon')}><stop offset="0.4" stopColor="#C9D6F5" stopOpacity="0.5" /><stop offset="1" stopColor="#C9D6F5" stopOpacity="0" /></radialGradient>
           <radialGradient id={g('warm')} cx="0.5" cy="0.92" r="0.7"><stop offset="0" stopColor="#FFD86B" stopOpacity="0.55" /><stop offset="1" stopColor="#FFD86B" stopOpacity="0" /></radialGradient>
           <radialGradient id={g('shroom')}><stop offset="0" stopColor="#8BF0FF" stopOpacity="0.7" /><stop offset="1" stopColor="#8BF0FF" stopOpacity="0" /></radialGradient>
         </defs>
         <rect width="100" height="133" fill={`url(#${g('sky')})`} />
         {/* stars */}
-        {Array.from({ length: 30 }, (_, i) => (
-          <circle key={i} cx={seeded(i, 1) * 100} cy={seeded(i, 2) * 55} r={0.25 + seeded(i, 3) * 0.5} fill="#FFFFFF" className="fg-twinkle"
-            style={{ animationDelay: `${-seeded(i, 4) * 3}s`, animationDuration: `${1.6 + seeded(i, 5) * 2.4}s` }} />
+        {/* a few faint, still stars: nothing in the sky may look like a firefly */}
+        {Array.from({ length: 12 }, (_, i) => (
+          <circle key={i} cx={seeded(i, 1) * 100} cy={seeded(i, 2) * 40} r={0.2 + seeded(i, 3) * 0.3} fill="#C9D6F5" opacity="0.4" />
         ))}
-        <circle cx="78" cy="18" r="22" fill={`url(#${g('moon')})`} className="fg-glow" />
+        {/* a small, pale, cool moon tucked in the top corner, away from the play */}
+        <circle cx="13" cy="9" r="11" fill={`url(#${g('moon')})`} opacity="0.5" />
         <g filter="url(#kp-brush)">
-          <circle cx="78" cy="18" r="9" fill="#FFF1B8" stroke={sk} strokeWidth="0.6" />
-          <circle cx="75" cy="15.5" r="1.6" fill="#F2DC8E" /><circle cx="81" cy="21" r="1.1" fill="#F2DC8E" />
+          <circle cx="13" cy="9" r="5" fill="#D5DEF2" stroke={sk} strokeWidth="0.5" />
+          <circle cx="11.4" cy="7.6" r="0.9" fill="#B9C6E4" /><circle cx="14.6" cy="10.6" r="0.7" fill="#B9C6E4" />
           {/* far hills and trees */}
           <path d="M0 78 Q20 66 40 74 T80 70 T100 72 V133 H0z" fill="#1A3A5E" />
           {[4, 13, 22, 33, 47, 58, 69, 80, 91].map((x, i) => (

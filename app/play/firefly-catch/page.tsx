@@ -533,7 +533,7 @@ export default function FireflyCatchPage() {
                   left: lanternX - 18, top: lanternY - 36, width: 36, height: 36, pointerEvents: 'none', zIndex: 11,
                   ['--fx' as string]: `${b.x - lanternX}px`, ['--fy' as string]: `${b.y - lanternY + 18}px`,
                 } as React.CSSProperties}>
-                  <GlowBug size={36} seed={b.id} lit={1} />
+                  <GlowBug size={40} seed={b.id} lit={1} happy />
                 </div>
               ))}
 

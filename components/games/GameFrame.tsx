@@ -78,7 +78,7 @@ const BACKDROPS: Record<string, string> = {
   'firefly-trails': '/art/backdrops/forest-path.webp',
 };
 const BACKDROP_LOOK = {
-  story: { filter: 'blur(1.5px) saturate(0.78) brightness(0.92)', veil: 'radial-gradient(120% 62% at 50% 46%, rgba(8,12,34,0.66) 0%, rgba(8,12,34,0.5) 55%, rgba(8,12,34,0.26) 100%)' },
+  story: { filter: 'blur(1.5px) saturate(0.78) brightness(0.92)', veil: 'linear-gradient(180deg, rgba(8,12,34,0) 55%, rgba(8,12,34,0.62) 100%), radial-gradient(120% 62% at 50% 46%, rgba(8,12,34,0.66) 0%, rgba(8,12,34,0.5) 55%, rgba(8,12,34,0.26) 100%)' },
   play: { filter: 'blur(7px) saturate(0.5) brightness(0.72)', veil: 'rgba(6,10,28,0.5)' },
 };
 /** The parent needs `position: relative` and `isolation: isolate`. */
@@ -138,7 +138,7 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
   const kw = Math.round(kailiaH * 0.82);
   const petH = Math.round(kailiaH * 0.56);
   return (
-    <div className="relative mx-auto" style={{ width: 340, maxWidth: '100%', height: kailiaH + 34 }}>
+    <div className="relative mx-auto" style={{ width: 340, maxWidth: '100%', height: kailiaH + 34, marginTop: 26 /* room for Noel's happy hop under the title */ }}>
       {/* the glowing stage they stand on */}
       <span aria-hidden="true" className="gf-stage absolute left-1/2 rounded-[50%]" style={{
         bottom: 0, width: 300, height: 46, marginLeft: -150,
