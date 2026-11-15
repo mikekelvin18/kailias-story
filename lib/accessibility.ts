@@ -10,6 +10,8 @@ export interface AccessibilityPrefs {
   textSize: 'normal' | 'large' | 'xlarge';
   dyslexiaFriendly: boolean;
   colorblindSafe: boolean;
+  /** Calm mode: plain game backgrounds, no painted scenery behind the games. */
+  calmMode: boolean;
   /** Soft background music in the games. */
   musicOn: boolean;
   /** A grown-up's hand-picked read-aloud voice ('' = pick the nicest automatically). */
@@ -22,6 +24,7 @@ export const DEFAULT_A11Y: AccessibilityPrefs = {
   textSize: 'normal',
   dyslexiaFriendly: false,
   colorblindSafe: false,
+  calmMode: false,
   musicOn: true,
   voiceName: '',
 };
@@ -51,6 +54,7 @@ export function applyA11y(prefs: AccessibilityPrefs) {
   root.dataset.textSize = prefs.textSize;
   root.dataset.dyslexiaFriendly = String(prefs.dyslexiaFriendly);
   root.dataset.colorblindSafe = String(prefs.colorblindSafe);
+  root.dataset.calm = String(prefs.calmMode);
 }
 
 // Games check this before playing any sound effect.

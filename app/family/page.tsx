@@ -429,6 +429,13 @@ export default function ParentZonePage() {
           </label>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className="text-sm font-semibold text-gray-700">Calm mode
+              <span className="block text-xs font-normal text-gray-500">Plain backgrounds in the games, for children who focus better with less to look at.</span>
+            </span>
+            <input type="checkbox" checked={a11y.calmMode} onChange={e => updateA11y({ calmMode: e.target.checked })} className="w-5 h-5 shrink-0" />
+          </label>
+
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
             <span className={`text-sm font-semibold text-gray-700`}>🔇 Reduce sound effects</span>
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>

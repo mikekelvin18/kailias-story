@@ -62,22 +62,36 @@ function Title({ text, accent }: { text: string; accent: string }) {
 /** Slow sparkles drifting up the whole screen, behind everything. */
 // ── painted land backdrops ──
 // Kelvin's full-screen land paintings (public/art/backdrops/) sit behind a
-// game's opening and end screens in place of the plain colour. A soft dark
-// veil keeps the words and cards easy to read. A game with no painting yet
-// keeps its theme colour.
+// game in place of the plain colour, softened so they never fight the game
+// for a child's attention:
+//   • 'story' (opening and end screens): a little soft and dimmed, with a
+//     calm pool of shade in the middle where the words and buttons are
+//   • 'play' (while the child is playing): blurred, greyed and darkened
+//     into quiet shapes, and completely still, so only the game's own
+//     targets glow and move
+// "Calm mode" (grown-ups' Display settings) hides the painting altogether
+// and leaves the plain colour (globals.css, .gf-backdrop).
+// A game with no painting yet keeps its theme colour.
 const BACKDROPS: Record<string, string> = {
   'fine-motor': '/art/backdrops/forest-falls.webp',
   'firefly-catch': '/art/backdrops/forest-falls.webp',
   'firefly-trails': '/art/backdrops/forest-path.webp',
 };
-function Backdrop() {
+const BACKDROP_LOOK = {
+  story: { filter: 'blur(1.5px) saturate(0.78) brightness(0.92)', veil: 'radial-gradient(120% 62% at 50% 46%, rgba(8,12,34,0.66) 0%, rgba(8,12,34,0.5) 55%, rgba(8,12,34,0.26) 100%)' },
+  play: { filter: 'blur(7px) saturate(0.5) brightness(0.72)', veil: 'rgba(6,10,28,0.5)' },
+};
+/** The parent needs `position: relative` and `isolation: isolate`. */
+export function GameBackdrop({ mode = 'story' }: { mode?: 'story' | 'play' }) {
   const game = (usePathname() ?? '').match(/\/play\/([^/]+)/)?.[1];
   const src = game ? BACKDROPS[game] : undefined;
   if (!src) return null;
+  const look = BACKDROP_LOOK[mode];
   return (
-    <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ zIndex: -1 }}>
-      <div className="absolute inset-0" style={{ backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(6,10,30,0.30) 0%, rgba(6,10,30,0.48) 45%, rgba(6,10,30,0.34) 100%)' }} />
+    <div aria-hidden="true" className="gf-backdrop absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -1 }}>
+      {/* drawn a little larger than the screen so the blur has no pale edge */}
+      <div className="absolute" style={{ inset: -16, backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: look.filter }} />
+      <div className="absolute inset-0" style={{ background: look.veil }} />
     </div>
   );
 }
@@ -187,7 +201,7 @@ interface IntroProps {
 export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play', readAloud = true }: IntroProps) {
   return (
     <main className="gf-screen" style={{ background: theme.bg }}>
-      <Backdrop />
+      <GameBackdrop />
       <StarDust />
       <div className="relative max-w-sm w-full mx-auto px-4 pt-3 pb-8 text-center">
         <div className="flex justify-start">
@@ -297,7 +311,7 @@ export function GameFinish({ title, theme, pet, message, earned, trophy, actions
   const reduced = useReducedMotion();
   return (
     <main className="gf-screen flex items-center" style={{ background: theme.bg }}>
-      <Backdrop />
+      <GameBackdrop />
       {!reduced && <Confetti colors={['#FDE047', '#F472B6', '#60A5FA', '#4ADE80', '#FFFFFF', '#FB923C', theme.accent]} />}
       <div className="relative max-w-sm w-full mx-auto px-4 py-8 text-center" style={{ zIndex: 2 }}>
         <div className="relative">

@@ -845,6 +845,8 @@ button:active {
    Entrances overshoot and settle; the Play button breathes and shines;
    confetti flutters down. "Reduce motion" shows it all still. */
 .gf-screen { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; }
+/* Calm mode (grown-ups' Display settings): no painted scenery behind games */
+:root[data-calm="true"] .gf-backdrop { display: none; }
 .gf-back {
   display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px;
   color: #fff; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.35);

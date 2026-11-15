@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -433,7 +433,8 @@ export default function FireflyCatchPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #04100a 0%, #07271a 55%, #0a3323 100%)' }}>
+    <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #04100a 0%, #07271a 55%, #0a3323 100%)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <div className="max-w-md mx-auto px-3">
 
         {/* Header */}
