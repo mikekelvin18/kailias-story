@@ -6,6 +6,7 @@ import { SKILL_INFO } from '@/lib/skillInfo';
 // A small collapsible "For grown-ups" note on every game's intro screen:
 // which skills the game targets and what the app quietly notices.
 // Collapsed by default so child-facing screens stay clean and story-first.
+// Extra room on the right keeps its arrow clear of the music button.
 
 export default function SkillIntro({ gameId }: { gameId: string }) {
   const [open, setOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function SkillIntro({ gameId }: { gameId: string }) {
     <div className="mt-4 mx-2 text-left rounded-2xl overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.25)' }}>
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold"
+        className="w-full flex items-center justify-between pl-4 pr-16 py-2 text-xs font-bold"
         style={{ color: 'rgba(255,255,255,0.85)' }}>
         <span>👨‍👩‍👧 For grown-ups: what this game builds</span>
         <span>{open ? '▴' : '▾'}</span>

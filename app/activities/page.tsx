@@ -14,6 +14,7 @@ import {
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import LivingSky from '@/components/scenery/LivingSky';
 import { isPremium } from '@/lib/premium';
 import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
 import BackButton from '@/components/ui/BackButton';
@@ -110,8 +111,8 @@ function ActivityCard({ activity, report, onReport, highlight }: {
 }
 
 export default function ActivityLibraryPage() {
-  const { state, totalScore } = useAssessment();
-  const detectedBand = developmentalBand(state.ageGroup, totalScore);
+  const { state, totalScore, devMonths } = useAssessment();
+  const detectedBand = developmentalBand(state.ageGroup, totalScore, devMonths);
   const [band, setBand] = useState<1 | 2 | 3>(detectedBand ?? 2);
   const [domainFilter, setDomainFilter] = useState<ActivityDomain | 'all'>('all');
   const [reports, setReports] = useState<{ [id: string]: ReportScore }>({});
@@ -146,7 +147,8 @@ export default function ActivityLibraryPage() {
   }
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-3">
 
         {/* Header */}
@@ -168,7 +170,6 @@ export default function ActivityLibraryPage() {
           <div className="flex-1">
             <p className="font-extrabold text-gray-800 leading-tight">
               {state.childName ? `${state.childName} the ` : 'Your '}{info.name}
-              <span className="font-semibold text-gray-500 text-xs"> · {info.ages}</span>
             </p>
             <p className="text-xs text-gray-600 mt-0.5">{info.blurb}</p>
           </div>

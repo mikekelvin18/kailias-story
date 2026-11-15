@@ -19,6 +19,8 @@ export interface Land {
                            // never wraps into and overlaps the land below it
   domain: string;          // developmental domain (internal)
   emoji: string;
+  art?: string;            // Kelvin's painted island picture (public/art/lands/),
+                           // shown on the map instead of the emoji
   color: string;           // main theme color
   glow: string;            // glow / accent
   sky: string;             // chip background on the map
@@ -36,6 +38,7 @@ export interface Land {
 export const LANDS: Land[] = [
   {
     id: 'firefly-forest',
+    art: '/art/lands/firefly-forest.webp',
     name: 'Firefly Forest',
     domain: 'fine motor',
     emoji: '🌲',
@@ -52,6 +55,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'dragons-cave',
+    art: '/art/lands/dragons-cave.webp',
     name: "Dragon's Treasure Cave",
     mapLabel: "Dragon's Cave",
     domain: 'math',
@@ -63,10 +67,12 @@ export const LANDS: Land[] = [
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
       { href: '/play/snack-quest', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
+      { href: '/play/dragon-bridge', emoji: '💎', title: 'Dragon Bridge', desc: 'Share berries fairly with the baby dragons and finish the stepping-stone patterns to reach the treasure!' },
     ],
   },
   {
     id: 'whispering-signposts',
+    art: '/art/lands/whispering-signposts.webp',
     name: 'Whispering Signposts',
     mapLabel: 'Signposts',
     domain: 'reading',
@@ -77,13 +83,14 @@ export const LANDS: Land[] = [
     tagline: 'Words that light the way',
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
-      { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'Match words to pictures and unlock magical spells!' },
+      { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'The signpost words floated away as balloons! Pop the right word to bring it home.' },
       { href: '/play/journey', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
       { href: '/play/trail-walk', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
     ],
   },
   {
     id: 'story-keepers',
+    art: '/art/lands/story-keepers.webp',
     name: 'Village of the Story Keepers',
     mapLabel: 'Story Keepers',
     domain: 'communication',
@@ -99,6 +106,7 @@ export const LANDS: Land[] = [
   },
   {
     id: 'echo-caves',
+    art: '/art/lands/echo-caves.webp',
     name: 'Echo Caves',
     domain: 'sensory',
     emoji: '🔮',
@@ -108,12 +116,13 @@ export const LANDS: Land[] = [
     tagline: 'Crystals, colors and curious sounds',
     noelIntro: "Shhh… hear that? The caves echo with colors and sounds! Find the ones that match and the crystals will glow!",
     quests: [
-      { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Match colors, sounds and patterns deep in the glowing caves!" },
+      { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Catch the wandering things Noel asks for, and spot the crystal that's a tiny bit different!" },
       { href: '/play/echo-song', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
     ],
   },
   {
     id: 'owls-tower',
+    art: '/art/lands/owls-tower.webp',
     name: "Owl's Tower",
     domain: 'processing',
     emoji: '🦉',
@@ -151,7 +160,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🚀',
     color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
     x: 140, y: 700,
-    dx: 1090, dy: 215,
+    dx: 1095, dy: 150,
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
@@ -165,7 +174,7 @@ export const BONUS_LANDS: Land[] = [
     emoji: '🐠',
     color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
     x: 260, y: 700,
-    dx: 1090, dy: 385,
+    dx: 1095, dy: 330,
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [
@@ -221,6 +230,27 @@ export function recordQuestPlay(landId: string, href: string): AdventureProgress
   return p;
 }
 
+// ── A quest counts once it is finished, not when it is opened ──
+// The map remembers which land a quest was started from (for this visit
+// only), so a game shared by two lands (e.g. Snack Quest in Dragon's Cave
+// and the Space Outpost) lights up the land the child actually came from.
+const LAUNCH_KEY = 'kailia_launch_land';
+
+export function rememberLaunchLand(landId: string) {
+  try { sessionStorage.setItem(LAUNCH_KEY, landId); } catch { /* fine without */ }
+}
+
+/** Call when a quest's level (or round) is finished. Effort counts, not score. */
+export function recordQuestWin(href: string): AdventureProgress | null {
+  if (typeof window === 'undefined') return null;
+  let landId: string | null = null;
+  try { landId = sessionStorage.getItem(LAUNCH_KEY); } catch { /* ignore */ }
+  const all = [...LANDS, ...BONUS_LANDS];
+  const launched = all.find(l => l.id === landId && l.quests.some(q => q.href === href));
+  const land = launched ?? LANDS.find(l => l.quests.some(q => q.href === href));
+  return land ? recordQuestPlay(land.id, href) : null;
+}
+
 export function markCelebrated(landId: string): AdventureProgress {
   const p = loadProgress();
   if (!p.celebrated.includes(landId)) p.celebrated = [...p.celebrated, landId];
@@ -228,8 +258,12 @@ export function markCelebrated(landId: string): AdventureProgress {
   return p;
 }
 
+// One star per quest of this land that has been played. Counts only the
+// land's current quests, so an old or renamed quest saved in progress can
+// never make the stars and the "2/3" badge disagree.
 export function landStars(p: AdventureProgress, land: Land): number {
-  return (p.played[land.id] ?? []).length;
+  const played = p.played[land.id] ?? [];
+  return land.quests.filter(q => played.includes(q.href)).length;
 }
 
 export function isLandComplete(p: AdventureProgress, land: Land): boolean {

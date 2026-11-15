@@ -10,6 +10,51 @@ export interface SkillNote {
 }
 
 export const SKILL_INFO: Record<string, SkillNote> = {
+  'word-wizard': {
+    skills: ['📖 Reading', '🔤 Phonics'],
+    builds: 'Climbs the reading ladder: picture words, first letters and rhymes, blending sounds, then sentence meaning and vocabulary.',
+    notices: 'Which reading chapter your child is on, first-try reads, and how long each word takes to read.',
+  },
+  'sense-explorer': {
+    skills: ['👀 Visual discrimination', '🌈 Sorting'],
+    builds: 'Spotting and sorting by color, shape and kind among moving things, and noticing small color differences.',
+    notices: 'Accuracy in each kind of round and the smallest color difference your child can spot.',
+  },
+  'night-flight': {
+    skills: ['Visual memory', 'Sequencing'],
+    builds: 'Holding a path of places in mind and repeating it in order: visual-spatial working memory.',
+    notices: 'The longest star path remembered, and how it grows over time.',
+  },
+  'vine-weave': {
+    skills: ['Fine motor', 'Planning'],
+    builds: 'Slow, controlled finger movement through narrow gaps, planning a route ahead, and hand steadiness.',
+    notices: 'How often the vine brushes a branch, and how long each vine takes.',
+  },
+  'gem-scales': {
+    skills: ['Counting', 'Early adding'],
+    builds: 'One-to-one counting, "same as" and "more or less", counting by twos with gem pairs, and putting two heaps together.',
+    notices: 'The biggest amount balanced and how many extra moves were needed.',
+  },
+  'star-letters': {
+    skills: ['Letters', 'First sounds', 'Fine motor'],
+    builds: 'Letter shapes stroke by stroke, letter names, and hearing the first sound of a word.',
+    notices: 'Stray taps while joining the stars, and whether the matching word was found.',
+  },
+  'slow-waves': {
+    skills: ['Calm', 'Body awareness'],
+    builds: 'Slow belly breathing paced by the tide, a simple calming tool for big feelings.',
+    notices: 'How closely holding and letting go matched the tide, and the breath length managed.',
+  },
+  'kiko-says': {
+    skills: ['Listening', 'Following directions'],
+    builds: 'Understanding spoken directions with describing words and remembering steps in order. Kiko only talks; nothing records your child.',
+    notices: 'How many steps were followed, and how often Kiko was asked to repeat or show the words.',
+  },
+  'dragon-bridge': {
+    skills: ['Fair sharing', 'Patterns', 'Counting on'],
+    builds: 'Sharing a set equally (early division, and what is left over), spotting and continuing patterns of color and shape, then counting on and back by 1s, 2s, 5s and 10s.',
+    notices: 'How often shares come out fair on the first go, first-try pattern stones, how long each stone takes, and the biggest amounts and numbers reached.',
+  },
   'potion-sort': {
     skills: ['🧠 Processing', '⚡ Sorting speed'],
     builds: 'Sorting by category under time pressure, quick color/rule matching, and impulse control (waiting for the right bin).',
