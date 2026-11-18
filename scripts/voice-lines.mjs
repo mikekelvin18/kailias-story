@@ -9,6 +9,26 @@
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { dynamicLines } from './voice-dynamic.mjs';
+import { createRequire } from 'node:module';
+
+const ts = createRequire(import.meta.url)('typescript');
+
+/** Every string the code holds, read by the TypeScript parser (exact, unlike
+    the quick patterns below, which an apostrophe in JSX text can throw off).
+    A template with a changing part keeps its fixed sentences only. */
+function literals(file, src) {
+  const out = [];
+  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, false, file.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const visit = node => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) out.push({ text: node.text });
+    else if (ts.isTemplateExpression(node)) {
+      out.push({ text: node.head.text + node.templateSpans.map(sp => 'Q\u0001' + sp.literal.text).join(''), marked: true });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
 
 const ROOTS = ['app/play', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts'];
 
@@ -38,7 +58,7 @@ const EXTRA = ['Fair and square!', 'Yum!', 'Hi!', 'Look!', 'Your turn!', 'Listen
   'I missed you!', 'Big hug!', 'Look, a magic egg!', 'Something is wiggling inside.', 'The magic egg is wiggling!',
   'Onward!', 'The flag is close!', 'The flag needs more friends!', 'What happens next?', 'Keep going!', 'Psst!'];
 
-const found = new Set();
+export function scan(roots, found = new Set()) {
 const add = text => {
   const clean = text.replace(/\p{Extended_Pictographic}|️|‍/gu, '').replace(/&apos;/g, "'").replace(/&quot;/g, '"')
     .replace(/&amp;/g, '&').replace(/[*_~]/g, '').replace(/\s+/g, ' ').trim();
@@ -46,9 +66,18 @@ const add = text => {
   sentences(clean).forEach(s => found.add(s));
 };
 
-for (const root of ROOTS) {
+for (const root of roots) {
   for (const file of walk(root)) {
-    const src = readFileSync(file, 'utf8');
+    // comments out first: an apostrophe in a comment ("it's") would throw
+    // off the quote pairing below and hide the next spoken line
+    const src = readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:'"`\\])\/\/[^\n]*/gm, '$1')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ');
+    for (const l of literals(file, readFileSync(file, 'utf8'))) {
+      if (!l.marked) add(l.text);
+      else sentences(l.text.replace(/\s+/g, ' ')).filter(p => !p.includes('\u0001')).forEach(add);
+    }
     // string literals with no ${...} inside
     for (const m of src.matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`([^`$]*)`/g)) {
       add((m[1] ?? m[2] ?? m[3] ?? '').replace(/\\(['"`\\])/g, '$1'));
@@ -83,7 +112,12 @@ for (const root of ROOTS) {
     }
   }
 }
+  return found;
+}
 
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+const found = scan(ROOTS);
 // sentences with a changing word (numbers, friends' names, shapes...), every version
 dynamicLines().forEach(l => sentences(l).forEach(s => found.add(s)));
 EXTRA.forEach(l => found.add(l));
@@ -92,3 +126,4 @@ const lines = [...found].sort();
 mkdirSync('voice', { recursive: true });
 writeFileSync('voice/lines.json', JSON.stringify(lines, null, 1) + '\n');
 console.log(`${lines.length} sentences, ${lines.reduce((n, l) => n + l.length, 0)} characters -> voice/lines.json`);
+}

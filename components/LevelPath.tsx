@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
+import { LockIcon, StarIcon } from '@/components/scenery/SkyDecor';
+import { Thing } from '@/components/art/things';
 import { CHAPTERS, LEVELS_PER_CHAPTER, chapterAt, unlockedUpTo, highestBeaten } from '@/lib/levels';
 
 // ── Level map ──
@@ -67,7 +69,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           style={{ background: 'rgba(255,255,255,0.12)' }}>‹</button>
         <div className="text-center" key={page}>
           <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">{chapterLabel}</p>
-          <p className="text-lg font-extrabold text-white slide-up">{chapter.emoji} {chapter.name}</p>
+          <p className="text-lg font-extrabold text-white slide-up inline-flex items-center gap-1.5"><Thing id={chapter.icon} size={24} />{chapter.name}</p>
           {freshWorld && (
             <p className="bounce-in text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 mt-0.5 rounded-full inline-block"
               style={{ background: chapter.color, color: '#1E1B4B', boxShadow: `0 0 12px ${chapter.color}` }}>
@@ -109,8 +111,8 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
                   boxShadow: done ? `0 0 14px ${chapter.color}` : 'none',
                   fontSize: open ? (lv > 999 ? 13 : lv > 99 ? 15 : 17) : 15,
                 }}>
-                {open ? lv : '🔒'}
-                {done && <span className="absolute -top-1.5 -right-1.5 text-sm sparkle" aria-hidden>✨</span>}
+                {open ? lv : <LockIcon size={20} />}
+                {done && <span className="absolute -top-1.5 -right-1.5 sparkle" aria-hidden><StarIcon size={15} /></span>}
               </button>
               {chosen && (
                 <span className="absolute pointer-events-none" style={{ bottom: '82%', left: '50%', transform: 'translateX(-50%)' }} aria-hidden>

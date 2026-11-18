@@ -6,9 +6,10 @@
 import { soundEnabled } from './accessibility';
 import { say, hush } from './voice';
 
-export function speak(text: string) {
+/** `voice`: a pet friend's name when the friend is the one talking. */
+export function speak(text: string, voice?: string) {
   if (typeof window === 'undefined' || !soundEnabled()) return;
-  say(text);
+  say(text, voice ? { voice } : {});
 }
 
 export function stopSpeaking() {

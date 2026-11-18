@@ -6,7 +6,8 @@ import { scopedKey } from './family';
 
 export interface Quest {
   href: string;      // route of an existing mini-game
-  emoji: string;
+  emoji: string;     // kept for old text; the screen shows `icon`
+  icon?: string;     // a drawn picture from components/art/things.tsx (never an emoji on screen)
   title: string;
   desc: string;
 }
@@ -19,6 +20,7 @@ export interface Land {
                            // never wraps into and overlaps the land below it
   domain: string;          // developmental domain (internal)
   emoji: string;
+  icon?: string;           // drawn picture for a land with no painted art yet
   art?: string;            // Kelvin's painted island picture (public/art/lands/),
                            // shown on the map instead of the emoji
   color: string;           // main theme color
@@ -48,9 +50,9 @@ export const LANDS: Land[] = [
     tagline: 'Glowing paths and busy little hands',
     noelIntro: "Ooh, the fireflies lost their way! Can you help Kailia trace the glowing trails? Steady hands, here we go!",
     quests: [
-      { href: '/play/fine-motor', emoji: '✨', title: 'Maze Runner', desc: 'Guide Kailia through 5 magical mazes without touching the walls!' },
-      { href: '/play/firefly-catch', emoji: '🏮', title: 'Firefly Catch', desc: "Catch the glowing fireflies and light Kailia's lantern!" },
-      { href: '/play/firefly-trails', emoji: '🪰', title: 'Firefly Trails', desc: 'Trace the firefly\'s glowing sky pictures — on tricky nights the trail fades and you draw from memory!' },
+      { href: '/play/fine-motor', icon: 'tree', emoji: '✨', title: 'Maze Runner', desc: 'Guide Kailia through 5 magical mazes without touching the walls!' },
+      { href: '/play/firefly-catch', icon: 'bulb', emoji: '🏮', title: 'Firefly Catch', desc: "Catch the glowing fireflies and light Kailia's lantern!" },
+      { href: '/play/firefly-trails', icon: 'sparkle', emoji: '🪰', title: 'Firefly Trails', desc: 'Trace the firefly\'s glowing sky pictures — on tricky nights the trail fades and you draw from memory!' },
     ],
   },
   {
@@ -66,8 +68,8 @@ export const LANDS: Land[] = [
     tagline: 'Count the gems, feed the dragons',
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
-      { href: '/play/snack-quest', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
-      { href: '/play/dragon-bridge', emoji: '💎', title: 'Dragon Bridge', desc: 'Share berries fairly with the baby dragons and finish the stepping-stone patterns to reach the treasure!' },
+      { href: '/play/snack-quest', icon: 'dragon', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
+      { href: '/play/dragon-bridge', icon: 'gem-blue', emoji: '💎', title: 'Dragon Bridge', desc: 'Share berries fairly with the baby dragons and finish the stepping-stone patterns to reach the treasure!' },
     ],
   },
   {
@@ -83,9 +85,9 @@ export const LANDS: Land[] = [
     tagline: 'Words that light the way',
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
-      { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'The signpost words floated away as balloons! Pop the right word to bring it home.' },
-      { href: '/play/journey', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
-      { href: '/play/trail-walk', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
+      { href: '/play/reading', icon: 'book', emoji: '📖', title: 'Word Wizard', desc: 'The signpost words floated away as balloons! Pop the right word to bring it home.' },
+      { href: '/play/journey', icon: 'backpack', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
+      { href: '/play/trail-walk', icon: 'kite', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
     ],
   },
   {
@@ -101,7 +103,7 @@ export const LANDS: Land[] = [
     tagline: 'Every door opens with a story',
     noelIntro: "The Story Keepers mixed up all their tales! Put Kailia's adventure back in order and the village doors will open!",
     quests: [
-      { href: '/play/story-sparks', emoji: '✨', title: 'Story Sparks', desc: 'The storybooks lost their pages! Choose what really happens next and bring each tale back to life!' },
+      { href: '/play/story-sparks', icon: 'teddy', emoji: '✨', title: 'Story Sparks', desc: 'The storybooks lost their pages! Choose what really happens next and bring each tale back to life!' },
     ],
   },
   {
@@ -116,8 +118,8 @@ export const LANDS: Land[] = [
     tagline: 'Crystals, colors and curious sounds',
     noelIntro: "Shhh… hear that? The caves echo with colors and sounds! Find the ones that match and the crystals will glow!",
     quests: [
-      { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Catch the wandering things Noel asks for, and spot the crystal that's a tiny bit different!" },
-      { href: '/play/echo-song', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
+      { href: '/play/sensory', icon: 'butterfly', emoji: '🌈', title: 'Sense Explorer', desc: "Catch the wandering things Noel asks for, and spot the crystal that's a tiny bit different!" },
+      { href: '/play/echo-song', icon: 'note', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
     ],
   },
   {
@@ -132,10 +134,10 @@ export const LANDS: Land[] = [
     tagline: 'Riddles at the top of the world',
     noelIntro: "The wise old owl only opens her tower for sharp eyes! Find every hidden star before her hourglass runs out!",
     quests: [
-      { href: '/play/hidden-friends', emoji: '🔍', title: "Where's Noel?", desc: 'Busy storybook scenes hide a napping panda and lost treasures — search every corner!' },
-      { href: '/play/sky-mail', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
-      { href: '/play/moonlight-match', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
-      { href: '/play/potion-sort', emoji: '🧪', title: 'Potion Sort', desc: 'The owl\'s shelf is full of falling potions! Drag each one into the cauldron with the matching color before it hits the floor!' },
+      { href: '/play/hidden-friends', icon: 'flashlight', emoji: '🔍', title: "Where's Noel?", desc: 'Busy storybook scenes hide a napping panda and lost treasures — search every corner!' },
+      { href: '/play/sky-mail', icon: 'cloud', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
+      { href: '/play/moonlight-match', icon: 'moon', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
+      { href: '/play/potion-sort', icon: 'cup-blue', emoji: '🧪', title: 'Potion Sort', desc: 'The owl\'s shelf is full of falling potions! Drag each one into the cauldron with the matching color before it hits the floor!' },
     ],
   },
 ];
@@ -158,13 +160,14 @@ export const BONUS_LANDS: Land[] = [
     name: 'Space Outpost',
     domain: 'math',
     emoji: '🚀',
+    icon: 'rocket',
     color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
     x: 140, y: 700,
     dx: 1095, dy: 150,
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
-      { href: '/play/snack-quest', emoji: '🛰️', title: 'Cargo Count', desc: 'Gather space snacks and load the shuttle with exactly what the crew ordered!' },
+      { href: '/play/snack-quest', icon: 'rocket', emoji: '🛰️', title: 'Cargo Count', desc: 'Gather space snacks and load the shuttle with exactly what the crew ordered!' },
     ],
   },
   {
@@ -172,13 +175,14 @@ export const BONUS_LANDS: Land[] = [
     name: 'Coral Reef',
     domain: 'sensory',
     emoji: '🐠',
+    icon: 'fish',
     color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
     x: 260, y: 700,
     dx: 1095, dy: 330,
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [
-      { href: '/play/sensory', emoji: '🐚', title: 'Reef Explorer', desc: 'Match colors, sounds and patterns among the coral and curious sea creatures!' },
+      { href: '/play/sensory', icon: 'fish', emoji: '🐚', title: 'Reef Explorer', desc: 'Match colors, sounds and patterns among the coral and curious sea creatures!' },
     ],
   },
 ];

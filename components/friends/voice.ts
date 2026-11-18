@@ -6,8 +6,8 @@
 import { soundEnabled } from '@/lib/accessibility';
 import { say, canSpeak as canSay } from '@/lib/voice';
 
-export function speak(text: string, opts: { rate?: number; pitch?: number } = {}) {
-  say(text, { rate: opts.rate ?? 0.95, pitch: opts.pitch });
+export function speak(text: string, opts: { rate?: number; pitch?: number; voice?: string } = {}) {
+  say(text, { rate: opts.rate ?? 0.95, pitch: opts.pitch, voice: opts.voice });
 }
 
 export function canSpeak() {

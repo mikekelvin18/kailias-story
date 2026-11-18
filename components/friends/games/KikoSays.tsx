@@ -88,7 +88,7 @@ function KikoBoard({ round, say, onDone, pet, reaction }: { round: KikoRound } &
   const talkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function talk(rate: number) {
-    speak(round.text, { rate, pitch: 1.35 });
+    speak(round.text, { rate, voice: 'Kiko' });
     setMood('talk');
     if (talkTimer.current) clearTimeout(talkTimer.current);
     talkTimer.current = setTimeout(() => setMood('idle'), 600 + round.text.length * 62 / rate);
