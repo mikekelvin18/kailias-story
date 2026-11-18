@@ -18,7 +18,7 @@ import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet, type PlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
-import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { petWidth } from '@/lib/companionTrails';
 
 // ─── Dragon Bridge ──────────────────────────────────────────────────────────
@@ -548,7 +548,7 @@ export default function DragonBridgePage() {
       message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

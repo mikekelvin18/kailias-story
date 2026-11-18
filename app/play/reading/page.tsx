@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -298,7 +298,9 @@ export default function WordWizardPage() {
           </h1>
           {phase === 'playing'
             ? <button onClick={() => readSign(q)} aria-label="Read it to me"
-                className="w-11 h-11 rounded-full text-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>🔊</button>
+                className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>
+              </button>
             : <span className="w-11" />}
         </div>
 
@@ -439,7 +441,7 @@ export default function WordWizardPage() {
             message={<>{chapter.name} reader! Every signpost is glowing again.</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

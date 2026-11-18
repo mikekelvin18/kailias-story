@@ -32,7 +32,8 @@ const PATTERNS: Record<'flower' | 'box', { phase: BreathPhase; ms: number; say: 
   ],
 };
 
-export function BreatheGame({ pattern, rounds, onBreath, onDone }: {
+export function BreatheGame({ pattern, rounds, onBreath, onDone, voice }: {
+  voice?: string;
   pattern: 'flower' | 'box'; rounds: number;
   onBreath: (p: BreathPhase, ms: number) => void;
   onDone: (o: Outcome) => void;
@@ -54,7 +55,7 @@ export function BreatheGame({ pattern, rounds, onBreath, onDone }: {
     if (!started) return;
     if (i >= total) { breath('rest', 600); chime.good(); timer.current = setTimeout(() => finished(), 700); return; }
     breath(cur.phase, cur.ms);
-    speak(cur.say);
+    speak(cur.say, voice);
     if (cur.phase === 'in') chime.soft();
     timer.current = setTimeout(() => setI(n => n + 1), cur.ms);
     return () => { if (timer.current) clearTimeout(timer.current); };
@@ -108,6 +109,7 @@ export function BreatheGame({ pattern, rounds, onBreath, onDone }: {
 // ── Count: copy the pet, tap each time ──
 
 export function CountGame({ reps, tapLabel, count, onTap, onDone }: {
+  voice?: string;
   reps: number; tapLabel: string; count: number; onTap: () => void; onDone: (o: Outcome) => void;
 }) {
   const done = count >= reps;
@@ -129,7 +131,7 @@ export function CountGame({ reps, tapLabel, count, onTap, onDone }: {
 
 // ── Steps: tick off each part ──
 
-export function StepsGame({ steps, onDone }: { steps: string[]; onDone: (o: Outcome) => void }) {
+export function StepsGame({ steps, onDone, voice }: { steps: string[]; onDone: (o: Outcome) => void; voice?: string }) {
   const [ticked, setTicked] = useState<boolean[]>(() => steps.map(() => false));
   const fired = useRef(false);
   function tick(i: number) {
@@ -137,7 +139,7 @@ export function StepsGame({ steps, onDone }: { steps: string[]; onDone: (o: Outc
     const next = ticked.map((t, j) => t || j === i);
     setTicked(next);
     chime.good();
-    speak(steps[i]);
+    speak(steps[i], voice);
     if (next.every(Boolean) && !fired.current) { fired.current = true; setTimeout(() => onDone('win'), 700); }
   }
   return (

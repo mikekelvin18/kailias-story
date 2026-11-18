@@ -102,7 +102,7 @@ const IDLE_LINES = [
   "Where should we explore today?",
   "Kailia says every explorer starts somewhere!",
   "Tap a land to visit it with us!",
-  "I brought bamboo snacks for the journey! 🎋",
+  "I brought bamboo snacks for the journey!",
   "No rush — we go at YOUR pace!",
 ];
 
@@ -387,7 +387,7 @@ export default function AdventureMap() {
                     boxShadow: unlocked ? `0 0 22px ${land.glow}88` : 'none',
                     filter: unlocked ? 'none' : (isBonus ? 'blur(1.5px) grayscale(0.5)' : 'grayscale(0.9)'),
                   }}>
-                  {unlocked ? land.emoji : (isBonus ? <Sparkle size={30} color="#FDE68A" /> : <LockIcon size={28} />)}
+                  {unlocked ? (land.icon ? <Thing id={land.icon} size={isBonus ? 34 : 44} /> : land.emoji) : (isBonus ? <Sparkle size={30} color="#FDE68A" /> : <LockIcon size={28} />)}
                   {/* Done / not-done corner badge, so it's clear at a glance
                       which lands are finished even though the next land
                       opens after just one quest. */}
@@ -474,7 +474,7 @@ export default function AdventureMap() {
             <button onClick={() => setShowGuide(true)}
               className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText} transition-transform hover:scale-105`}
               style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-              ✨ {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
+              <StarIcon size={14} /> {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
             </button>
             <ThemeToggle />
           </div>
@@ -492,7 +492,7 @@ export default function AdventureMap() {
               <span className="text-xl sm:text-4xl">{BAND_INFO[band].emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-xs sm:text-base font-extrabold text-amber-950 leading-tight truncate">
-                  ☀️ Play Today&apos;s Quests →
+                  Play Today&apos;s Quests →
                 </p>
                 <p className="hidden sm:block text-xs font-semibold text-amber-900 mt-0.5">
                   for your {BAND_INFO[band].name} — ~5 minutes of real-world play together
@@ -500,7 +500,7 @@ export default function AdventureMap() {
               </div>
             </div>
             <p className="hidden sm:block text-[11px] text-amber-900 mt-2 leading-snug" style={{ opacity: 0.85 }}>
-              💡 Because {state.childName || 'your child'} is at the {BAND_INFO[band].name} stage,
+              Because {state.childName || 'your child'} is at the {BAND_INFO[band].name} stage,
               playing together with you helps most — the map games below are the fun extra.
             </p>
           </Link>
@@ -598,7 +598,7 @@ export default function AdventureMap() {
           <Link href="/results"
             className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-full text-xs sm:text-sm font-extrabold shadow-sm"
             style={{ background: theme.backBg, color: theme.backText, border: `1px solid ${theme.navBorder}` }}>
-            👪 For grown-ups: progress &amp; results
+            For grown-ups: progress &amp; results
           </Link>
         </div>
       </div>
@@ -612,19 +612,19 @@ export default function AdventureMap() {
             onClick={e => e.stopPropagation()}>
             <div className="text-center mb-3">
               <PandaSprite size={70} expression="excited" className="mx-auto float" />
-              <h2 className="text-2xl font-extrabold text-yellow-300">✨ Starlight!</h2>
+              <h2 className="text-2xl font-extrabold text-yellow-300 inline-flex items-center gap-2"><StarIcon size={26} /> Starlight!</h2>
             </div>
             <div className="space-y-2.5 text-sm font-semibold text-indigo-100">
               <p className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                ✨ Every quest you play sprinkles <strong className="text-yellow-300">starlight</strong> —
+                Every quest you play sprinkles <strong className="text-yellow-300">starlight</strong> —
                 you earn it for <strong>trying</strong>, not just for being right!
               </p>
               <p className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                🎖️ Collecting starlight raises your <strong className="text-yellow-300">Explorer level</strong> —
+                Collecting starlight raises your <strong className="text-yellow-300">Explorer level</strong> —
                 you are level {explorerLevel(rewards.starlight)} with {rewards.starlight} starlight!
               </p>
               <div className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                <p className="mb-2">🌙 Sleeping <strong className="text-yellow-300">companions</strong> wake up
+                <p className="mb-2">Sleeping <strong className="text-yellow-300">companions</strong> wake up
                   and join the adventure at starlight milestones:</p>
                 {COMPANIONS.map(c => {
                   const unlocked = rewards.starlight >= c.at;
@@ -633,7 +633,7 @@ export default function AdventureMap() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={c.art} alt="" width={32} height={32} style={{ width: 32, height: 32, objectFit: 'contain', filter: unlocked ? 'none' : 'grayscale(1) brightness(0.6)' }} />
                       <span className={unlocked ? 'text-emerald-300' : 'text-indigo-300'}>
-                        {c.name} — {unlocked ? 'awake! ✓' : `sleeps until ✨${c.at}`}
+                        {c.name} — {unlocked ? 'awake! ✓' : <>sleeps until <StarIcon size={12} />{c.at}</>}
                       </span>
                     </p>
                   );
@@ -642,16 +642,16 @@ export default function AdventureMap() {
                   const next = COMPANIONS.find(c => rewards.starlight < c.at);
                   return next ? (
                     <p className="mt-2 text-yellow-200">
-                      Only ✨{next.at - rewards.starlight} more until {next.name} the {next.kind} wakes up!
+                      Only <StarIcon size={13} />{next.at - rewards.starlight} more until {next.name} the {next.kind} wakes up!
                     </p>
-                  ) : <p className="mt-2 text-yellow-200">Every companion is awake — amazing! 🎉</p>;
+                  ) : <p className="mt-2 text-yellow-200">Every companion is awake — amazing!</p>;
                 })()}
               </div>
             </div>
             <button onClick={() => setShowGuide(false)}
               className="mt-4 w-full py-3 rounded-full text-lg font-extrabold text-indigo-950 shadow-xl"
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Got it! ✨
+              Got it!
             </button>
           </div>
         </div>
@@ -665,13 +665,13 @@ export default function AdventureMap() {
             style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)' }}
             onClick={e => e.stopPropagation()}>
             <PandaSprite size={84} expression="excited" className="mx-auto float" />
-            <h2 className="text-2xl font-extrabold text-amber-900 mt-1">☀️ Today&apos;s Quests!</h2>
+            <h2 className="text-2xl font-extrabold text-amber-900 mt-1">Today&apos;s Quests!</h2>
             <p className="text-sm font-semibold text-amber-800 mb-1">
               Noel picked {dailyPrompt.length === 1 ? 'a tiny adventure' : `${dailyPrompt.length} little adventures`} for {state.childName ? `${state.childName} the` : 'your'} {BAND_INFO[band].name} {BAND_INFO[band].emoji}
             </p>
             <p className="text-xs text-amber-800 mb-4 px-2 leading-snug rounded-xl py-2"
               style={{ background: 'rgba(255,255,255,0.55)' }}>
-              💡 At the {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
+              At the {BAND_INFO[band].name} stage, children grow fastest by playing{' '}
               <strong>together with you</strong>. That&apos;s why Noel suggests these quests first!
               Only ~{dailyPrompt.reduce((s, q) => s + q.minutes, 0)} minutes all together.
             </p>
@@ -708,7 +708,7 @@ export default function AdventureMap() {
               {openLand.art
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={openLand.art} alt="" width={72} height={72} style={{ width: 72, height: 72, objectFit: 'contain', flexShrink: 0 }} />
-                : <span className="text-5xl">{openLand.emoji}</span>}
+                : openLand.icon ? <Thing id={openLand.icon} size={64} /> : <span className="text-5xl">{openLand.emoji}</span>}
               <div>
                 <h2 className="text-xl font-extrabold leading-tight" style={{ color: openLand.color }}>{openLand.name}</h2>
                 <p className="text-xs font-semibold text-gray-500">{openLand.tagline}</p>
@@ -765,16 +765,18 @@ export default function AdventureMap() {
                     onClick={() => !locked && startQuest(openLand)}
                     className="flex items-center gap-3 rounded-2xl p-3 bg-white shadow transition-transform hover:scale-[1.02] active:scale-[0.98]"
                     style={locked ? { opacity: 0.75 } : undefined}>
-                    <span className="text-4xl" style={locked ? { filter: 'grayscale(0.6)' } : undefined}>{q.emoji}</span>
+                    <span className="flex items-center justify-center w-12 h-12 flex-shrink-0" style={locked ? { filter: 'grayscale(0.6)' } : undefined}>
+                      {q.icon ? <Thing id={q.icon} size={44} /> : <span className="text-4xl">{q.emoji}</span>}
+                    </span>
                     <span className="flex-1">
                       <span className="block font-extrabold text-sm" style={{ color: openLand.color }}>
-                        {q.title} {done && '⭐'}
+                        {q.title} {done && <StarIcon size={15} />}
                       </span>
                       <span className="block text-xs text-gray-600">{q.desc}</span>
                     </span>
                     <span className="px-4 py-2 rounded-full font-extrabold text-white text-sm shadow whitespace-nowrap"
                       style={{ background: locked ? '#9CA3AF' : openLand.color }}>
-                      {locked ? '🔒 Premium' : done ? 'Again!' : 'Play!'}
+                      {locked ? <><LockIcon size={15} className="inline-block align-[-2px] mr-1" />Premium</> : done ? 'Again!' : 'Play!'}
                     </span>
                   </Link>
                 );
@@ -802,7 +804,7 @@ export default function AdventureMap() {
             <div className="mb-2 star-burst">
               {celebrating.art
                 ? <LiveArt src={celebrating.art} alt={celebrating.name} size={130} kind="land" />
-                : <span className="text-6xl">{celebrating.emoji}</span>}
+                : celebrating.icon ? <Thing id={celebrating.icon} size={110} /> : <span className="text-6xl">{celebrating.emoji}</span>}
             </div>
             <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">
               You lit up {celebrating.name}!
@@ -813,7 +815,7 @@ export default function AdventureMap() {
             <button onClick={() => closeCelebration(celebrating)}
               className="px-10 py-4 rounded-full text-xl font-extrabold text-purple-800 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)' }}>
-              Keep exploring! 🚀
+              Keep exploring!
             </button>
           </div>
         </div>
@@ -832,12 +834,12 @@ export default function AdventureMap() {
               {newCompanion.name} joined you!
             </h2>
             <p className="text-purple-100 font-semibold mb-6">
-              A new companion woke up, cheering you on from now on! ✨
+              A new companion woke up, cheering you on from now on!
             </p>
             <button onClick={() => { markCompanionCelebrated(newCompanion.name); setNewCompanion(null); }}
               className="px-10 py-4 rounded-full text-xl font-extrabold text-purple-800 shadow-xl transition-transform hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #FFD700, #FF8C00)' }}>
-              Yay! 🎉
+              Yay!
             </button>
           </div>
         </div>

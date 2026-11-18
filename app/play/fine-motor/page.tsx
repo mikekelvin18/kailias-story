@@ -11,7 +11,7 @@ import { loadRewards, awardStarlight, recordGameLevel, nextGameLevel, levelStarl
 import { logQuestMetric } from '@/lib/metrics';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import LevelPath from '@/components/LevelPath';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import SkillIntro from '@/components/SkillIntro';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -817,7 +817,7 @@ export default function MazeRunnerPage() {
         </>}
         earned={earnedLight}
         actions={<>
-          <PlayButton theme={GOLD} onClick={nextLevel}>Level {level+1} ▶</PlayButton>
+          <PlayButton theme={GOLD} onClick={nextLevel}>Level {level+1} <GoArrow /></PlayButton>
           <SoftButton onClick={retryLevel}>Play again</SoftButton>
           <SoftButton href="/play">Back to the map</SoftButton>
         </>}

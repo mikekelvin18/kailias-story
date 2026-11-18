@@ -7,7 +7,7 @@ import OverworldSprite, { type Facing } from '@/components/characters/OverworldS
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -807,7 +807,7 @@ export default function JourneyPage() {
             message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Next world ▶</PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

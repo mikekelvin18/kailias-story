@@ -14,6 +14,7 @@ import type { PetRig } from './meshRig';
 export const PET_RIGS: Record<string, PetRig> = {
   '/art/pets/kiko.webp': {
     pad: 0.12,
+    face: { cx: 0.52, cy: 0.38, rx: 0.235, ry: 0.165, soft: 0.15 },
     eyes: [
       { cx: 0.406, cy: 0.356, rx: 0.06, ry: 0.06 },
       { cx: 0.631, cy: 0.273, rx: 0.045, ry: 0.055 },
@@ -32,6 +33,7 @@ export const PET_RIGS: Record<string, PetRig> = {
   },
   '/art/pets/flick.webp': {
     pad: 0.1,
+    face: { cx: 0.615, cy: 0.44, rx: 0.28, ry: 0.165, soft: 0.15 },
     eyes: [
       { cx: 0.474, cy: 0.469, rx: 0.06, ry: 0.048 },
       { cx: 0.742, cy: 0.357, rx: 0.055, ry: 0.045 },
@@ -51,6 +53,7 @@ export const PET_RIGS: Record<string, PetRig> = {
   },
   '/art/pets/sage.webp': {
     pad: 0.1,
+    face: { cx: 0.625, cy: 0.41, rx: 0.38, ry: 0.15, soft: 0.15 },
     eyes: [
       { cx: 0.453, cy: 0.4, rx: 0.06, ry: 0.048 },
       { cx: 0.772, cy: 0.371, rx: 0.055, ry: 0.048 },
@@ -67,6 +70,7 @@ export const PET_RIGS: Record<string, PetRig> = {
   },
   '/art/pets/ember.webp': {
     pad: 0.1,
+    face: { cx: 0.585, cy: 0.395, rx: 0.32, ry: 0.18, soft: 0.15 },
     eyes: [
       { cx: 0.431, cy: 0.4, rx: 0.07, ry: 0.055 },
       { cx: 0.723, cy: 0.322, rx: 0.06, ry: 0.052 },
@@ -85,6 +89,7 @@ export const PET_RIGS: Record<string, PetRig> = {
   },
   '/art/pets/nova.webp': {
     pad: 0.1,
+    face: { cx: 0.72, cy: 0.45, rx: 0.3, ry: 0.16, soft: 0.15 },
     eyes: [
       { cx: 0.571, cy: 0.42, rx: 0.065, ry: 0.055 },
       { cx: 0.879, cy: 0.371, rx: 0.05, ry: 0.05 },
@@ -99,6 +104,7 @@ export const PET_RIGS: Record<string, PetRig> = {
   },
   '/art/pets/shelly.webp': {
     pad: 0.1,
+    face: { cx: 0.51, cy: 0.235, rx: 0.38, ry: 0.245, soft: 0.06 },  // her whole head: the flipper waves right beside it
     eyes: [
       { cx: 0.368, cy: 0.322, rx: 0.07, ry: 0.052 },
       { cx: 0.698, cy: 0.215, rx: 0.055, ry: 0.05 },
@@ -106,9 +112,9 @@ export const PET_RIGS: Record<string, PetRig> = {
     bones: [
       { name: 'head', pivot: [0.53, 0.47], region: { cx: 0.5, cy: 0.23, rx: 0.42, ry: 0.25, soft: 0.3 },
         swing: { deg: 3, period: 5 }, poke: { deg: 6, period: 0.7 } },
-      // her raised flipper waves hello
-      { name: 'flipper', pivot: [0.74, 0.52], region: { cx: 0.88, cy: 0.43, rx: 0.13, ry: 0.17, soft: 0.35 },
-        swing: { deg: 11, period: 1.5 }, poke: { deg: 16, period: 0.3 } },
+      // her raised flipper waves hello (gently: it nearly touches her cheek)
+      { name: 'flipper', pivot: [0.79, 0.56], region: { cx: 0.9, cy: 0.42, rx: 0.11, ry: 0.18, soft: 0.3 },
+        swing: { deg: 7, period: 1.5 }, poke: { deg: 11, period: 0.3 } },
     ],
   },
 };
@@ -117,6 +123,7 @@ export const PET_RIGS: Record<string, PetRig> = {
 // painted and original pictures share one framing, so one rig fits both.
 const KAILIA_FRONT: PetRig = {
   pad: 0.08, shade: true,
+  face: { cx: 0.5, cy: 0.37, rx: 0.35, ry: 0.125, soft: 0.15 },
   eyes: [
     { cx: 0.338, cy: 0.348, rx: 0.075, ry: 0.048 },
     { cx: 0.665, cy: 0.348, rx: 0.075, ry: 0.048 },
@@ -139,6 +146,7 @@ const KAILIA_FRONT: PetRig = {
 
 const NOEL_FRONT: PetRig = {
   pad: 0.08, shade: true,
+  face: { cx: 0.5, cy: 0.345, rx: 0.29, ry: 0.13, soft: 0.15 },
   eyes: [
     { cx: 0.358, cy: 0.31, rx: 0.06, ry: 0.045 },
     { cx: 0.648, cy: 0.31, rx: 0.06, ry: 0.045 },
@@ -215,6 +223,7 @@ export const JUMP_RIGS: Record<'kailia' | 'noel', PetRig> = {
 export const CRITTER_RIGS: Record<string, PetRig> = {
   '/art/critters/koala.webp': {
     pad: 0.1,
+    face: { cx: 0.535, cy: 0.4, rx: 0.25, ry: 0.155, soft: 0.15 },
     eyes: [
       { cx: 0.4, cy: 0.37, rx: 0.055, ry: 0.06 },
       { cx: 0.65, cy: 0.33, rx: 0.055, ry: 0.06 },
@@ -234,6 +243,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/peacock.webp': {
     pad: 0.1,
+    face: { cx: 0.52, cy: 0.485, rx: 0.2, ry: 0.12, soft: 0.15 },
     eyes: [
       { cx: 0.43, cy: 0.47, rx: 0.045, ry: 0.05 },
       { cx: 0.61, cy: 0.45, rx: 0.045, ry: 0.05 },
@@ -248,13 +258,14 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
       { name: 'crest', pivot: [0.5, 0.27], region: { cx: 0.5, cy: 0.13, rx: 0.17, ry: 0.13, soft: 0.35 },
         swing: { deg: 6, period: 2.2, phase: 0.3 }, poke: { deg: 14, period: 0.3 } },
       { name: 'wing-left', pivot: [0.42, 0.68], region: { cx: 0.3, cy: 0.7, rx: 0.12, ry: 0.09, soft: 0.35 },
-        swing: { deg: 10, period: 1.6 }, poke: { deg: 20, period: 0.28 } },
+        swing: { deg: 10, period: 1.6 }, poke: { deg: 11, period: 0.28 } },
       { name: 'wing-right', pivot: [0.6, 0.68], region: { cx: 0.72, cy: 0.7, rx: 0.12, ry: 0.09, soft: 0.35 },
-        swing: { deg: -10, period: 1.6 }, poke: { deg: -20, period: 0.28 } },
+        swing: { deg: -10, period: 1.6 }, poke: { deg: -11, period: 0.28 } },
     ],
   },
   '/art/critters/rabbit.webp': {
     pad: 0.1,
+    face: { cx: 0.52, cy: 0.46, rx: 0.25, ry: 0.125, soft: 0.15 },
     eyes: [
       { cx: 0.42, cy: 0.43, rx: 0.05, ry: 0.055 },
       { cx: 0.62, cy: 0.43, rx: 0.05, ry: 0.055 },
@@ -272,6 +283,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/parrot.webp': {
     pad: 0.1,
+    face: { cx: 0.51, cy: 0.3, rx: 0.27, ry: 0.24, soft: 0.08 },  // the whole head: wings beat right beside it
     eyes: [
       { cx: 0.42, cy: 0.36, rx: 0.055, ry: 0.06 },
       { cx: 0.65, cy: 0.32, rx: 0.055, ry: 0.06 },
@@ -280,15 +292,16 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
       { name: 'head', pivot: [0.5, 0.55], region: { cx: 0.5, cy: 0.3, rx: 0.28, ry: 0.28, soft: 0.35 },
         swing: { deg: 3.5, period: 4.6 }, poke: { deg: 7, period: 0.65 } },
       { name: 'wing-left', pivot: [0.38, 0.6], region: { cx: 0.2, cy: 0.55, rx: 0.2, ry: 0.2, soft: 0.35 },
-        swing: { deg: 12, period: 1.4 }, poke: { deg: 22, period: 0.28 } },
+        swing: { deg: 12, period: 1.4 }, poke: { deg: 12, period: 0.28 } },
       { name: 'wing-right', pivot: [0.65, 0.6], region: { cx: 0.8, cy: 0.55, rx: 0.16, ry: 0.2, soft: 0.35 },
-        swing: { deg: -12, period: 1.4 }, poke: { deg: -22, period: 0.28 } },
+        swing: { deg: -12, period: 1.4 }, poke: { deg: -12, period: 0.28 } },
       { name: 'tail', pivot: [0.35, 0.8], region: { cx: 0.2, cy: 0.85, rx: 0.15, ry: 0.1, soft: 0.35 },
         swing: { deg: 6, period: 2.3, phase: 0.3 }, poke: { deg: 12, period: 0.28 } },
     ],
   },
   '/art/critters/deer.webp': {
     pad: 0.1,
+    face: { cx: 0.525, cy: 0.46, rx: 0.245, ry: 0.14, soft: 0.15 },
     eyes: [
       { cx: 0.43, cy: 0.44, rx: 0.05, ry: 0.055 },
       { cx: 0.62, cy: 0.42, rx: 0.05, ry: 0.055 },
@@ -306,6 +319,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/raccoon.webp': {
     pad: 0.1,
+    face: { cx: 0.555, cy: 0.405, rx: 0.27, ry: 0.16, soft: 0.15 },
     eyes: [
       { cx: 0.44, cy: 0.38, rx: 0.055, ry: 0.055 },
       { cx: 0.67, cy: 0.35, rx: 0.055, ry: 0.055 },
@@ -330,6 +344,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   // overview sheet). Eyes measured on the pupils.
   '/art/critters/swan.webp': {
     pad: 0.1,
+    face: { cx: 0.44, cy: 0.23, rx: 0.175, ry: 0.14, soft: 0.15 },
     eyes: [
       { cx: 0.392, cy: 0.188, rx: 0.035, ry: 0.04 },
       { cx: 0.518, cy: 0.192, rx: 0.03, ry: 0.04 },
@@ -349,6 +364,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/frog.webp': {
     pad: 0.1,
+    face: { cx: 0.5, cy: 0.28, rx: 0.34, ry: 0.225, soft: 0.15 },
     eyes: [
       { cx: 0.367, cy: 0.2, rx: 0.075, ry: 0.08 },
       { cx: 0.627, cy: 0.2, rx: 0.075, ry: 0.08 },
@@ -365,6 +381,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/squirrel.webp': {
     pad: 0.1,
+    face: { cx: 0.365, cy: 0.325, rx: 0.29, ry: 0.155, soft: 0.15 },
     eyes: [
       { cx: 0.27, cy: 0.285, rx: 0.058, ry: 0.06 },
       { cx: 0.455, cy: 0.287, rx: 0.058, ry: 0.06 },
@@ -386,6 +403,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/hedgehog.webp': {
     pad: 0.1,
+    face: { cx: 0.5, cy: 0.45, rx: 0.3, ry: 0.16, soft: 0.15 },
     eyes: [
       { cx: 0.396, cy: 0.4, rx: 0.065, ry: 0.07 },
       { cx: 0.611, cy: 0.4, rx: 0.065, ry: 0.07 },
@@ -410,6 +428,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/bee.webp': {
     pad: 0.1,
+    face: { cx: 0.49, cy: 0.415, rx: 0.25, ry: 0.17, soft: 0.15 },
     eyes: [
       { cx: 0.402, cy: 0.356, rx: 0.056, ry: 0.058 },
       { cx: 0.576, cy: 0.359, rx: 0.056, ry: 0.058 },
@@ -432,6 +451,7 @@ export const CRITTER_RIGS: Record<string, PetRig> = {
   },
   '/art/critters/butterfly.webp': {
     pad: 0.1,
+    face: { cx: 0.49, cy: 0.47, rx: 0.2, ry: 0.14, soft: 0.15 },
     eyes: [
       { cx: 0.414, cy: 0.43, rx: 0.05, ry: 0.055 },
       { cx: 0.569, cy: 0.434, rx: 0.05, ry: 0.055 },

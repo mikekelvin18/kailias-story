@@ -104,7 +104,7 @@ export default function GemScales({ difficulty, say, onDone, pet, reaction }: Ro
     setTimeout(() => setOpened(0), 220);
     setRight(r => [...r, v]);
     if (n > setup.target) { setMood('oops'); say('Whoa, my side went up! Tap a gem on your side to take it off.'); }
-    else speak(String(n), { rate: 1, pitch: 1.3 });            // Ember counts along
+    else speak(String(n), { rate: 1, voice: 'Ember' });            // Ember counts along
     settle(n);
   }
 
@@ -114,7 +114,7 @@ export default function GemScales({ difficulty, say, onDone, pet, reaction }: Ro
     tones([{ f: 420, t: 0, d: 0.1 }]);
     const n = sum - right[i];
     setRight(r => r.filter((_, k) => k !== i));
-    speak(String(n), { rate: 1, pitch: 1.3 });
+    speak(String(n), { rate: 1, voice: 'Ember' });
     settle(n);
   }
 

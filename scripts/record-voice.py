@@ -17,6 +17,7 @@ Setup (once):
 Run:
   .venv-voice/bin/python scripts/record-voice.py            # record Noel's missing lines
   .venv-voice/bin/python scripts/record-voice.py --speaker kailia   # Kailia's cheers
+  .venv-voice/bin/python scripts/record-voice.py --speaker shelly   # a pet friend (shelly nova kiko flick sage ember)
   .venv-voice/bin/python scripts/record-voice.py --redo     # re-record everything (after a voice change)
   KOKORO_DIR=/path/to/models ... to use another model folder
 """
@@ -34,6 +35,27 @@ SPEAKERS = {
     'kailia': dict(voice=os.environ.get('KAILIA_VOICE', 'af_heart'), speed=1.0, pitch=1.16, lively=0,
                    lines='voice/kailia-lines.json', out='public/voice/kailia', key='exact'),
 }
+
+# The pet friends, each in its own voice (2026-11-18, Kelvin: "gender appropriate
+# voice on each pet", excited lift at the end of a sentence, a little sad when the
+# line is sad). Girls: Shelly, Nova, Kiko. Boys: Flick, Sage, Ember. Natural
+# voices, no big pitch shifting (Kelvin found pitched-up voices robotic).
+# `ends`: how far the end of a sentence lifts (excited) or falls (sad).
+PETS = {
+    # girls: natural young women's voices, a small lift
+    'shelly': dict(voice='af_bella', speed=0.94, lively=1.35, lift=1.06, ends=1.0),    # gentle, warm turtle
+    'nova':   dict(voice='af_heart', speed=1.02, lively=1.45, lift=1.08, ends=1.2),    # sparkly unicorn
+    'kiko':   dict(voice='af_jessica', speed=1.06, lively=1.5, lift=1.08, ends=1.25),  # chatty parrot
+    # boys: a boy's voice is a man's voice blended with a woman's (Kokoro mixes
+    # the two voice styles), lifted a little; sounds young, not grown-up
+    'flick':  dict(voice='am_puck*0.6+af_heart*0.4', speed=1.06, lively=1.45, lift=1.1, ends=1.15),   # playful fox
+    'sage':   dict(voice='bm_fable*0.7+bf_emma*0.3', speed=0.95, lively=1.3, lift=1.05, ends=0.9),    # wise little owl
+    'ember':  dict(voice='am_echo*0.6+af_bella*0.4', speed=1.0, lively=1.45, lift=1.12, ends=1.15),   # sweet baby dragon
+}
+for _name, _p in PETS.items():
+    SPEAKERS[_name] = dict(voice=os.environ.get(f'{_name.upper()}_VOICE', _p['voice']), speed=_p['speed'], pitch=1.0,
+                          lively=_p['lively'], lift=_p['lift'], ends=_p['ends'], lines=f'voice/pets/{_name}.json',
+                          out=f'public/voice/pets/{_name}', key='sentence')
 SPEAKER = sys.argv[sys.argv.index('--speaker') + 1] if '--speaker' in sys.argv else 'noel'
 CFG = SPEAKERS[SPEAKER]
 VOICE, SPEED = CFG['voice'], CFG['speed']
@@ -61,6 +83,18 @@ def spoken(sentence: str) -> str:
     return s.replace('…', '...').replace('—', ', ').replace('–', ', ')
 
 
+def voice_style(k: Kokoro, spec: str):
+    """'am_puck*0.6+af_heart*0.4' blends voice styles; a plain name is one voice."""
+    if '+' not in spec and '*' not in spec:
+        return spec
+    total = None
+    for part in spec.split('+'):
+        name, _, w = part.partition('*')
+        v = k.get_voice_style(name.strip()) * float(w or 1)
+        total = v if total is None else total + v
+    return total
+
+
 def phonemes(k: Kokoro, text: str) -> str:
     p = k.tokenizer.phonemize(text, LANG)
     for wrong, right in NAME_SOUNDS.items():
@@ -80,6 +114,53 @@ def expressive(audio: np.ndarray, sr: int, amount: float, lift: float = 1.06) ->
         lf = np.log(f0[v]); med = np.median(lf)
         f0[v] = np.clip(np.exp(med + (lf - med) * amount) * lift, 70, 480)
     return pw.synthesize(f0, sp, ap, sr)[:len(x)].astype(np.float32)
+
+
+SAD = re.compile(r"\b(miss(ed)?|sad|sorry|tired|sleepy|bye|goodbye|oh no|lost|broke|broken|rain(y)?|ouch|cry|alone)\b|that's okay", re.I)
+
+
+def mood(sentence: str) -> str:
+    """How a sentence should end: 'sad' falls a little, '!' and '?' lift."""
+    if SAD.search(sentence) and not re.search(r"\b(hug|happy|love|tomorrow)\b", sentence, re.I):
+        return 'sad'
+    s = sentence.rstrip(' "\'”’')
+    return 'ask' if s.endswith('?') else 'excited' if s.endswith('!') else 'plain'
+
+
+def shape_ending(audio: np.ndarray, sr: int, how: str, amount: float = 1.0) -> np.ndarray:
+    """Sentence melody: an excited line lifts at its last words, a question
+    rises at the very end, a sad line sinks a little and slows. Done on the
+    pitch track only (pyworld), so the voice itself stays natural."""
+    if how == 'plain' or amount <= 0:
+        return audio
+    import pyworld as pw
+    x = audio.astype(np.float64)
+    f0, t = pw.harvest(x, sr, f0_floor=60, f0_ceil=600)
+    sp = pw.cheaptrick(x, f0, t, sr); ap = pw.d4c(x, f0, t, sr)
+    voiced = np.where(f0 > 0)[0]
+    if len(voiced) < 8:
+        return audio
+    first, last = voiced[0], voiced[-1]
+    n = len(f0)
+    pos = np.clip((np.arange(n) - first) / max(1, last - first), 0, 1)
+    if how == 'excited':   # the last third climbs up to ~+20%, peak on the last word
+        ramp = np.clip((pos - 0.62) / 0.38, 0, 1) ** 1.6
+        factor = 1 + 0.20 * amount * ramp
+    elif how == 'ask':     # a clear rise on the last word
+        ramp = np.clip((pos - 0.72) / 0.28, 0, 1) ** 1.4
+        factor = 1 + 0.26 * amount * ramp
+    else:                  # sad: a gentle sink through the second half
+        ramp = np.clip((pos - 0.45) / 0.55, 0, 1)
+        factor = 1 - 0.14 * amount * ramp
+    f0 = np.where(f0 > 0, np.clip(f0 * factor, 70, 600), 0)
+    y = pw.synthesize(f0, sp, ap, sr)[:len(x)].astype(np.float32)
+    if how == 'sad':       # a touch slower, like a little sigh
+        import subprocess as _sp, tempfile as _tf
+        with _tf.NamedTemporaryFile(suffix='.wav') as a, _tf.NamedTemporaryFile(suffix='.wav') as b:
+            sf.write(a.name, y, sr)
+            _sp.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', a.name, '-af', 'atempo=0.93', b.name], check=True)
+            y, _ = sf.read(b.name, dtype='float32')
+    return y
 
 
 def tidy(audio: np.ndarray, sr: int) -> np.ndarray:
@@ -106,20 +187,24 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     manifest = {} if redo or not os.path.exists(MANIFEST) else json.load(open(MANIFEST))
     if redo:
-        for f in os.listdir(OUT):  # only this speaker's folder (Kailia's is a subfolder)
+        for f in os.listdir(OUT):  # only this speaker's folder (Kailia's and the pets' are subfolders)
             if f.endswith('.mp3'): os.remove(os.path.join(OUT, f))
     k = Kokoro(f'{MODELS}/kokoro-v1.0.onnx', f'{MODELS}/voices-v1.0.bin')
+    style = voice_style(k, VOICE)
 
     made = 0
     for sentence in lines:
         key = keyof(sentence)
         if not key or (key in manifest and os.path.exists(f'{OUT}/{manifest[key]}')):
             continue
-        audio, sr = k.create(phonemes(k, spoken(sentence)), voice=VOICE, speed=SPEED, is_phonemes=True)
+        audio, sr = k.create(phonemes(k, spoken(sentence)), voice=style, speed=SPEED, is_phonemes=True)
         if CFG['lively']:
-            audio = expressive(audio, sr, CFG['lively'])
+            audio = expressive(audio, sr, CFG['lively'], CFG.get('lift', 1.06))
+        if CFG.get('ends'):
+            audio = shape_ending(audio, sr, mood(sentence), CFG['ends'])
         audio = tidy(audio, sr)
-        name = hashlib.sha1(f'{VOICE}|{SPEED}|{key}'.encode()).hexdigest()[:12] + '.mp3'
+        tag = f'{VOICE}|{SPEED}|{key}' if not CFG.get('ends') else f'{VOICE}|{SPEED}|{CFG["ends"]}|{key}'
+        name = hashlib.sha1(tag.encode()).hexdigest()[:12] + '.mp3'
         with tempfile.NamedTemporaryFile(suffix='.wav') as wav:
             sf.write(wav.name, audio, sr)
             lift = ['-af', f"rubberband=pitch={CFG['pitch']}:formant=shifted"] if CFG['pitch'] != 1.0 else []

@@ -130,7 +130,7 @@ export default function StarLetters({ difficulty, accent, say, onDone, pet, reac
       setTimeout(() => {
         setMood('cheer');
         stars.forEach((s, i) => setTimeout(() => fire(X(s.p), Y(s.p), RAINBOW, 6, 40), i * 60));
-        speak(`${round.letter.ch}! Which word starts with ${round.letter.ch}?`);
+        speak(`${round.letter.ch}! Which word starts with ${round.letter.ch}?`, { voice: 'Nova' });
         say(`${round.letter.ch}! Which word starts with ${round.letter.ch}?`);
       }, 350);
     }
@@ -142,11 +142,11 @@ export default function StarLetters({ difficulty, accent, say, onDone, pet, reac
     setPicked(w);
     const ok = w === round.word;
     if (ok) {
-      speak(`${round.word}! ${round.letter.ch} is for ${round.word}.`);
+      speak(`${round.word}! ${round.letter.ch} is for ${round.word}.`, { voice: 'Nova' });
       setMood('cheer');
     } else {
       setMood('oops');
-      speak(`${round.letter.ch} is for ${round.word}.`);
+      speak(`${round.letter.ch} is for ${round.word}.`, { voice: 'Nova' });
     }
     setTimeout(() => onDone({ ok: ok && strays <= 2, data: { strayTaps: strays, wordFound: ok ? 1 : 0 } }), 1100);
   }
@@ -219,7 +219,7 @@ export default function StarLetters({ difficulty, accent, say, onDone, pet, reac
           {round.choices.map((w, i) => (
             <CloudWord key={w} word={w} delay={i * 0.12}
               state={picked === w ? (w === round.word ? 'yes' : 'no') : picked && w === round.word ? 'hint' : ''}
-              onPick={() => choose(w)} onHear={() => speak(w)} />
+              onPick={() => choose(w)} onHear={() => speak(w, { voice: 'Nova' })} />
           ))}
         </div>
       )}

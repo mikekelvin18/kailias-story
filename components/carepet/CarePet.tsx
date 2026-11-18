@@ -104,7 +104,13 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   const stage: Stage = pet ? stageFor(pet.happyDays, PET_CONFIG) : 'egg';
   const doneToday = pet ? taskDoneToday(pet, today()) : false;
 
-  const say = useCallback((text: string) => { setLine(text); speak(text); }, []);
+  // the friend talks in its own voice; `null` = Noel narrating (an egg can't talk yet)
+  const friendRef = useRef(friend.name);
+  useEffect(() => { friendRef.current = friend.name; }, [friend.name]);
+  const say = useCallback((text: string, who?: string | null) => {
+    setLine(text);
+    speak(text, who === null ? undefined : who ?? friendRef.current);
+  }, []);
 
   const burstHearts = useCallback((n = 3) => {
     const add = Array.from({ length: n }, (_, i) => ({ id: ++uid.current, dx: (i - (n - 1) / 2) * 34 + (Math.random() * 16 - 8), color: HEART_COLORS[i % 3] }));
@@ -131,10 +137,10 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       : '';
     if (taskDoneToday(s, today())) {
       setPhase('resting');
-      say(egg ? 'The egg is warm and cozy. Come back tomorrow!' : 'I\'m so happy today! Come back tomorrow for a new game.');
+      say(egg ? 'The egg is warm and cozy. Come back tomorrow!' : 'I\'m so happy today! Come back tomorrow for a new game.', egg ? null : undefined);
     } else if (petLocked(s)) {
       setPhase('locked');
-      say(`${hi} I love playing with you! Ask a grown-up to keep our daily games going.`.trim());
+      say(`${hi} I love playing with you! Ask a grown-up to keep our daily games going.`.trim(), egg ? null : undefined);
     } else {
       const t = taskFor(s.today!.need, s.steps[s.today!.need]);
       setTask(t);
@@ -142,7 +148,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       const ask = t.kind === 'feed'
         ? (egg ? `Trace ${t.food} to keep the egg cozy!` : `I'm a little hungry. Will you trace me ${t.food}?`)
         : t.ask;
-      say(`${hi} ${ask}`.trim());
+      say(`${hi} ${ask}`.trim(), egg ? null : undefined);
     }
     setOpen(true);
     chime.soft();
@@ -192,7 +198,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
     if (r.grewTo === 'baby') {
       setHatching(true);
       setPhase('thanks');
-      say('Crack, crack! The egg is hatching!');
+      say('Crack, crack! The egg is hatching!', null);
       later(() => {
         // the friend picked as the practice focus, else the buddy picked
         // at sign-up, hatches straight away; only a profile with neither
@@ -205,10 +211,10 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
           setHatching(false);
           chime.fanfare();
           celebrate();
-          say(`Hi! I'm ${f.name}! Thank you for taking care of my egg!`);
+          say(`Hi! I'm ${f.name}! Thank you for taking care of my egg!`, f.name);
         } else {
           setPhase('pick');
-          say('Who is inside the egg? Pick your new friend!');
+          say('Who is inside the egg? Pick your new friend!', null);
         }
       }, 1800);
     } else if (r.grewTo === 'little') {
@@ -219,7 +225,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       say(`${thanks} Wow, I'm all grown up! Thank you for taking such good care of me.`);
     } else {
       setPhase('thanks');
-      say(`${thanks} ${soon}`);
+      say(`${thanks} ${soon}`, stageFor(r.state.happyDays, PET_CONFIG) === 'egg' ? null : undefined);
     }
   }
 
@@ -251,7 +257,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
     burstHearts(3);
     say(switching
       ? `Hi! I'm ${f.name}! Let's be friends. See you tomorrow!`
-      : `Hi! I'm ${f.name}! Thank you for taking care of my egg. See you tomorrow!`);
+      : `Hi! I'm ${f.name}! Thank you for taking care of my egg. See you tomorrow!`, f.name);
   }
 
   function askGrownUp() {
@@ -407,12 +413,12 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
               {phase === 'task' && task && task.kind !== 'feed' && (
                 <div className="mt-4 pm-card">
                   {task.game?.type === 'breathe' && (
-                    <BreatheGame pattern={task.game.pattern} rounds={task.game.rounds} onBreath={onBreath} onDone={o => finish(o)} />
+                    <BreatheGame voice={friend.name} pattern={task.game.pattern} rounds={task.game.rounds} onBreath={onBreath} onDone={o => finish(o)} />
                   )}
                   {task.game?.type === 'count' && (
-                    <CountGame reps={task.game.reps} tapLabel={task.game.tapLabel} count={count} onTap={countTap} onDone={o => finish(o, { reps: count })} />
+                    <CountGame voice={friend.name} reps={task.game.reps} tapLabel={task.game.tapLabel} count={count} onTap={countTap} onDone={o => finish(o, { reps: count })} />
                   )}
-                  {task.game?.type === 'steps' && <StepsGame steps={task.game.steps} onDone={o => finish(o)} />}
+                  {task.game?.type === 'steps' && <StepsGame voice={friend.name} steps={task.game.steps} onDone={o => finish(o)} />}
                   {!task.game && <GrownUpReport title={task.title} steps={task.steps} tip={task.tip} onDone={o => finish(o)} />}
                 </div>
               )}
@@ -437,7 +443,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
                   <button className={big} style={{ background: ACCENT }} onClick={close}>See you tomorrow!</button>
                   {stage !== 'egg' && (
                     <button className="mt-3 min-h-[44px] px-4 rounded-full text-base font-bold" style={{ color: ACCENT }}
-                      onClick={() => { setPhase('pick'); say('Who do you want to play with?'); }}>
+                      onClick={() => { setPhase('pick'); say('Who do you want to play with?', null); }}>
                       Pick a different friend
                     </button>
                   )}
