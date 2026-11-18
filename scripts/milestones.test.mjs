@@ -71,7 +71,7 @@ assert.match(M.formatAgeRange({ low: 30, mid: 33, high: 36, items: 5 }), /^about
   const ev = [60, 72, 84, 96, 108, 126, 138].map((m, i) => ({ id: 'x' + i, months: m, r: 1, kind: 'choice3' }));
   const v = M.screenView(M.estimateAge(ev, 72), 72);
   assert.ok(v.high <= 78, `screen view top ${v.high}`);
-  assert.equal(M.formatAgeRange(v), 'about 5½ to 6½ years, at or above their age');
+  assert.equal(M.formatAgeRange(v), 'about 6 to 6½ years, at or above their age');
   assert.notEqual(M.compareToAge(v, 72), 'ahead');
   // Really ahead: passes through 8 years, misses above → the true range stays.
   const ahead = [72, 78, 84, 90, 96, 102, 108, 120, 132].map((m, i) => ({ id: 'a' + i, months: m, r: m <= 102 ? 1 : 0, kind: 'parent' }));

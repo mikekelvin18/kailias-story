@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { scopedKey, ACTIVE_CHILD_CHANGED_EVENT } from '@/lib/family';
 import {
-  estimateAge, formatAgeRange, aheadCeiling, screenView, compareToAge, MILESTONE_DOMAINS,
+  estimateAge, formatAgeRange, aheadCeiling, challengeCeiling, isChallengeEvidence, screenView, compareToAge, MILESTONE_DOMAINS,
   type AgeEstimate, type AgeComparison, type Evidence, type MilestoneDomain,
 } from '@/lib/milestones';
 
@@ -304,18 +304,20 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     // aheadCeiling). This also trims answers saved by older versions that
     // asked grade-5 questions, which made a 6-year-old read "8½ to 12+"
     // (Muse review, 2026-11-18); screenView then holds an open top near age.
+    // Challenge-round answers (a grown-up's choice) may reach higher.
     const roof = chronoMonths != null ? aheadCeiling(chronoMonths) : Infinity;
-    const ev = state.evidence?.[d]?.filter(e => e.months <= roof);
+    const chRoof = chronoMonths != null ? challengeCeiling(chronoMonths) : Infinity;
+    const ev = state.evidence?.[d]?.filter(e => e.months <= (isChallengeEvidence(e) ? chRoof : roof));
     if (!ev?.length) continue;
     const est = estimateAge(ev, chronoMonths);
-    if (est) estimates[d] = screenView(est, chronoMonths);
+    if (est) estimates[d] = screenView(est, chronoMonths, ev.some(isChallengeEvidence));
     pooled.push(...ev);
   }
   const rawOverall = estimateAge(pooled, chronoMonths);
   // devMonths (game difficulty, stage) uses the raw middle; what parents
   // read uses the screen view, held near the real age at the top.
   const devMonths = rawOverall ? rawOverall.mid : null;
-  const overall = rawOverall ? screenView(rawOverall, chronoMonths) : null;
+  const overall = rawOverall ? screenView(rawOverall, chronoMonths, pooled.some(isChallengeEvidence)) : null;
   const domainRange = (d: MilestoneDomain) => {
     const est = estimates[d];
     if (est) return formatAgeRange(est);

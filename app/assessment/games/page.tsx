@@ -7,7 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
 import StepGuide from '@/components/ui/StepGuide';
 import type { Evidence, MilestoneDomain } from '@/lib/milestones';
-import { screenCeiling, aheadCeiling } from '@/lib/milestones';
+import { screenCeiling, aheadCeiling, challengeCeiling } from '@/lib/milestones';
 import { fineMotorStage, TRACE_MEASURES, traceNextStep } from '@/lib/fineMotor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -210,6 +210,27 @@ function nextQuestion(bank: Question[], asked: number[], lastIdx: number, lastRi
   if (lastRight && up.length) return up[0];
   if (!lastRight && down.length) return down[down.length - 1];
   return (lastRight ? down[down.length - 1] : up[0]) ?? null;
+}
+
+// Challenge round (results page, a grown-up's choice for a child they think
+// is ahead): only questions above the child's age, up to challengeCeiling,
+// a few per area, skipping any already answered in the placement. Same
+// step-up / step-down rule, so it finds where the child's skills stop.
+const CHALLENGE_QS = 4;
+const CHALLENGE_STEPS = [0, 2, 3]; // reading, communication, math (no tracing)
+function challengeOpen(bank: Question[], ageMonths: number, skip: number[], asked: number[]): number[] {
+  const roof = challengeCeiling(ageMonths);
+  return bank.map((_, i) => i).filter(i => bank[i].months > ageMonths && bank[i].months <= roof && !skip.includes(i) && !asked.includes(i));
+}
+function nextChallenge(bank: Question[], ageMonths: number, skip: number[], asked: number[], lastIdx: number, lastRight: boolean): number | null {
+  const open = challengeOpen(bank, ageMonths, skip, asked);
+  if (!open.length) return null;
+  if (lastIdx < 0) return open[0];
+  const up = open.filter(i => i > lastIdx), down = open.filter(i => i < lastIdx);
+  if (lastRight) return up[0] ?? null;
+  // A miss with nothing easier left to try is the ceiling: stop here, so a
+  // lucky guess on a harder question can't stretch the range.
+  return down[down.length - 1] ?? null;
 }
 
 // ─── Grasp Patterns ───────────────────────────────────────────────────────────
@@ -833,7 +854,7 @@ function gripEvidence(grip: string | null): Evidence[] {
 }
 
 export default function GamesPage() {
-  const { state, chronoMonths, setDomainScore, setDomainEvidence, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
+  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
   const router = useRouter();
   const age = chronoMonths ?? (state.childAge ?? 8) * 12;
 
@@ -845,6 +866,14 @@ export default function GamesPage() {
   const [submitted, setSubmitted]     = useState(false);
   const [encourage, setEncourage]     = useState('');
 
+  // 'unknown' for one tick while the address is read (no flash of the
+  // normal placement when a grown-up opened the Challenge round).
+  const [mode, setMode] = useState<'unknown' | 'normal' | 'challenge'>('unknown');
+  const challenge = mode === 'challenge';
+  /** Placement items already answered in this area (never asked again in the challenge). */
+  const placedIdx = (key: string) => (state.evidence?.[key as MilestoneDomain] ?? [])
+    .filter(e => e.id.startsWith(`${key}-`)).map(e => Number(e.id.split('-').pop()));
+
   // gameStep layout: 0=reading, 1=tracing, 2=communication, 3=math
   const regularGameIndex = gameStep < 1 ? gameStep : gameStep - 1;
   const isTracingStep = gameStep === 1;
@@ -855,7 +884,10 @@ export default function GamesPage() {
   const cur      = asked[asked.length - 1];
   const question = game ? bank[cur] : null;
   const questionIdx = asked.length - 1;
-  const isLastQ  = asked.length >= Math.min(QUESTIONS_PER_GAME, bank.length);
+  const isLastQ  = challenge
+    ? asked.length >= CHALLENGE_QS || (!!game && submitted
+      && nextChallenge(bank, age, placedIdx(game.key), asked, cur, evidence[evidence.length - 1]?.r === 1) == null)
+    : asked.length >= Math.min(QUESTIONS_PER_GAME, bank.length);
   const isLastStep = gameStep === totalSteps - 1;
 
   const getScore = (): number => {
@@ -875,7 +907,7 @@ export default function GamesPage() {
   const handleSubmit = () => {
     if (!game || !question) return;
     const r = getScore() >= question.points.correct ? 1 : 0;
-    setEvidence(ev => [...ev, { id: `${game.key}-${cur}`, months: question.months, r, kind: 'choice3' }]);
+    setEvidence(ev => [...ev, { id: `${challenge ? 'challenge-' : ''}${game.key}-${cur}`, months: question.months, r, kind: 'choice3' }]);
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
     let line = pool[Math.floor(Math.random() * pool.length)];
     // A miss gets a gentle "here's the one Kailia picked" so the child
@@ -897,9 +929,42 @@ export default function GamesPage() {
     resetQuestion();
   };
 
+  /** First challenge area at or after `from` that has a question to ask; else back to results. */
+  const startChallenge = (from: number) => {
+    for (const step of CHALLENGE_STEPS.filter(st => st >= from)) {
+      const key = GAMES[step < 1 ? step : step - 1].key;
+      const first = nextChallenge(BANK[key], age, placedIdx(key), [], -1, true);
+      if (first != null) {
+        setGameStep(step); setEvidence([]); setAsked([first]); resetQuestion();
+        return;
+      }
+    }
+    router.push('/results');
+  };
+
+  useEffect(() => {
+    if (!loaded || mode !== 'unknown') return;
+    const wants = new URLSearchParams(window.location.search).get('challenge') === '1';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read the address once, after the profile loads
+    setMode(wants ? 'challenge' : 'normal');
+    if (wants) startChallenge(0);
+    else setAsked([firstQuestion(BANK[GAMES[0].key], age)]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
   const handleNext = () => {
     if (!game) return;
     const domainKey = game.key as 'reading' | 'communication' | 'math';
+    if (challenge) {
+      const last = evidence[evidence.length - 1];
+      const next = isLastQ ? null : nextChallenge(bank, age, placedIdx(game.key), asked, cur, last?.r === 1);
+      if (next != null) { setAsked(a => [...a, next]); resetQuestion(); return; }
+      // Keep the placement answers; a new challenge replaces an older one.
+      const kept = (state.evidence?.[domainKey] ?? []).filter(e => !e.id.startsWith('challenge-'));
+      setDomainEvidence(domainKey, [...kept, ...evidence]);
+      startChallenge(gameStep + 1);
+      return;
+    }
     const last = evidence[evidence.length - 1];
     const rightIdx = evidence.filter(e => e.r === 1).map(e => Number(e.id.split('-').pop()));
     // A child acing everything above their age gets up to 2 extra rungs to find their ceiling.
@@ -958,14 +1023,18 @@ export default function GamesPage() {
     );
   }
 
-  if (!game || !question) return null;
+  if (mode === 'unknown' || !game || !question) return null;
 
   const canSubmit = question.type === 'choice' ? !!selectedAnswer : inputValue.trim().length > 0;
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-10" style={{ background: '#FFF9F0' }}>
       <div className="max-w-2xl w-full">
-        <StepGuide step={3} className="mb-6" />
+        {challenge ? (
+          <p className="text-center text-sm font-extrabold tracking-wide uppercase mb-4" style={{ color: game.color }}>
+            Challenge round · harder questions
+          </p>
+        ) : <StepGuide step={3} className="mb-6" />}
 
         <div className="rounded-3xl p-5 mb-5 text-center shadow-lg"
           style={{ background: game.light, border: `3px solid ${game.color}` }}>
@@ -975,13 +1044,13 @@ export default function GamesPage() {
         </div>
 
         <div className="flex gap-2 mb-3">
-          {stepLabels.map((l, i) => (
+          {stepLabels.map((l, i) => (challenge && i === 1) ? null : (
             <div key={i} className="flex-1 h-3 rounded-full transition-all"
               style={{ background: i < gameStep ? game.color : i === gameStep ? `${game.color}88` : '#E5E7EB' }} />
           ))}
         </div>
         <div className="flex gap-1 mb-5">
-          {Array.from({ length: Math.min(QUESTIONS_PER_GAME, bank.length) }, (_, i) => (
+          {Array.from({ length: challenge ? CHALLENGE_QS : Math.min(QUESTIONS_PER_GAME, bank.length) }, (_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
               style={{ background: i < questionIdx ? game.color : i === questionIdx ? `${game.color}66` : '#E5E7EB' }} />
           ))}
@@ -1046,14 +1115,17 @@ export default function GamesPage() {
             <button onClick={handleNext}
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
-              {isLastQ && isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
+              {challenge ? (isLastQ ? (isLastStep ? 'See My Results! 🎉' : 'Next Game! 🚀') : 'Next Question →')
+                : isLastQ && isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
             </button>
           )}
         </div>
 
         <p className="text-center text-gray-500 text-sm font-semibold mt-4">
-          Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
-          {!isTracingStep && ` • Question ${questionIdx + 1}/${Math.min(QUESTIONS_PER_GAME, bank.length)}`}
+          {challenge
+            ? `Game ${CHALLENGE_STEPS.indexOf(gameStep) + 1} of ${CHALLENGE_STEPS.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}/${CHALLENGE_QS}`
+            : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
+              {!isTracingStep && ` • Question ${questionIdx + 1}/${Math.min(QUESTIONS_PER_GAME, bank.length)}`}</>}
         </p>
       </div>
     </main>

@@ -148,6 +148,8 @@ export default function ResultsPage() {
   const [confirmingRetake, setConfirmingRetake] = useState(false);
   const band = developmentalBand(state.ageGroup, totalScore, devMonths);
   const answersUsed = Object.values(estimates).reduce((t, e) => t + (e?.items ?? 0), 0);
+  // Offered only when a choice-question area reads "at or above their age".
+  const canChallenge = (['reading', 'communication', 'math'] as const).some(k => estimates[k]?.atOrAbove);
   const anyGrowing = (['reading', 'writing', 'communication', 'math', 'processing'] as const).some(k => domainComparison(k) === 'growing');
   // Right after the first adventure check (nothing played on the map
   // yet) this is the last of the four setup steps; afterwards it's a
@@ -348,6 +350,18 @@ export default function ResultsPage() {
               child&apos;s doctor about a developmental check. Getting help early makes a real difference.
             </p>
           )}
+          {/* Challenge round: one quiet link (Kelvin: no clutter) for a
+              grown-up who thinks their child is ahead. Only harder questions. */}
+          {canChallenge && (
+            <p className="text-sm text-slate-300 mt-5 text-center">
+              Think {state.childName || 'your child'} is ahead?{' '}
+              <button onClick={() => router.push('/assessment/games?challenge=1')}
+                className="font-bold underline underline-offset-2 text-amber-200 hover:text-amber-100">
+                Try the challenge round
+              </button>
+              <span className="text-slate-400"> (harder questions, about 5 min)</span>
+            </p>
+          )}
         </div>
 
         {/* Sensory section */}
@@ -356,8 +370,8 @@ export default function ResultsPage() {
             className="rounded-3xl p-6 mb-6 shadow-xl"
             style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
           >
-            <h3 className="text-xl font-bold text-white mb-1">🧠 Sensory Style Profile</h3>
-            <p className="text-slate-300 text-sm mb-5">How your child processes sensory information</p>
+            <h3 className="text-xl font-bold text-white mb-1">👀 Senses · Echo Caves</h3>
+            <p className="text-slate-300 text-sm mb-5">Your child&apos;s sensory style, from your answers. Like standard sensory questionnaires, this area is answered by the grown-up who knows the child best, so it shows a style, not an age.</p>
 
             {/* 4-pattern bars */}
             <div className="space-y-4 mb-5">

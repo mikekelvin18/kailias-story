@@ -94,13 +94,19 @@ export default function ProgressReportPage() {
                   </div>
                 );
               })}
-              {primarySensoryPattern && (
-                <div className="px-3 py-2 bg-white">
-                  <span className="text-sm font-semibold text-slate-700">🌈 Sensory pattern: </span>
-                  <span className="text-sm font-bold text-slate-500">{primarySensoryPattern}</span>
-                  <p className="text-xs text-slate-400 mt-0.5">{sensoryPatternDescription}</p>
-                </div>
-              )}
+              {/* Senses: a style from the grown-up's answers (like standard
+                  sensory questionnaires), never an age. */}
+              <div className="px-3 py-2 bg-white">
+                <span className="text-sm font-semibold text-slate-700">👀 Senses · Echo Caves: </span>
+                {state.sensoryCompleted && primarySensoryPattern ? (
+                  <>
+                    <span className="text-sm font-bold text-slate-500">{primarySensoryPattern}</span>
+                    <p className="text-xs text-slate-400 mt-0.5">{sensoryPatternDescription} A sensory style from your answers, not an age.</p>
+                  </>
+                ) : (
+                  <a href="/assessment/sensory" className="text-sm font-bold text-violet-600 underline underline-offset-2">take the 3-minute grown-up survey</a>
+                )}
+              </div>
             </div>
           </section>
         )}
