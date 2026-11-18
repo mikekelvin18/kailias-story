@@ -168,7 +168,6 @@ function stageForMonths(m: number) {
 function getSensoryPattern(scores: SensoryScores) {
   const { lowRegistration: lr, seeking: sk, sensitive: se, avoiding: av } = scores;
   const max = Math.max(lr, sk, se, av);
-  if (max === 0) return { pattern: '', emoji: '', description: '' };
   // Like the Sensory Profile's "just like the majority" band: with 3
   // questions per pattern (0–6), mostly "rarely" answers (≤ 2) aren't a
   // pattern at all, so don't label the highest of four low numbers.
@@ -292,7 +291,9 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const resetAssessment = () => setState(defaultState);
 
   const totalScore = state.scores.reading + state.scores.writing + state.scores.communication + state.scores.math;
-  const { pattern, emoji: sEmoji, description: sDesc } = getSensoryPattern(state.sensoryScores);
+  // All "rarely" answers is a real result (Balanced); before the survey there is no pattern.
+  const { pattern, emoji: sEmoji, description: sDesc } = state.sensoryCompleted
+    ? getSensoryPattern(state.sensoryScores) : { pattern: "", emoji: "", description: "" };
 
   // ── Developmental-age ranges (lib/milestones.ts) ──
   const chronoMonths = state.childAgeMonths
