@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback, type CSSProperties } from 're
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
@@ -404,7 +404,8 @@ export default function PotionSortPage() {
   const fallMs = ROUNDS[roundIdx].fallMs * tuning.fall;
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg,#1e1b4b,#312e81)' }}>
+    <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg,#1e1b4b,#312e81)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <div className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="font-bold text-sm text-purple-200">← Map</Link>

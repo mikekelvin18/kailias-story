@@ -6,7 +6,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -501,7 +501,8 @@ export default function SnackQuestPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen pb-4" style={{ background: skin?.bg ?? 'linear-gradient(180deg, #1c1006 0%, #2b1a08 60%, #3a2410 100%)' }}>
+    <main className="relative overflow-hidden min-h-screen pb-4" style={{ background: skin?.bg ?? 'linear-gradient(180deg, #1c1006 0%, #2b1a08 60%, #3a2410 100%)', isolation: 'isolate' }}>
+      {cave && <GameBackdrop mode="play" />}
       {/* the column is sized so the field fills the screen height with little waste */}
       <div className="mx-auto px-3" style={{ width: 'min(100%, calc((100dvh - 330px) * 0.875 + 24px), 44rem)' }}>
 

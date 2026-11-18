@@ -18,7 +18,7 @@ import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet, type PlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { petWidth } from '@/lib/companionTrails';
 
 // ─── Dragon Bridge ──────────────────────────────────────────────────────────
@@ -568,7 +568,8 @@ export default function DragonBridgePage() {
   const petY = share && hintNest >= 0 ? BANK_Y : GROUND - 0.5;
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg,#2a1640,#4a2357)' }}>
+    <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg,#2a1640,#4a2357)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <style>{DB_CSS}</style>
       <div className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">

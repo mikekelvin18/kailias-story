@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -284,7 +284,8 @@ export default function MoonlightMatchPage() {
   const cols = pairs <= 3 ? 3 : pairs <= 6 ? 4 : pairs <= 8 ? 4 : 5;
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)' }}>
+    <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <div className="max-w-md mx-auto px-3 relative">
 
         {/* Header */}

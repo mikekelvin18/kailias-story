@@ -76,6 +76,23 @@ const BACKDROPS: Record<string, string> = {
   'fine-motor': '/art/backdrops/forest-falls.webp',
   'firefly-catch': '/art/backdrops/forest-falls.webp',
   'firefly-trails': '/art/backdrops/forest-path.webp',
+  // Dragon's Treasure Cave (math)
+  'snack-quest': '/art/backdrops/treasure-cave.webp',
+  'dragon-bridge': '/art/backdrops/treasure-cave.webp',
+  // Whispering Signposts (reading)
+  'reading': '/art/backdrops/signpost-meadow.webp',
+  'journey': '/art/backdrops/signpost-meadow.webp',
+  'trail-walk': '/art/backdrops/signpost-meadow.webp',
+  // Village of the Story Keepers (communication)
+  'story-sparks': '/art/backdrops/story-village.webp',
+  // Echo Caves (sensory)
+  'sensory': '/art/backdrops/echo-caves.webp',
+  'echo-song': '/art/backdrops/echo-caves.webp',
+  // Owl's Tower (processing)
+  'hidden-friends': '/art/backdrops/owl-tower.webp',
+  'sky-mail': '/art/backdrops/owl-tower.webp',
+  'moonlight-match': '/art/backdrops/owl-tower.webp',
+  'potion-sort': '/art/backdrops/owl-tower.webp',
 };
 const BACKDROP_LOOK = {
   story: { filter: 'blur(1.5px) saturate(0.78) brightness(0.92)', veil: 'linear-gradient(180deg, rgba(8,12,34,0) 55%, rgba(8,12,34,0.62) 100%), radial-gradient(120% 62% at 50% 46%, rgba(8,12,34,0.66) 0%, rgba(8,12,34,0.5) 55%, rgba(8,12,34,0.26) 100%)' },

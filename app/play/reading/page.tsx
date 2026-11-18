@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -285,8 +285,9 @@ export default function WordWizardPage() {
   const kailiaX = lit === 0 ? 8 : lit >= round.length ? stoneX(round.length) - 6 : stoneX(lit - 1);
 
   return (
-    <main className="min-h-screen pb-8 overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 55%, #93c5fd 120%)' }}>
+    <main className="relative min-h-screen pb-8 overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 55%, #93c5fd 120%)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <div className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
           <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"

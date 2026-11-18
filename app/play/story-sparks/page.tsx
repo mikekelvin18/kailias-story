@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -236,7 +236,8 @@ export default function StorySparksPage() {
     : clampPct(kailiaX + (kailiaX > 70 ? -15 : 15));
 
   return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #3b0764 0%, #6b21a8 60%, #9d174d 130%)' }}>
+    <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #3b0764 0%, #6b21a8 60%, #9d174d 130%)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <div className="max-w-md mx-auto px-3 relative">
 
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">

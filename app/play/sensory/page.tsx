@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { useAssessment } from '@/context/AssessmentContext';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -332,8 +332,9 @@ export default function SenseExplorerPage() {
   const roundsTotal = Math.max(1, rounds.length * 2);
 
   return (
-    <main className="min-h-screen pb-8 overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 70%, #155e75 120%)' }}>
+    <main className="relative min-h-screen pb-8 overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 70%, #155e75 120%)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
       <div className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
           <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
