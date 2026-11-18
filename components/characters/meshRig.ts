@@ -47,6 +47,10 @@ export interface PetRig {
   shade?: boolean;
   bones: RigBone[];
   eyes: RigEye[];
+  /** the face (eyes, cheeks, mouth): it never bends. The 'head' bone turns
+      it as one solid piece, and no other part (a wing, a flipper, hair)
+      may pull on it, so a cheek can never stretch. */
+  face?: RigRegion;
 }
 
 const GRID = 56;               // squares per side; fine enough to bend smoothly
@@ -133,9 +137,15 @@ export function startRig(canvas: HTMLCanvasElement, pictures: HTMLImageElement |
   }
 
   // how strongly each grid point follows each bone / eye (fixed, so precomputed)
+  const faceW = new Float32Array(n * n);
+  if (rig.face) for (let p = 0; p < n * n; p++) faceW[p] = regionWeight(rig.face, rest[p * 2], rest[p * 2 + 1], W, H);
   const boneW = rig.bones.map(bn => {
     const w = new Float32Array(n * n);
-    for (let p = 0; p < n * n; p++) w[p] = regionWeight(bn.region, rest[p * 2], rest[p * 2 + 1], W, H);
+    for (let p = 0; p < n * n; p++) {
+      const own = regionWeight(bn.region, rest[p * 2], rest[p * 2 + 1], W, H);
+      // the head carries the whole face rigidly; every other part lets go of it
+      w[p] = bn.name === 'head' ? Math.max(own, faceW[p]) : own * (1 - faceW[p]);
+    }
     return w;
   });
   const eyeW = rig.eyes.map(e => {

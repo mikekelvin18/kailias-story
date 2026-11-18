@@ -85,7 +85,7 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
 
   useEffect(() => { clearReturnPath(); setLevel(nextGameLevel(game.id)); }, [game.id]);
 
-  function say(text: string) { setLine(text); speak(text); }
+  function say(text: string) { setLine(text); speak(text, { voice: trail.pet }); }
 
   function start() {
     const d = startDifficulty(tier, level);
@@ -177,7 +177,7 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
           <p className="flex-1 text-[15px] font-bold leading-snug" aria-live="polite">
             <span className="font-extrabold" style={{ color: '#8A5A00' }}>{trail.pet}: </span>{line}
           </p>
-          <button onClick={() => speak(line)} aria-label="Hear it again"
+          <button onClick={() => speak(line, { voice: trail.pet })} aria-label="Hear it again"
             className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: `${trail.color}88` }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F2A44" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></svg>
           </button>

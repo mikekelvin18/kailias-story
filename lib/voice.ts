@@ -108,6 +108,41 @@ export interface SayOptions {
   rate?: number;
   /** 1 = the voice's own pitch. Raised a little for a brighter, friendlier sound. */
   pitch?: number;
+  /** who is talking: a pet friend's name ("Shelly"). Omitted = Noel. */
+  voice?: string;
+}
+
+// ── The pet friends' own voices ──
+// Each friend speaks with its own recorded voice (girls sound like girls,
+// boys like boys), made the same way as Noel's by scripts/record-voice.py
+// --speaker <name>, into public/voice/pets/<name>/. A friend never borrows
+// Noel's voice: a sentence it has no recording for is read by the device
+// voice at the friend's pitch.
+export const PET_VOICES: Record<string, { girl: boolean; pitch: number }> = {
+  shelly: { girl: true, pitch: 1.3 },
+  nova: { girl: true, pitch: 1.35 },
+  kiko: { girl: true, pitch: 1.4 },
+  flick: { girl: false, pitch: 1.2 },
+  sage: { girl: false, pitch: 1.05 },
+  ember: { girl: false, pitch: 1.25 },
+};
+
+const petClips = new Map<string, Map<string, string> | Promise<Map<string, string>>>();
+function petManifest(name: string): Map<string, string> | Promise<Map<string, string>> {
+  let m = petClips.get(name);
+  if (!m) {
+    m = fetch(`/voice/pets/${name}/manifest.json`)
+      .then(r => (r.ok ? r.json() : {}))
+      .then((j: Record<string, string>) => { const map = new Map(Object.entries(j ?? {})); petClips.set(name, map); return map; })
+      .catch(() => { const map = new Map<string, string>(); petClips.set(name, map); return map; });
+    petClips.set(name, m);
+  }
+  return m;
+}
+/** Start loading a friend's recordings early (e.g. when its pop-up opens). */
+export function warmVoice(voice: string) {
+  const name = voice.toLowerCase();
+  if (typeof window !== 'undefined' && PET_VOICES[name]) void petManifest(name);
 }
 
 // Each new line gets a number; anything still waiting from an older line
@@ -163,14 +198,14 @@ function stopClip() {
 }
 
 /** Play recorded sentences one after another. Returns false if it couldn't start. */
-function playClips(files: string[], gen: number, fallback: () => void) {
+function playClips(files: string[], gen: number, fallback: () => void, base = '/voice') {
   player = player ?? new Audio();
   const audio = player;
   let i = 0;
   const next = () => {
     if (gen !== generation) return;
     if (i >= files.length) { setTalking(false); return; }
-    audio.src = `/voice/${files[i++]}`;
+    audio.src = `${base}/${files[i++]}`;
     audio.onended = () => setTimeout(next, 140); // a small breath between sentences
     audio.onerror = () => { if (gen === generation) fallback(); };
     audio.play().then(() => { if (gen === generation) setTalking(true); })
@@ -227,8 +262,24 @@ export function say(text: string, opts: SayOptions = {}) {
       // Safari sometimes starts out paused after a cancel
       if (synth.paused) synth.resume();
     };
-    // Recorded lines first. A raised pitch means a pet friend is talking
-    // (Kiko, Ember...), and they shouldn't borrow Noel's recorded voice.
+    // A pet friend talking: its own recordings, never Noel's.
+    const pet = opts.voice ? opts.voice.toLowerCase() : null;
+    if (pet && PET_VOICES[pet]) {
+      const devicePitch = () => { opts = { ...opts, pitch: opts.pitch ?? PET_VOICES[pet].pitch }; };
+      const tryClips = (m: Map<string, string>) => {
+        if (gen !== generation) return;
+        const files = sentences(clean).map(p => m.get(voiceKey(p)));
+        if (files.length && files.every(Boolean)) {
+          playClips(files as string[], gen, () => { stopClip(); devicePitch(); whenVoicesReady(start); }, `/voice/pets/${pet}`);
+        } else { devicePitch(); whenVoicesReady(busy ? () => setTimeout(start, 80) : start); }
+      };
+      const m = petManifest(pet);
+      if (m instanceof Map) tryClips(m); else void m.then(tryClips);
+      return;
+    }
+
+    // Recorded lines first. A raised pitch means someone other than Noel is
+    // talking, and they shouldn't borrow Noel's recorded voice.
     if (clips && (opts.pitch ?? 1) < 1.25) {
       const files = sentences(clean).map(p => clips!.get(voiceKey(p)));
       if (files.length && files.every(Boolean)) {

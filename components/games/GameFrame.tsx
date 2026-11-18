@@ -183,6 +183,17 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
 }
 
 /** The big round Play button: it breathes, shines, and squishes when pressed. */
+/** A drawn "go" arrow for buttons (a ▶ character turns into a blue emoji
+    box on iPhones, so buttons never use it). */
+export function GoArrow({ size = 20 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 20 20" width={size} height={size} aria-hidden="true"
+      style={{ display: 'inline-block', verticalAlign: '-0.12em', marginLeft: '0.3em' }}>
+      <path d="M6 3.6 Q4.6 2.8 4.6 4.4 V15.6 Q4.6 17.2 6 16.4 L15.6 11.1 Q16.9 10 15.6 8.9 Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function PlayButton({ onClick, children, theme, href }: { onClick?: () => void; children: ReactNode; theme: Omit<Theme, 'bg'>; href?: string }) {
   const style: CSSProperties = {
     background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2 ?? theme.accent})`,

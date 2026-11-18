@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback, type CSSProperties } from 're
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
-import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
@@ -395,7 +395,7 @@ export default function PotionSortPage() {
       message={<>Every cauldron is bubbling. {pet.name} is doing a potion dance!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

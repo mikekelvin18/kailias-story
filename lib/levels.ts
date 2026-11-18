@@ -22,20 +22,21 @@ export interface Chapter {
   n: number;          // 1-based chapter number
   name: string;
   emoji: string;
+  icon: string;     // drawn picture shown to kids (components/art/things.tsx), never the emoji
   color: string;
   ages: string;       // parent-facing only
 }
 
 export const CHAPTERS: Chapter[] = [
-  { n: 1, name: 'Sprout',   emoji: '🌱', color: '#22C55E', ages: 'about 2½–4 years' },
-  { n: 2, name: 'Sapling',  emoji: '🌿', color: '#14B8A6', ages: 'about 4–5 years' },
-  { n: 3, name: 'Explorer', emoji: '🧭', color: '#3B82F6', ages: 'about 5–6 years' },
-  { n: 4, name: 'Ranger',   emoji: '🏕️', color: '#8B5CF6', ages: 'about 6–8 years' },
-  { n: 5, name: 'Hero',     emoji: '🛡️', color: '#EC4899', ages: 'about 8–10 years' },
-  { n: 6, name: 'Legend',   emoji: '👑', color: '#F59E0B', ages: 'about 10–12 years' },
+  { n: 1, name: 'Sprout', icon: 'sprout',   emoji: '🌱', color: '#22C55E', ages: 'about 2½–4 years' },
+  { n: 2, name: 'Sapling', icon: 'leaf',  emoji: '🌿', color: '#14B8A6', ages: 'about 4–5 years' },
+  { n: 3, name: 'Explorer', icon: 'map', emoji: '🧭', color: '#3B82F6', ages: 'about 5–6 years' },
+  { n: 4, name: 'Ranger', icon: 'tree',   emoji: '🏕️', color: '#8B5CF6', ages: 'about 6–8 years' },
+  { n: 5, name: 'Hero', icon: 'star',     emoji: '🛡️', color: '#EC4899', ages: 'about 8–10 years' },
+  { n: 6, name: 'Legend', icon: 'sparkle',   emoji: '👑', color: '#F59E0B', ages: 'about 10–12 years' },
 ];
 
-export const STAR_CHAPTER: Chapter = { n: 7, name: 'Star Levels', emoji: '⭐', color: '#FACC15', ages: 'beyond 12 years' };
+export const STAR_CHAPTER: Chapter = { n: 7, name: 'Star Levels', icon: 'star', emoji: '⭐', color: '#FACC15', ages: 'beyond 12 years' };
 
 export const MAX_LADDER_LEVEL = CHAPTERS.length * LEVELS_PER_CHAPTER; // 30
 

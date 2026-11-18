@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
@@ -373,7 +373,7 @@ export default function TrailWalkPage() {
                 <button onClick={walk}
                   className="px-10 py-3 rounded-full text-lg font-extrabold text-white shadow-xl pulse whitespace-nowrap"
                   style={{ background: '#0E7490' }}>
-                  Walk! ▶
+                  Walk! <GoArrow />
                 </button>
               </div>
             )}
@@ -440,7 +440,7 @@ export default function TrailWalkPage() {
             message={<>You reached the flag!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} ▶</PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useHubTheme } from '@/hooks/useHubTheme';
+import { Sun, Moon } from '@/components/scenery/SkyDecor';
 
 // An iPhone-style sliding switch for day/night mode, instead of a plain
 // icon button — the slide itself communicates on/off at a glance, and
@@ -22,7 +23,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
           boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
           fontSize: 12,
         }}>
-        {dark ? '🌙' : '☀️'}
+        {dark ? <Moon size={16} /> : <Sun size={16} />}
       </span>
     </button>
   );

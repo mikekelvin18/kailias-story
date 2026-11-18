@@ -57,7 +57,7 @@ export default function SlowWaves({ difficulty, say, onDone, pet, reaction }: Ro
         if (phase !== s.phase) {
           if (phase === 'in' && s.phase === 'out') { s.breaths++; fire(50, 40, ['#FFFFFF', '#99F6E4', '#FFE7A8'], 10, 60); }
           s.phase = phase;
-          speak(phase === 'in' ? 'Breathe in' : 'Breathe out', { rate: 0.8, pitch: 1 });
+          speak(phase === 'in' ? 'Breathe in.' : 'Breathe out.', { rate: 0.8, voice: 'Shelly' });
         }
         s.samples++;
         if ((phase === 'in') === holding.current) s.match++;

@@ -6,7 +6,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -718,7 +718,7 @@ export default function SnackQuestPage() {
             message={<>The dragon is full and happy! {pet.name} is doing a happy dance!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}>Level {level + 1} ▶</PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}>Level {level + 1} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />
