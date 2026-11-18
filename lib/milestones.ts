@@ -421,7 +421,13 @@ function halfYears(h: number): string {
  * the real range: a child below their age, and a child who is really ahead
  * (a ceiling was found and the whole range is above their age). The raw estimate still drives game difficulty.
  */
-export function screenView(est: AgeEstimate, ageMonths: number | null, challenged = false): AgeEstimate {
+export function screenView(est: AgeEstimate, ageMonths: number | null, challenged = false, topPassed = Infinity): AgeEstimate {
+  // An "ahead" range never reaches past the hardest question actually
+  // answered right, and never reads "+" (a few questions can't prove more).
+  const capped = (e: AgeEstimate): AgeEstimate => {
+    const high = Math.min(e.high, topPassed);
+    return { ...e, high, mid: Math.min(e.mid, high), low: Math.min(e.low, high - 6), openTop: false };
+  };
   if (!ageMonths) return est;
   const margin = Math.max(2, Math.round(ageMonths * 0.08));
   const top = ageMonths + margin;
@@ -429,11 +435,11 @@ export function screenView(est: AgeEstimate, ageMonths: number | null, challenge
   // The grown-up chose the Challenge round (harder questions) and the child
   // passed it: the whole range sits clearly above their age, so it is
   // stated as it is ("… or older"). Without the challenge, it is capped.
-  if (challenged && est.openTop && est.low >= top) return est;
+  if (challenged && est.openTop && est.low >= top) return capped(est);
   // Really ahead (Kelvin: "state facts with range"): the answers found
   // where the child's skills stop (a ceiling, not an open top) and the
   // whole range sits above their age. Then the true range is shown.
-  if (!est.openTop && est.low >= ageMonths) return est;
+  if (!est.openTop && est.low >= ageMonths) return capped(est);
   const atOrAbove = est.mid >= ageMonths * 0.92;
   // At or above (Kelvin, 2026-11-18): the range starts AT their age, never
   // below it ("about 6 to 6½ years, at or above their age"). Otherwise keep

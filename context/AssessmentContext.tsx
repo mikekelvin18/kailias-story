@@ -298,6 +298,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   // ── Developmental-age ranges (lib/milestones.ts) ──
   const chronoMonths = state.childAgeMonths
     ?? (state.childAge == null ? null : state.childAge < 1 ? 9 : state.childAge === 1 ? 18 : state.childAge * 12 + 6);
+  /** Age level (months) of the hardest question answered right. */
+  const topPassed = (ev: Evidence[]) => ev.reduce((m, e) => (e.r >= 1 ? Math.max(m, e.months) : m), 0) || Infinity;
   const estimates: Partial<Record<MilestoneDomain, AgeEstimate>> = {};
   const pooled: Evidence[] = [];
   for (const d of MILESTONE_DOMAINS) {
@@ -311,14 +313,14 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     const ev = state.evidence?.[d]?.filter(e => e.months <= (isChallengeEvidence(e) ? chRoof : roof));
     if (!ev?.length) continue;
     const est = estimateAge(ev, chronoMonths);
-    if (est) estimates[d] = screenView(est, chronoMonths, ev.some(isChallengeEvidence));
+    if (est) estimates[d] = screenView(est, chronoMonths, ev.some(isChallengeEvidence), topPassed(ev));
     pooled.push(...ev);
   }
   const rawOverall = estimateAge(pooled, chronoMonths);
   // devMonths (game difficulty, stage) uses the raw middle; what parents
   // read uses the screen view, held near the real age at the top.
   const devMonths = rawOverall ? rawOverall.mid : null;
-  const overall = rawOverall ? screenView(rawOverall, chronoMonths, pooled.some(isChallengeEvidence)) : null;
+  const overall = rawOverall ? screenView(rawOverall, chronoMonths, pooled.some(isChallengeEvidence), topPassed(pooled)) : null;
   const domainRange = (d: MilestoneDomain) => {
     const est = estimates[d];
     if (est) return formatAgeRange(est);

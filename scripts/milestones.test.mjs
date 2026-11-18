@@ -78,5 +78,12 @@ assert.match(M.formatAgeRange({ low: 30, mid: 33, high: 36, items: 5 }), /^about
   const a = M.screenView(M.estimateAge(ahead, 72), 72);
   assert.ok(!a.atOrAbove && a.low >= 72, `ahead range ${M.formatAgeRange(a)}`);
   console.log('really ahead 6-year-old →', M.formatAgeRange(a), M.compareToAge(a, 72));
+  // Never past the hardest question passed, never "+" (coordinator check, 2026-11-18).
+  const c = M.screenView(M.estimateAge(ahead, 72), 72, true, 102);
+  assert.ok(c.high <= 102 && !c.openTop, `capped ${M.formatAgeRange(c)}`);
+  const allRight = [72, 84, 96, 108, 120, 132, 144].map((m, i) => ({ id: 'challenge-c' + i, months: m, r: 1, kind: 'choice3' }));
+  const d = M.screenView(M.estimateAge(allRight, 72), 72, true, 144);
+  assert.ok(d.high <= 144 && !/\+|older/.test(M.formatAgeRange(d)), `aced challenge ${M.formatAgeRange(d)}`);
+  console.log('capped →', M.formatAgeRange(c), '| aced challenge →', M.formatAgeRange(d));
 }
 console.log(`\nok — ${cases.length} simulated children, ${fails} misses`);
