@@ -72,7 +72,8 @@ export default function ProgressReportPage() {
             <p className="text-[11px] text-slate-500 mb-2">
               Each range is the likeliest 8 in 10 developmental ages, worked out from age-tagged milestones
               (CDC 2022 checklists under 5, OT norms for hand skills and pencil grasp, end-of-grade standards for
-              school age), asked with a basal and ceiling so the range isn&apos;t capped by the child&apos;s age.
+              school age), asked with a basal and ceiling. Like any screener, it checks skills up to a little past the
+              child&apos;s age; &ldquo;or older&rdquo; means every skill up to that point was there.
             </p>
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {([
@@ -80,7 +81,8 @@ export default function ProgressReportPage() {
                 ['✍️ Fine Motor / Writing', 'writing'],
                 ['🗣️ Communication', 'communication'],
                 ['🔢 Math', 'math'],
-              ] as [string, MilestoneDomain][]).map(([label, key]) => {
+                ['🦉 Attention & Memory', 'processing'],
+              ] as [string, MilestoneDomain][]).filter(([, key]) => key !== 'processing' || domainRange(key) !== 'not checked yet').map(([label, key]) => {
                 const cmp = domainComparison(key);
                 return (
                   <div key={label} className="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-100 last:border-0">

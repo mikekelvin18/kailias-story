@@ -361,7 +361,8 @@ export default function FireflyCatchPage() {
     for (const f of fireflies) {
       if (f.caught) continue;
       const d = Math.hypot(f.x - x, f.y - y);
-      if (d <= cfg.r + 14 && d < bestDist) { best = f; bestDist = d; }
+      // at least a 44px radius (an 88px circle) so fast, small ones are still fair for little fingers
+      if (d <= Math.max(44, cfg.r + 22) && d < bestDist) { best = f; bestDist = d; }
     }
     if (best) {
       const now = performance.now();
@@ -480,6 +481,15 @@ export default function FireflyCatchPage() {
                 style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(110,231,183,0.3)' }}>
                 {cfg.label}
               </span>
+              {/* Caught so far: one little glow per firefly, lit as each is caught */}
+              <div className="flex justify-center gap-1.5 mt-2" aria-label={`${fireflies.filter(f => f.caught).length} of ${fireflies.length} caught`}>
+                {fireflies.map(f => (
+                  <span key={f.id} className={`inline-block w-3.5 h-3.5 rounded-full transition-all ${f.caught ? 'pop' : ''}`}
+                    style={f.caught
+                      ? { background: '#FDE047', boxShadow: '0 0 10px #FDE047' }
+                      : { background: 'transparent', border: '2px solid rgba(253,224,71,0.45)' }} />
+                ))}
+              </div>
             </div>
 
             <div ref={areaRef}

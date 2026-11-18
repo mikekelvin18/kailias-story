@@ -317,8 +317,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     const est = estimates[d];
     return est ? compareToAge(est, chronoMonths) : null;
   };
+  // The stage name and its at-home activity list never run ahead of the
+  // child's real age: a strong 6-year-old gets the best 6-year-old
+  // activities, not chapter books and long division (Muse review,
+  // 2026-11-18). A child working below their age still gets activities
+  // at their working level.
   const { stage, emoji, description } = devMonths != null
-    ? stageForMonths(devMonths)
+    ? stageForMonths(chronoMonths != null ? Math.min(devMonths, chronoMonths) : devMonths)
     : getLearningStage(totalScore, state.ageGroup);
   const developmentalAge = overall
     ? formatAgeRange(overall).replace(/^about/, 'About')

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import StepGuide from '@/components/ui/StepGuide';
@@ -148,7 +148,7 @@ const GROUP_LABELS: Record<string, string> = {
 const BASIS_NOTE = 'Each question is a milestone tagged with the age most children (about 3 in 4) reach it: CDC "Learn the Signs. Act Early." (2022) under 5, OT developmental norms for hand skills, and end-of-grade standards for school age.';
 
 export default function ChecklistPage() {
-  const { state, chronoMonths, setDomainScore, setDomainEvidence, completeAssessment } = useAssessment();
+  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, completeAssessment } = useAssessment();
   const router = useRouter();
 
   const group   = (state.ageGroup ?? 'preschool') as string;
@@ -163,6 +163,19 @@ export default function ChecklistPage() {
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [rounds, setRounds] = useState(0);
   const [firstNew, setFirstNew] = useState<string | null>(null);
+
+  // The saved profile (and so the child's age) loads a moment after the
+  // first render. Until then the age is a 3-year-old guess, so once the
+  // real age arrives, restart this part's questions from it (only if
+  // nothing has been answered yet). Without this a 6-year-old's parent
+  // was asked toddler questions like "puts two words together".
+  const firstDomain = domains[0].key as MilestoneDomain;
+  useEffect(() => {
+    if (!loaded || chronoMonths == null) return;
+    if (step !== 0 || rounds !== 0 || Object.keys(answers).length) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time catch-up once the saved age loads
+    setAsked(startingItems(firstDomain, chronoMonths));
+  }, [loaded, chronoMonths, firstDomain, step, rounds, answers]);
 
   const domain      = domains[step];
   const domainKey   = domain.key as MilestoneDomain;

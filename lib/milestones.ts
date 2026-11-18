@@ -244,6 +244,18 @@ export function milestoneById(id: string): Milestone | undefined { return BY_ID[
 
 // ─── Choosing questions (start near age, then basal / ceiling) ───────────
 
+/**
+ * The hardest item a screen may ask, in months. Like the CDC checklists and
+ * other screeners, this check looks for skills up to a little past the
+ * child's own age; it does not test how far beyond their age a child can
+ * go (that needs a full standardized test). A child who passes everything
+ * up to here reads "… or older" instead of a made-up higher age. Used by
+ * the parent checklist and the school-age placement games alike.
+ */
+export function screenCeiling(ageMonths: number): number {
+  return Math.max(ageMonths * 1.3, ageMonths + 12);
+}
+
 export const START_ITEMS = 6;
 export const MAX_ITEMS = 12;
 export const MAX_EXTRA_ROUNDS = 3;
@@ -294,10 +306,10 @@ export function followUpItems(
   const needCeiling = notYet.length < 2 || answers[sorted[sorted.length - 1].id] === 1;
   // Basal: two "yes"es, and the easiest answer is a "yes".
   const needBasal = yes.length < 2 || answers[sorted[0].id] !== 1;
-  // Never climb past 1.5× the child's age: a parent proud enough to tick
-  // every "yes" shouldn't turn a 3-year-old into a 10-year-old. The
-  // estimate then reads "or older" at the top instead.
-  const roof = ageMonths ? Math.max(ageMonths * 1.5, ageMonths + 6) : Infinity;
+  // Never climb past the screen's ceiling (see screenCeiling): a parent
+  // proud enough to tick every "yes" shouldn't turn a 3-year-old into a
+  // 10-year-old. The estimate then reads "or older" at the top instead.
+  const roof = ageMonths ? screenCeiling(ageMonths) : Infinity;
   if (needCeiling) extra.push(...ladder.filter(m => !askedIds.has(m.id) && m.months > hi && m.months <= roof).slice(0, 2));
   if (needBasal) extra.push(...ladder.filter(m => !askedIds.has(m.id) && m.months < lo).slice(-2));
   return extra.slice(0, MAX_ITEMS - asked.length).sort((a, b) => a.months - b.months);
@@ -359,6 +371,15 @@ export function estimateAge(evidence: Evidence[], ageMonths: number | null): Age
       est.high = Math.min(est.high, topPass * 1.15);
       est.mid = Math.min(est.mid, topPass);
       est.low = Math.min(est.low, topPass * 0.85);
+    } else {
+      // With a ceiling, the range still never reaches far past the hardest
+      // skill actually seen: no questions were asked up there, so the
+      // answers can't speak for it (a 6-year-old's combined range read
+      // "6 to 9½" from items that stopped at 7).
+      const topSeen = Math.max(...evidence.filter(e => e.r > 0).map(e => e.months));
+      est.high = Math.min(est.high, Math.max(topSeen * 1.25, topSeen + 3));
+      est.mid = Math.min(est.mid, est.high);
+      est.low = Math.min(est.low, est.mid);
     }
   }
   return est;

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
-import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { developmentalBand, libraryBand, BAND_INFO, type LibraryBand } from '@/lib/difficulty';
 import { hasActiveConsent } from '@/lib/family';
 import {
   ACTIVITIES, DOMAIN_META, ParentActivity, ActivityDomain, ReportScore,
@@ -101,7 +101,7 @@ function ActivityCard({ activity, report, onReport, highlight }: {
           </div>
           {done && (
             <p className="text-xs text-gray-500 mt-2">
-              Saved! Every report helps Kailia understand your little one better. 💜
+              Saved! Every report helps Kailia understand your explorer better. 💜
             </p>
           )}
         </div>
@@ -111,9 +111,16 @@ function ActivityCard({ activity, report, onReport, highlight }: {
 }
 
 export default function ActivityLibraryPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const detectedBand = developmentalBand(state.ageGroup, totalScore, devMonths);
-  const [band, setBand] = useState<1 | 2 | 3>(detectedBand ?? 2);
+  const { state, totalScore, devMonths, chronoMonths, loaded } = useAssessment();
+  // The library follows the placement: little ones get their band, a
+  // school-age child gets the Big Adventurer shelf (never toddler quests).
+  const hasCheck = devMonths != null || totalScore > 0;
+  const detectedBand: LibraryBand = libraryBand(
+    hasCheck ? developmentalBand(state.ageGroup, totalScore, devMonths) : null,
+    hasCheck ? (devMonths ?? 60) : null,
+    chronoMonths,
+  );
+  const [band, setBand] = useState<LibraryBand>(detectedBand);
   const [domainFilter, setDomainFilter] = useState<ActivityDomain | 'all'>('all');
   const [reports, setReports] = useState<{ [id: string]: ReportScore }>({});
   const [streak, setStreak] = useState(0);
@@ -125,7 +132,7 @@ export default function ActivityLibraryPage() {
   const bright = themeName === 'bright';
 
   // follow the assessment once it loads from storage
-  useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
+  useEffect(() => { if (loaded) setBand(detectedBand); }, [detectedBand, loaded]);
   useEffect(() => {
     setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent());
     setPremiumState(isPremium()); setCustomTasks(loadCustomTasks());
@@ -181,10 +188,16 @@ export default function ActivityLibraryPage() {
             style={{ background: 'rgba(253,224,71,0.12)', border: '1.5px solid rgba(253,224,71,0.35)' }}>
             <span className="text-xl" style={{ flexShrink: 0 }}>💡</span>
             <p className={`text-xs leading-relaxed ${bright ? 'text-amber-900' : 'text-yellow-100'}`}>
-              <strong>Why these quests?</strong> {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure
-              level is still growing — and at the {info.name} stage, children learn most from playing
-              <strong> with you</strong>, not from a screen. That&apos;s why these together-quests are the
-              main adventure we recommend, with the map games as a fun extra.
+              {band === 4 ? (
+                <><strong>Why these quests?</strong> They match {state.childName ? `${state.childName}'s` : 'your child\'s'} adventure
+                check. The map games do most of the practising at this stage; these short real-world missions
+                carry the same skills off the screen, <strong>with you</strong>.</>
+              ) : (
+                <><strong>Why these quests?</strong> {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure
+                level is still growing — and at the {info.name} stage, children learn most from playing
+                <strong> with you</strong>, not from a screen. That&apos;s why these together-quests are the
+                main adventure we recommend, with the map games as a fun extra.</>
+              )}
             </p>
           </div>
         )}
@@ -267,7 +280,7 @@ export default function ActivityLibraryPage() {
               <button onClick={() => setShowLibrary(false)} className={`text-xs font-bold ${theme.link}`}>Hide ▴</button>
             </div>
             <div className="flex gap-2 mb-3 justify-center">
-              {([1, 2, 3] as const).map(b => (
+              {([1, 2, 3, 4] as const).map(b => (
                 <button key={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
                   className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
                   style={band === b

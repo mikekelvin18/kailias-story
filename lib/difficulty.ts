@@ -43,11 +43,26 @@ export function developmentalBand(ageGroup: AgeGroup, totalScore: number, devMon
   return null;
 }
 
-export const BAND_INFO: Record<1 | 2 | 3, { name: string; emoji: string; ages: string; blurb: string }> = {
+// The Quest Library also has a school-age shelf (Band 4 "Big Adventurer",
+// ≈ 4–8 yrs) of together-quests that back up the map games. A school-age
+// child (DevBand null) gets Band 4, never toddler quests (Muse review,
+// 2026-11-18). With no check yet, the child's real age decides.
+export type LibraryBand = 1 | 2 | 3 | 4;
+
+export function libraryBand(devBand: DevBand, devMonths: number | null | undefined, chronoMonths: number | null | undefined): LibraryBand {
+  if (devBand) return devBand;
+  if (devMonths != null) return 4; // checked, and working at school-age level
+  if (chronoMonths != null) return chronoMonths < 18 ? 1 : chronoMonths < 30 ? 2 : chronoMonths < 48 ? 3 : 4;
+  return 4;
+}
+
+export const BAND_INFO: Record<LibraryBand, { name: string; emoji: string; ages: string; blurb: string }> = {
   1: { name: 'Little Sprout', emoji: '🌱', ages: 'about 6–18 months',
        blurb: 'Baby learns from your face, your hands, and real objects — you play together off the screen, then tap what you noticed.' },
   2: { name: 'Little Explorer', emoji: '🐾', ages: 'about 18 months – 2½ years',
        blurb: 'Cause and effect is the big lesson now — little hands making big things happen, on screen and off.' },
   3: { name: 'Little Adventurer', emoji: '🎒', ages: 'about 2½ – 4 years',
        blurb: 'Ready for first real games — matching, counting to 3, big tracing, and two-step missions.' },
+  4: { name: 'Big Adventurer', emoji: '🧭', ages: 'about 4–8 years',
+       blurb: 'Quick real-world missions to do together, practising what the map games teach: letters, sharing, stories, steady hands.' },
 };
