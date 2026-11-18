@@ -191,6 +191,8 @@ export default function SnackQuestPage() {
   const walkTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const posRef = useRef<Tile>(START);
   const carriedRef = useRef(0);
+  const destRef = useRef<Tile | null>(null);      // where the current walk is heading
+  const queuedRef = useRef<Tile | null>(null);    // a tap made while walking to a snack
   const itemsRef = useRef<Item[]>([]);
   const tierRef = useRef<DifficultyTier>('small');
   const firstPickupRef = useRef(false);
@@ -241,17 +243,18 @@ export default function SnackQuestPage() {
   const buildRounds = useCallback((lvl: number): RoundCfg[] => {
     const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
     tierRef.current = tier;
+    // Three wishes per feast (was four, ~22 one-snack trips; Muse review
+    // 2026-11-18): count, then two "how many MORE?" wishes.
     const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
-      tiny:  { w: [1, 2, 2, 3], h: [0, 0, 1, 1] },   // developmental level under ~2½ yrs
-      small: { w: [3, 4, 3, 5], h: [0, 0, 1, 2] },
-      big:   { w: [4, 6, 6, 9], h: [0, 0, 2, 3] },
+      tiny:  { w: [1, 2, 3], h: [0, 1, 1] },   // developmental level under ~2½ yrs
+      small: { w: [3, 4, 5], h: [0, 1, 2] },
+      big:   { w: [4, 7, 9], h: [0, 3, 4] },
     };
     const { w, h } = plans[tier];
     const bump = Math.floor((lvl - 1) / 3);
     const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
     const intros = [
       `The baby dragon is hungry! Walk to a snack to pick it up, then bring it to her!`,
-      `She's still hungry — and this time it's a bigger wish!`,
       `Look — she already has some! How many MORE does she need?`,
       `One last feast! Count carefully — you've got this!`,
     ];
@@ -284,6 +287,9 @@ export default function SnackQuestPage() {
 
   const startRound = useCallback((idx: number, roundPlan: RoundCfg[]) => {
     if (walkTimer.current) clearInterval(walkTimer.current);
+    walkTimer.current = null;
+    destRef.current = null;
+    queuedRef.current = null;
     const round = roundPlan[idx];
     const wallSet = WALLS[idx % WALLS.length];
     attemptsRef.current = 0;
@@ -322,13 +328,28 @@ export default function SnackQuestPage() {
 
   // ── Walking ──
   function walkTo(target: Tile) {
+    // Already on the way to a snack? Finish picking it up first, then go
+    // (a quick tap on the dragon used to cancel the pickup).
+    const dest = destRef.current;
+    if (walkTimer.current && dest && itemsRef.current.some(i => i.r === dest.r && i.c === dest.c)) {
+      queuedRef.current = target;
+      return;
+    }
     if (walkTimer.current) clearInterval(walkTimer.current);
+    // Standing at the dragon with snacks and tapping her again: deliver now.
+    if (inDragonZone(posRef.current) && inDragonZone(target) && carriedRef.current > 0) {
+      setDelivered(carriedRef.current);
+      setPhase('checking');
+      return;
+    }
     const path = findPath(posRef.current, target, walls);
     if (!path || !path.length) return;
+    destRef.current = target;
+    queuedRef.current = null;
     setWalking(true);
     walkTimer.current = setInterval(() => {
       const next = path.shift();
-      if (!next) { if (walkTimer.current) clearInterval(walkTimer.current); setWalking(false); return; }
+      if (!next) { if (walkTimer.current) clearInterval(walkTimer.current); walkTimer.current = null; setWalking(false); return; }
       const isDestination = path.length === 0;
       const from = posRef.current;
       if (next.c !== from.c) setFaceLeft(next.c < from.c);
@@ -346,6 +367,7 @@ export default function SnackQuestPage() {
         const here = itemsRef.current.find(i => i.r === next.r && i.c === next.c);
         if (here) {
           sfx.pickup();
+          carriedRef.current += 1; // count it now, so a delivery on the very next step sees it
           setCarried(c => c + 1);
           setItems(prev => prev.filter(i => i.id !== here.id));
           setHintItem(null);
@@ -361,9 +383,21 @@ export default function SnackQuestPage() {
       // reached the dragon with snacks → deliver
       if (inDragonZone(next) && carriedRef.current > 0) {
         if (walkTimer.current) clearInterval(walkTimer.current);
+        walkTimer.current = null;
+        queuedRef.current = null;
         setWalking(false);
         setDelivered(carriedRef.current);
         setPhase('checking');
+        return;
+      }
+      // arrived: if the child tapped somewhere else on the way, go there now
+      if (isDestination) {
+        if (walkTimer.current) clearInterval(walkTimer.current);
+        walkTimer.current = null;
+        destRef.current = null;
+        const q = queuedRef.current;
+        queuedRef.current = null;
+        if (q) setTimeout(() => walkTo(q), 0);
       }
     }, 170);
   }
@@ -376,6 +410,12 @@ export default function SnackQuestPage() {
     const c = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
     const r = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+    // A tap anywhere on the dragon's picture (it hangs a little below her
+    // nest tiles) means "go to the dragon": aim for the nest.
+    if (r <= 2 && c >= 4 && !inDragonZone({ r, c })) {
+      const nest = [{ r: 1, c: 5 }, { r: 1, c: 6 }, { r: 0, c: 5 }, { r: 0, c: 6 }].find(t => !walls.some(w => w.r === t.r && w.c === t.c));
+      if (nest) { walkTo(nest); return; }
+    }
     walkTo({ r, c });
   }
 
@@ -683,6 +723,15 @@ export default function SnackQuestPage() {
                   <div className="text-center bounce-in px-4">
                     <Guide size={90} expression="celebrating" />
                     <p className="text-xl font-extrabold text-white mt-1 px-4 py-2 rounded-2xl" style={{ background: 'rgba(40,22,10,0.82)' }}>{praise}</p>
+                    {/* each wish is its own little win: wish N of 3 granted */}
+                    <p className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-base font-extrabold text-amber-900" style={{ background: '#FDE68A' }}>
+                      Wish {roundIdx + 1} of {rounds.length} granted!
+                      <span className="inline-flex gap-1">
+                        {rounds.map((_, i) => (
+                          <span key={i} className="inline-block w-3 h-3 rounded-full" style={{ background: i <= roundIdx ? '#B45309' : 'rgba(180,83,9,0.25)' }} />
+                        ))}
+                      </span>
+                    </p>
                   </div>
                 </div>
               )}

@@ -7,7 +7,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
 import StepGuide from '@/components/ui/StepGuide';
 import type { Evidence, MilestoneDomain } from '@/lib/milestones';
-import { screenCeiling } from '@/lib/milestones';
+import { screenCeiling, aheadCeiling } from '@/lib/milestones';
 import { fineMotorStage, TRACE_MEASURES, traceNextStep } from '@/lib/fineMotor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -194,11 +194,16 @@ function firstQuestion(bank: Question[], ageMonths: number): number {
   bank.forEach((q, i) => { if (Math.abs(q.months - target) < Math.abs(bank[best].months - target)) best = i; });
   return best;
 }
-function nextQuestion(bank: Question[], asked: number[], lastIdx: number, lastRight: boolean, ageMonths: number): number | null {
-  // Never past the screen's ceiling (lib/milestones.ts): a 6-year-old who
-  // gets everything right reads "about 6 to 7½ years or older", not a
-  // made-up 10-year-old level from grade-4 questions.
-  const roof = screenCeiling(ageMonths);
+function nextQuestion(bank: Question[], asked: number[], lastIdx: number, lastRight: boolean, ageMonths: number, rightIdx: number[] = []): number | null {
+  // Normally never past the screen's ceiling (lib/milestones.ts), so a
+  // proud or lucky run can't invent a 10-year-old level. But a child who
+  // has got EVERY question at or above their age right may be really
+  // ahead (Kelvin: "state facts with range"), so the ladder keeps climbing
+  // (up to 1.6× their age) until it finds where their skills stop. Only a
+  // range with that ceiling found is shown as "ahead".
+  const aboveAge = asked.filter(i => bank[i].months >= ageMonths);
+  const acedAboveAge = aboveAge.length >= 2 && aboveAge.every(i => rightIdx.includes(i));
+  const roof = acedAboveAge ? aheadCeiling(ageMonths) : screenCeiling(ageMonths);
   const open = bank.map((_, i) => i).filter(i => !asked.includes(i) && bank[i].months <= roof);
   if (!open.length) return null;
   const up = open.filter(i => i > lastIdx), down = open.filter(i => i < lastIdx);
@@ -872,7 +877,13 @@ export default function GamesPage() {
     const r = getScore() >= question.points.correct ? 1 : 0;
     setEvidence(ev => [...ev, { id: `${game.key}-${cur}`, months: question.months, r, kind: 'choice3' }]);
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
-    setEncourage(pool[Math.floor(Math.random() * pool.length)]);
+    let line = pool[Math.floor(Math.random() * pool.length)];
+    // A miss gets a gentle "here's the one Kailia picked" so the child
+    // learns something, never a red X (and no retry: a retry would change
+    // what the check measures).
+    const rightOpt = question.options?.find(o => o.correct);
+    if (r === 0 && rightOpt) line = `Good thinking! Kailia picked: ${rightOpt.label}`;
+    setEncourage(line);
     setSubmitted(true);
   };
 
@@ -890,7 +901,11 @@ export default function GamesPage() {
     if (!game) return;
     const domainKey = game.key as 'reading' | 'communication' | 'math';
     const last = evidence[evidence.length - 1];
-    const next = isLastQ ? null : nextQuestion(bank, asked, cur, last?.r === 1, age);
+    const rightIdx = evidence.filter(e => e.r === 1).map(e => Number(e.id.split('-').pop()));
+    // A child acing everything above their age gets up to 2 extra rungs to find their ceiling.
+    const aceExtra = evidence.length >= QUESTIONS_PER_GAME && evidence.filter(e => e.months >= age).every(e => e.r === 1)
+      && evidence.some(e => e.months >= age) && asked.length < QUESTIONS_PER_GAME + 2;
+    const next = (isLastQ && !aceExtra) ? null : nextQuestion(bank, asked, cur, last?.r === 1, age, rightIdx);
     if (next == null) {
       setDomainEvidence(domainKey, evidence);
       // Legacy 0–10 score (share right) — still drives the stage name and the bars.

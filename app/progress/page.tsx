@@ -1,5 +1,6 @@
 'use client';
 
+import ResultsDisclaimer from '@/components/ui/ResultsDisclaimer';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -18,7 +19,7 @@ import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 // reports), never anything new collected just for this page.
 
 export default function ProgressReportPage() {
-  const { state, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
+  const { state, loaded, domainRange, domainComparison, primarySensoryPattern, sensoryPatternDescription } = useAssessment();
   const [child, setChild] = useState<ReturnType<typeof activeChild>>(null);
   const [summaries, setSummaries] = useState<DomainSummary[]>([]);
   const [entries, setEntries] = useState<ReportEntry[]>([]);
@@ -36,6 +37,8 @@ export default function ProgressReportPage() {
   const recent = [...entries].reverse().slice(0, 20);
   const scoreLabel = (s: 0 | 1 | 2) => s === 2 ? 'Did it' : s === 1 ? 'Tried with help' : 'Not yet';
   const scoreColor = (s: 0 | 1 | 2) => s === 2 ? '#059669' : s === 1 ? '#D97706' : '#7C3AED';
+
+  if (!loaded) return <main className="min-h-screen" style={{ background: '#F8FAFC' }} />;
 
   return (
     <main className="min-h-screen pb-24 print:pb-4" style={{ background: '#F8FAFC' }}>
@@ -56,14 +59,11 @@ export default function ProgressReportPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl p-3 mb-6" style={{ background: '#EFF6FF', border: '1.5px solid #BFDBFE' }}>
-          <p className="text-xs text-blue-900">
-            This is a screening and play-guidance summary inspired by developmental research —{' '}
-            <strong>not a clinical diagnosis</strong>. Share freely with an Occupational Therapist,
-            Speech-Language Pathologist, Physical Therapist, teacher, or pediatrician for context on
-            what {child ? child.nickname : 'your child'} has been practicing at home.
-          </p>
-        </div>
+        <ResultsDisclaimer tone="light" />
+        <p className="text-xs text-slate-600 -mt-6 mb-6 px-1">
+          Share freely with an occupational therapist, speech-language pathologist, physical therapist,
+          teacher, or pediatrician for context on what {child ? child.nickname : 'your child'} has been practicing at home.
+        </p>
 
         {/* Developmental snapshot from the initial assessment */}
         {state.childName && (
@@ -77,11 +77,11 @@ export default function ProgressReportPage() {
             </p>
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {([
-                ['📖 Reading', 'reading'],
-                ['✍️ Fine Motor / Writing', 'writing'],
-                ['🗣️ Communication', 'communication'],
-                ['🔢 Math', 'math'],
-                ['🦉 Attention & Memory', 'processing'],
+                ['📖 Early Books & Sounds · Signposts', 'reading'],
+                ['✍️ Hand Skills · Firefly Forest', 'writing'],
+                ['🗣️ Talking & Listening · Story Keepers', 'communication'],
+                ['🔢 Counting & Sorting · Dragon\'s Cave', 'math'],
+                ['🦉 Thinking & Remembering · Owl\'s Tower', 'processing'],
               ] as [string, MilestoneDomain][]).filter(([, key]) => key !== 'processing' || domainRange(key) !== 'not checked yet').map(([label, key]) => {
                 const cmp = domainComparison(key);
                 return (

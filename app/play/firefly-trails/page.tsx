@@ -119,7 +119,9 @@ export default function FireflyTrailsPage() {
   const mode: Mode = tier === 'tiny' ? 'guide'
     : tier === 'small' ? (level < 3 ? 'guide' : 'faint')
     : level < 2 ? 'guide' : level < 4 ? 'faint' : 'memory';
-  const tolerance = tier === 'tiny' ? 36 : tier === 'small' ? 28 : 22;
+  // generous enough for small fingers on a phone (22px at the top tier made
+  // a slow, careful trace miss dots and never finish; Muse review 2026-11-18)
+  const tolerance = tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30;
 
   const startLevel = useCallback(() => {
     const pts = shapePoints(shape.kind);
@@ -187,7 +189,12 @@ export default function FireflyTrailsPage() {
     statsRef.current.devN += 1;
     if (best <= tolerance && bestI >= 0) {
       let changed = false;
-      [bestI - 1, bestI, bestI + 1].forEach(i => {
+      // Sliding along from the last lit dot also wakes the few dots in
+      // between, so a quick finger doesn't leave gaps that never light.
+      const from = lastLitRef.current;
+      const gapFill: number[] = strokeRef.current.woke > 0 && Math.abs(bestI - from) <= 4
+        ? Array.from({ length: Math.abs(bestI - from) + 1 }, (_, k) => Math.min(from, bestI) + k) : [];
+      [bestI - 1, bestI, bestI + 1, ...gapFill].forEach(i => {
         if (i >= 0 && i < litRef.current.length && !litRef.current[i]) { litRef.current[i] = true; changed = true; }
       });
       if (changed) {

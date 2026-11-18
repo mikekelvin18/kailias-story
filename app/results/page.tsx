@@ -10,16 +10,21 @@ import { fineMotorStage, traceNextStep } from '@/lib/fineMotor';
 import { loadProgress } from '@/lib/adventure';
 import StepGuide from '@/components/ui/StepGuide';
 import BackButton from '@/components/ui/BackButton';
+import ResultsDisclaimer from '@/components/ui/ResultsDisclaimer';
+import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
+import { DOMAIN_META } from '@/lib/activities';
 import { Sparkle } from '@/components/scenery/SkyDecor';
 
 const getFineMotorStage = fineMotorStage;
 
+// Same names as the Parent Zone and the map (one naming set everywhere;
+// Muse review 2026-11-18): the skill, then the land that practises it.
 const DOMAIN_INFO = [
-  { key: 'reading',       label: 'Reading & Literacy',     emoji: '📖', color: '#2563EB', max: 10 },
-  { key: 'writing',       label: 'Writing & Fine Motor',   emoji: '✍️', color: '#059669', max: 10 },
-  { key: 'communication', label: 'Communication',          emoji: '🗣️', color: '#7C3AED', max: 10 },
-  { key: 'math',          label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', max: 10 },
-  { key: 'processing',    label: 'Attention & Memory',     emoji: '🦉', color: '#0E7490', max: 10 },
+  { key: 'reading',       label: 'Early Books & Sounds',   land: 'Signposts',      emoji: '📖', color: '#2563EB', max: 10 },
+  { key: 'writing',       label: 'Hand Skills',            land: 'Firefly Forest', emoji: '✍️', color: '#059669', max: 10 },
+  { key: 'communication', label: 'Talking & Listening',    land: 'Story Keepers',  emoji: '🗣️', color: '#7C3AED', max: 10 },
+  { key: 'math',          label: 'Counting & Sorting',     land: "Dragon's Cave",  emoji: '🔢', color: '#D97706', max: 10 },
+  { key: 'processing',    label: 'Thinking & Remembering', land: "Owl's Tower",    emoji: '🦉', color: '#0E7490', max: 10 },
 ];
 
 const DOMAIN_BASIS: Record<string, string> = {
@@ -135,7 +140,7 @@ const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> 
 export default function ResultsPage() {
   const {
     state, totalScore, learningStage, stageEmoji, stageDescription,
-    developmentalAge, domainRange, domainComparison, estimates, chronoMonths, devMonths, resetAssessment,
+    developmentalAge, domainRange, domainComparison, estimates, chronoMonths, devMonths, resetAssessment, loaded,
     primarySensoryPattern, sensoryPatternEmoji, sensoryPatternDescription,
   } = useAssessment();
   const router = useRouter();
@@ -148,6 +153,9 @@ export default function ResultsPage() {
   // yet) this is the last of the four setup steps; afterwards it's a
   // regular results page reached from the map or the Parent Zone.
   const [firstVisit, setFirstVisit] = useState(false);
+  const [games, setGames] = useState<GameSummary[]>([]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from this device
+  useEffect(() => { setGames(gameSummaries()); }, []);
   useEffect(() => {
     const p = loadProgress();
     setFirstVisit(Object.keys(p.played).length === 0);
@@ -165,6 +173,13 @@ export default function ResultsPage() {
   const activities = STAGE_ACTIVITIES[learningStage] || STAGE_ACTIVITIES['Skill Builder'];
 
   const handleStartOver = () => { resetAssessment(); router.push('/'); };
+
+  // Nothing until the saved check has loaded: the first frame used to show
+  // the empty defaults ("Early Explorer, about 5–6 years") and old-style
+  // activities, then swap (Muse review, 2026-11-18).
+  if (!loaded) {
+    return <main className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1A2238 0%, #222849 60%, #1E2F4D 100%)' }} />;
+  }
 
   return (
     <main
@@ -265,7 +280,7 @@ export default function ResultsPage() {
                 <div key={d.key}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-white font-semibold text-sm">
-                      {d.emoji} {d.label}
+                      {d.emoji} {d.label} <span className="text-slate-300 text-xs font-normal">· {d.land}</span>
                     </span>
                     <div className="flex items-center gap-2">
                       <span
@@ -437,20 +452,36 @@ export default function ResultsPage() {
           </ul>
         </div>
 
-        {/* Disclaimer */}
-        <div
-          className="rounded-2xl p-5 mb-8 text-sm"
-          style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
-        >
-          <p className="text-purple-200 leading-relaxed">
-            <strong className="text-white">📋 Note for parents:</strong> Developmental age estimates
-            are approximate ranges based on typical milestone progressions — they are not a clinical
-            diagnosis. This is a screening and learning placement tool inspired by developmental
-            science and educational research. For a formal evaluation, please consult a qualified
-            professional such as an Occupational Therapist, Speech-Language Pathologist, or
-            Developmental Pediatrician.
-          </p>
+        {/* What the child has played since the check (games only log numbers;
+            they never change the age range above) */}
+        <div className="rounded-3xl p-6 mb-6 shadow-xl"
+          style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}>
+          <h3 className="text-xl font-bold text-white mb-1">Games Played</h3>
+          <p className="text-slate-300 text-sm mb-4">What {state.childName || 'your child'} has played in Kailia&apos;s World</p>
+          {games.length === 0 ? (
+            <p className="text-slate-300 text-sm italic">No games finished yet. Each finished game shows up here.</p>
+          ) : (
+            <div className="space-y-2">
+              {games.slice(0, 8).map(g => (
+                <div key={g.id} className="flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5"
+                  style={{ background: 'rgba(255,255,255,0.07)' }}>
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-bold truncate">{g.title}</p>
+                    <p className="text-slate-300 text-xs">{DOMAIN_META[g.domain as keyof typeof DOMAIN_META]?.label ?? g.domain} · last played {new Date(g.lastPlayed).toLocaleDateString()}</p>
+                  </div>
+                  <span className="text-right flex-shrink-0 text-xs text-slate-200">
+                    <span className="block font-bold">finished {g.finished}×</span>
+                    {g.highestLevel > 0 && <span className="block text-slate-300">up to level {g.highestLevel}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <a href="/progress" className="inline-block mt-4 text-sm font-bold text-purple-200 underline">Full progress report →</a>
         </div>
+
+        {/* Disclaimer */}
+        <ResultsDisclaimer />
 
         {/* Parent & Baby Quest Library — the main path for the littlest ones */}
         {band !== null && (

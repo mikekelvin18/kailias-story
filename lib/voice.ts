@@ -189,19 +189,21 @@ function playClips(files: string[], gen: number, fallback: () => void) {
 export function say(text: string, opts: SayOptions = {}) {
   if (typeof window === 'undefined') return;
   try {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
+    // Recorded lines must play even where the browser has no speech
+    // engine or no voices at all (Muse's test browser said "This device
+    // has no read-aloud voices" and Noel stayed silent).
+    const synth: SpeechSynthesis | undefined = window.speechSynthesis;
     const clean = text.replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').replace(/[*_~]/g, '')
       .replace(/\s+/g, ' ').trim();
     const gen = ++generation;
-    const busy = synth.speaking || synth.pending;
-    synth.cancel();
+    const busy = !!synth && (synth.speaking || synth.pending);
+    try { synth?.cancel(); } catch { /* ignore */ }
     stopClip();
     setTalking(false);
     if (!clean) return;
 
     const start = () => {
-      if (gen !== generation) return;
+      if (gen !== generation || !synth) return;
       const voice = chosenVoice();
       const natural = isNaturalVoice(voice);
       const wantPitch = opts.pitch ?? 1.08;
@@ -235,7 +237,15 @@ export function say(text: string, opts: SayOptions = {}) {
         playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); });
         return;
       }
+      // No device voice to fill the gaps: play the sentences that are
+      // recorded rather than say nothing at all.
+      const recorded = files.filter(Boolean) as string[];
+      if (recorded.length && (!synth || allVoices().length === 0)) {
+        playClips(recorded, gen, () => stopClip());
+        return;
+      }
     }
+    if (!synth) return;
 
     // Safari drops a line spoken in the same instant as a cancel, so give
     // it a breath when something was still playing.

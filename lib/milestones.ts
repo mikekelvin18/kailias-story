@@ -59,6 +59,8 @@ export interface AgeEstimate {
   items: number;   // how many answers it rests on
   /** No ceiling was found (every hard question was a "yes"): the true level may be higher than shown. */
   openTop?: boolean;
+  /** Screen view: on track or above, so the top is held near the real age (see screenView). */
+  atOrAbove?: boolean;
 }
 
 // ─── Model constants (review with real data) ─────────────────────────────
@@ -256,6 +258,11 @@ export function screenCeiling(ageMonths: number): number {
   return Math.max(ageMonths * 1.3, ageMonths + 12);
 }
 
+/** How high a child who aces everything above their age may climb, to find where their skills stop. */
+export function aheadCeiling(ageMonths: number): number {
+  return Math.max(screenCeiling(ageMonths), ageMonths * 1.6);
+}
+
 export const START_ITEMS = 6;
 export const MAX_ITEMS = 12;
 export const MAX_EXTRA_ROUNDS = 3;
@@ -394,9 +401,36 @@ function halfYears(h: number): string {
   return `${whole}${half ? '½' : ''}`;
 }
 
+/**
+ * What a SCREEN may say (Kelvin, 2026-11-18). Like the CDC checklists and
+ * the ASQ, this check only asks "is the child on track for their age?"; it
+ * cannot measure how far ahead a child is (that needs a full standardized
+ * test). So the shown range never reaches more than about half a year past
+ * the real age (8% of age, at least 2 months); a child on track or above
+ * reads "about 5½ to 6½ years, at or above their age". Two exceptions keep
+ * the real range: a child below their age, and a child who is really ahead
+ * (a ceiling was found and the whole range is above their age). The raw estimate still drives game difficulty.
+ */
+export function screenView(est: AgeEstimate, ageMonths: number | null): AgeEstimate {
+  if (!ageMonths) return est;
+  const margin = Math.max(2, Math.round(ageMonths * 0.08));
+  const top = ageMonths + margin;
+  if (est.high <= top) return est;
+  // Really ahead (Kelvin: "state facts with range"): the answers found
+  // where the child's skills stop (a ceiling, not an open top) and the
+  // whole range sits above their age. Then the true range is shown.
+  if (!est.openTop && est.low >= ageMonths) return est;
+  const atOrAbove = est.mid >= ageMonths * 0.92;
+  // At or above: the range is the child's own age band. Otherwise keep the
+  // real (lower) bottom of the range, with the top held near their age.
+  const low = atOrAbove ? ageMonths - margin : Math.min(est.low, ageMonths - margin);
+  return { ...est, high: top, mid: Math.min(est.mid, top), low, openTop: false, atOrAbove };
+}
+
 /** "about 14 to 18 months", "about 2½ to 3½ years" — always a range. An open top reads "… or older". */
 export function formatAgeRange(est: AgeEstimate): string {
   const text = formatRange(est);
+  if (est.atOrAbove) return `${text}, at or above their age`;
   return est.openTop && !/\+|or more/.test(text) ? `${text} or older` : text;
 }
 

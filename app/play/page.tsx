@@ -10,7 +10,7 @@ import LiveArt from '@/components/characters/LiveArt';
 import PandaSprite from '@/components/characters/PandaSprite';
 import {
   LANDS, BONUS_LANDS, Land, AdventureProgress, loadProgress, rememberLaunchLand, markCelebrated,
-  landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, currentLandIndex, isQuestFree,
+  landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, areRealmsOpen, currentLandIndex, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity, DOMAIN_META, ActivityDomain } from '@/lib/activities';
@@ -257,7 +257,7 @@ export default function AdventureMap() {
   // tablet/desktop (landscape, land.dx/land.dy) coordinates — see the
   // "The map" section below for why there are two.
   function renderMap(mode: 'portrait' | 'landscape') {
-    const bonusUnlocked = hydrated && isBonusLandUnlocked(progress);
+    const bonusUnlocked = hydrated && areRealmsOpen(progress);
     // Bonus lands are always ON the map (even before they're unlocked) as
     // a blurred, mysterious tease — Kailia can see a portal is forming
     // out there, building anticipation, instead of them just materializing
@@ -321,7 +321,7 @@ export default function AdventureMap() {
                 sfx.locked();
                 setShakeId(land.id);
                 setTimeout(() => setShakeId(null), 400);
-                setNoelLine("A new portal is forming out there... finish all six lands and let's see what it is!");
+                setNoelLine(`A new portal is forming out there... finish a quest in every land and let's see what it is! (${LANDS.filter(l => landStars(progress, l) >= 1).length} of 6 so far)`);
                 setNoelMood('thinking');
               }
               return;

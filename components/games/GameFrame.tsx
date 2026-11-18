@@ -15,7 +15,7 @@
 // shared, polished frame. Everything respects Reduce motion: the scene
 // simply appears, still.
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -50,7 +50,7 @@ function Title({ text, accent }: { text: string; accent: string }) {
         <span key={w} className="inline-block whitespace-nowrap" aria-hidden="true">
           {[...word].map((ch, i) => {
             const n = words.slice(0, w).join('').length + i;
-            return <span key={i} className="gf-letter" style={{ animationDelay: `${0.05 + n * 0.045}s` }}>{ch}</span>;
+            return <span key={i} className="gf-letter" style={{ animationDelay: `${0.03 + n * 0.025}s` }}>{ch}</span>;
           })}
           {w < words.length - 1 && <span className="gf-letter">&nbsp;</span>}
         </span>
@@ -162,7 +162,7 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
         background: `radial-gradient(closest-side, ${accent}AA, ${accent}33 70%, transparent)`,
       }} />
       <div className="absolute flex items-end justify-center gap-1" style={{ left: 0, right: 0, bottom: 18 }}>
-        <span className={reduced ? '' : 'gf-enter-right'} style={{ animationDelay: '0.35s' }}>
+        <span className={reduced ? '' : 'gf-enter-right'} style={{ animationDelay: '0.15s' }}>
           <PandaSprite size={Math.round(kailiaH * 0.84)} expression={party ? 'celebrating' : 'excited'} />
         </span>
         <span style={{
@@ -174,7 +174,7 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
           </span>
         </span>
         <span className={reduced ? '' : party ? 'fg-dance inline-block' : 'gf-drop-in inline-block'}
-          style={{ animationDelay: party ? '0.2s' : '1.05s', transformOrigin: '50% 100%' }}>
+          style={{ animationDelay: party ? '0.15s' : '0.45s', transformOrigin: '50% 100%' }}>
           <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, petH)} kind="pet" />
         </span>
       </div>
@@ -226,14 +226,14 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
         </div>
         <Title text={title} accent={theme.accent} />
         <Gang pet={pet} accent={theme.accent} />
-        <div className="gf-bubble mt-3 text-left" style={{ animationDelay: '1.25s' }} {...(readAloud ? { 'data-read-aloud': '' } : {})}>
+        <div className="gf-bubble mt-3 text-left" style={{ animationDelay: '0.55s' }} {...(readAloud ? { 'data-read-aloud': '' } : {})}>
           <span className="gf-bubble-tail" aria-hidden="true" />
           <div className="text-gray-900 text-[17px] font-bold leading-snug space-y-2">{story}</div>
         </div>
-        {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '1.45s' }}>{extras}</div>}
-        {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '1.6s' }}>{levels}</div>}
+        {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.65s' }}>{extras}</div>}
+        {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.75s' }}>{levels}</div>}
         {onStart && (
-          <div className="gf-rise-in mt-5" style={{ animationDelay: '1.75s' }}>
+          <div className="gf-rise-in mt-5" style={{ animationDelay: '0.85s' }}>
             <PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton>
           </div>
         )}
@@ -276,22 +276,13 @@ function Confetti({ n = 60, colors }: { n?: number; colors: string[] }) {
 /** Starlight earned: little stars fly in and the number counts up with a pop. */
 function StarCounter({ earned, accent }: { earned: number; accent: string }) {
   const reduced = useReducedMotion();
-  const [shown, setShown] = useState(0);
+  // The real number shows from the first frame (a quick look or a
+  // screenshot never catches "+0"); the counter pops when the flying stars land.
   const [pops, setPops] = useState(0);
-  const last = useRef(0);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- no count-up with Reduce motion
-    if (reduced) { setShown(earned); return; }
-    let raf = 0;
-    const t0 = performance.now() + 900;            // after the stars land
-    const step = (now: number) => {
-      const k = Math.min(1, Math.max(0, (now - t0) / 1100));
-      const v = Math.round(earned * (1 - Math.pow(1 - k, 3)));
-      if (v !== last.current) { last.current = v; setShown(v); setPops(p => p + 1); }
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    if (reduced) return;
+    const t = setTimeout(() => setPops(p => p + 1), 1000);
+    return () => clearTimeout(t);
   }, [earned, reduced]);
   return (
     <div className="relative inline-flex items-center justify-center mt-2" style={{ height: 64 }}>
@@ -304,7 +295,7 @@ function StarCounter({ earned, accent }: { earned: number; accent: string }) {
         </span>
       ))}
       <span key={pops} className="gf-counter" style={{ ['--gf-accent' as string]: accent } as CSSProperties}>
-        <StarIcon size={30} /> <span className="tabular-nums">+{shown}</span> <span className="text-base font-extrabold opacity-80">starlight</span>
+        <StarIcon size={30} /> <span className="tabular-nums">+{earned}</span> <span className="text-base font-extrabold opacity-80">starlight</span>
       </span>
     </div>
   );

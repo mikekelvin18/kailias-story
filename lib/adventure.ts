@@ -189,6 +189,15 @@ export function isBonusLandUnlocked(p: AdventureProgress): boolean {
   return LANDS.every(land => isLandComplete(p, land));
 }
 
+// The bonus realms (Space Outpost, Coral Reef) open once a quest has been
+// finished in every one of the six lands. Muse finished games in all six
+// and found them still locked with no idea why (2026-11-18); needing every
+// quest of every land was a long, invisible wall. Friends' adventures still
+// wait for all six lands to be complete.
+export function areRealmsOpen(p: AdventureProgress): boolean {
+  return LANDS.every(land => landStars(p, land) >= 1);
+}
+
 // ── Progress (saved on this device) ──
 
 const KEY = 'kailia_adventure_v1';

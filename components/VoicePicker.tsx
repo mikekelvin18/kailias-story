@@ -35,7 +35,7 @@ export default function VoicePicker({ value, onChange }: { value: string; onChan
   }, [value]);
 
   if (!voices.length) {
-    return <p className="text-xs text-gray-500">This device has no read-aloud voices.</p>;
+    return <p className="text-xs text-gray-500">Noel reads every game in his own recorded voice. This device has no extra voices to choose from for the few lines with a name or number in them.</p>;
   }
 
   const current = voices.find(v => v.name === value);
