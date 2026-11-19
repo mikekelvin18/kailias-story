@@ -228,7 +228,7 @@ interface IntroProps {
 
 export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play', readAloud = true }: IntroProps) {
   return (
-    <main className="gf-screen" style={{ background: theme.bg }}>
+    <main data-testid="game-intro" className="gf-screen" style={{ background: theme.bg }}>
       <GameBackdrop />
       <StarDust />
       <div className="relative max-w-sm w-full mx-auto px-4 pt-3 pb-8 text-center">
@@ -329,7 +329,7 @@ interface FinishProps {
 export function GameFinish({ title, theme, pet, message, earned, trophy, actions }: FinishProps) {
   const reduced = useReducedMotion();
   return (
-    <main className="gf-screen flex items-center" style={{ background: theme.bg }}>
+    <main data-testid="game-finish" className="gf-screen flex items-center" style={{ background: theme.bg }}>
       <GameBackdrop />
       {!reduced && <Confetti colors={['#FDE047', '#F472B6', '#60A5FA', '#4ADE80', '#FFFFFF', '#FB923C', theme.accent]} />}
       <div className="relative max-w-sm w-full mx-auto px-4 py-8 text-center" style={{ zIndex: 2 }}>
