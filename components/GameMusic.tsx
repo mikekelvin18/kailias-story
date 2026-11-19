@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { A11Y_EVENT, musicEnabled, updateA11yPrefs } from '@/lib/accessibility';
+import { A11Y_EVENT, musicEnabled, updateA11yPrefs, masterVolume } from '@/lib/accessibility';
 import { music } from '@/lib/music';
 
 /** Listening games, where music would cover the sounds the child must hear. */
@@ -27,10 +27,14 @@ export default function GameMusic() {
   const inGame = isGame(path);
   const [on, setOn] = useState(true);
   const [hidden, setHidden] = useState(true); // nothing on screen until we know the setting
+  // the sound panel (Muse round 4: a volume control inside every game)
+  const [open, setOpen] = useState(false);
+  const [vol, setVol] = useState(1);
+  const showButton = path.startsWith('/play/');
 
   // keep the button in step with the setting, wherever it is changed
   useEffect(() => {
-    const sync = () => { setOn(musicEnabled()); setHidden(false); };
+    const sync = () => { setOn(musicEnabled()); setVol(masterVolume()); setHidden(false); };
     sync();
     window.addEventListener(A11Y_EVENT, sync);
     window.addEventListener('storage', sync);
@@ -62,7 +66,15 @@ export default function GameMusic() {
     return () => document.removeEventListener('visibilitychange', vis);
   }, []);
 
-  if (!inGame || hidden) return null;
+  // close the panel on a tap anywhere else
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => { if (!(e.target as Element)?.closest?.('[data-sound-panel]')) setOpen(false); };
+    window.addEventListener('pointerdown', close, true);
+    return () => window.removeEventListener('pointerdown', close, true);
+  }, [open]);
+
+  if (!showButton || hidden) return null;
 
   const toggle = () => {
     const next = !on;
@@ -72,26 +84,48 @@ export default function GameMusic() {
     if (next) music().start(); else music().stop();
   };
 
+  const setVolume = (v: number) => {
+    setVol(v);
+    // moving the volume up also lifts "reduce sound", otherwise nothing would play
+    updateA11yPrefs(v > 0 ? { volume: v, reducedSound: false } : { volume: v });
+  };
+
   return (
-    <button type="button" onClick={toggle}
-      aria-label={on ? 'Turn music off' : 'Turn music on'} aria-pressed={on}
-      title={on ? 'Music on' : 'Music off'}
-      className="fixed z-[60] grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105"
-      style={{
-        right: 'max(14px, env(safe-area-inset-right))',
-        bottom: 'max(14px, env(safe-area-inset-bottom))',
-        width: 46, height: 46,
-        background: 'rgba(255,255,255,0.92)',
-        border: '2px solid rgba(124,58,237,0.35)',
-        boxShadow: '0 4px 14px rgba(20,10,60,0.28)',
-        opacity: on ? 1 : 0.85,
-      }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 17.5V6.2l10-2.2v11.3" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <ellipse cx="6.6" cy="17.6" rx="2.9" ry="2.3" fill="#7C3AED" />
-        <ellipse cx="16.6" cy="15.4" rx="2.9" ry="2.3" fill="#7C3AED" />
-        {!on && <path d="M3.5 3.5l17 17" stroke="#64748B" strokeWidth="2.4" strokeLinecap="round" />}
-      </svg>
-    </button>
+    <div data-sound-panel className="fixed z-[60]"
+      style={{ right: 'max(14px, env(safe-area-inset-right))', bottom: 'max(14px, env(safe-area-inset-bottom))' }}>
+      {open && (
+        <div className="absolute bottom-[56px] right-0 w-56 rounded-2xl p-3 shadow-xl"
+          style={{ background: 'rgba(255,255,255,0.97)', border: '2px solid rgba(124,58,237,0.35)' }}>
+          <label htmlFor="kp-game-volume" className="block text-xs font-extrabold text-violet-800 mb-1">Volume</label>
+          <input id="kp-game-volume" type="range" min={0} max={100} step={5} value={Math.round(vol * 100)}
+            onChange={e => setVolume(Number(e.target.value) / 100)}
+            className="w-full accent-violet-600" aria-valuetext={`${Math.round(vol * 100)} percent`} />
+          {inGame && (
+            <button type="button" onClick={toggle} aria-pressed={on}
+              className="mt-2 w-full flex items-center justify-between rounded-xl px-3 py-2 text-sm font-bold text-violet-800"
+              style={{ background: '#F5F3FF' }}>
+              <span>Music</span><span>{on ? 'On' : 'Off'}</span>
+            </button>
+          )}
+        </div>
+      )}
+      <button type="button" onClick={() => setOpen(o => !o)}
+        aria-label="Sound and volume" aria-expanded={open}
+        title="Sound and volume"
+        className="grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105"
+        style={{
+          width: 46, height: 46,
+          background: 'rgba(255,255,255,0.92)',
+          border: '2px solid rgba(124,58,237,0.35)',
+          boxShadow: '0 4px 14px rgba(20,10,60,0.28)',
+        }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#7C3AED" stroke="#7C3AED" strokeWidth="1.6" strokeLinejoin="round" />
+          {vol > 0 && <path d="M15.5 9a4 4 0 0 1 0 6" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" />}
+          {vol > 0.5 && <path d="M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" />}
+          {vol === 0 && <path d="M15.5 9.5l5 5m0-5l-5 5" stroke="#64748B" strokeWidth="2.2" strokeLinecap="round" />}
+        </svg>
+      </button>
+    </div>
   );
 }

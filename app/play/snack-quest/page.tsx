@@ -193,6 +193,7 @@ export default function SnackQuestPage() {
   const carriedRef = useRef(0);
   const destRef = useRef<Tile | null>(null);      // where the current walk is heading
   const queuedRef = useRef<Tile | null>(null);    // a tap made while walking to a snack
+  const countTapRef = useRef<Tile | null>(null);  // a tap made while the dragon counts
   const itemsRef = useRef<Item[]>([]);
   const tierRef = useRef<DifficultyTier>('small');
   const firstPickupRef = useRef(false);
@@ -290,6 +291,7 @@ export default function SnackQuestPage() {
     walkTimer.current = null;
     destRef.current = null;
     queuedRef.current = null;
+    countTapRef.current = null;
     const round = roundPlan[idx];
     const wallSet = WALLS[idx % WALLS.length];
     attemptsRef.current = 0;
@@ -401,11 +403,11 @@ export default function SnackQuestPage() {
         queuedRef.current = null;
         if (q) setTimeout(() => walkTo(q), 0);
       }
-    }, 170);
+    }, 135); // a brisker walk, so fewer taps land mid-walk (Muse round 4)
   }
 
   function onFieldTap(e: React.PointerEvent) {
-    if (phase !== 'playing' || !fieldRef.current) return;
+    if ((phase !== 'playing' && phase !== 'checking') || !fieldRef.current) return;
     // tickling the friend is play, not a walk
     if ((e.target as HTMLElement).closest?.('[data-pet]')) return;
     const rect = fieldRef.current.getBoundingClientRect();
@@ -416,8 +418,10 @@ export default function SnackQuestPage() {
     // nest tiles) means "go to the dragon": aim for the nest.
     if (r <= 2 && c >= 4 && !inDragonZone({ r, c })) {
       const nest = [{ r: 1, c: 5 }, { r: 1, c: 6 }, { r: 0, c: 5 }, { r: 0, c: 6 }].find(t => !walls.some(w => w.r === t.r && w.c === t.c));
-      if (nest) { walkTo(nest); return; }
+      if (nest) { if (phase === 'checking') countTapRef.current = nest; else walkTo(nest); return; }
     }
+    // while the dragon counts, the tap is kept and done right after
+    if (phase === 'checking') { countTapRef.current = { r, c }; return; }
     walkTo({ r, c });
   }
 
@@ -451,6 +455,9 @@ export default function SnackQuestPage() {
         setGuideLine(`Yum! That makes ${total}. She wished for ${cfg.want}. Bring her some more!`);
         setGuideMood('excited');
         setPhase('playing');
+        const tap = countTapRef.current;
+        countTapRef.current = null;
+        if (tap && !inDragonZone(tap)) setTimeout(() => walkTo(tap), 60); // not in timers: those clear when the phase changes
         return;
       }
       if (total === cfg.want) {

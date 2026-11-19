@@ -296,7 +296,7 @@ export default function WheresNoelPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #475569 0%, #1e293b 55%, #0f172a 100%)', accent: '#FB923C', accent2: '#EA580C' }}
               pet={pet}
               story={<><p data-no-read className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                <PieceIcon kind={scene.treasure.piece} size={22} /> Chapter {level}: {scene.name}
+                <PieceIcon kind={scene.treasure.piece} size={22} /> Level {level}: {scene.name}
               </p>
               <p>{scene.story}</p></>}
               extras={<div className="flex items-end justify-center gap-3"><Magnifier size={70} />
@@ -410,7 +410,7 @@ export default function WheresNoelPage() {
             message={<>You found Noel and every {scene.treasure.label.replace(/s$/, '')} in {scene.name}!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next chapter <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next level <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />
