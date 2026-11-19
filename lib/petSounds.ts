@@ -5,7 +5,7 @@
 // public/sounds/pets/. A pet calls when it's tapped, and games can call
 // petCall() when the pet cheers. Quiet when sound is turned down.
 
-import { soundEnabled } from './accessibility';
+import { soundEnabled, masterVolume } from './accessibility';
 import { COMPANIONS } from './rewards';
 
 const KINDS = ['owl', 'fox', 'parrot', 'turtle', 'dragon', 'unicorn'] as const;
@@ -39,7 +39,7 @@ export function petCall(pet: string, { volume = 0.55, cheer = false } = {}) {
   try {
     let a = players.get(kind);
     if (!a) { a = new Audio(`/sounds/pets/${kind}.mp3`); players.set(kind, a); }
-    a.volume = volume;
+    a.volume = volume * masterVolume();
     a.currentTime = 0;
     void a.play().catch(() => { /* sound is a bonus */ });
   } catch { /* sound is a bonus */ }

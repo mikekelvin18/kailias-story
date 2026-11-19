@@ -6,6 +6,8 @@
 // once the browser's limit is hit). Every game now borrows this one.
 // Background music (lib/music.ts) keeps its own context on purpose.
 
+import { masterVolume, A11Y_EVENT } from './accessibility';
+
 let shared: AudioContext | null = null;
 
 export function audioCtx(): AudioContext | null {
@@ -23,4 +25,26 @@ export function audioCtx(): AudioContext | null {
   } catch {
     return null;
   }
+}
+
+// ── Grown-ups' volume (Parent Zone) ──
+// Every sound effect goes out through one gain per audio context, set from
+// the volume slider (lib/accessibility.ts masterVolume) and kept in step
+// when it moves.
+const outs = new WeakMap<BaseAudioContext, GainNode>();
+const live = new Set<GainNode>();
+let listening = false;
+export function sfxOut(ctx: BaseAudioContext): AudioNode {
+  let g = outs.get(ctx);
+  if (!g) {
+    g = ctx.createGain();
+    g.gain.value = masterVolume();
+    g.connect(ctx.destination);
+    outs.set(ctx, g); live.add(g);
+    if (!listening && typeof window !== 'undefined') {
+      listening = true;
+      window.addEventListener(A11Y_EVENT, () => { const v = masterVolume(); live.forEach(n => { n.gain.value = v; }); });
+    }
+  }
+  return g;
 }

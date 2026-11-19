@@ -6,7 +6,7 @@
 // listed in public/voice/kailia/manifest.json. Until they're recorded she
 // stays quiet (a robot voice would spoil her). Never while Noel is talking.
 
-import { soundEnabled } from './accessibility';
+import { soundEnabled, masterVolume } from './accessibility';
 import { isTalking } from './voice';
 
 /** Keep in sync with voice/kailia-lines.json (the recording list). */
@@ -39,7 +39,7 @@ export function kailiaCheer() {
   try {
     player = player ?? new Audio();
     player.src = `/voice/kailia/${clips[line]}`;
-    player.volume = 0.8;
+    player.volume = 0.8 * masterVolume();
     void player.play().catch(() => { /* sound is a bonus */ });
   } catch { /* sound is a bonus */ }
 }

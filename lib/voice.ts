@@ -10,7 +10,7 @@
 // hand in Grown-ups > Display & accessibility (saved on this device only,
 // like the other display settings; it is not child data).
 
-import { loadA11y } from './accessibility';
+import { loadA11y, masterVolume } from './accessibility';
 
 /* Voices we know sound warm and friendly, best first. Matching is by
    name, so "Microsoft Ana Online (Natural)" matches "ana online". */
@@ -206,6 +206,7 @@ function playClips(files: string[], gen: number, fallback: () => void, base = '/
     if (gen !== generation) return;
     if (i >= files.length) { setTalking(false); return; }
     audio.src = `${base}/${files[i++]}`;
+    audio.volume = masterVolume();
     audio.onended = () => setTimeout(next, 140); // a small breath between sentences
     audio.onerror = () => { if (gen === generation) fallback(); };
     audio.play().then(() => { if (gen === generation) setTalking(true); })
@@ -239,6 +240,9 @@ export function say(text: string, opts: SayOptions = {}) {
 
     const start = () => {
       if (gen !== generation || !synth) return;
+      // No voices at all: queuing lines there can pile up and play late
+      // over the next game (Muse retest #3, Sense Explorer), so don't.
+      if (synth.getVoices().length === 0) return;
       const voice = chosenVoice();
       const natural = isNaturalVoice(voice);
       const wantPitch = opts.pitch ?? 1.08;
@@ -251,6 +255,7 @@ export function say(text: string, opts: SayOptions = {}) {
       const parts = sentences(clean).map(p => p.replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase())));
       parts.forEach((part, i) => {
         const u = new SpeechSynthesisUtterance(part);
+        u.volume = masterVolume();
         if (voice) { u.voice = voice; u.lang = voice.lang; }
         u.rate = rate;
         u.pitch = Math.max(0.5, Math.min(2, pitch));

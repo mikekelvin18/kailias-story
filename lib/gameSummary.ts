@@ -52,3 +52,18 @@ export function gameSummaries(list: QuestMetric[] = getQuestMetrics()): GameSumm
   }
   return [...by.values()].filter(r => r.finished > 0).sort((a, b) => b.lastPlayed - a.lastPlayed);
 }
+
+export interface RecentPlay { id: string; title: string; domain: string; level: number | null; ts: number }
+
+/** The last few finished games, newest first (the parent's activity log). */
+export function recentPlays(n = 10, list: QuestMetric[] = getQuestMetrics()): RecentPlay[] {
+  return list
+    .filter(m => !m.taskId.startsWith('parent-') && !isSubStep(m.taskId))
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, n)
+    .map(m => {
+      const id = baseId(m.taskId);
+      const lvl = Number(m.data.level);
+      return { id, title: titleOf(id), domain: m.domain, level: Number.isFinite(lvl) ? lvl : null, ts: m.ts };
+    });
+}

@@ -50,7 +50,7 @@ function Title({ text, accent }: { text: string; accent: string }) {
         <span key={w} className="inline-block whitespace-nowrap" aria-hidden="true">
           {[...word].map((ch, i) => {
             const n = words.slice(0, w).join('').length + i;
-            return <span key={i} className="gf-letter" style={{ animationDelay: `${0.03 + n * 0.025}s` }}>{ch}</span>;
+            return <span key={i} className="gf-letter" style={{ animationDelay: `${n * 0.02}s` }}>{ch}</span>;
           })}
           {w < words.length - 1 && <span className="gf-letter">&nbsp;</span>}
         </span>
@@ -237,14 +237,14 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
         </div>
         <Title text={title} accent={theme.accent} />
         <Gang pet={pet} accent={theme.accent} />
-        <div className="gf-bubble mt-3 text-left" style={{ animationDelay: '0.55s' }} {...(readAloud ? { 'data-read-aloud': '' } : {})}>
+        <div className="gf-bubble mt-3 text-left" style={{ animationDelay: '0.1s' }} {...(readAloud ? { 'data-read-aloud': '' } : {})}>
           <span className="gf-bubble-tail" aria-hidden="true" />
           <div className="text-gray-900 text-[17px] font-bold leading-snug space-y-2">{story}</div>
         </div>
-        {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.65s' }}>{extras}</div>}
-        {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.75s' }}>{levels}</div>}
+        {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.12s' }}>{extras}</div>}
+        {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.14s' }}>{levels}</div>}
         {onStart && (
-          <div className="gf-rise-in mt-5" style={{ animationDelay: '0.85s' }}>
+          <div className="gf-rise-in mt-5" style={{ animationDelay: '0.16s' }}>
             <PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton>
           </div>
         )}

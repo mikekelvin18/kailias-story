@@ -16,6 +16,8 @@ export interface AccessibilityPrefs {
   musicOn: boolean;
   /** A grown-up's hand-picked read-aloud voice ('' = pick the nicest automatically). */
   voiceName: string;
+  /** Overall volume for voices, music and sound effects, 0–1 (Parent Zone slider). */
+  volume: number;
 }
 
 export const DEFAULT_A11Y: AccessibilityPrefs = {
@@ -27,6 +29,7 @@ export const DEFAULT_A11Y: AccessibilityPrefs = {
   calmMode: false,
   musicOn: true,
   voiceName: '',
+  volume: 1,
 };
 
 const KEY = 'kailia_a11y_v1';
@@ -60,6 +63,14 @@ export function applyA11y(prefs: AccessibilityPrefs) {
 // Games check this before playing any sound effect.
 export function soundEnabled(): boolean {
   return !loadA11y().reducedSound;
+}
+
+// The grown-ups' volume slider, 0–1 (0 when sounds are turned down).
+export function masterVolume(): number {
+  const a = loadA11y();
+  if (a.reducedSound) return 0;
+  const v = Number(a.volume);
+  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
 }
 
 // Background music plays only when music is on AND sound isn't turned down.

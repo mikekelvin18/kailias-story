@@ -44,7 +44,7 @@ const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
 
 import { soundEnabled } from '@/lib/accessibility';
 import { Thing } from '@/components/art/things';
-import { audioCtx } from '@/lib/sfx';
+import { audioCtx, sfxOut } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
@@ -57,7 +57,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
       osc.frequency.value = f;
       gain.gain.setValueAtTime(0.12, ctx.currentTime + t);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(gain).connect(sfxOut(ctx));
       osc.start(ctx.currentTime + t);
       osc.stop(ctx.currentTime + t + d);
     });

@@ -20,6 +20,7 @@ import { usePlayPet, type PlayPet } from '@/components/games/playPet';
 import LiveArt from '@/components/characters/LiveArt';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { petWidth } from '@/lib/companionTrails';
+import { sfxOut } from '@/lib/sfx';
 
 // ─── Dragon Bridge ──────────────────────────────────────────────────────────
 // The second game of the Dragon's Treasure Cave (math). Kailia has to get
@@ -206,7 +207,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
       o.type = 'triangle'; o.frequency.value = f;
       g.gain.setValueAtTime(0.11, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
+      o.connect(g).connect(sfxOut(ctx)); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
     });
     setTimeout(() => ctx.close().catch(() => {}), 1500);
   } catch { /* sound is a bonus */ }

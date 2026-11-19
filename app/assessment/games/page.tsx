@@ -914,7 +914,8 @@ export default function GamesPage() {
     // learns something, never a red X (and no retry: a retry would change
     // what the check measures).
     const rightOpt = question.options?.find(o => o.correct);
-    if (r === 0 && rightOpt) line = `Good thinking! Kailia picked: ${rightOpt.label}`;
+    // Muse retest #3: clearly different from praise, and honest about the answer.
+    if (r === 0 && rightOpt) line = `Nice try! Noel shows you: the answer is "${rightOpt.label}" 🐼`;
     setEncourage(line);
     setSubmitted(true);
   };
@@ -1050,7 +1051,7 @@ export default function GamesPage() {
           ))}
         </div>
         <div className="flex gap-1 mb-5">
-          {Array.from({ length: challenge ? CHALLENGE_QS : Math.min(QUESTIONS_PER_GAME, bank.length) }, (_, i) => (
+          {Array.from({ length: challenge ? CHALLENGE_QS : Math.max(asked.length, Math.min(QUESTIONS_PER_GAME, bank.length)) }, (_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
               style={{ background: i < questionIdx ? game.color : i === questionIdx ? `${game.color}66` : '#E5E7EB' }} />
           ))}
@@ -1074,11 +1075,15 @@ export default function GamesPage() {
                 // No right/wrong marks for the child (CLAUDE.md: never show
                 // failure) — their pick just stays highlighted.
                 if (submitted && sel) { bg = game.light; border = game.color; textCol = game.color; }
+                // After a miss the right answer is shown softly in green.
+                const showRight = submitted && opt.correct && !sel;
+                if (showRight) { bg = '#ECFDF5'; border = '#10B981'; textCol = '#047857'; }
                 return (
                   <button key={i} onClick={() => !submitted && setSelected(opt.label)} disabled={submitted}
                     className="w-full text-left px-5 py-4 rounded-2xl font-semibold text-base transition-all hover:scale-[1.02]"
                     style={{ background: bg, border: `2px solid ${border}`, color: textCol }}>
                     {opt.label}
+                    {showRight && <span className="ml-2 text-xs font-extrabold uppercase tracking-wide">· the answer</span>}
                   </button>
                 );
               })}
@@ -1125,7 +1130,7 @@ export default function GamesPage() {
           {challenge
             ? `Game ${CHALLENGE_STEPS.indexOf(gameStep) + 1} of ${CHALLENGE_STEPS.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}/${CHALLENGE_QS}`
             : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
-              {!isTracingStep && ` • Question ${questionIdx + 1}/${Math.min(QUESTIONS_PER_GAME, bank.length)}`}</>}
+              {!isTracingStep && ` • Question ${questionIdx + 1}/${Math.max(asked.length, Math.min(QUESTIONS_PER_GAME, bank.length))}`}</>}
         </p>
       </div>
     </main>

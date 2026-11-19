@@ -862,7 +862,7 @@ button:active {
   text-shadow: 0 4px 0 #3b2416, 0 0 26px var(--gf-accent, #A855F7), 0 0 4px var(--gf-accent, #A855F7);
 }
 @keyframes gf-letter {
-  0%   { transform: translateY(-60px) scale(0.4, 1.6) rotate(-12deg); opacity: 0; }
+  0%   { transform: translateY(-18px) scale(0.85, 1.15) rotate(-6deg); opacity: 1; }
   55%  { transform: translateY(6px) scale(1.25, 0.78) rotate(4deg); opacity: 1; }
   75%  { transform: translateY(-4px) scale(0.92, 1.1) rotate(-2deg); }
   100% { transform: translateY(0) scale(1, 1) rotate(0deg); opacity: 1; }
@@ -872,8 +872,9 @@ button:active {
   50%      { transform: translateY(-3px) rotate(-2deg); }
 }
 .gf-letter {
-  display: inline-block; opacity: 0; transform-origin: 50% 100%;
-  animation: gf-letter 0.6s cubic-bezier(.3,.6,.4,1) forwards;
+  /* readable from the first frame (Muse retest #3): letters only bounce into place */
+  display: inline-block; opacity: 1; transform-origin: 50% 100%;
+  animation: gf-letter 0.5s cubic-bezier(.3,.6,.4,1) both;
 }
 .gf-title:hover .gf-letter { animation: gf-letter-idle 0.5s ease-in-out; opacity: 1; }
 @keyframes gf-dust {
@@ -903,7 +904,7 @@ button:active {
 }
 .gf-drop-in { opacity: 0; transform-origin: 50% 100%; animation: gf-drop-in 0.7s ease-out forwards; }
 @keyframes gf-bubble {
-  0%   { transform: scale(0.3) translateY(30px); opacity: 0; }
+  0%   { transform: scale(0.92) translateY(10px); opacity: 1; }
   60%  { transform: scale(1.06) translateY(-4px); opacity: 1; }
   80%  { transform: scale(0.98); }
   100% { transform: scale(1); opacity: 1; }
@@ -911,18 +912,18 @@ button:active {
 .gf-bubble {
   position: relative; padding: 14px 16px; border-radius: 22px; background: #FFFDF6;
   border: 3px solid #3b2416; box-shadow: 0 6px 0 rgba(59,36,22,0.35);
-  opacity: 0; transform-origin: 18% 0%; animation: gf-bubble 0.55s cubic-bezier(.3,.7,.4,1) forwards;
+  opacity: 1; transform-origin: 18% 0%; animation: gf-bubble 0.4s cubic-bezier(.3,.7,.4,1) both;
 }
 .gf-bubble-tail {
   position: absolute; top: -14px; left: 22%; width: 22px; height: 22px; background: #FFFDF6;
   border-left: 3px solid #3b2416; border-top: 3px solid #3b2416; transform: rotate(45deg) skew(8deg, 8deg); border-radius: 4px 0 0 0;
 }
 @keyframes gf-rise-in {
-  0%   { transform: translateY(26px); opacity: 0; }
+  0%   { transform: translateY(10px); opacity: 1; }
   70%  { transform: translateY(-3px); opacity: 1; }
   100% { transform: translateY(0); opacity: 1; }
 }
-.gf-rise-in { opacity: 0; animation: gf-rise-in 0.5s ease-out forwards; }
+.gf-rise-in { opacity: 1; animation: gf-rise-in 0.4s ease-out both; }
 /* the Play button */
 @keyframes gf-breathe {
   0%, 100% { transform: scale(1); box-shadow: 0 7px 0 #3b2416, 0 0 0 0 var(--gf-accent, #A855F7); }

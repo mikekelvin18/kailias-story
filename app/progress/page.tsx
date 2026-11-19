@@ -10,6 +10,7 @@ import { loadCustomTasks, CustomTask } from '@/lib/customTasks';
 import BottomNav from '@/components/BottomNav';
 import BackButton from '@/components/ui/BackButton';
 import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
+import PlayLog from '@/components/ui/PlayLog';
 import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export default function ProgressReportPage() {
         {/* What the child actually played in the app's games */}
         <section className="mb-6">
           <h2 className="text-sm font-extrabold text-slate-700 mb-2">Games Played</h2>
+          <PlayLog tone="light" />
           {games.length === 0 ? (
             <p className="text-sm text-slate-400 italic">No games finished yet. Each game your child finishes will show up here.</p>
           ) : (
@@ -138,7 +140,10 @@ export default function ProgressReportPage() {
         <section className="mb-6">
           <h2 className="text-sm font-extrabold text-slate-700 mb-2">At-Home Practice Summary</h2>
           {summaries.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No daily quest reports yet — they'll show up here once a few are logged.</p>
+            <p className="text-sm text-slate-400 italic">
+              This part is for the real-world quests you do together away from the screen. When you mark one
+              &ldquo;Did it&rdquo; in the <a href="/activities" className="underline font-semibold text-violet-600 not-italic">Quest Library</a>, it shows up here.
+            </p>
           ) : (
             <div className="space-y-2">
               {summaries.map(s => (

@@ -13,6 +13,7 @@ import BackButton from '@/components/ui/BackButton';
 import ResultsDisclaimer from '@/components/ui/ResultsDisclaimer';
 import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 import { DOMAIN_META } from '@/lib/activities';
+import PlayLog from '@/components/ui/PlayLog';
 import { Sparkle } from '@/components/scenery/SkyDecor';
 
 const getFineMotorStage = fineMotorStage;
@@ -472,6 +473,7 @@ export default function ResultsPage() {
           style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}>
           <h3 className="text-xl font-bold text-white mb-1">Games Played</h3>
           <p className="text-slate-300 text-sm mb-4">What {state.childName || 'your child'} has played in Kailia&apos;s World</p>
+          <PlayLog />
           {games.length === 0 ? (
             <p className="text-slate-300 text-sm italic">No games finished yet. Each finished game shows up here.</p>
           ) : (

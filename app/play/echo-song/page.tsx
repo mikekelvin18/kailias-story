@@ -17,7 +17,7 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
 import styles from './game.module.css';
-import { audioCtx } from '@/lib/sfx';
+import { audioCtx, sfxOut } from '@/lib/sfx';
 
 // ─── Echo Song ────────────────────────────────────────────────────────────────
 // Simon-style sequence memory in Echo Caves: the crystals sing a little
@@ -53,7 +53,7 @@ function tone(f: number, d = 0.32) {
     osc.type = 'sine'; osc.frequency.value = f;
     gain.gain.setValueAtTime(0.14, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d);
-    osc.connect(gain).connect(ctx.destination);
+    osc.connect(gain).connect(sfxOut(ctx));
     osc.start(); osc.stop(ctx.currentTime + d);
   } catch { /* sound optional */ }
 }

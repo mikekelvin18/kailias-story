@@ -17,7 +17,7 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
-import { audioCtx } from '@/lib/sfx';
+import { audioCtx, sfxOut } from '@/lib/sfx';
 import { Thing } from '@/components/art/things';
 
 // ─── Word Wizard ──────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ function chime(freqs: number[]) {
       const t = ctx.currentTime + i * 0.09;
       gain.gain.setValueAtTime(0.12, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-      osc.connect(gain).connect(ctx.destination);
+      osc.connect(gain).connect(sfxOut(ctx));
       osc.start(t); osc.stop(t + 0.3);
     });
   } catch { /* sound optional */ }

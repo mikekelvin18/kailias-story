@@ -14,6 +14,7 @@
 // all in the same calm style. Music dips while Noel is talking.
 
 import { onTalking } from './voice';
+import { sfxOut } from './sfx';
 
 type Song = {
   bpm: number;
@@ -125,7 +126,7 @@ class ChillPlayer {
     this.wet = ctx.createGain(); this.wet.gain.value = 0.35;
     this.dry.connect(tone);
     this.wet.connect(verb).connect(tone);
-    tone.connect(this.duck).connect(this.master).connect(ctx.destination);
+    tone.connect(this.duck).connect(this.master).connect(sfxOut(ctx)); // grown-ups' volume
 
     // one second of noise for the shaker
     this.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);

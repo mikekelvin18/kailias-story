@@ -342,6 +342,13 @@ export default function MazeRunnerPage() {
   const hitFlashRef  = useRef(false);
   const doneRef      = useRef(false);
   const progressRef  = useRef(0);       // furthest path length really traced
+  // Which path points the finger has covered, in any order and over any
+  // number of tries (Muse retest #3: a maze whose path crosses itself, plus
+  // lifts and restarts, could leave "furthest traced" stuck, so the flag
+  // never counted). Most of the path covered + on the flag = done.
+  const coveredRef   = useRef<Set<number>>(new Set());
+  const hintSaidRef  = useRef(false);
+  const flagSaidRef  = useRef(false);
   const lengthRef    = useRef(0);       // whole path length
   const levelRef     = useRef(LEVELS[0]);
   const animRef      = useRef(0);
@@ -535,6 +542,8 @@ export default function MazeRunnerPage() {
     hitFlashRef.current  = false;
     doneRef.current      = false;
     progressRef.current  = 0;
+    coveredRef.current   = new Set();
+    hintSaidRef.current  = false;
     lengthRef.current    = pathLength(path);
     charRef.current      = null;
     shownRef.current     = null;
@@ -645,6 +654,7 @@ export default function MazeRunnerPage() {
       setPetPos(prev => ({ x: (s.x / W) * 100, y: (s.y / H) * 100, flip: (s.x / W) * 100 < prev.x }));
     }
     setNoelLine(`Back to the glowing ring! ${pet.name} shows the way.`);
+    hintSaidRef.current = true;
   }
   // ── Input ─────────────────────────────────────────────────────────────────────
 
@@ -694,6 +704,21 @@ export default function MazeRunnerPage() {
       const moved=prev?Math.hypot(p.x-prev.x,p.y-prev.y):0;
       const arc=arcAlong(p,pathRef.current);
       if (arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
+      // mark the path points along this stroke (both ends inside the path)
+      const from = prev && closestOnPath(prev, pathRef.current) <= corridorRef.current ? prev : p;
+      const n = Math.max(1, Math.ceil(Math.hypot(p.x - from.x, p.y - from.y) / 8));
+      pathRef.current.forEach((q, i) => {
+        if (coveredRef.current.has(i)) return;
+        for (let k = 0; k <= n; k++) {
+          const sx = from.x + (p.x - from.x) * k / n, sy = from.y + (p.y - from.y) * k / n;
+          if (Math.hypot(q.x - sx, q.y - sy) <= corridorRef.current) { coveredRef.current.add(i); break; }
+        }
+      });
+      // back on the path after a hint: Noel says so (the hint never sticks)
+      if (hintSaidRef.current && (!hintRef.current || performance.now() > hintRef.current.until)) {
+        hintSaidRef.current = false;
+        setNoelLine('That\'s it! Keep going to the flag.');
+      }
     }
     trailRef.current=[...trailRef.current,{x:p.x,y:p.y,ok}];
     charRef.current=p;
@@ -730,8 +755,9 @@ export default function MazeRunnerPage() {
 
     // Reached end?
     const end=pathRef.current[pathRef.current.length-1];
+    const coverage = coveredRef.current.size / Math.max(1, pathRef.current.length);
     if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
-        && progressRef.current>=lengthRef.current-FINISH_SLACK) {
+        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.85)) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);
@@ -754,6 +780,12 @@ export default function MazeRunnerPage() {
       setTimeout(()=>setPhase('levelcomplete'),900);
       return;
     }
+    // On the flag but a stretch of the path was skipped: say so kindly.
+    const atFlag = Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R;
+    if (atFlag && !doneRef.current && !flagSaidRef.current) {
+      flagSaidRef.current = true;
+      setNoelLine('So close! Follow the glowing path from where Kailia left it.');
+    } else if (!atFlag) flagSaidRef.current = false;
 
     drawCanvas();
   };

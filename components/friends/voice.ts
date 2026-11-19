@@ -5,6 +5,7 @@
 
 import { soundEnabled } from '@/lib/accessibility';
 import { say, canSpeak as canSay } from '@/lib/voice';
+import { sfxOut } from '@/lib/sfx';
 
 export function speak(text: string, opts: { rate?: number; pitch?: number; voice?: string } = {}) {
   say(text, { rate: opts.rate ?? 0.95, pitch: opts.pitch, voice: opts.voice });
@@ -31,7 +32,7 @@ export function tones(notes: { f: number; t: number; d: number }[], type: Oscill
       gain.gain.setValueAtTime(0.0001, now + t);
       gain.gain.exponentialRampToValueAtTime(0.13, now + t + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
-      osc.connect(gain).connect(ctx!.destination);
+      osc.connect(gain).connect(sfxOut(ctx!));
       osc.start(now + t);
       osc.stop(now + t + d + 0.02);
     });

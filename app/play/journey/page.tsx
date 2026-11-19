@@ -77,7 +77,7 @@ const PET_TAG = 'pet:';
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 import { soundEnabled } from '@/lib/accessibility';
-import { audioCtx } from '@/lib/sfx';
+import { audioCtx, sfxOut } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
@@ -88,7 +88,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
       o.type = 'square'; o.frequency.value = f;
       g.gain.setValueAtTime(0.06, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
+      o.connect(g).connect(sfxOut(ctx)); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
     });
   } catch { /* optional */ }
 }

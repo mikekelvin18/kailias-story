@@ -16,7 +16,7 @@ import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
-import { audioCtx } from '@/lib/sfx';
+import { audioCtx, sfxOut } from '@/lib/sfx';
 
 // ─── Potion Sort ────────────────────────────────────────────────────────────
 // A fast-paced drag-to-sort game in the owl's potion room: colored potion
@@ -73,7 +73,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
       o.type = 'triangle'; o.frequency.value = f;
       g.gain.setValueAtTime(0.12, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
+      o.connect(g).connect(sfxOut(ctx)); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
     });
   } catch { /* sound is a bonus */ }
 }
