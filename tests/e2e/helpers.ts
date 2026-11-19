@@ -162,7 +162,7 @@ export async function peek<T = unknown>(page: Page, name: string): Promise<T | n
 
 /** The words Noel (or the game's guide) is saying right now. */
 export async function guideLine(page: Page) {
-  return page.evaluate(() => [...document.querySelectorAll('[data-read-aloud]')].map(e => (e as HTMLElement).innerText).join(' | '));
+  return page.evaluate(() => [...document.querySelectorAll('[data-read-aloud], [data-guide]')].map(e => (e as HTMLElement).innerText).join(' | '));
 }
 
 /** Polls `fn` until it returns something truthy. */
