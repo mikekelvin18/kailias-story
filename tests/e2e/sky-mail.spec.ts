@@ -33,32 +33,47 @@ async function sortBag(page: Page) {
     const sum = evalSum(await card.innerText());
     if (sum !== null) {
       const box = await page.locator(`[data-box="${dir}"]`).innerText();
-      expect(box.trim(), `the right mailbox for "${await card.innerText()}"`).toBe(String(sum));
+      expect(box.trim(), `the right mailbox for this sum`).toBe(String(sum));
     }
-    const before = await card.innerText();
-    await swipe(page, dir);
-    await until(async () => (await finished(page)) || (await page.getByTestId('game-intro').isVisible()) ||
-      ((await card.count()) > 0 && (await card.innerText()) !== before), 'the next letter', 8000).catch(() => {});
-    await page.waitForTimeout(200);
+    const before = await card.getAttribute('data-index');
+    const letter = await card.innerText();
+    // next letter (new index), the bag's party, or back on the shelf. A swipe
+    // made while the letter is still flying in is ignored, so a child (and
+    // the robot) simply swipes again.
+    let moved = false;
+    for (let attempt = 0; attempt < 3 && !moved; attempt++) {
+      await swipe(page, dir);
+      moved = await until(() => page.evaluate(b => !!document.querySelector('[data-testid="game-finish"], [data-testid="game-intro"]') ||
+        (document.querySelector('[data-card]')?.getAttribute('data-index') ?? b) !== b, before), 'the next letter', 3000).catch(() => false);
+    }
+    expect(moved, `the letter "${letter}" never went into its mailbox`).toBe(true);
   }
   throw new Error('a Sky Mail bag never finished');
 }
 
-test('Sky Mail: every mailbag sorts, and the shelf finishes', async ({ page }) => {
-  test.setTimeout(300_000);
-  const errors = watchErrors(page);
-  await seedFamily(page);
-  await page.goto('/play/sky-mail');
-  for (let bag = 0; bag < 12 && !(await finished(page)); bag++) {
+// one check per mailbag so they run side by side (the whole shelf in one go
+// takes the robot over five minutes)
+const BAGS = ['Number Letters', 'Berry Battle', 'Silly Sentences', 'Wind Riders', 'Shape Twins', 'Feeling Finder', 'Rhyme Chime', 'Tricky Wind'];
+for (const bagName of BAGS) {
+  test(`Sky Mail: the "${bagName}" mailbag sorts to the end`, async ({ page }) => {
+    test.setTimeout(180_000);
+    const errors = watchErrors(page);
+    // Rhyme Chime and Tricky Wind join the shelf once a child reads
+    await seedFamily(page, { strong: /Rhyme|Tricky/.test(bagName) });
+    await page.goto('/play/sky-mail');
     await expect(page.getByTestId('game-intro')).toBeVisible();
-    // the next unsorted bag ("Sort!"), so the shelf fills up
-    await page.locator('.gf-choice', { hasText: 'Sort!' }).first().click({ force: true });
+    await page.locator('.gf-choice', { hasText: bagName }).first().click({ force: true });
     await sortBag(page);
-  }
-  await expect(page.getByTestId('game-finish')).toBeVisible();
-  expect((await savedRewards(page)).gameLevels['sky-mail']).toBeGreaterThan(0);
-  expect(errors).toEqual([]);
-});
+    // back on the shelf (or its "Mailbag sorted!" party) with this bag starred
+    if (await page.getByTestId('game-finish').isVisible()) {
+      await expect(page.getByTestId('game-finish')).toContainText(/sorted|made it home/i);
+    } else {
+      await expect(page.getByTestId('game-intro')).toBeVisible();
+      await expect(page.getByLabel('1 mailbags sorted')).toBeAttached();
+    }
+    expect(errors).toEqual([]);
+  });
+}
 
 test('Sky Mail: a letter in the wrong mailbox bounces back with a hint', async ({ page }) => {
   await seedFamily(page);

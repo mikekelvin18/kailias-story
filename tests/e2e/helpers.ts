@@ -21,13 +21,16 @@ export interface Seed {
    *  switch is on, so the robot isn't chasing bobbing buttons and the checks
    *  run faster; game rules are the same either way) */
   motion?: boolean;
+  /** a strong first check-up (school-age child scoring well), so games open
+   *  their biggest set of challenges */
+  strong?: boolean;
 }
 
 export async function seedFamily(page: Page, seed: Seed = {}) {
   const ageMonths = seed.ageMonths ?? 72;
   const now = new Date();
   const born = new Date(now.getFullYear(), now.getMonth() - ageMonths, 1);
-  await page.addInitScript(({ ageMonths, born, buddy, noAssessment, levels, childId, motion }) => {
+  await page.addInitScript(({ ageMonths, born, buddy, noAssessment, levels, childId, motion, strong }) => {
     (window as unknown as { __KAILIA_TEST__: boolean }).__KAILIA_TEST__ = true;
     // seed once per test; later page loads keep what the games saved
     if (sessionStorage.getItem('robot-seeded')) return;
@@ -47,7 +50,7 @@ export async function seedFamily(page: Page, seed: Seed = {}) {
         childName: 'Robin', childAge: Math.floor(ageMonths / 12), childAgeMonths: ageMonths,
         ageGroup: ageMonths < 12 ? 'infant' : ageMonths < 24 ? 'toddler' : ageMonths <= 59 ? 'preschool' : 'schoolAge',
         assessmentType: 'checklist', assessmentCompleted: true, sensoryCompleted: true,
-        scores: { reading: 0, writing: 0, communication: 0, math: 0 },
+        scores: strong ? { reading: 10, writing: 10, communication: 10, math: 10 } : { reading: 0, writing: 0, communication: 0, math: 0 },
         sensoryScores: { lowRegistration: 0, seeking: 0, sensitive: 0, avoiding: 0 },
         fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null, evidence: {},
       }));
@@ -61,7 +64,7 @@ export async function seedFamily(page: Page, seed: Seed = {}) {
     // quiet: no voices or music during the checks
     localStorage.setItem('kailia_a11y_v1', JSON.stringify({ musicOn: false, volume: 0, reducedMotion: !motion }));
   }, { ageMonths, born: { y: born.getFullYear(), m: born.getMonth() + 1 }, buddy: seed.buddy ?? 'fox',
-       noAssessment: !!seed.noAssessment, levels: seed.levels ?? {}, childId: CHILD_ID, motion: !!seed.motion });
+       noAssessment: !!seed.noAssessment, levels: seed.levels ?? {}, childId: CHILD_ID, motion: !!seed.motion, strong: !!seed.strong });
 }
 
 /** Collects page crashes and console errors so a test can fail on them. */

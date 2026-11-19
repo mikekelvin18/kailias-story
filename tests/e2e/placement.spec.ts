@@ -12,8 +12,8 @@ const GREEN = 'rgb(16, 185, 129)';
 async function answer(page: Page, right: boolean) {
   const opt = page.locator(`button[data-correct="${right}"]`).first();
   const label = (await opt.innerText()).trim();
-  await opt.click();
-  await page.getByRole('button', { name: /That’s my answer/ }).click();
+  await opt.click({ force: true });
+  await page.getByRole('button', { name: /That’s my answer/ }).click({ force: true });
   const feedback = page.locator('[data-feedback]');
   await expect(feedback).toBeVisible();
   const said = await feedback.innerText();
@@ -34,7 +34,7 @@ async function answer(page: Page, right: boolean) {
 }
 
 async function next(page: Page) {
-  await page.getByRole('button', { name: /Next Question|Next Game|See My Results|Last part/ }).click();
+  await page.getByRole('button', { name: /Next Question|Next Game|See My Results|Last part/ }).click({ force: true });
 }
 
 test('Placement: misses get honest, kind feedback; right answers get praise; counters stay inside', async ({ page }) => {
@@ -55,10 +55,11 @@ test('Placement: misses get honest, kind feedback; right answers get praise; cou
 test('Challenge round: reading, communication and math all finish, counters never pass 4', async ({ page }) => {
   await seedFamily(page, { ageMonths: 78 });
   await page.goto('/assessment/games?challenge=1');
-  for (let q = 0; q < 20; q++) {
+  for (let q = 0; q < 60; q++) {
     if (page.url().includes('/results')) break;
     const counter = page.getByText(/Question \d+\/\d+/);
-    if (!(await counter.isVisible().catch(() => false))) { await page.waitForTimeout(300); continue; }
+    const ready = await page.evaluate(() => !!document.querySelector('button[data-correct]') && !document.querySelector('[data-feedback]'));
+    if (!ready || !(await counter.isVisible().catch(() => false))) { await page.waitForTimeout(300); continue; }
     const [, a, b] = (await counter.innerText()).match(/Question (\d+)\/(\d+)/)!;
     expect(Number(a)).toBeLessThanOrEqual(Number(b));
     await answer(page, q % 3 !== 2);

@@ -680,7 +680,7 @@ export default function SkyMailPage() {
                       style={{ transform: 'translateY(8px) scale(0.93)', opacity: 0.6, border: '2.5px solid #3b2416' }} />
                   )}
                   {/* the flying letter */}
-                  <div ref={cardRef} data-card data-correct={card.correct}
+                  <div ref={cardRef} data-card data-index={idx} data-correct={card.correct}
                     onPointerDown={onPointerDown} onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
                     className={`absolute inset-0 rounded-3xl select-none flex flex-col items-center justify-center px-3 ${wobble ? 'shake' : ''}`}
