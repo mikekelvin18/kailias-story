@@ -113,6 +113,11 @@ export default function MoonlightMatchPage() {
   const busyRef = useRef(false);
   const completedRef = useRef(false);
   const openRef = useRef<number | null>(null);
+  // Cards turned up or matched, updated the instant a tap lands (the cards
+  // state only catches up on the next render, so fast taps used to see a
+  // stale "face down" card and judge a card against itself or a third
+  // card; Muse round 4).
+  const upRef = useRef<Set<number>>(new Set());
   const missRunRef = useRef(0); // mismatches in a row (for the friend's hint)
   const statsRef = useRef({ flips: 0, mismatches: 0, startedAt: 0, bestStreak: 0 });
   const stageRef = useRef<HTMLDivElement>(null);
@@ -142,6 +147,7 @@ export default function MoonlightMatchPage() {
     }).sort(() => Math.random() - 0.5);
     statsRef.current = { flips: 0, mismatches: 0, startedAt: Date.now(), bestStreak: 0 };
     openRef.current = null;
+    upRef.current = new Set();
     busyRef.current = false;
     completedRef.current = false;
     missRunRef.current = 0;
@@ -175,7 +181,8 @@ export default function MoonlightMatchPage() {
   function flip(cardId: number) {
     if (phase !== 'playing' || busyRef.current) return;
     const card = cards.find(c => c.id === cardId);
-    if (!card || card.state !== 'down') return;
+    if (!card || card.state !== 'down' || upRef.current.has(cardId)) return;
+    upRef.current.add(cardId);
     sfx.flip();
     statsRef.current.flips += 1;
     setCards(prev => prev.map(c => (c.id === cardId ? { ...c, state: 'up' } : c)));
@@ -199,7 +206,7 @@ export default function MoonlightMatchPage() {
 
     const first = cards.find(c => c.id === openRef.current)!;
     openRef.current = null;
-    busyRef.current = true;
+    busyRef.current = true; // no taps count until these two are judged
 
     if (first.matchKey === card.matchKey) {
       const newStreak = streak + 1;
@@ -233,7 +240,9 @@ export default function MoonlightMatchPage() {
         setPetMood('oops');
         setHintId(null);
         setPetX(p => besideKailia(p, kx));
-        setCards(prev => prev.map(c => (c.state === 'up' ? { ...c, state: 'down' } : c)));
+        // only these two turn back over
+        setCards(prev => prev.map(c => (c.id === first.id || c.id === card.id ? { ...c, state: 'down' } : c)));
+        upRef.current.delete(first.id); upRef.current.delete(card.id);
         // wait for the two feathers to finish turning back over before the
         // next tap counts, so a quick tap never lands on a half-turned card
         setTimeout(() => { busyRef.current = false; }, 450);

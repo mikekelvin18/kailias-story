@@ -113,6 +113,7 @@ export default function FireflyTrailsPage() {
   const quietStrokesRef = useRef(0);
   const quarterRef = useRef(0);
   const lastLitRef = useRef(0);
+  const prevPtRef = useRef<{ x: number; y: number } | null>(null); // last finger spot in this stroke
 
   useEffect(() => { setLevel(nextGameLevel('firefly-trails')); return () => timersRef.current.forEach(clearTimeout); }, []);
 
@@ -177,7 +178,7 @@ export default function FireflyTrailsPage() {
     if (phase !== 'trace' || e.buttons === 0) return;
     const rect = boxRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left, y = e.clientY - rect.top;
-    if (!strokeRef.current.active) strokeRef.current = { active: true, woke: 0 };
+    if (!strokeRef.current.active) { strokeRef.current = { active: true, woke: 0 }; prevPtRef.current = null; }
     // glowing finger trail
     const id = ++trailId.current;
     setTrail(prev => [...prev.slice(-12), { x, y, id }]);
@@ -189,16 +190,34 @@ export default function FireflyTrailsPage() {
     });
     statsRef.current.devSum += best;
     statsRef.current.devN += 1;
-    if (best <= tolerance && bestI >= 0) {
+    // A fast finger sends few, far-apart points (Muse round 4): check the
+    // whole line from the last spot to this one, so every dot it passes
+    // over wakes up, not just the dots under the two ends.
+    const prev = prevPtRef.current;
+    prevPtRef.current = { x, y };
+    const near = (sx: number, sy: number) => {
+      let bd = Infinity, bi = -1;
+      ptsRef.current.forEach((p, i) => {
+        const d = Math.hypot(p.x * rect.width - sx, p.y * rect.height - sy);
+        if (d < bd) { bd = d; bi = i; }
+      });
+      return bd <= tolerance ? bi : -1;
+    };
+    const wake: number[] = [];
+    if (prev) {
+      const n = Math.min(60, Math.ceil(Math.hypot(x - prev.x, y - prev.y) / 6));
+      for (let k = 1; k < n; k++) {
+        const i = near(prev.x + (x - prev.x) * k / n, prev.y + (y - prev.y) * k / n);
+        if (i >= 0) wake.push(i);
+      }
+    }
+    if ((best <= tolerance && bestI >= 0) || wake.length) {
       let changed = false;
-      // Sliding along from the last lit dot also wakes the few dots in
-      // between, so a quick finger doesn't leave gaps that never light.
-      const from = lastLitRef.current;
-      const gapFill: number[] = strokeRef.current.woke > 0 && Math.abs(bestI - from) <= 4
-        ? Array.from({ length: Math.abs(bestI - from) + 1 }, (_, k) => Math.min(from, bestI) + k) : [];
-      [bestI - 1, bestI, bestI + 1, ...gapFill].forEach(i => {
+      const here = best <= tolerance ? [bestI - 1, bestI, bestI + 1] : [];
+      [...here, ...wake].forEach(i => {
         if (i >= 0 && i < litRef.current.length && !litRef.current[i]) { litRef.current[i] = true; changed = true; }
       });
+      if (best > tolerance && wake.length) bestI = wake[wake.length - 1];
       if (changed) {
         sfx.dot(bestI);
         strokeRef.current.woke += 1;

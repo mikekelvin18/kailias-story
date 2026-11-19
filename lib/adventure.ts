@@ -143,7 +143,8 @@ export const LANDS: Land[] = [
 ];
 
 // ── Bonus realms ──
-// Unlocked only after all six main lands are complete. These are extra
+// Unlocked only after all six main lands are complete. Honestly labelled
+// (Muse round 4) as harder levels of an existing game, not new games. These are extra
 // depth on an existing skill (see BONUS_REALMS below for which one),
 // not a new developmental domain — Space and Underwater are new
 // SCENERY wrapped around the same measured skills, reusing existing
@@ -167,7 +168,7 @@ export const BONUS_LANDS: Land[] = [
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
-      { href: '/play/snack-quest', icon: 'rocket', emoji: '🛰️', title: 'Cargo Count', desc: 'Gather space snacks and load the shuttle with exactly what the crew ordered!' },
+      { href: '/play/snack-quest', icon: 'rocket', emoji: '🛰️', title: 'Snack Quest: harder levels', desc: 'More Snack Quest, picking up at your next level: count out exactly what the crew ordered!' },
     ],
   },
   {
@@ -182,7 +183,7 @@ export const BONUS_LANDS: Land[] = [
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [
-      { href: '/play/sensory', icon: 'fish', emoji: '🐚', title: 'Reef Explorer', desc: 'Match colors, sounds and patterns among the coral and curious sea creatures!' },
+      { href: '/play/sensory', icon: 'fish', emoji: '🐚', title: 'Sense Explorer: harder levels', desc: 'More Sense Explorer, picking up at your next level: spot the color, sound or pattern that is different!' },
     ],
   },
 ];

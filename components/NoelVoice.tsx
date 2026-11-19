@@ -12,6 +12,7 @@
 // ever read twice. Mounted once in app/play/layout.tsx.
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { soundEnabled } from '@/lib/accessibility';
 import { sayLine, hush } from '@/lib/voice';
 
@@ -41,6 +42,12 @@ function onScreen(el: Element) {
 }
 
 export default function NoelVoice() {
+  // Leaving a game: nothing it was saying carries over into the next one
+  // (Muse round 4: Sense Explorer started with old Word Wizard lines).
+  const path = usePathname();
+  // (a cleanup: it runs before the next page's first line, never after it)
+  useEffect(() => () => hush(), [path]);
+
   useEffect(() => {
     const heard = new WeakMap<Element, string>();
     let pending: ReturnType<typeof setTimeout> | null = null;

@@ -37,6 +37,46 @@ interface RunningState {
 import { testing } from '@/lib/testHooks';
 import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, nextPlacementQuestion } from '@/lib/placementBank';
 
+// Noel's one-line "why" after a miss (Muse round 4), matched by how the
+// question starts. Plain words a child can follow.
+const WHY: [string, string][] = [
+  ["Kailia found three things", "A ball is round and bounces, like ⚽."],
+  ["Which word starts with the same sound as \"ball\"?", "Ball and butterfly both start with the \"b\" sound."],
+  ["Read this sentence: \"The dog runs fast.\"", "\"Runs\" means the dog is running."],
+  ["Kailia sees a sign that says STOP.", "STOP means stop: don't move forward."],
+  ["Kailia reads: \"The sky is blue.", "The sentence says \"The sky is blue.\""],
+  ["Kailia shows you a picture of someone with tears", "Tears usually mean someone feels sad."],
+  ["Kailia lost her backpack.", "Asking where she saw it last, and offering to look, helps her find it."],
+  ["Put these in order:", "First she woke up, second she ate breakfast, then she went to school."],
+  ["Kailia says \"I went to the park and I saw a...\"", "You really can see a puppy playing at the park."],
+  ["Kailia's friend says", "Staying close and listening helps a scared friend feel safe."],
+  ["Kailia has these cookies: 🍪🍪🍪.", "Count them: one, two, three cookies."],
+  ["Kailia has 2 cookies 🍪🍪. She gets 3 more", "2 and 3 more make 5."],
+  ["Kailia has 10 cookies. She eats 4.", "10 take away 4 leaves 6."],
+  ["Kailia shares 12 cookies equally", "12 shared by 3 friends is 4 each."],
+  ["Kailia baked 2 trays of cookies.", "8 and 8 more make 16."],
+  ["Which word says \"ship\"?", "\"Ship\" starts with \"sh\", like shh!"],
+  ["Read: \"Mia was so unhappy", "\"Unhappy\" means not happy."],
+  ["Read: \"Max grabbed his umbrella", "People take umbrellas and rain boots when it is rainy."],
+  ["Read: \"Bees carry pollen", "Every sentence is about bees helping plants grow."],
+  ["Read: \"During the race", "A heart \"like a drum\" means it was beating hard."],
+  ["Read: \"Although Ana practiced", "\"Although\" means both are true: she practiced and still felt nervous."],
+  ["Your friend says, \"I went to the beach!\"", "Asking about a favorite part gets them to tell you more."],
+  ["Why is this joke funny?", "\"Dino-snore\" sounds like \"dinosaur\", and the dinosaur is snoring."],
+  ["Kailia wants to explain to a little 3-year-old", "Little kids understand short, simple words best."],
+  ["Noel says, \"It's raining cats and dogs!\"", "It's a saying that means it is raining very hard."],
+  ["Kailia drops her ice cream", "She says \"great\", but she means the opposite: she is upset."],
+  ["Kailia wants the class to plant a garden.", "A good reason shows how it helps everyone."],
+  ["Which plate has MORE cookies?", "Plate A has 5 cookies and Plate B has only 2."],
+  ["Kailia has 8 cookies and gets 6 more.", "8 and 6 more make 14."],
+  ["Kailia baked 45 cookies on Monday", "45 and 28 more make 73."],
+  ["There are 7 bags with 8 cookies", "7 groups of 8 make 56."],
+  ["Which is the same amount as ½ of a pizza?", "Two quarters of a pizza is the same as one half."],
+  ["Kailia makes 24 cookies a day for 6 days.", "24 six times makes 144."],
+  ["What is 0.5 + 0.25?", "Half and a quarter make three quarters: 0.75."],
+  ["For every 2 chocolate cookies", "10 chocolate is 5 groups of 2, so 5 groups of 3 sugar make 15."],
+];
+const whyFor = (text: string) => WHY.find(([k]) => text.startsWith(k))?.[1] ?? '';
 
 // ─── Grasp Patterns ───────────────────────────────────────────────────────────
 
@@ -670,10 +710,17 @@ export default function GamesPage() {
   const [inputValue, setInputValue]   = useState('');
   const [submitted, setSubmitted]     = useState(false);
   const [encourage, setEncourage]     = useState('');
+  // After a miss the child may try once more, just for practice: only the
+  // first answer is measured (a retry would change what the check measures).
+  const [retrying, setRetrying]       = useState(false);
+  const [retried, setRetried]         = useState(false);
+  const [missed, setMissed]           = useState(false);
 
   // 'unknown' for one tick while the address is read (no flash of the
   // normal placement when a grown-up opened the Challenge round).
   const [mode, setMode] = useState<'unknown' | 'normal' | 'challenge'>('unknown');
+  /** First unfinished game after a break (4 = all four games done), or null. */
+  const [resumeAt, setResumeAt] = useState<number | null>(null);
   const challenge = mode === 'challenge';
   /** Placement items already answered in this area (never asked again in the challenge). */
   const placedIdx = (key: string) => (state.evidence?.[key as MilestoneDomain] ?? [])
@@ -712,6 +759,14 @@ export default function GamesPage() {
   const handleSubmit = () => {
     if (!game || !question) return;
     const r = getScore() >= question.points.correct ? 1 : 0;
+    if (retrying) {
+      // practice try: celebrated, never recorded
+      const rightOpt = question.options?.find(o => o.correct);
+      setEncourage(r === 1 ? 'You got it! ⭐ Great learning!' : `Good trying! The answer is "${rightOpt?.label ?? ''}". ${whyFor(question.text)}`);
+      setRetrying(false); setRetried(true); setMissed(r === 0);
+      setSubmitted(true);
+      return;
+    }
     setEvidence(ev => [...ev, { id: `${challenge ? 'challenge-' : ''}${game.key}-${cur}`, months: question.months, r, kind: 'choice3' }]);
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
     let line = pool[Math.floor(Math.random() * pool.length)];
@@ -720,12 +775,14 @@ export default function GamesPage() {
     // what the check measures).
     const rightOpt = question.options?.find(o => o.correct);
     // Muse retest #3: clearly different from praise, and honest about the answer.
-    if (r === 0 && rightOpt) line = `Nice try! Noel shows you: the answer is "${rightOpt.label}" 🐼`;
+    if (r === 0 && rightOpt) line = `Nice try! Noel shows you: the answer is "${rightOpt.label}". ${whyFor(question.text)} 🐼`;
+    setMissed(r === 0);
     setEncourage(line);
     setSubmitted(true);
   };
 
-  const resetQuestion = () => { setSelected(null); setInputValue(''); setSubmitted(false); setEncourage(''); };
+  const resetQuestion = () => { setSelected(null); setInputValue(''); setSubmitted(false); setEncourage(''); setRetrying(false); setRetried(false); setMissed(false); };
+  const tryAgain = () => { setSelected(null); setInputValue(''); setSubmitted(false); setEncourage(''); setRetrying(true); };
 
   const startGame = (step: number) => {
     setGameStep(step);
@@ -754,9 +811,32 @@ export default function GamesPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- read the address once, after the profile loads
     setMode(wants ? 'challenge' : 'normal');
     if (wants) startChallenge(0);
-    else setAsked([firstQuestion(BANK[GAMES[0].key], age)]);
+    else {
+      setAsked([firstQuestion(BANK[GAMES[0].key], age)]);
+      // Came back after a break (Muse round 4): offer to pick up where the
+      // child stopped. Each finished game saved its answers already.
+      if (!state.assessmentCompleted) {
+        const order: MilestoneDomain[] = ['reading', 'writing', 'communication', 'math'];
+        const done = order.map(d => (state.evidence?.[d]?.length ?? 0) > 0);
+        if (done.some(Boolean)) setResumeAt(done.every(Boolean) ? 4 : done.indexOf(false));
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
+
+  // A child acing everything above their age gets up to 2 extra rungs to find their ceiling.
+  const aceExtra = evidence.length >= QUESTIONS_PER_GAME && evidence.filter(e => e.months >= age).every(e => e.r === 1)
+    && evidence.some(e => e.months >= age) && asked.length < QUESTIONS_PER_GAME + 2;
+  /** The question that comes next in this (normal) placement game, or null when it ends. */
+  const plannedNext = (): number | null => {
+    if (!game) return null;
+    // the same rule the automatic checks use (lib/placementBank.ts): six
+    // questions, plus up to two extra rungs for a child who aced everything
+    // above their age
+    return nextPlacementQuestion(bank, evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months })), age);
+  };
+  // The real number of questions (Muse round 4: never "7/7", "8/8").
+  const shownTotal = Math.min(bank.length, asked.length > QUESTIONS_PER_GAME || aceExtra ? QUESTIONS_PER_GAME + 2 : QUESTIONS_PER_GAME);
 
   const handleNext = () => {
     if (!game) return;
@@ -771,10 +851,7 @@ export default function GamesPage() {
       startChallenge(gameStep + 1);
       return;
     }
-    // the same rule the automatic checks use (lib/placementBank.ts):
-    // six questions, plus up to two extra rungs for a child who aced
-    // everything above their age
-    const next = nextPlacementQuestion(bank, evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months })), age);
+    const next = plannedNext();
     if (next == null) {
       setDomainEvidence(domainKey, evidence);
       // Legacy 0–10 score (share right) — still drives the stage name and the bars.
@@ -808,6 +885,34 @@ export default function GamesPage() {
   };
 
   const stepLabels = ['📖 Reading', '✍️ Fine Motor', '🗣️ Communication', '🔢 Math'];
+
+  if (resumeAt !== null) {
+    const names = ['the reading game', 'the tracing game', 'the talking game', 'the counting game'];
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: '#FFF9F0' }}>
+        <div className="max-w-md w-full rounded-3xl p-8 shadow-xl text-center bg-white">
+          <p className="text-5xl mb-2" aria-hidden="true">🐼</p>
+          <h1 className="text-2xl font-extrabold text-gray-800 mb-2">Welcome back!</h1>
+          <p className="text-gray-600 mb-6">
+            Noel saved your spot. {resumeAt >= 4
+              ? 'All four games are done, just the grown-up questions are left.'
+              : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
+          </p>
+          <button onClick={() => {
+              const at = resumeAt; setResumeAt(null);
+              if (at >= 4) router.push('/assessment/checklist'); else startGame(at);
+            }}
+            className="w-full px-8 py-4 rounded-full font-extrabold text-xl text-white shadow-lg mb-3"
+            style={{ background: 'linear-gradient(135deg, #059669, #7C3AED)' }}>
+            Keep going →
+          </button>
+          <button onClick={() => setResumeAt(null)} className="text-sm font-bold text-gray-500 underline">
+            Start the games over
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   if (isTracingStep) {
     return (
@@ -854,7 +959,7 @@ export default function GamesPage() {
           ))}
         </div>
         <div className="flex gap-1 mb-5">
-          {Array.from({ length: challenge ? CHALLENGE_QS : Math.max(asked.length, Math.min(QUESTIONS_PER_GAME, bank.length)) }, (_, i) => (
+          {Array.from({ length: challenge ? CHALLENGE_QS : shownTotal }, (_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
               style={{ background: i < questionIdx ? game.color : i === questionIdx ? `${game.color}66` : '#E5E7EB' }} />
           ))}
@@ -914,6 +1019,13 @@ export default function GamesPage() {
         )}
 
         <div className="text-center">
+          {submitted && missed && !retried && question.type === 'choice' && (
+            <button onClick={tryAgain}
+              className="block mx-auto mb-3 px-6 py-2 rounded-full font-bold text-base border-2 transition-all hover:scale-105"
+              style={{ borderColor: game.color, color: game.color, background: 'white' }}>
+              Try it again 🔁
+            </button>
+          )}
           {!submitted ? (
             <button onClick={handleSubmit} disabled={!canSubmit}
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -925,7 +1037,8 @@ export default function GamesPage() {
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
               {challenge ? (isLastQ ? (isLastStep ? 'See My Results! 🎉' : 'Next Game! 🚀') : 'Next Question →')
-                : isLastQ && isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : isLastQ ? 'Next Game! 🚀' : 'Next Question →'}
+                : plannedNext() != null ? 'Next Question →'
+                : isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : 'Next Game! 🚀'}
             </button>
           )}
         </div>
@@ -934,7 +1047,7 @@ export default function GamesPage() {
           {challenge
             ? `Game ${CHALLENGE_STEPS.indexOf(gameStep) + 1} of ${CHALLENGE_STEPS.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}/${CHALLENGE_QS}`
             : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
-              {!isTracingStep && ` • Question ${questionIdx + 1}/${Math.max(asked.length, Math.min(QUESTIONS_PER_GAME, bank.length))}`}</>}
+              {!isTracingStep && ` • Question ${questionIdx + 1}/${shownTotal}`}</>}
         </p>
       </div>
     </main>

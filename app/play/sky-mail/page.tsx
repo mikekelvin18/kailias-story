@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties }
 import { useAssessment } from '@/context/AssessmentContext';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
-import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
+import { GameFinish, GameIntro, GoArrow, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
@@ -347,6 +347,7 @@ export default function SkyMailPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [idx, setIdx] = useState(0);
   const [phase, setPhase] = useState<'select' | 'playing' | 'deckDone' | 'allDone'>('select');
+  const [earned, setEarned] = useState(0);
   const [drag, setDrag] = useState({ dx: 0, dy: 0, grabbed: false });
   const [flyDir, setFlyDir] = useState<Dir | null>(null);
   const [flyOffset, setFlyOffset] = useState<[number, number] | null>(null);
@@ -516,16 +517,18 @@ export default function SkyMailPage() {
     });
     // ✨ starlight: base for finishing, minus a little for wrong swipes,
     // never below the floor — effort always pays
-    awardStarlight(levelStarlight(1, m.wrong));
+    const light = levelStarlight(1, m.wrong);
+    awardStarlight(light);
     recordQuestWin('/play/sky-mail'); // one finished mailbag counts as playing the quest
     const newDone = doneDecks.includes(deckId) ? doneDecks : [...doneDecks, deckId];
     setDoneDecks(newDone);
     if (newDone.length === availableDecks.length) {
       awardStarlight(25); // full mailbag-shelf bonus
+      setEarned(light + 25);
       recordGameLevel('sky-mail', newDone.length);
       sfx.fanfare(); setPhase('allDone');
     }
-    else { sfx.deck(); setPhase('deckDone'); }
+    else { setEarned(light); sfx.deck(); setPhase('deckDone'); }
   }
 
   function tickle() {
@@ -534,12 +537,9 @@ export default function SkyMailPage() {
     setTimeout(() => setPetMood('idle'), 1300);
   }
 
-  // deckDone interstitial → back to select
-  useEffect(() => {
-    if (phase !== 'deckDone') return;
-    const t = setTimeout(() => { setPhase('select'); setNoelLine('Wonderful sorting! Pick another mailbag!'); setNoelMood('celebrating'); }, 1800);
-    return () => clearTimeout(t);
-  }, [phase]);
+  // a finished mailbag gets its own finish screen with the starlight shown
+  // (Muse round 4: it used to slip back to the shelf after 1.8 s)
+  const backToShelf = () => { setPhase('select'); setNoelLine('Wonderful sorting! Pick another mailbag!'); setNoelMood('celebrating'); };
 
   const rotation = Math.max(-16, Math.min(16, drag.dx * 0.08));
 
@@ -598,7 +598,7 @@ export default function SkyMailPage() {
         </div>
 
         {/* ── Mailbag select ── */}
-        {(phase === 'select' || phase === 'deckDone') && (
+        {phase === 'select' && (
           <div className="fixed inset-0 z-50 overflow-y-auto">
             <GameIntro
               title="Sky Mail"
@@ -606,14 +606,7 @@ export default function SkyMailPage() {
               pet={pet}
               story={<p>The wind stole Noel&apos;s letters over Owl&apos;s Tower! Swipe each one into the right mailbox.</p>}
               extras={<>
-                <div className="flex justify-center mb-3"><Mailbox size={52} flagUp={phase === 'deckDone'} /></div>
-                {phase === 'deckDone' && (
-                  <div className="text-center mb-3 bounce-in">
-                    <p className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-lg font-extrabold text-amber-900" style={{ background: '#FEF9C3', border: '2px solid #3b2416' }}>
-                      <StarIcon /> Mailbag sorted! <StarIcon />
-                    </p>
-                  </div>
-                )}
+                <div className="flex justify-center mb-3"><Mailbox size={52} flagUp={doneDecks.length > 0} /></div>
                 <div className="space-y-3">
                   {availableDecks.map((d, i) => (
                     <button key={d} onClick={() => startDeck(d)} className="gf-choice w-full flex items-center gap-3 text-left"
@@ -742,6 +735,24 @@ export default function SkyMailPage() {
         )}
       </div>
 
+      {/* ── One mailbag done ── */}
+      {phase === 'deckDone' && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title="Mailbag sorted!"
+            theme={{ bg: 'linear-gradient(135deg, #0369a1, #4f46e5)', accent: '#38BDF8', accent2: '#4F46E5' }}
+            pet={pet}
+            earned={earned}
+            trophy={<Mailbox size={96} flagUp />}
+            message={<>Every letter in this bag found its mailbox. {availableDecks.length - doneDecks.length} more {availableDecks.length - doneDecks.length === 1 ? 'bag is' : 'bags are'} waiting!</>}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={backToShelf}>Next mailbag <GoArrow /></PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
+        </div>
+      )}
+
       {/* ── All mailbags done ── */}
       {phase === 'allDone' && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -749,6 +760,7 @@ export default function SkyMailPage() {
             title="Every letter made it home!"
             theme={{ bg: 'linear-gradient(135deg, #0369a1, #4f46e5)', accent: '#38BDF8', accent2: '#4F46E5' }}
             pet={pet}
+            earned={earned}
             trophy={<Mailbox size={96} flagUp />}
             message={<>The wise owl hoots with joy — what a wind-fast sorter! {pet.name} is doing a happy dance!</>}
             actions={<>
