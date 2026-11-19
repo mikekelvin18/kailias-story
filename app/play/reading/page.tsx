@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -201,6 +202,8 @@ export default function WordWizardPage() {
   }, [startLevel]);
 
   const q = round[qIdx];
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => { testHook('reading', { phase, level, q: qIdx, of: round.length, answer: q?.answer, choices: q?.choices, prompt: q?.prompt, visual: q?.visual, popped }); });
   const chapter = chapterFor(level);
   const step = stepFor(level);
 
@@ -376,7 +379,7 @@ export default function WordWizardPage() {
                         animationDuration: `${3.4 + i * 0.7}s`, animationDelay: `${i * -0.9}s`,
                         ['--dx' as string]: `${4 + step * 3}px`, ['--dy' as string]: `${6 + step * 2}px`,
                       } as React.CSSProperties}>
-                        <button onClick={() => tapBalloon(c, spot)} aria-label={c}
+                        <button onClick={() => tapBalloon(c, spot)} aria-label={c} data-choice={c}
                           className={`relative flex flex-col items-center w-full ${isPopped ? 'pop' : ''} ${wobble === c ? 'soft-wobble' : ''} ${glow ? 'hint-glow' : ''}`}>
                           <span className="flex items-center justify-center text-center font-extrabold text-white leading-tight"
                             style={{
@@ -425,7 +428,7 @@ export default function WordWizardPage() {
             <div className="flex items-center gap-3 mt-2 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
+              <div data-guide className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
             </div>
           </div>
         )}
