@@ -20,8 +20,12 @@ test('Story Sparks: all four stories (and the repeat) play to the end', async ({
 test('Story Sparks: a silly pick gets a giggle and a retry, never "yes"', async ({ page }) => {
   await seedFamily(page);
   await startGame(page, '/play/story-sparks');
-  await page.locator('[data-kind="silly"]').first().click({ force: true });
-  await until(async () => /silly/i.test(await guideLine(page)), 'the giggle');
+  // the choices bounce in; a tap made before they land is simply tapped again
+  for (let tries = 0; ; tries++) {
+    await page.locator('[data-kind="silly"]').first().click({ force: true });
+    const giggled = await until(async () => /silly/i.test(await guideLine(page)), 'the giggle', 4000).catch(e => { if (tries >= 2) throw e; return false; });
+    if (giggled) break;
+  }
   expect(await guideLine(page)).not.toMatch(/yes!/i);
   await page.locator('[data-kind="silly"]').first().click({ force: true });
   await until(async () => /REALLY happens/.test(await guideLine(page)), 'the friend pointing at the real one');
