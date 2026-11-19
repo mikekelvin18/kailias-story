@@ -22,8 +22,9 @@ async function playLevel(page: Page) {
 }
 
 test('Firefly Catch: levels 1–4 catch every firefly and finish', async ({ page }) => {
+  test.setTimeout(240_000);
   const errors = watchErrors(page);
-  await seedFamily(page);
+  await seedFamily(page, { motion: true });
   await startGame(page, '/play/firefly-catch');
   for (let level = 1; level <= 4; level++) {
     await playLevel(page);

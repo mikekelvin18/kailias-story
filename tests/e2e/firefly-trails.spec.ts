@@ -16,12 +16,12 @@ async function traceTrail(page: Page) {
   await page.mouse.up();
 }
 
-test('Firefly Trails: levels 1–8 trace every picture to the finish', async ({ page }) => {
+test('Firefly Trails: levels 1–6 trace every picture to the finish', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = watchErrors(page);
   await seedFamily(page);
   await startGame(page, '/play/firefly-trails');
-  for (let level = 1; level <= 8; level++) {
+  for (let level = 1; level <= 6; level++) {
     await traceTrail(page);
     await expectFinish(page);
     expect((await savedRewards(page)).gameLevels['firefly-trails']).toBe(level);

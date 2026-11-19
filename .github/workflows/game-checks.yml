@@ -1,0 +1,100 @@
+# Automatic game checks
+#
+# Robot players open every game, play its levels to the finish, and check
+# that right answers are praised, misses get kind and honest feedback, the
+# placement answer keys add up and sample children get sensible age ranges.
+#
+#  • On every pull request and every push: the app is built and checked here.
+#  • After Vercel finishes a preview: the same checks run against the live
+#    preview link, so what Kelvin and reviewers open has been played first.
+#
+# A red ✗ on a pull request means a game broke; the "game-check-report"
+# download on the run shows which one, with a screenshot.
+
+name: Game checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'claude/**']
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Check a deployed site instead (e.g. a Vercel preview link). Leave empty to build and check this branch.'
+        required: false
+
+concurrency:
+  group: game-checks-${{ github.event_name }}-${{ github.ref }}-${{ github.event.deployment_status.target_url || '' }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Play every game (this branch)
+    if: github.event_name != 'deployment_status' && !(github.event_name == 'workflow_dispatch' && inputs.base_url != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Scoring and care-pet rules
+        run: |
+          node --experimental-strip-types scripts/milestones.test.mjs
+          node scripts/carepet.test.mjs
+      - name: Build the app
+        run: npm run build
+      - name: Install the robot's browser
+        run: npx playwright install --with-deps chromium
+      - name: Play every game
+        run: npx playwright test
+        env:
+          CI: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: game-check-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  preview:
+    name: Play every game (Vercel preview)
+    if: >-
+      (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
+        && contains(github.event.deployment_status.target_url, 'vercel.app'))
+      || (github.event_name == 'workflow_dispatch' && inputs.base_url != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install the robot's browser
+        run: npx playwright install --with-deps chromium
+      - name: Play every game on the preview
+        run: npx playwright test --project=computer
+        env:
+          CI: '1'
+          BASE_URL: ${{ inputs.base_url || github.event.deployment_status.target_url }}
+          # only needed if Vercel login protection is switched back on
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: game-check-report-preview
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

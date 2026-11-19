@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -96,6 +97,8 @@ export default function EchoSongPage() {
   const { layer: burstLayer, fire } = useBursts();
 
   const posRef = useRef(0);
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => { testHook('echo', { phase, level, seq, progress }); });
   const statsRef = useRef({ attempts: 0, replays: 0, startedAt: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -326,7 +329,7 @@ export default function EchoSongPage() {
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
               <div
                 // Noel stays quiet while the crystals sing, so the song is easy to hear
-                data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+                data-guide data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}

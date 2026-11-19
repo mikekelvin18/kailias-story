@@ -17,13 +17,17 @@ export interface Seed {
   noAssessment?: boolean;
   /** start every game at this level instead of level 1 */
   levels?: Record<string, number>;
+  /** keep all the moving scenery on (default: the grown-ups' "Reduce motion"
+   *  switch is on, so the robot isn't chasing bobbing buttons and the checks
+   *  run faster; game rules are the same either way) */
+  motion?: boolean;
 }
 
 export async function seedFamily(page: Page, seed: Seed = {}) {
   const ageMonths = seed.ageMonths ?? 72;
   const now = new Date();
   const born = new Date(now.getFullYear(), now.getMonth() - ageMonths, 1);
-  await page.addInitScript(({ ageMonths, born, buddy, noAssessment, levels, childId }) => {
+  await page.addInitScript(({ ageMonths, born, buddy, noAssessment, levels, childId, motion }) => {
     (window as unknown as { __KAILIA_TEST__: boolean }).__KAILIA_TEST__ = true;
     // seed once per test; later page loads keep what the games saved
     if (sessionStorage.getItem('robot-seeded')) return;
@@ -55,9 +59,9 @@ export async function seedFamily(page: Page, seed: Seed = {}) {
       localStorage.setItem(`kailia_rewards_v1::${childId}`, JSON.stringify({ starlight: 0, gameLevels: best, celebratedCompanions: [] }));
     }
     // quiet: no voices or music during the checks
-    localStorage.setItem('kailia_a11y_v1', JSON.stringify({ musicOn: false, volume: 0 }));
+    localStorage.setItem('kailia_a11y_v1', JSON.stringify({ musicOn: false, volume: 0, reducedMotion: !motion }));
   }, { ageMonths, born: { y: born.getFullYear(), m: born.getMonth() + 1 }, buddy: seed.buddy ?? 'fox',
-       noAssessment: !!seed.noAssessment, levels: seed.levels ?? {}, childId: CHILD_ID });
+       noAssessment: !!seed.noAssessment, levels: seed.levels ?? {}, childId: CHILD_ID, motion: !!seed.motion });
 }
 
 /** Collects page crashes and console errors so a test can fail on them. */
@@ -166,12 +170,40 @@ export async function guideLine(page: Page) {
 }
 
 /** Polls `fn` until it returns something truthy. */
-export async function until<T>(fn: () => Promise<T>, what: string, timeout = 20_000): Promise<T> {
+export async function until<T>(fn: () => Promise<T | null | undefined | false | '' | 0>, what: string, timeout = 30_000): Promise<T> {
   const end = Date.now() + timeout;
   for (;;) {
     const v = await fn();
-    if (v) return v;
+    if (v) return v as T;
     if (Date.now() > end) throw new Error(`Timed out waiting for: ${what}`);
     await new Promise(r => setTimeout(r, 100));
   }
+}
+
+/** Taps the first on-screen element matching any selector, in order. Returns which one, or null. */
+export async function tapFirst(page: Page, selectors: string[]) {
+  const hit = await page.evaluate(sels => {
+    for (const sel of sels) {
+      for (const el of document.querySelectorAll(sel)) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden') {
+          return { sel, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }
+      }
+    }
+    return null;
+  }, selectors);
+  if (!hit) return null;
+  await page.mouse.click(hit.x, hit.y);
+  return hit.sel;
+}
+
+/** Keeps tapping (first matching selector wins) until the level-finished party shows. */
+export async function playUntilFinished(page: Page, selectors: string[], what: string, maxTaps = 300) {
+  for (let i = 0; i < maxTaps; i++) {
+    if (await finished(page)) return;
+    const hit = await tapFirst(page, selectors);
+    await page.waitForTimeout(hit ? 250 : 200);
+  }
+  throw new Error(`${what} never reached its party screen`);
 }

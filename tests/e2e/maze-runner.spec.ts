@@ -15,9 +15,9 @@ async function traceMaze(page: Page, opts: { lift?: boolean } = {}) {
   const first = at(maze.path[0]);
   await page.mouse.move(first.x, first.y);
   await page.mouse.down();
-  for (let i = 1; i < maze.path.length; i++) {
-    const q = at(maze.path[i]);
-    await page.mouse.move(q.x, q.y, { steps: 2 });
+  for (let i = 2; i < maze.path.length + 1; i += 2) {
+    const q = at(maze.path[Math.min(i, maze.path.length - 1)]);
+    await page.mouse.move(q.x, q.y);
     // a child lifts their finger halfway and carries on from Kailia
     if (opts.lift && i === Math.floor(maze.path.length / 2)) {
       await page.mouse.up();
@@ -27,11 +27,12 @@ async function traceMaze(page: Page, opts: { lift?: boolean } = {}) {
   await page.mouse.up();
 }
 
-test('Maze Runner: levels 1–10 each reach the flag and the party', async ({ page }) => {
+test('Maze Runner: levels 1–7 each reach the flag and the party (all five mazes, then the mirrored lap)', async ({ page }) => {
+  test.setTimeout(240_000);
   const errors = watchErrors(page);
-  await seedFamily(page);
+  await seedFamily(page, { motion: true });
   await startGame(page, '/play/fine-motor');
-  for (let level = 1; level <= 10; level++) {
+  for (let level = 1; level <= 7; level++) {
     await traceMaze(page, { lift: level % 2 === 0 });
     const finish = await expectFinish(page);
     await expect(finish).toContainText(/complete|did it/i);

@@ -115,7 +115,7 @@ const SENTENCE_PAIRS: [string, string][] = [
   ['Birds fly in the sky', 'Sky the in fly birds'],
   ['The fish can swim', 'Swim can fish the'],
   ['Mom bakes yummy bread', 'Bread yummy mom bakes'],
-  ['The sun is bright', 'Bright is the sun'],
+  ['The sun is bright', 'Sun the bright is'],  // (was 'Bright is the sun', which is a real, poetic sentence)
   ['I hug my teddy', 'Teddy my hug I'],
   ['Frogs hop on rocks', 'Rocks on hop frogs'],
   ['We read a book', 'Book a read we'],

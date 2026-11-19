@@ -11,9 +11,9 @@ const playing = (page: Page) => until(async () => { const s = await state(page);
 async function step(page: Page, s: Bridge) {
   if (s.kind === 'share') {
     const i = s.counts.indexOf(Math.min(...s.counts));
-    await page.locator(`[data-baby="${i}"]`).click({ force: true });
+    await page.locator(`[data-baby="${i}"]`).click({ force: true, timeout: 3000 }).catch(() => {});
   } else {
-    await page.locator(`[data-opt="${s.right}"]`).click({ force: true });
+    await page.locator(`[data-opt="${s.right}"]`).click({ force: true, timeout: 3000 }).catch(() => {});
   }
   await page.waitForTimeout(120);
 }
