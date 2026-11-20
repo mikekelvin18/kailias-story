@@ -61,10 +61,24 @@ CFG = SPEAKERS[SPEAKER]
 VOICE, SPEED = CFG['voice'], CFG['speed']
 LANG = 'en-gb' if VOICE.startswith('b') else 'en-us'
 
-# How names are said, as phonemes (the voice guesses names wrong otherwise).
-NAME_SOUNDS = {
-    'kˈaɪliə': 'keɪlˈiːə',      # Kailia: "kay-LEE-uh" (Kelvin, 2026-11-13). Noel stays "Nole".
-}
+# How the names are said, as phonemes. The voice guesses both names wrong on
+# its own ("KAI-lee-uh" and "Nole"). Kelvin, 2026-11-20 (final, overrides the
+# 2026-11-13 "kay-LEE-uh" / "Nole" setting, which was a mistake):
+#   Kailia = "KAI-LEE-yah": "Kai" rhymes with sky, then "Lee-ya".
+#   Noel   = "No-EL": two beats, "El" like the letter L.
+# scripts/name-sounds.test.mjs checks these exact sounds and that every
+# recorded line with a name was made with them: change both together, and
+# only when Kelvin asks.
+KAILIA_SOUND = 'kˌaɪlˈiːjɐ'
+NOEL_SOUND = 'noʊˈɛl'
+NAME_SOUNDS = [
+    (re.compile(r'k[ˈˌ]?aɪl[ˈˌ]?i[ː]?ə'), KAILIA_SOUND),   # how the voice guesses Kailia
+    (re.compile(r'n[ˈˌ]?oʊl'), NOEL_SOUND),                  # how the voice guesses Noel
+]
+# Part of every name line's file name, so a line recorded with other name
+# sounds can't sit in the manifest unnoticed (and is re-recorded here).
+NAMES_TAG = f'names:{KAILIA_SOUND},{NOEL_SOUND}'
+HAS_NAME = re.compile(r'\b(kailia|noel)', re.I)
 
 OUT = CFG['out']
 MANIFEST = f'{OUT}/manifest.json'
@@ -97,9 +111,19 @@ def voice_style(k: Kokoro, spec: str):
 
 def phonemes(k: Kokoro, text: str) -> str:
     p = k.tokenizer.phonemize(text, LANG)
-    for wrong, right in NAME_SOUNDS.items():
-        p = p.replace(wrong, right)
+    for wrong, right in NAME_SOUNDS:
+        p = wrong.sub(right, p)
+    if HAS_NAME.search(text):
+        assert KAILIA_SOUND in p or NOEL_SOUND in p, f'name sound not set in: {text!r} -> {p!r}'
     return p
+
+
+def clip_name(key: str) -> str:
+    """Must match clipName() in scripts/name-sounds.test.mjs."""
+    tag = f'{VOICE}|{SPEED}|{key}' if not CFG.get('ends') else f'{VOICE}|{SPEED}|{CFG["ends"]}|{key}'
+    if HAS_NAME.search(key):
+        tag += '|' + NAMES_TAG
+    return hashlib.sha1(tag.encode()).hexdigest()[:12] + '.mp3'
 
 
 def expressive(audio: np.ndarray, sr: int, amount: float, lift: float = 1.06) -> np.ndarray:
@@ -195,16 +219,18 @@ def main():
     made = 0
     for sentence in lines:
         key = keyof(sentence)
-        if not key or (key in manifest and os.path.exists(f'{OUT}/{manifest[key]}')):
+        name = clip_name(key)
+        if not key or (manifest.get(key) == name and os.path.exists(f'{OUT}/{name}')):
             continue
+        if key in manifest and manifest[key] != name:   # made another way (e.g. old name sounds): redo
+            try: os.remove(f'{OUT}/{manifest[key]}')
+            except FileNotFoundError: pass
         audio, sr = k.create(phonemes(k, spoken(sentence)), voice=style, speed=SPEED, is_phonemes=True)
         if CFG['lively']:
             audio = expressive(audio, sr, CFG['lively'], CFG.get('lift', 1.06))
         if CFG.get('ends'):
             audio = shape_ending(audio, sr, mood(sentence), CFG['ends'])
         audio = tidy(audio, sr)
-        tag = f'{VOICE}|{SPEED}|{key}' if not CFG.get('ends') else f'{VOICE}|{SPEED}|{CFG["ends"]}|{key}'
-        name = hashlib.sha1(tag.encode()).hexdigest()[:12] + '.mp3'
         with tempfile.NamedTemporaryFile(suffix='.wav') as wav:
             sf.write(wav.name, audio, sr)
             lift = ['-af', f"rubberband=pitch={CFG['pitch']}:formant=shifted"] if CFG['pitch'] != 1.0 else []
