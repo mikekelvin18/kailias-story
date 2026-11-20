@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -126,6 +127,7 @@ export default function FireflyTrailsPage() {
 
   const startLevel = useCallback(() => {
     const pts = shapePoints(shape.kind);
+    testHook('trail', { pts });
     ptsRef.current = pts;
     setPts(pts);
     litRef.current = pts.map(() => false);

@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -273,6 +274,11 @@ export default function JourneyPage() {
   const [screenSize, setScreenSize] = useState({ w: 360, h: 640 });
 
   useEffect(() => { playerRef.current = player; }, [player]);
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => {
+    testHook('journey', { phase, level, player, path: world?.path, required: world?.required,
+      met: party.filter(p => !p.startsWith(PET_TAG)).length, unsolved: world ? Object.values(world.encounters).filter(e => !e.solved).length : 0 });
+  });
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { worldRef.current = world; }, [world]);
 
@@ -313,7 +319,11 @@ export default function JourneyPage() {
 
   const tryFinish = useCallback(() => {
     if (!world) return;
-    if (party.length >= world.required) {
+    // only the wild friends met count (the partner picked on the first
+    // journey travels along but was never "met"; the robot check caught
+    // the flag opening one friend early on level 1)
+    const met = party.filter(p => !p.startsWith(PET_TAG)).length;
+    if (met >= world.required) {
       const totalMs = Date.now() - startedRef.current;
       logQuestMetric('processing', 'journey', { level, friends: world.required, wrongAnswers: wrongRef.current, steps: stepsRef.current, totalMs });
       const stars = levelStarlight(level, wrongRef.current);
@@ -325,9 +335,9 @@ export default function JourneyPage() {
       setKailiaHop(n => n + 1);
       setPhase('done');
     } else {
-      setDialog(`The flag needs more friends! ${world.required - party.length} still hiding in the tall grass…`);
+      setDialog(`The flag needs more friends! ${world.required - met} still hiding in the tall grass…`);
     }
-  }, [world, party.length, level, setPetMood]);
+  }, [world, party, level, setPetMood]);
 
   const tryFinishRef = useRef(tryFinish);
   useEffect(() => { tryFinishRef.current = tryFinish; }, [tryFinish]);
@@ -450,7 +460,7 @@ export default function JourneyPage() {
         })) });
         setActiveTile(null);
         setCaughtCreature(null);
-        setDialog(party.length + 1 >= world.required ? 'That was the last friend — head for the flag!' : 'Onward! More friends may be hiding in the grass…');
+        setDialog(party.filter(p => !p.startsWith(PET_TAG)).length + 1 >= world.required ? 'That was the last friend — head for the flag!' : 'Onward! More friends may be hiding in the grass…');
         setPetMood('cheer');
         setPhase('walking');
       }, 1500);

@@ -19,6 +19,7 @@ import { chime } from '@/components/friends/voice';
 import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import { activeChild } from '@/lib/family';
+import { testHook } from '@/lib/testHooks';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -551,6 +552,7 @@ export default function MazeRunnerPage() {
     hintRef.current      = null;
     wallStreakRef.current = 0;
     hopAtRef.current     = -1e9;
+    testHook('maze', { path, w: W, h: H, corridor: corridorRef.current });
     setTimeout(drawCanvas, 30);
   }, [drawCanvas, mirror]);
 

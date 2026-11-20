@@ -370,7 +370,7 @@ export default function TrailWalkPage() {
 
             {phase === 'walking' && !isWalking && !atFlag && (
               <div className="flex justify-center mt-3">
-                <button onClick={walk}
+                <button onClick={walk} data-walk
                   className="px-10 py-3 rounded-full text-lg font-extrabold text-white shadow-xl pulse whitespace-nowrap"
                   style={{ background: '#0E7490' }}>
                   Walk! <GoArrow />
