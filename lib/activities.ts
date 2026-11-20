@@ -4,16 +4,18 @@
 // quest; the parent plays it with the child off-screen, then reports with
 // one tap. Reports feed the quiet measurement log.
 //
-// Band 1 ≈ 6–18 months · Band 2 ≈ 18 mo–2½ yrs · Band 3 ≈ 2½–4 yrs
+// Band 1 ≈ 6–18 months · Band 2 ≈ 18 mo–2½ yrs · Band 3 ≈ 2½–4 yrs ·
+// Band 4 ≈ 4–8 yrs (school-age together-quests beside the map games)
 
 import { logQuestMetric } from './metrics';
 import { scopedKey } from './family';
+import type { LibraryBand } from './difficulty';
 
 export type ActivityDomain = 'fine motor' | 'communication' | 'reading' | 'math' | 'sensory' | 'processing';
 
 export interface ParentActivity {
   id: string;
-  band: 1 | 2 | 3;
+  band: LibraryBand;
   domain: ActivityDomain;
   emoji: string;
   title: string;
@@ -25,11 +27,11 @@ export interface ParentActivity {
 }
 
 export const DOMAIN_META: Record<ActivityDomain, { emoji: string; label: string }> = {
-  'fine motor':    { emoji: '🤲', label: 'Little Hands' },
+  'fine motor':    { emoji: '✋', label: 'Hand Skills' },
   'communication': { emoji: '🗣️', label: 'Talking & Listening' },
   'reading':       { emoji: '📖', label: 'Early Books & Sounds' },
   'math':          { emoji: '🔢', label: 'Counting & Sorting' },
-  'sensory':       { emoji: '🌈', label: 'Senses' },
+  'sensory':       { emoji: '👀', label: 'Senses' },
   'processing':    { emoji: '🧠', label: 'Thinking & Remembering' },
 };
 
@@ -1408,6 +1410,246 @@ export const ACTIVITIES: ParentActivity[] = [
     watchFor: 'Completing all three steps in the correct order from a single telling.',
     minutes: 6,
   },
+  // ════════ BAND 4 · Big Adventurer (≈ 4 – 8 yrs) ════════
+  // School-age together-quests: they back up the map games with real-world
+  // practice. Each "watch for" names the skill and a stretch for older
+  // children, so one card fits the whole band.
+
+  {
+    id: 'b4-coin-bank', band: 4, domain: 'fine motor', emoji: '🪙',
+    title: 'Treasure Coin Bank',
+    noel: 'The dragon is saving coins for winter! Can you feed them in one at a time?',
+    materials: 'A box or jar with a slot cut in the lid, 10–15 coins or buttons',
+    steps: [
+      'Put the coins in a loose pile on the table.',
+      'Your child picks up ONE coin, then "walks" a second one from palm to fingertips before posting both.',
+      'Count them as they drop. Next round, try the hand they use less.',
+    ],
+    watchFor: 'Moving a coin from palm to fingertips without the other hand helping (in-hand manipulation). Older children can hold 3–4 coins in the palm and post them one by one.',
+    minutes: 5,
+  },
+  {
+    id: 'b4-cut-the-road', band: 4, domain: 'fine motor', emoji: '✂️',
+    title: 'Cut the Dragon Road',
+    noel: 'Kailia drew a twisty road for the dragon. Can your scissors drive along it?',
+    materials: 'Child-safe scissors, paper, a thick marker',
+    steps: [
+      'Draw a thick road: straight first, then a gentle curve, then a zig-zag.',
+      'Remind: thumb on top, "thumbs up" while cutting; the helper hand turns the paper.',
+      'Cheer every finished road and tape them together into one long trail.',
+    ],
+    watchFor: 'Staying within about half a centimetre of the line and turning the paper with the helper hand. Around 6, most children can cut a circle; older ones manage tighter corners.',
+    minutes: 8,
+  },
+  {
+    id: 'b4-letter-tray', band: 4, domain: 'fine motor', emoji: '🧂',
+    title: 'Secret Letters in the Sand',
+    noel: 'Noel hid a secret message in the sand! Write it back to him with one finger.',
+    materials: 'A baking tray with a thin layer of salt, sugar or sand',
+    steps: [
+      'Write a letter (or a short word for older children) on paper as a model.',
+      'Your child copies it in the tray with their pointer finger, then "erases" with a shake.',
+      'Swap: they write one, you guess it.',
+    ],
+    watchFor: 'Starting letters at the top and forming them in the usual stroke order. Older children: whole short words, sized evenly.',
+    minutes: 6,
+  },
+  {
+    id: 'b4-story-retell', band: 4, domain: 'communication', emoji: '📚',
+    title: 'Be the Storyteller',
+    noel: 'Noel fell asleep in the middle of the story! Can you tell him what happened?',
+    materials: 'Any picture book you have read together',
+    steps: [
+      'Read the book together, then close it.',
+      'Ask your child to tell Noel (or a toy) the story: "What happened first? Then? How did it end?"',
+      'Help only with "and then what?" prompts.',
+    ],
+    watchFor: 'Retelling with a beginning, middle and end, using words like "first", "then", "because". Older children add how a character felt and why.',
+    minutes: 7,
+  },
+  {
+    id: 'b4-mystery-bag', band: 4, domain: 'communication', emoji: '👜',
+    title: 'Mystery Bag Clues',
+    noel: 'Something is hiding in the bag! Give Noel clues, but don\'t say its name!',
+    materials: 'A bag or pillowcase and a few household objects',
+    steps: [
+      'Your child secretly picks an object and describes it without naming it: color, shape, what it does.',
+      'You guess. Then swap roles.',
+      'Older children: try only "what it is used for" clues.',
+    ],
+    watchFor: 'Describing with category, parts and use ("it\'s a kitchen thing, it has a handle, you stir with it"). That is the language of explaining.',
+    minutes: 6,
+  },
+  {
+    id: 'b4-polite-shop', band: 4, domain: 'communication', emoji: '🛒',
+    title: 'The Polite Little Shop',
+    noel: 'Noel opened a shop! Customers who ask nicely get the best service.',
+    materials: 'Toys or fruit as "goods", paper coins',
+    steps: [
+      'Take turns being the shopkeeper and the customer.',
+      'Customers greet, ask ("May I have…, please?") and thank; shopkeepers answer and ask a follow-up question.',
+      'Add a small problem: "Sorry, we\'re out of apples!" and see how they respond.',
+    ],
+    watchFor: 'Taking turns in conversation, using please/thank you without reminders, and staying on topic when something unexpected happens.',
+    minutes: 7,
+  },
+  {
+    id: 'b4-sign-hunt', band: 4, domain: 'reading', emoji: '🪧',
+    title: 'Signpost Hunt',
+    noel: 'The Whispering Signposts lost their words! Find real signs on your walk.',
+    materials: 'A walk outside or a trip to the shop',
+    steps: [
+      'Spot signs and labels together (STOP, EXIT, OPEN, food packets).',
+      'Your child sounds out short words; you read the long ones and they find a letter they know.',
+      'At home, draw your three favourite signs.',
+    ],
+    watchFor: 'Blending sounds into short words (c-a-t). Older children read whole signs and guess unknown words from the picture or place.',
+    minutes: 8,
+  },
+  {
+    id: 'b4-rhyme-ping-pong', band: 4, domain: 'reading', emoji: '🏓',
+    title: 'Rhyme Ping-Pong',
+    noel: 'Noel says "cat"! Can you bounce back a word that rhymes?',
+    materials: 'Nothing (great in the car)',
+    steps: [
+      'Say a simple word; your child "bounces" back a rhyme, real or silly.',
+      'Keep the rally going as long as you can.',
+      'Then try "first sound" ping-pong: words that start like "ball".',
+    ],
+    watchFor: 'Hearing and making rhymes and first sounds, the base of early reading. Older children can change one sound: "cat" → "cap".',
+    minutes: 4,
+  },
+  {
+    id: 'b4-bedtime-reader', band: 4, domain: 'reading', emoji: '🌙',
+    title: 'Who Reads Tonight?',
+    noel: 'Tonight Noel wants YOU to read him a page!',
+    materials: 'An easy reader or picture book with short sentences',
+    steps: [
+      'You read a page, then your child reads one (or one sentence, or the words they know).',
+      'If they get stuck, give the first sound, then wait.',
+      'Ask one question at the end: "Why do you think she did that?"',
+    ],
+    watchFor: 'Reading short sentences and fixing their own mistakes when something doesn\'t make sense. Older children read with expression.',
+    minutes: 10,
+  },
+  {
+    id: 'b4-snack-share', band: 4, domain: 'math', emoji: '🍇',
+    title: 'Fair Share Snack',
+    noel: 'The baby dragons must share fairly! Can you split the snack so everyone gets the same?',
+    materials: 'A snack in pieces (grapes, crackers) and 2–4 small plates',
+    steps: [
+      'Start with 6 pieces and 2 plates; your child shares them out one by one.',
+      'Check together: "Is it fair? How many each?"',
+      'Make it harder: 12 pieces on 3 plates, or a leftover piece to decide about.',
+    ],
+    watchFor: 'Sharing one-to-one and counting each plate. Older children predict "4 each" before sharing; that is early division.',
+    minutes: 6,
+  },
+  {
+    id: 'b4-shop-adding', band: 4, domain: 'math', emoji: '🧮',
+    title: 'Two-Dice Dash',
+    noel: 'Roll two dice and race Noel up the number path!',
+    materials: 'Two dice and a number path 1–20 drawn on paper (or stairs)',
+    steps: [
+      'Roll both dice and add them; move that many steps.',
+      'Encourage "counting on" from the bigger die instead of counting all the dots.',
+      'First to 20 wins. Older children: say how many steps are left to 20.',
+    ],
+    watchFor: 'Counting on from a number and knowing small sums by heart (doubles, +1, +2). "How many left?" is early subtraction.',
+    minutes: 8,
+  },
+  {
+    id: 'b4-pattern-necklace', band: 4, domain: 'math', emoji: '📿',
+    title: 'Pattern Necklace',
+    noel: 'The dragon wants a sparkly necklace with a pattern! What comes next?',
+    materials: 'Pasta tubes or beads and string (or colored blocks in a line)',
+    steps: [
+      'Start a pattern (red, blue, red, blue…) and ask what comes next.',
+      'Then try longer ones: red, red, blue… or big, small, small…',
+      'Your child makes a pattern for you to continue.',
+    ],
+    watchFor: 'Continuing and creating repeating patterns. Older children describe the rule ("it goes two reds then a blue").',
+    minutes: 7,
+  },
+  {
+    id: 'b4-heavy-work', band: 4, domain: 'sensory', emoji: '📦',
+    title: 'Dragon Delivery Service',
+    noel: 'The dragon needs heavy treasure moved to the cave! Strong helpers wanted!',
+    materials: 'Laundry basket, books, cushions or groceries',
+    steps: [
+      'Your child carries, pushes or pulls a safe heavy load from one room to another.',
+      'Add an obstacle course: under the table, around the chair.',
+      'Finish with a slow "dragon breath": in for 4, out for 6.',
+    ],
+    watchFor: 'How your child seems afterwards. Heavy work often helps busy children settle and sleepy ones wake up; notice which one fits yours.',
+    minutes: 6,
+  },
+  {
+    id: 'b4-texture-detective', band: 4, domain: 'sensory', emoji: '🔍',
+    title: 'Texture Detective',
+    noel: 'Noel\'s eyes are closed! Can your fingers be the detective?',
+    materials: 'A bag with 5 objects of different textures (sponge, coin, spoon, cotton ball, leaf)',
+    steps: [
+      'Your child reaches in without looking and describes what they feel: rough, smooth, cold, squishy.',
+      'Then they guess the object and pull it out to check.',
+      'Swap roles; you describe and they guess.',
+    ],
+    watchFor: 'Telling objects apart by touch alone (stereognosis) and having words for textures. Note any texture they avoid touching.',
+    minutes: 5,
+  },
+  {
+    id: 'b4-quiet-listening', band: 4, domain: 'sensory', emoji: '👂',
+    title: 'Echo Cave Listening',
+    noel: 'Shhh… the Echo Caves are full of tiny sounds. How many can you hear?',
+    materials: 'A quiet spot inside or outside',
+    steps: [
+      'Sit still together for one minute with eyes closed.',
+      'Count on fingers every different sound you hear.',
+      'Share your lists. Did anyone hear the fridge, a bird, a car?',
+    ],
+    watchFor: 'Staying still and focused on sound for a minute and naming what they heard. Notice if ordinary sounds seem to bother them.',
+    minutes: 4,
+  },
+  {
+    id: 'b4-owl-says', band: 4, domain: 'processing', emoji: '🦉',
+    title: 'The Owl Says (Opposite!)',
+    noel: 'The tricky owl does everything backwards! When he says "touch your head", touch your toes!',
+    materials: 'Nothing',
+    steps: [
+      'Play a normal round of "Simon says" style copying.',
+      'Then switch to opposites: "head" means toes, "clap" means stomp, "stand" means sit.',
+      'Speed up a little each round; laugh at the mix-ups together.',
+    ],
+    watchFor: 'Stopping the first impulse and switching rules (self-control and flexible thinking). Older children can manage two opposite rules at once.',
+    minutes: 5,
+  },
+  {
+    id: 'b4-number-echo', band: 4, domain: 'processing', emoji: '🔢',
+    title: 'Number Echo',
+    noel: 'The owl whispers a secret number code. Can you echo it back?',
+    materials: 'Nothing',
+    steps: [
+      'Say 3 numbers slowly (4 – 1 – 7); your child repeats them in order.',
+      'If right, add one more number next time. If not, try the same length again.',
+      'Older children: say them BACKWARDS.',
+    ],
+    watchFor: 'How many numbers they can hold. Around 5–6 most children repeat 4 numbers, around 7–8 about 5, backwards is harder.',
+    minutes: 4,
+  },
+  {
+    id: 'b4-morning-mission', band: 4, domain: 'processing', emoji: '🎒',
+    title: 'Morning Mission Map',
+    noel: 'Every hero has a mission map! Let\'s draw yours for getting ready.',
+    materials: 'Paper and crayons',
+    steps: [
+      'Together, draw the 4–5 steps of getting ready (dress, breakfast, teeth, shoes, bag).',
+      'Hang it up. Tomorrow your child follows the map, ticking each step.',
+      'Count how many steps were done with no reminder.',
+    ],
+    watchFor: 'Planning and following a routine with fewer reminders. That is the start of independent "executive" skills.',
+    minutes: 10,
+  },
+
 ];
 
 // ── Daily quests ──
@@ -1465,7 +1707,7 @@ function saveDailyHistory(h: Record<string, BandHistory>) {
 // The free daily set is deliberately small: two quick quests, the shortest
 // good pair among the day's rotating candidates — so it always feels doable
 // and tomorrow is worth coming back for.
-export function todaysQuests(band: 1 | 2 | 3): ParentActivity[] {
+export function todaysQuests(band: LibraryBand): ParentActivity[] {
   const pool = ACTIVITIES.filter(a => a.band === band);
   const bandKey = String(band);
   const history = loadDailyHistory();

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
-import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { developmentalBand, libraryBand, BAND_INFO, type LibraryBand } from '@/lib/difficulty';
 import { hasActiveConsent } from '@/lib/family';
 import {
   ACTIVITIES, DOMAIN_META, ParentActivity, ActivityDomain, ReportScore,
@@ -14,8 +14,10 @@ import {
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import LivingSky from '@/components/scenery/LivingSky';
 import { isPremium } from '@/lib/premium';
 import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
+import BackButton from '@/components/ui/BackButton';
 
 // Free preview size for the browsable library (the 3 daily quests above
 // are always free — this only limits how much of the full 69-activity
@@ -41,12 +43,13 @@ function ActivityCard({ activity, report, onReport, highlight }: {
   highlight?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const { theme } = useHubTheme();
   const meta = DOMAIN_META[activity.domain];
   const done = report !== undefined;
 
   return (
     <div className="rounded-2xl overflow-hidden transition-all"
-      style={{ background: 'rgba(255,255,255,0.97)', border: highlight ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.2)',
+      style={{ background: theme.surface, border: highlight ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.2)',
         boxShadow: highlight ? '0 0 18px rgba(251,191,36,0.35)' : '0 2px 10px rgba(0,0,0,0.25)' }}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 p-3.5 text-left">
         <span className="text-4xl" style={{ flexShrink: 0 }}>{activity.emoji}</span>
@@ -98,7 +101,7 @@ function ActivityCard({ activity, report, onReport, highlight }: {
           </div>
           {done && (
             <p className="text-xs text-gray-500 mt-2">
-              Saved! Every report helps Kailia understand your little one better. 💜
+              Saved! Every report helps Kailia understand your explorer better. 💜
             </p>
           )}
         </div>
@@ -108,9 +111,16 @@ function ActivityCard({ activity, report, onReport, highlight }: {
 }
 
 export default function ActivityLibraryPage() {
-  const { state, totalScore } = useAssessment();
-  const detectedBand = developmentalBand(state.ageGroup, totalScore);
-  const [band, setBand] = useState<1 | 2 | 3>(detectedBand ?? 2);
+  const { state, totalScore, devMonths, chronoMonths, loaded } = useAssessment();
+  // The library follows the placement: little ones get their band, a
+  // school-age child gets the Big Adventurer shelf (never toddler quests).
+  const hasCheck = devMonths != null || totalScore > 0;
+  const detectedBand: LibraryBand = libraryBand(
+    hasCheck ? developmentalBand(state.ageGroup, totalScore, devMonths) : null,
+    hasCheck ? (devMonths ?? 60) : null,
+    chronoMonths,
+  );
+  const [band, setBand] = useState<LibraryBand>(detectedBand);
   const [domainFilter, setDomainFilter] = useState<ActivityDomain | 'all'>('all');
   const [reports, setReports] = useState<{ [id: string]: ReportScore }>({});
   const [streak, setStreak] = useState(0);
@@ -122,7 +132,7 @@ export default function ActivityLibraryPage() {
   const bright = themeName === 'bright';
 
   // follow the assessment once it loads from storage
-  useEffect(() => { if (detectedBand) setBand(detectedBand); }, [detectedBand]);
+  useEffect(() => { if (loaded) setBand(detectedBand); }, [detectedBand, loaded]);
   useEffect(() => {
     setReports(getTodayReports()); setStreak(streakDays()); setConsented(hasActiveConsent());
     setPremiumState(isPremium()); setCustomTasks(loadCustomTasks());
@@ -144,12 +154,13 @@ export default function ActivityLibraryPage() {
   }
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-3">
 
         {/* Header */}
         <div className="flex items-center justify-between pt-5 pb-1 px-1">
-          <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
+          <BackButton href="/play" label="Map" />
           <h1 className={`text-2xl font-extrabold ${theme.title}`}>🎒 Quest Library</h1>
           <div className="flex items-center gap-1.5 justify-end">
             {streak >= 2 && <span className="text-sm font-bold text-yellow-500">🔥{streak}</span>}
@@ -161,12 +172,11 @@ export default function ActivityLibraryPage() {
         </p>
 
         {/* Band banner */}
-        <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.95)' }}>
+        <div className="rounded-2xl p-4 mb-4 flex items-center gap-3" style={{ background: theme.surface }}>
           <span className="text-5xl">{info.emoji}</span>
           <div className="flex-1">
             <p className="font-extrabold text-gray-800 leading-tight">
               {state.childName ? `${state.childName} the ` : 'Your '}{info.name}
-              <span className="font-semibold text-gray-500 text-xs"> · {info.ages}</span>
             </p>
             <p className="text-xs text-gray-600 mt-0.5">{info.blurb}</p>
           </div>
@@ -178,10 +188,16 @@ export default function ActivityLibraryPage() {
             style={{ background: 'rgba(253,224,71,0.12)', border: '1.5px solid rgba(253,224,71,0.35)' }}>
             <span className="text-xl" style={{ flexShrink: 0 }}>💡</span>
             <p className={`text-xs leading-relaxed ${bright ? 'text-amber-900' : 'text-yellow-100'}`}>
-              <strong>Why these quests?</strong> {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure
-              level is still growing — and at the {info.name} stage, children learn most from playing
-              <strong> with you</strong>, not from a screen. That&apos;s why these together-quests are the
-              main adventure we recommend, with the map games as a fun extra.
+              {band === 4 ? (
+                <><strong>Why these quests?</strong> They match {state.childName ? `${state.childName}'s` : 'your child\'s'} adventure
+                check. The map games do most of the practising at this stage; these short real-world missions
+                carry the same skills off the screen, <strong>with you</strong>.</>
+              ) : (
+                <><strong>Why these quests?</strong> {state.childName ? `${state.childName}'s` : 'Your child\'s'} adventure
+                level is still growing — and at the {info.name} stage, children learn most from playing
+                <strong> with you</strong>, not from a screen. That&apos;s why these together-quests are the
+                main adventure we recommend, with the map games as a fun extra.</>
+              )}
             </p>
           </div>
         )}
@@ -264,7 +280,7 @@ export default function ActivityLibraryPage() {
               <button onClick={() => setShowLibrary(false)} className={`text-xs font-bold ${theme.link}`}>Hide ▴</button>
             </div>
             <div className="flex gap-2 mb-3 justify-center">
-              {([1, 2, 3] as const).map(b => (
+              {([1, 2, 3, 4] as const).map(b => (
                 <button key={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
                   className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
                   style={band === b

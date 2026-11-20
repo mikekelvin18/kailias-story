@@ -9,6 +9,8 @@ import { hasActiveConsent } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
+import LivingSky from '@/components/scenery/LivingSky';
+import BackButton from '@/components/ui/BackButton';
 
 // ─── Printable Worksheets library ──────────────────────────────────────────────
 // Real paper activities parents print at home: tracing sheets progressing
@@ -34,10 +36,11 @@ export default function PrintablesPage() {
   const doneCount = Object.keys(progress).length;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background }}>
+    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+      <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4 pt-5">
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className={`text-sm font-bold ${theme.link}`}>← Map</Link>
+          <BackButton href="/play" label="Map" />
           <h1 className={`text-xl font-extrabold ${theme.title}`}>🖨️ Printables</h1>
           <div className="flex items-center gap-1.5">
             <span className={`text-xs font-bold ${theme.subtitle}`}>{doneCount}/{WORKSHEETS.length}</span>
@@ -77,7 +80,7 @@ export default function PrintablesPage() {
                   return (
                     <Link key={w.id} href={`/printables/${w.id}`}
                       className="rounded-2xl p-3 transition-transform hover:scale-105"
-                      style={{ background: 'rgba(255,255,255,0.97)', border: done ? '3px solid #34D399' : '2px solid rgba(255,255,255,0.2)' }}>
+                      style={{ background: theme.surface, border: done ? '3px solid #34D399' : '2px solid rgba(255,255,255,0.2)' }}>
                       <span className="block text-3xl mb-1">{w.emoji}</span>
                       <span className="block font-extrabold text-gray-800 text-sm leading-tight">
                         {w.title} {done && '✅'}

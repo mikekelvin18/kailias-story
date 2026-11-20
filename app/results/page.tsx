@@ -5,20 +5,27 @@ import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaAvatar from '@/components/KailiaAvatar';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
+import { fineMotorStage, traceNextStep } from '@/lib/fineMotor';
+import { loadProgress } from '@/lib/adventure';
+import StepGuide from '@/components/ui/StepGuide';
+import BackButton from '@/components/ui/BackButton';
+import ResultsDisclaimer from '@/components/ui/ResultsDisclaimer';
+import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
+import { DOMAIN_META } from '@/lib/activities';
+import PlayLog from '@/components/ui/PlayLog';
+import { Sparkle } from '@/components/scenery/SkyDecor';
 
-function getFineMotorStage(score: number) {
-  if (score >= 85) return { stage: 'Precision Pro',  emoji: '🎯', color: '#059669' };
-  if (score >= 70) return { stage: 'Pre-Writer',     emoji: '✏️', color: '#2563EB' };
-  if (score >= 50) return { stage: 'Shape Master',   emoji: '⭐', color: '#D97706' };
-  if (score >= 25) return { stage: 'Pathfinder',     emoji: '🧭', color: '#F59E0B' };
-  return             { stage: 'Explorer',            emoji: '🌱', color: '#EC4899' };
-}
+const getFineMotorStage = fineMotorStage;
 
+// Same names as the Parent Zone and the map (one naming set everywhere;
+// Muse review 2026-11-18): the skill, then the land that practises it.
 const DOMAIN_INFO = [
-  { key: 'reading',       label: 'Reading & Literacy',     emoji: '📖', color: '#2563EB', max: 10 },
-  { key: 'writing',       label: 'Writing & Fine Motor',   emoji: '✍️', color: '#059669', max: 10 },
-  { key: 'communication', label: 'Communication',          emoji: '🗣️', color: '#7C3AED', max: 10 },
-  { key: 'math',          label: 'Math & Problem Solving', emoji: '🔢', color: '#D97706', max: 10 },
+  { key: 'reading',       label: 'Early Books & Sounds',   land: 'Signposts',      emoji: '📖', color: '#2563EB', max: 10 },
+  { key: 'writing',       label: 'Hand Skills',            land: 'Firefly Forest', emoji: '✍️', color: '#059669', max: 10 },
+  { key: 'communication', label: 'Talking & Listening',    land: 'Story Keepers',  emoji: '🗣️', color: '#7C3AED', max: 10 },
+  { key: 'math',          label: 'Counting & Sorting',     land: "Dragon's Cave",  emoji: '🔢', color: '#D97706', max: 10 },
+  { key: 'processing',    label: 'Thinking & Remembering', land: "Owl's Tower",    emoji: '🦉', color: '#0E7490', max: 10 },
 ];
 
 const DOMAIN_BASIS: Record<string, string> = {
@@ -26,6 +33,7 @@ const DOMAIN_BASIS: Record<string, string> = {
   writing:       'Fine motor milestones + school readiness benchmarks',
   communication: 'CDC communication milestones + expressive/receptive language norms',
   math:          'Early numeracy research + school readiness benchmarks',
+  processing:    'Attention, working memory (number span) and rule-switching milestones',
 };
 
 const GRASP_LOOKUP: Record<string, { emoji: string; label: string; milestone: string; color: string }> = {
@@ -133,13 +141,28 @@ const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> 
 export default function ResultsPage() {
   const {
     state, totalScore, learningStage, stageEmoji, stageDescription,
-    developmentalAge, domainAge, resetAssessment,
+    developmentalAge, domainRange, domainComparison, estimates, chronoMonths, devMonths, resetAssessment, loaded,
     primarySensoryPattern, sensoryPatternEmoji, sensoryPatternDescription,
   } = useAssessment();
   const router = useRouter();
   const [showCelebration, setShowCelebration] = useState(true);
   const [confirmingRetake, setConfirmingRetake] = useState(false);
-  const band = developmentalBand(state.ageGroup, totalScore);
+  const band = developmentalBand(state.ageGroup, totalScore, devMonths);
+  const answersUsed = Object.values(estimates).reduce((t, e) => t + (e?.items ?? 0), 0);
+  // Offered only when a choice-question area reads "at or above their age".
+  const canChallenge = (['reading', 'communication', 'math'] as const).some(k => estimates[k]?.atOrAbove);
+  const anyGrowing = (['reading', 'writing', 'communication', 'math', 'processing'] as const).some(k => domainComparison(k) === 'growing');
+  // Right after the first adventure check (nothing played on the map
+  // yet) this is the last of the four setup steps; afterwards it's a
+  // regular results page reached from the map or the Parent Zone.
+  const [firstVisit, setFirstVisit] = useState(false);
+  const [games, setGames] = useState<GameSummary[]>([]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from this device
+  useEffect(() => { setGames(gameSummaries()); }, []);
+  useEffect(() => {
+    const p = loadProgress();
+    setFirstVisit(Object.keys(p.played).length === 0);
+  }, []);
 
   const sensoryMax = 6; // max per pattern = 3 questions × 2 pts
 
@@ -154,24 +177,36 @@ export default function ResultsPage() {
 
   const handleStartOver = () => { resetAssessment(); router.push('/'); };
 
+  // Nothing until the saved check has loaded: the first frame used to show
+  // the empty defaults ("Early Explorer, about 5–6 years") and old-style
+  // activities, then swap (Muse review, 2026-11-18).
+  if (!loaded) {
+    return <main className="min-h-screen" style={{ background: 'linear-gradient(180deg, #1A2238 0%, #222849 60%, #1E2F4D 100%)' }} />;
+  }
+
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-start px-4 py-12"
-      style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+      className={`min-h-screen flex flex-col items-center justify-start px-4 py-8 ${firstVisit ? 'pb-28' : ''}`}
+      style={{ background: 'linear-gradient(180deg, #1A2238 0%, #222849 60%, #1E2F4D 100%)' }}
     >
       {/* Celebration burst */}
+      {/* Celebration: drawn sparkles burst around the edges for a few
+          seconds (no emoji, and nothing lands on top of the heading). */}
       {showCelebration && (
-        <div className="fixed inset-0 pointer-events-none z-[5] flex items-center justify-center">
-          <div className="text-8xl bounce-in">🎉</div>
-          {['🌟','⭐','✨','💫','🎊','🎈','🏆','🌈'].map((e, i) => (
-            <span key={i} className="absolute float" style={{ left: `${10 + i * 12}%`, top: `${5 + (i % 4) * 22}%`, fontSize: 36, animationDelay: `${i * 0.15}s` }}>
-              {e}
+        <div className="fixed inset-0 pointer-events-none z-[5] print:hidden" aria-hidden="true">
+          {[...Array(14)].map((_, i) => (
+            <span key={i} className="absolute bounce-in"
+              style={{ left: `${i % 2 ? 88 - (i % 5) * 3 : 4 + (i % 5) * 3}%`, top: `${8 + (i * 13) % 84}%`, animationDelay: `${i * 0.08}s` }}>
+              <Sparkle size={18 + (i % 4) * 8} color={['#FDE68A', '#F5D0FE', '#FFFFFF', '#A7F3D0'][i % 4]} />
             </span>
           ))}
         </div>
       )}
 
       <div className="max-w-2xl w-full relative z-10">
+        {firstVisit
+          ? <StepGuide step={4} tone="dark" className="mb-8" />
+          : <div className="mb-6 print:hidden"><BackButton href="/play" label="Map" /></div>}
         {/* Header */}
         <div className="text-center mb-8">
           <div className="float inline-block"><KailiaAvatar size={90} /></div>
@@ -200,16 +235,24 @@ export default function ResultsPage() {
               Estimated Developmental Level
             </p>
             <p className="text-white text-3xl font-extrabold">{developmentalAge}</p>
-            <p className="text-purple-200 text-xs mt-1">Based on performance across all 4 domains</p>
+            <p className="text-purple-200 text-xs mt-1">
+              A range, not one number: the likeliest 8 in 10 ages, based on every skill area checked
+            </p>
           </div>
 
           <div className="flex justify-center gap-4 text-white text-sm font-semibold">
-            <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-              Score: {totalScore} / 40
-            </span>
-            {state.childAge && (
+            {answersUsed > 0 ? (
               <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-                Chronological age: {state.childAge} yrs
+                {answersUsed} milestones checked
+              </span>
+            ) : (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Score: {totalScore} / 40
+              </span>
+            )}
+            {chronoMonths != null && (
+              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
+                Age today: {chronoMonths < 24 ? `${Math.floor(chronoMonths)} months` : `${Math.floor(chronoMonths / 12)} yrs ${Math.floor(chronoMonths % 12)} mo`}
               </span>
             )}
           </div>
@@ -220,13 +263,19 @@ export default function ResultsPage() {
           className="rounded-3xl p-6 mb-6 shadow-xl"
           style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
         >
-          <h3 className="text-xl font-bold text-white mb-1">Domain Breakdown</h3>
-          <p className="text-purple-300 text-sm mb-5">Estimated developmental level per area</p>
+          <h3 className="text-xl font-bold text-white mb-1">Skill Breakdown</h3>
+          <p className="text-slate-300 text-sm mb-5">Estimated developmental level for each skill area</p>
           <div className="space-y-5">
-            {DOMAIN_INFO.map(d => {
-              const score = state.scores[d.key as keyof typeof state.scores];
-              const pct = Math.round((score / d.max) * 100);
-              const age = domainAge(score);
+            {DOMAIN_INFO.filter(d => d.key !== 'processing' || estimates.processing).map(d => {
+              const score = state.scores[d.key as keyof typeof state.scores] ?? 0;
+              // Bar: where the range's middle sits next to the child's age
+              // (about two-thirds full = right at their age).
+              const est = estimates[d.key as MilestoneDomain];
+              const pct = est && chronoMonths
+                ? Math.round(Math.min(100, (est.mid / chronoMonths) * 66))
+                : Math.round((score / d.max) * 100);
+              const age = domainRange(d.key as MilestoneDomain);
+              const cmp = domainComparison(d.key as MilestoneDomain);
               const isWriting = d.key === 'writing';
               const inputMethod = state.fineMotorInputMethod;
               const graspInfo = state.graspPattern ? GRASP_LOOKUP[state.graspPattern] : null;
@@ -234,7 +283,7 @@ export default function ResultsPage() {
                 <div key={d.key}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-white font-semibold text-sm">
-                      {d.emoji} {d.label}
+                      {d.emoji} {d.label} <span className="text-slate-300 text-xs font-normal">· {d.land}</span>
                     </span>
                     <div className="flex items-center gap-2">
                       <span
@@ -243,16 +292,20 @@ export default function ResultsPage() {
                       >
                         {age}
                       </span>
-                      <span className="text-purple-300 text-xs">{score}/{d.max}</span>
                     </div>
                   </div>
+                  {cmp && (
+                    <p className="text-xs font-semibold mb-1" style={{ color: cmp === 'growing' ? '#FCD34D' : cmp === 'ahead' ? '#6EE7B7' : '#BFDBFE' }}>
+                      {COMPARISON_TEXT[cmp].label}
+                    </p>
+                  )}
                   <div className="h-3 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.15)' }}>
                     <div
                       className="h-3 rounded-full transition-all"
                       style={{ width: `${pct}%`, background: d.color, minWidth: 8 }}
                     />
                   </div>
-                  <p className="text-purple-400 text-xs italic">{DOMAIN_BASIS[d.key]}</p>
+                  <p className="text-slate-300 text-xs italic">{DOMAIN_BASIS[d.key]}</p>
                   {isWriting && inputMethod && (
                     <p className="text-purple-300 text-xs mt-0.5">
                       {inputMethod === 'touch'
@@ -269,7 +322,9 @@ export default function ResultsPage() {
                   )}
                   {isWriting && state.fineMotorSubScores && (() => {
                     const fm = getFineMotorStage(state.fineMotorSubScores!.composite);
+                    const next = traceNextStep(state.fineMotorSubScores!);
                     return (
+                      <>
                       <div className="mt-2 flex items-center gap-2">
                         <span className="font-bold text-xs" style={{ color: fm.color }}>
                           {fm.emoji} Fine Motor: {fm.stage}
@@ -277,14 +332,37 @@ export default function ResultsPage() {
                         <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
                           <div className="h-1.5 rounded-full" style={{ width: `${state.fineMotorSubScores!.composite}%`, background: fm.color }} />
                         </div>
-                        <span className="text-purple-300 text-xs">{state.fineMotorSubScores!.composite}%</span>
+                        <span className="text-slate-300 text-xs">{state.fineMotorSubScores!.composite}%</span>
                       </div>
+                      <p className="text-slate-300 text-xs mt-1">
+                        Tracing, compared with what&apos;s typical at this age: {fm.description}
+                        {next && <> <span className="text-emerald-300 font-semibold">Try next:</span> {next.tip}</>}
+                      </p>
+                      </>
                     );
                   })()}
                 </div>
               );
             })}
           </div>
+          {anyGrowing && (
+            <p className="text-sm mt-5 rounded-2xl p-4" style={{ background: 'rgba(252,211,77,0.12)', color: '#FDE68A' }}>
+              {COMPARISON_TEXT.growing.note} You know your child best: if anything worries you, ask your
+              child&apos;s doctor about a developmental check. Getting help early makes a real difference.
+            </p>
+          )}
+          {/* Challenge round: one quiet link (Kelvin: no clutter) for a
+              grown-up who thinks their child is ahead. Only harder questions. */}
+          {canChallenge && (
+            <p className="text-sm text-slate-300 mt-5 text-center">
+              Think {state.childName || 'your child'} is ahead?{' '}
+              <button onClick={() => router.push('/assessment/games?challenge=1')}
+                className="font-bold underline underline-offset-2 text-amber-200 hover:text-amber-100">
+                Try the challenge round
+              </button>
+              <span className="text-slate-400"> (harder questions, about 5 min)</span>
+            </p>
+          )}
         </div>
 
         {/* Sensory section */}
@@ -293,8 +371,8 @@ export default function ResultsPage() {
             className="rounded-3xl p-6 mb-6 shadow-xl"
             style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
           >
-            <h3 className="text-xl font-bold text-white mb-1">🧠 Sensory Style Profile</h3>
-            <p className="text-purple-300 text-sm mb-5">How your child processes sensory information</p>
+            <h3 className="text-xl font-bold text-white mb-1">👀 Senses · Echo Caves</h3>
+            <p className="text-slate-300 text-sm mb-5">Your child&apos;s sensory style, from your answers. Like standard sensory questionnaires, this area is answered by the grown-up who knows the child best, so it shows a style, not an age.</p>
 
             {/* 4-pattern bars */}
             <div className="space-y-4 mb-5">
@@ -324,7 +402,7 @@ export default function ResultsPage() {
                           </span>
                         )}
                       </span>
-                      <span className="text-purple-300 text-xs">{score}/{sensoryMax}</span>
+                      <span className="text-slate-300 text-xs">{score}/{sensoryMax}</span>
                     </div>
                     <div className="h-2.5 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
                       <div
@@ -350,7 +428,7 @@ export default function ResultsPage() {
               </div>
             )}
 
-            <p className="text-purple-400 text-xs italic mt-4">
+            <p className="text-slate-300 text-xs italic mt-4">
               Based on Dunn's Sensory Processing Model (published academic framework). This is a style profile, not a clinical diagnosis.
             </p>
           </div>
@@ -389,20 +467,37 @@ export default function ResultsPage() {
           </ul>
         </div>
 
-        {/* Disclaimer */}
-        <div
-          className="rounded-2xl p-5 mb-8 text-sm"
-          style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
-        >
-          <p className="text-purple-200 leading-relaxed">
-            <strong className="text-white">📋 Note for parents:</strong> Developmental age estimates
-            are approximate ranges based on typical milestone progressions — they are not a clinical
-            diagnosis. This is a screening and learning placement tool inspired by developmental
-            science and educational research. For a formal evaluation, please consult a qualified
-            professional such as an Occupational Therapist, Speech-Language Pathologist, or
-            Developmental Pediatrician.
-          </p>
+        {/* What the child has played since the check (games only log numbers;
+            they never change the age range above) */}
+        <div className="rounded-3xl p-6 mb-6 shadow-xl"
+          style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}>
+          <h3 className="text-xl font-bold text-white mb-1">Games Played</h3>
+          <p className="text-slate-300 text-sm mb-4">What {state.childName || 'your child'} has played in Kailia&apos;s World</p>
+          <PlayLog />
+          {games.length === 0 ? (
+            <p className="text-slate-300 text-sm italic">No games finished yet. Each finished game shows up here.</p>
+          ) : (
+            <div className="space-y-2">
+              {games.slice(0, 8).map(g => (
+                <div key={g.id} className="flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5"
+                  style={{ background: 'rgba(255,255,255,0.07)' }}>
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-bold truncate">{g.title}</p>
+                    <p className="text-slate-300 text-xs">{DOMAIN_META[g.domain as keyof typeof DOMAIN_META]?.label ?? g.domain} · last played {new Date(g.lastPlayed).toLocaleDateString()}</p>
+                  </div>
+                  <span className="text-right flex-shrink-0 text-xs text-slate-200">
+                    <span className="block font-bold">finished {g.finished}×</span>
+                    {g.highestLevel > 0 && <span className="block text-slate-300">up to level {g.highestLevel}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <a href="/progress" className="inline-block mt-4 text-sm font-bold text-purple-200 underline">Full progress report →</a>
         </div>
+
+        {/* Disclaimer */}
+        <ResultsDisclaimer />
 
         {/* Parent & Baby Quest Library — the main path for the littlest ones */}
         {band !== null && (
@@ -433,13 +528,13 @@ export default function ResultsPage() {
             className="w-full py-5 rounded-full font-extrabold text-xl text-white shadow-2xl transition-all hover:scale-105 pulse"
             style={{ background: 'linear-gradient(135deg, #059669, #2563EB, #7C3AED)' }}
           >
-            🎮 Play Learning Games!
+            {firstVisit ? '🗺️ Open Kailia’s World →' : '🗺️ Back to Kailia’s World'}
           </button>
           {!confirmingRetake ? (
             <button
               onClick={() => setConfirmingRetake(true)}
-              className="w-full py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}
+              className="w-full py-3 rounded-full font-bold text-lg text-slate-100 transition-all hover:bg-white/10"
+              style={{ border: '2px solid rgba(255,255,255,0.3)', background: 'transparent' }}
             >
               🔄 Retake the Questionnaire
             </button>
@@ -469,13 +564,26 @@ export default function ResultsPage() {
           )}
           <button
             onClick={() => window.print()}
-            className="w-full py-3 rounded-full font-bold text-lg text-purple-200 transition-all hover:text-white"
+            className="w-full py-3 rounded-full font-bold text-lg text-slate-100 transition-all hover:bg-white/10"
             style={{ border: '2px solid rgba(255,255,255,0.3)', background: 'transparent' }}
           >
             🖨️ Print These Results
           </button>
         </div>
       </div>
+
+      {/* First visit: the way forward stays on screen while the parent
+          reads, instead of waiting at the very bottom of a long page. */}
+      {firstVisit && (
+        <div className="fixed bottom-0 inset-x-0 z-20 px-4 pb-4 pt-3 print:hidden"
+          style={{ background: 'linear-gradient(180deg, rgba(26,34,56,0), rgba(26,34,56,0.92) 35%)' }}>
+          <button onClick={() => router.push('/play')}
+            className="block w-full max-w-2xl mx-auto py-4 rounded-full font-extrabold text-lg sm:text-xl text-white shadow-2xl transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #059669, #2563EB, #7C3AED)' }}>
+            Open Kailia&rsquo;s World →
+          </button>
+        </div>
+      )}
     </main>
   );
 }

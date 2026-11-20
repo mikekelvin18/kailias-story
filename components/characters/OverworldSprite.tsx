@@ -5,6 +5,7 @@
 // separate lower-res pixel-art sheet that clashed with it.
 
 import Image from 'next/image';
+import { characterArt } from './characters.config';
 
 export type Facing = 'front' | 'back' | 'left' | 'right';
 
@@ -20,7 +21,7 @@ interface Props {
 export default function OverworldSprite({ character, facing, walking = false, size = 48, className, style }: Props) {
   return (
     <Image
-      src={`/characters/${character}/portrait-${facing}.png`}
+      src={characterArt(character, `portrait-${facing}`)}
       alt={character}
       width={size}
       height={size * 1.3}

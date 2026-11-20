@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useHubTheme } from '@/hooks/useHubTheme';
+import { Thing } from '@/components/art/things';
 
 // ── Persistent bottom navigation ──
 // The single biggest "where do I even find this" complaint: every hub
@@ -13,35 +15,41 @@ import { usePathname } from 'next/navigation';
 // there would eat into precious play space.
 
 const TABS = [
-  { href: '/play', label: 'Home', emoji: '🏠' },
-  { href: '/activities', label: 'Quests', emoji: '🎒' },
-  { href: '/printables', label: 'Print', emoji: '🖨️' },
-  { href: '/family', label: 'Family', emoji: '👪' },
+  { href: '/play', label: 'Map', pic: 'map' },
+  { href: '/activities', label: 'Quests', pic: 'backpack' },
+  { href: '/printables', label: 'Print', pic: 'printer' },
+  { href: '/family', label: 'Family', pic: 'house' },
 ] as const;
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { theme } = useHubTheme();
 
   return (
-    <nav
+    <nav aria-label="Main"
       className="fixed bottom-0 left-0 right-0 z-40 flex justify-center px-0 sm:px-4 sm:pb-4"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-    >
-      {/* Phone: a flush full-width bar, unchanged. Tablet/desktop: a
-          floating rounded dock sized to the page content, not a mobile
-          bar stranded in the middle of a wide screen. */}
-      <div className="w-full max-w-md sm:max-w-xl lg:max-w-2xl flex items-stretch sm:rounded-2xl overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(10px)',
-          borderTop: '1.5px solid rgba(30,41,59,0.1)', boxShadow: '0 -4px 16px rgba(0,0,0,0.08)' }}>
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* Phone: a flush full-width bar. Tablet/desktop: a floating rounded
+          dock sized to the page content. A SOLID surface (not see-through
+          glass) so the tabs never blend into the map behind them. */}
+      <div className="w-full max-w-md sm:max-w-xl lg:max-w-2xl flex items-stretch gap-1 px-2 py-1.5 sm:rounded-3xl"
+        style={{ background: theme.navBg, borderTop: `1px solid ${theme.navBorder}`,
+          boxShadow: '0 -2px 14px rgba(15,23,42,0.10)' }}>
         {TABS.map(tab => {
           const active = pathname === tab.href || pathname?.startsWith(tab.href + '/');
           return (
-            <Link key={tab.href} href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center py-2 sm:py-3 transition-transform active:scale-95 hover:bg-black/[0.03]"
-              style={{ color: active ? '#7C3AED' : '#94a3b8' }}>
-              <span className="text-2xl sm:text-3xl" style={{ transform: active ? 'translateY(-1px)' : 'none' }}>{tab.emoji}</span>
-              <span className="text-[10px] sm:text-xs font-extrabold mt-0.5">{tab.label}</span>
-              {active && <span className="block rounded-full mt-0.5" style={{ width: 4, height: 4, background: '#7C3AED' }} />}
+            <Link key={tab.href} href={tab.href} aria-current={active ? 'page' : undefined}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[56px] rounded-2xl transition-colors active:scale-95"
+              style={{ color: active ? theme.navActive : theme.navInactive }}>
+              {/* The active tab gets a filled pill behind its icon (the
+                  iOS/Android pattern) — far easier to spot than the old
+                  tiny dot, especially for pre-readers. */}
+              <span className="flex items-center justify-center rounded-full leading-none transition-colors"
+                style={{ width: 56, height: 32, background: active ? theme.navActiveBg : 'transparent',
+                  filter: active ? 'none' : 'saturate(0.75)' }}>
+                <Thing id={tab.pic} size={28} />
+              </span>
+              <span className={`text-xs sm:text-sm ${active ? 'font-extrabold' : 'font-bold'}`}>{tab.label}</span>
             </Link>
           );
         })}

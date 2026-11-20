@@ -7,6 +7,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { isPremium, setPremium, redeemCode } from '@/lib/premium';
 import BottomNav from '@/components/BottomNav';
+import BackButton from '@/components/ui/BackButton';
 
 // ─── Upgrade / pricing ─────────────────────────────────────────────────────
 // No payment processor is connected yet (no Stripe/App Store/Play billing).
@@ -59,7 +60,7 @@ function UpgradeContent() {
   return (
     <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%)' }}>
       <div className="max-w-md mx-auto px-4 pt-6">
-        <Link href="/play" className="text-sm font-bold text-indigo-300">← Map</Link>
+        <BackButton href="/play" label="Map" />
 
         <div className="text-center mt-4 mb-5">
           <div className="flex items-end justify-center gap-1 mb-3">
