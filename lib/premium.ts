@@ -18,6 +18,11 @@ const KEY = 'kailia_premium_v1';
 // visiting the real site is ever gated behind them.
 const PAYWALL_ENABLED = false;
 
+/** True once real charging is switched on. While false, the whole app is free. */
+export function isPaywallEnabled(): boolean {
+  return PAYWALL_ENABLED;
+}
+
 export function isPremium(): boolean {
   if (!PAYWALL_ENABLED) return true;
   if (typeof window === 'undefined') return false;
