@@ -45,3 +45,4 @@ __pycache__/
 /test-results/
 /playwright-report/
 /blob-report/
+.venv-voice/

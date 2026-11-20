@@ -11,6 +11,7 @@
 // like the other display settings; it is not child data).
 
 import { loadA11y, masterVolume } from './accessibility';
+import { deviceNames } from './nameSounds';
 
 /* Voices we know sound warm and friendly, best first. Matching is by
    name, so "Microsoft Ana Online (Natural)" matches "ana online". */
@@ -252,7 +253,7 @@ export function say(text: string, opts: SayOptions = {}) {
       const rate = opts.rate ?? 0.92;
       // SHOUTED words ("the SAME color", uppercase headings) get spelled out
       // letter by letter on some voices, so read them as normal words
-      const parts = sentences(clean).map(p => p.replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase())));
+      const parts = sentences(clean).map(p => deviceNames(p.replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase()))));
       parts.forEach((part, i) => {
         const u = new SpeechSynthesisUtterance(part);
         u.volume = masterVolume();
