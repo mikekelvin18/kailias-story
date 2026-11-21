@@ -9,7 +9,7 @@
 // data) and also lives in Grown-ups > Display & accessibility.
 //
 // Browsers only allow sound after the first tap, so the music starts on
-// the first touch or key press, fading in gently.
+// the first tap (finger lifted) or key press, fading in gently.
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -60,11 +60,13 @@ export default function GameMusic() {
     // (re)starts it too; start() on a playing tune only wakes it up.
     const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
     if (ua?.hasBeenActive && musicEnabled()) m.start();
+    // On iPhones only a finger LIFTING (touchend/click) lets sound start, not
+    // touching down, so listen for those, on every tap: start() on a tune
+    // that's already playing just wakes it if the phone paused it.
     const go = () => { if (musicEnabled()) m.start(); };
-    const opts = { once: true, capture: true } as const;
-    window.addEventListener('pointerdown', go, opts);
-    window.addEventListener('keydown', go, opts);
-    return () => { window.removeEventListener('pointerdown', go, opts); window.removeEventListener('keydown', go, opts); };
+    const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
+    events.forEach(e => window.addEventListener(e, go, true));
+    return () => events.forEach(e => window.removeEventListener(e, go, true));
   }, [inGame, on]);
 
   // leave the games entirely: fade out

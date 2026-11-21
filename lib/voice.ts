@@ -211,23 +211,23 @@ function soundAllowed() {
 /** A tenth of a second of silence, to wake the audio player inside a tap. */
 const SILENCE = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAACAgICA';
 
+/** True once a sound has really played: the phone has let us in. */
+let primed = false;
+
+/** True once the phone has let the player make sound (SoundStart stops trying then). */
+export function voiceReady() { return primed; }
+
 /**
- * Call from inside a tap. Lets the player (and the device voice) make sound
- * from now on, and plays the line that was waiting for this tap.
+ * Call from inside a tap (touchend / click / key: on iPhones a finger
+ * going DOWN doesn't count, only lifting it). Lets the player and the
+ * device voice make sound from now on, and plays the line that was
+ * waiting for this tap. Safe to call on every tap until voiceReady().
  */
 export function unlockVoice() {
-  if (typeof window === 'undefined' || unlocked) return;
+  if (typeof window === 'undefined' || primed) return;
   unlocked = true;
-  try {
-    // only when nothing is playing: a silent clip must never cut Noel off
-    player = player ?? new Audio();
-    if (player.paused) {
-      player.onended = null; player.onerror = null;
-      player.src = SILENCE;
-      player.volume = 0;
-      void player.play().catch(() => {});
-    }
-  } catch { /* ignore */ }
+  const w = waiting && Date.now() - waiting.at < 60_000 ? waiting : null; // a line from long ago is no longer on screen
+  waiting = null;
   try {
     const synth = window.speechSynthesis;
     if (synth && !synth.speaking && !synth.pending) {
@@ -236,10 +236,18 @@ export function unlockVoice() {
       synth.speak(u);
     }
   } catch { /* ignore */ }
-  const w = waiting;
-  waiting = null;
-  // a line from long ago is no longer what's on screen
-  if (w && Date.now() - w.at < 60_000) setTimeout(() => say(w.text, w.opts), 60);
+  // the waiting line plays right here, inside the tap, which is what wakes the player
+  if (w) { say(w.text, w.opts); return; }
+  try {
+    // only when nothing is playing: a silent clip must never cut Noel off
+    player = player ?? new Audio();
+    if (player.paused) {
+      player.onended = null; player.onerror = null;
+      player.src = SILENCE;
+      player.volume = 0;
+      player.play().then(() => { primed = true; }).catch(() => {});
+    }
+  } catch { /* ignore */ }
 }
 
 function stopClip() {
@@ -260,11 +268,11 @@ function playClips(files: string[], gen: number, fallback: () => void, base = '/
     audio.volume = masterVolume();
     audio.onended = () => setTimeout(next, 140); // a small breath between sentences
     audio.onerror = () => { if (gen === generation) fallback(); };
-    audio.play().then(() => { if (gen === generation) setTalking(true); })
+    audio.play().then(() => { primed = true; if (gen === generation) setTalking(true); })
       .catch((e: unknown) => {
         if (gen !== generation) return;
         // sound not allowed yet: keep the line for the first tap instead of losing it
-        if (!unlocked && (e as { name?: string })?.name === 'NotAllowedError' && lastLine) { waiting = { ...lastLine, at: Date.now() }; return; }
+        if (!primed && (e as { name?: string })?.name === 'NotAllowedError' && lastLine) { waiting = { ...lastLine, at: Date.now() }; return; }
         fallback(); // anything else: use the device voice
       });
   };

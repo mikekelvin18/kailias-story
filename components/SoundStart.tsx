@@ -7,13 +7,13 @@
 // app/layout.tsx, this:
 //  - tells iPhones this app plays sound on purpose (like a music app), so
 //    the silent switch doesn't mute the music and sound effects;
-//  - on the very first tap or key press anywhere, wakes up Noel's voice,
+//  - on the first real tap (finger lifted) or key press anywhere, wakes up Noel's voice,
 //    the sound effects and the music, and plays the Noel line that was
 //    waiting for that tap (lib/voice.ts unlockVoice).
 // It never shows anything and never listens: it only lets sound play.
 
 import { useEffect } from 'react';
-import { unlockVoice } from '@/lib/voice';
+import { unlockVoice, voiceReady } from '@/lib/voice';
 import { audioCtx } from '@/lib/sfx';
 
 export default function SoundStart() {
@@ -23,14 +23,18 @@ export default function SoundStart() {
       if (nav.audioSession) nav.audioSession.type = 'playback';
     } catch { /* older browsers: nothing to do */ }
 
-    const events = ['pointerdown', 'touchend', 'keydown', 'click'] as const;
-    const wake = () => {
-      events.forEach(e => window.removeEventListener(e, wake, true));
+    // Only these count as a real tap on iPhones: a finger going down
+    // (touchstart/pointerdown) does NOT let sound play, lifting it does.
+    // Keep trying on every tap until the phone has really let sound out.
+    const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
+    const stop = () => events.forEach(e => window.removeEventListener(e, wake, true));
+    function wake() {
       unlockVoice();
-      audioCtx(); // made (and woken) inside the tap, so later beeps can play
-    };
+      const ctx = audioCtx(); // made (and woken) inside the tap, so later beeps can play
+      if (voiceReady() && (!ctx || ctx.state === 'running')) stop();
+    }
     events.forEach(e => window.addEventListener(e, wake, true));
-    return () => events.forEach(e => window.removeEventListener(e, wake, true));
+    return stop;
   }, []);
   return null;
 }
