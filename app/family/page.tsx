@@ -24,7 +24,6 @@ import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
 import VoicePicker from '@/components/VoicePicker';
-import { say } from '@/lib/voice';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -410,7 +409,7 @@ export default function ParentZonePage() {
           </>
         )}
 
-        <Section icon="♿" title="Display & accessibility" hint="Volume, sound, text size, motion and colors">
+        <Section icon="♿" title="Display & accessibility" hint="Sound, text size, motion and colors">
           <div className="mb-3">
             <p className={`text-xs font-bold mb-1.5 text-gray-700`}>Text size</p>
             <div className="flex gap-2">
@@ -437,7 +436,7 @@ export default function ParentZonePage() {
           </label>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
-            <span className={`text-sm font-semibold text-gray-700`}>🔇 Reduce sound effects</span>
+            <span className={`text-sm font-semibold text-gray-700`}>🔇 Sound off<span className="block text-xs font-normal text-gray-500">Turns off Noel, music and sound effects. How loud it is comes from this device&apos;s own volume.</span></span>
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>
 
@@ -445,22 +444,6 @@ export default function ParentZonePage() {
             <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games</span>
             <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
           </label>
-
-          {/* One volume for Noel's voice, the pets, music and sound effects (Muse retest #3). */}
-          <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <label htmlFor="kp-volume" className="text-sm font-semibold text-gray-700">🔊 Volume</label>
-              <button type="button" onClick={() => say("Let's try again together!")}
-                className="text-xs font-bold rounded-full px-3 py-1 text-white" style={{ background: '#7C3AED' }}>
-                Hear it
-              </button>
-            </div>
-            <input id="kp-volume" type="range" min={0} max={100} step={5}
-              value={Math.round((a11y.volume ?? 1) * 100)}
-              onChange={e => updateA11y({ volume: Number(e.target.value) / 100 })}
-              className="w-full accent-violet-600" aria-valuetext={`${Math.round((a11y.volume ?? 1) * 100)} percent`} />
-            <p className="text-xs text-gray-500">Noel&apos;s voice, the friends, music and sound effects.</p>
-          </div>
 
           <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
             <p className={`text-sm font-semibold text-gray-700 mb-0.5`}>🐼 Noel&apos;s read-aloud voice</p>
