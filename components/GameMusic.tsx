@@ -47,8 +47,11 @@ export default function GameMusic() {
   useEffect(() => {
     const m = music();
     if (!inGame || !on) { m.stop(); return; }
-    if (m.playing) return;
-    // wait for the first tap: browsers block sound until then
+    // Already tapped on an earlier page (e.g. the map): start now. Phones may
+    // still hold it silent until a tap on this page, so a tap here always
+    // (re)starts it too; start() on a playing tune only wakes it up.
+    const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    if (ua?.hasBeenActive && musicEnabled()) m.start();
     const go = () => { if (musicEnabled()) m.start(); };
     const opts = { once: true, capture: true } as const;
     window.addEventListener('pointerdown', go, opts);

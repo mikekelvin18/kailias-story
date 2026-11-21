@@ -192,6 +192,56 @@ if (typeof window !== 'undefined') {
 }
 
 let player: HTMLAudioElement | null = null;
+
+// ── Waking sound up on the first tap ──
+// Phones (iPhone Safari above all) refuse to play any sound until the
+// person has tapped the page, and a line asked for before that is simply
+// dropped. So a line that couldn't play yet is kept here, and the first tap
+// anywhere (components/SoundStart.tsx calls unlockVoice) plays it then.
+let unlocked = false;
+let waiting: { text: string; opts: SayOptions; at: number } | null = null;
+
+/** True when the browser will let us play sound now. */
+function soundAllowed() {
+  if (unlocked) return true;
+  const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  return ua ? ua.hasBeenActive : true; // no way to tell: try, and keep the line if it's refused
+}
+
+/** A tenth of a second of silence, to wake the audio player inside a tap. */
+const SILENCE = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAACAgICA';
+
+/**
+ * Call from inside a tap. Lets the player (and the device voice) make sound
+ * from now on, and plays the line that was waiting for this tap.
+ */
+export function unlockVoice() {
+  if (typeof window === 'undefined' || unlocked) return;
+  unlocked = true;
+  try {
+    // only when nothing is playing: a silent clip must never cut Noel off
+    player = player ?? new Audio();
+    if (player.paused) {
+      player.onended = null; player.onerror = null;
+      player.src = SILENCE;
+      player.volume = 0;
+      void player.play().catch(() => {});
+    }
+  } catch { /* ignore */ }
+  try {
+    const synth = window.speechSynthesis;
+    if (synth && !synth.speaking && !synth.pending) {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      synth.speak(u);
+    }
+  } catch { /* ignore */ }
+  const w = waiting;
+  waiting = null;
+  // a line from long ago is no longer what's on screen
+  if (w && Date.now() - w.at < 60_000) setTimeout(() => say(w.text, w.opts), 60);
+}
+
 function stopClip() {
   if (!player) return;
   player.onended = null; player.onerror = null;
@@ -211,7 +261,12 @@ function playClips(files: string[], gen: number, fallback: () => void, base = '/
     audio.onended = () => setTimeout(next, 140); // a small breath between sentences
     audio.onerror = () => { if (gen === generation) fallback(); };
     audio.play().then(() => { if (gen === generation) setTalking(true); })
-      .catch(() => { if (gen === generation) fallback(); }); // e.g. autoplay blocked: use the device voice
+      .catch((e: unknown) => {
+        if (gen !== generation) return;
+        // sound not allowed yet: keep the line for the first tap instead of losing it
+        if (!unlocked && (e as { name?: string })?.name === 'NotAllowedError' && lastLine) { waiting = { ...lastLine, at: Date.now() }; return; }
+        fallback(); // anything else: use the device voice
+      });
   };
   next();
 }
@@ -223,8 +278,11 @@ function playClips(files: string[], gen: number, fallback: () => void, base = '/
  * Chrome bug that cuts long lines off. A new line always replaces the
  * one before, so two lines never talk over each other.
  */
+let lastLine: { text: string; opts: SayOptions } | null = null;
+
 export function say(text: string, opts: SayOptions = {}) {
   if (typeof window === 'undefined') return;
+  lastLine = { text, opts };
   try {
     // Recorded lines must play even where the browser has no speech
     // engine or no voices at all (Muse's test browser said "This device
@@ -238,6 +296,9 @@ export function say(text: string, opts: SayOptions = {}) {
     stopClip();
     setTalking(false);
     if (!clean) return;
+    // no tap yet: nothing can play, so this line waits for the first tap
+    if (!soundAllowed()) { waiting = { text, opts, at: Date.now() }; return; }
+    waiting = null;
 
     const start = () => {
       if (gen !== generation || !synth) return;
@@ -323,6 +384,7 @@ export function sayLine(text: string, opts: SayOptions & { force?: boolean } = {
 
 export function hush() {
   generation++;
+  waiting = null;
   stopClip();
   try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
   setTalking(false);

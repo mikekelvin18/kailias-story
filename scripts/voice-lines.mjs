@@ -30,7 +30,7 @@ function literals(file, src) {
   return out;
 }
 
-const ROOTS = ['app/play', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts'];
+const ROOTS = ['app/play', 'app/story', 'components/NoelHello.tsx', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts'];
 
 function walk(p, out = []) {
   const st = statSync(p);
@@ -56,7 +56,7 @@ const EXTRA = ['Fair and square!', 'Yum!', 'Hi!', 'Look!', 'Your turn!', 'Listen
   "One more day and I'll grow!", 'Mmm, thank you!', "We'll trace another one tomorrow.", "That's okay!",
   'We can try it again another day.', 'Thank you for playing with me!', 'Look, I grew bigger!', "Wow, I'm all grown up!",
   'I missed you!', 'Big hug!', 'Look, a magic egg!', 'Something is wiggling inside.', 'The magic egg is wiggling!',
-  'Onward!', 'The flag is close!', 'The flag needs more friends!', 'What happens next?', 'Keep going!', 'Psst!'];
+  'Onward!', 'A Magic Map.', 'The flag is close!', 'The flag needs more friends!', 'What happens next?', 'Keep going!', 'Psst!'];
 
 export function scan(roots, found = new Set()) {
 const add = text => {

@@ -6,8 +6,9 @@ import StepGuide from '@/components/ui/StepGuide';
 import { activeChild } from '@/lib/family';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import NoelVoice from '@/components/NoelVoice';
 
-// Four short story pages, read aloud by a grown-up or by the child.
+// Four short story pages, read aloud by Noel (tap the card to hear it again).
 // Each page shows Kailia and Noel themselves (no emoji art), and the
 // story names the six real lands the child will visit on the map.
 const PANELS: { art: 'meet' | 'noel' | 'map' | 'you'; bg: string; title: string; text: string }[] = [
@@ -104,8 +105,10 @@ export default function StoryPage() {
         </div>
 
         {/* Story card */}
+        {/* Noel reads each page aloud (components/NoelVoice.tsx); tap the card to hear it again */}
         <div
-          className="rounded-3xl p-6 sm:p-8 mb-6 shadow-2xl bounce-in"
+          data-read-aloud
+          className="rounded-3xl p-6 sm:p-8 mb-6 shadow-2xl bounce-in cursor-pointer"
           key={panel}
           style={{ background: 'rgba(255,255,255,0.95)' }}
         >
@@ -134,6 +137,7 @@ export default function StoryPage() {
           </p>
         )}
       </div>
+      <NoelVoice />
     </main>
   );
 }
