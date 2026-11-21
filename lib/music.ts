@@ -321,22 +321,26 @@ class ChillPlayer {
       const bounce = !!this.song.bouncy && !loadA11y().calmMode;
       if (this.tone) this.tone.frequency.setTargetAtTime(bounce ? 2600 : 1800, t, 0.5); // a little brighter when playful
       if (inBar === 0) {
-        this.pad(chord, t, eighth * 8, bounce ? 0.4 : 1); // lighter pad: the floaty "spa" bed was the dreamy part
+        // lighter pad: the floaty "spa" bed was the dreamy part. The playful tune
+        // opens with the beat and the hook, no hum (Kelvin: "lessen the hymn in
+        // the start"); the soft pad only joins from bar 3, very low.
+        if (!bounce) this.pad(chord, t, eighth * 8);
+        else if (this.step >= 16) this.pad(chord, t, eighth * 8, 0.3);
         this.bass(chord[0], t, bounce ? eighth * 2.5 : eighth * 5);
       }
       if (bounce) {
         // the game feel: bass hops on 1, the "and" of 2, and 4; a soft thump on 1 and 3
         if (inBar === 3) this.bass(chord[0], t, eighth * 2);
         if (inBar === 6) this.bass(chord[0] + 7, t, eighth * 2);
-        if ((inBar === 0 || inBar === 4) && this.step >= 16) this.thump(t);
-        if ((inBar === 2 || inBar === 6) && this.step >= 16) this.clap(t);
+        if (inBar === 0 || inBar === 4) this.thump(t); // the beat starts right away
+        if ((inBar === 2 || inBar === 6) && this.step >= 8) this.clap(t);
       } else if (inBar === 5) this.bass(chord[0] + 7, t, eighth * 3); // a soft "and" note on the fifth
       // drums stay out for the first 2 bars of the first time round, then join quietly
-      if (this.step >= 16 && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7, bounce ? 1.7 : 1);
+      if ((this.step >= 16 || (bounce && this.step >= 8)) && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7, bounce ? 1.7 : 1);
       const note = this.melody[s];
       const swing = inBar % 2 ? eighth * 0.08 : 0; // a little swing
       if (bounce) {
-        if (note != null && this.step >= 8) this.marimba(note, t + swing, 1.1);
+        if (note != null) this.marimba(note, t + swing, 1.1); // the hook from the first note
         // a quiet answer from the chord when the tune rests, so it keeps moving
         else if (note == null && this.step >= 16 && inBar % 2 === 1) this.marimba(chord[1 + (inBar >> 1) % 3] + 12, t + swing, 0.45);
       } else if (note != null && this.step >= 8) this.bell(note, t + swing);
