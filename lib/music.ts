@@ -19,7 +19,8 @@
 // a made-up one: a bouncy bass, a soft thump and clap, and a hummable
 // marimba hook over a lighter pad, at a happy walking pace. Kelvin found
 // the first version "almost like spa music" and asked for the middle
-// between calming and exciting (2026-11-21): faster, plucky, less pad.
+// between calming and exciting (2026-11-21): faster, plucky, less pad;
+// then "a bit more exciting": 116 bpm, a fuller hook, a firmer beat.
 // Still round and low enough to sit under Noel's voice. Calm mode drops the
 // beat and the bounce and plays it softer, the old dreamy way.
 
@@ -42,19 +43,19 @@ type Song = {
 const _ = null;
 /** The welcome theme: C, Am, F, G with a hummable hook, all in the middle range. */
 export const WELCOME_SONG: Song = {
-  bpm: 104,
+  bpm: 116,
   chords: [[48, 55, 60, 64], [45, 52, 57, 60], [41, 48, 53, 57], [43, 50, 55, 59]],
   scale: [60, 62, 64, 67, 69, 72],
   bouncy: true,
   tune: [
     67, _, 64, 67, 69, _, 67, _,
-    64, _, 60, 64, 67, _, _, _,
-    65, _, 69, 72, 69, _, 65, _,
-    67, _, 71, _, 67, _, _, _,
+    64, _, 60, 64, 67, _, 69, 71,
+    72, _, 69, 72, 69, _, 65, _,
+    67, _, 71, _, 74, 72, 71, _,
     72, _, 67, 64, 67, _, 69, _,
-    67, _, 64, 60, 64, _, _, _,
-    65, 67, 69, _, 72, _, 69, _,
-    67, _, 62, _, 60, _, _, _,
+    67, _, 64, 60, 64, _, 65, 67,
+    69, 67, 69, _, 72, _, 69, _,
+    67, _, 62, _, 60, 64, 67, _,
   ],
 };
 /** The page key that plays the welcome theme. */
@@ -249,7 +250,7 @@ class ChillPlayer {
     o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.09, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.11, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
     o.connect(g);
     this.send(g, 0.1);
@@ -283,21 +284,21 @@ class ChillPlayer {
     bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 0.9;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.028, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.036, t + 0.006);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
     src.connect(bp).connect(g);
     this.send(g, 0.3);
     src.start(t, Math.random() * 0.8); src.stop(t + 0.16);
   }
 
-  private shaker(t: number, accent: boolean) {
+  private shaker(t: number, accent: boolean, boost = 1) {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
     src.buffer = this.noise;
     const hp = ctx.createBiquadFilter();
     hp.type = 'bandpass'; hp.frequency.value = 3800; hp.Q.value = 0.8;
     const g = ctx.createGain();
-    const peak = accent ? 0.012 : 0.006;
+    const peak = (accent ? 0.012 : 0.006) * boost;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
@@ -320,7 +321,7 @@ class ChillPlayer {
       const bounce = !!this.song.bouncy && !loadA11y().calmMode;
       if (this.tone) this.tone.frequency.setTargetAtTime(bounce ? 2600 : 1800, t, 0.5); // a little brighter when playful
       if (inBar === 0) {
-        this.pad(chord, t, eighth * 8, bounce ? 0.5 : 1); // lighter pad: the floaty "spa" bed was the dreamy part
+        this.pad(chord, t, eighth * 8, bounce ? 0.4 : 1); // lighter pad: the floaty "spa" bed was the dreamy part
         this.bass(chord[0], t, bounce ? eighth * 2.5 : eighth * 5);
       }
       if (bounce) {
@@ -331,13 +332,13 @@ class ChillPlayer {
         if ((inBar === 2 || inBar === 6) && this.step >= 16) this.clap(t);
       } else if (inBar === 5) this.bass(chord[0] + 7, t, eighth * 3); // a soft "and" note on the fifth
       // drums stay out for the first 2 bars of the first time round, then join quietly
-      if (this.step >= 16 && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7);
+      if (this.step >= 16 && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7, bounce ? 1.7 : 1);
       const note = this.melody[s];
       const swing = inBar % 2 ? eighth * 0.08 : 0; // a little swing
       if (bounce) {
-        if (note != null && this.step >= 8) this.marimba(note, t + swing);
+        if (note != null && this.step >= 8) this.marimba(note, t + swing, 1.1);
         // a quiet answer from the chord when the tune rests, so it keeps moving
-        else if (note == null && this.step >= 16 && inBar % 2 === 1) this.marimba(chord[1 + (inBar >> 1) % 3] + 12, t + swing, 0.35);
+        else if (note == null && this.step >= 16 && inBar % 2 === 1) this.marimba(chord[1 + (inBar >> 1) % 3] + 12, t + swing, 0.45);
       } else if (note != null && this.step >= 8) this.bell(note, t + swing);
       this.nextTime += eighth;
       this.step++;
