@@ -87,7 +87,7 @@ export default function PetTrace({ shape, tolerance, color, onDone }: Props) {
   return (
     <div ref={boxRef}
       className="relative mx-auto rounded-[28px] touch-none select-none"
-      style={{ width: 'min(78vw, 300px)', aspectRatio: '1 / 1', background: 'radial-gradient(circle at 50% 45%, #FFF7E0, #FDF2D8 70%)', boxShadow: 'inset 0 0 0 3px rgba(245,158,11,0.25)' }}
+      style={{ width: 'min(68vw, 300px)', aspectRatio: '1 / 1', background: 'radial-gradient(circle at 50% 45%, #FFF7E0, #FDF2D8 70%)', boxShadow: 'inset 0 0 0 3px rgba(245,158,11,0.25)' }}
       onPointerDown={move} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}
       role="img" aria-label="Tracing area: follow the glowing dots with your finger">
       <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
