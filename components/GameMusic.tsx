@@ -1,9 +1,11 @@
 'use client';
 
-// ── Game music + its on/off button ──
-// Plays the soft background loop (lib/music.ts) inside the games and
+// ── Music + its on/off button ──
+// Plays the soft background loop (lib/music.ts) inside the games, and
+// the welcome theme on the front page, the story and the map, and
 // shows one small round button in the bottom corner to turn it off or
-// on. The choice is saved on this device (a display setting, not child
+// on. Grown-up pages (Parent Zone, results, sign-up...) stay quiet.
+// Mounted once in app/layout.tsx, so the tune carries on across pages. The choice is saved on this device (a display setting, not child
 // data) and also lives in Grown-ups > Display & accessibility.
 //
 // Browsers only allow sound after the first tap, so the music starts on
@@ -12,25 +14,31 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { A11Y_EVENT, musicEnabled, updateA11yPrefs, masterVolume } from '@/lib/accessibility';
-import { music } from '@/lib/music';
+import { music, WELCOME } from '@/lib/music';
 
 /** Listening games, where music would cover the sounds the child must hear. */
 const LISTENING_GAMES = ['/play/echo-song'];
 
-/** The world map itself stays quiet; music is for the games. */
-function isGame(path: string) {
-  return path.startsWith('/play/') && !LISTENING_GAMES.some(g => path.startsWith(g));
+/** The front page, the story, the map and the try-a-game page: the welcome theme. */
+const WELCOME_PAGES = ['/', '/story', '/play', '/try'];
+
+/** Which tune a page plays, or null for a quiet page. */
+function tuneFor(path: string): string | null {
+  if (WELCOME_PAGES.includes(path)) return WELCOME;
+  if (path.startsWith('/play/') && !LISTENING_GAMES.some(g => path.startsWith(g))) return path.split('/').slice(0, 3).join('/');
+  return null;
 }
 
 export default function GameMusic() {
   const path = usePathname() ?? '';
-  const inGame = isGame(path);
+  const tune = tuneFor(path);
+  const inGame = tune !== null; // a page with music
   const [on, setOn] = useState(true);
   const [hidden, setHidden] = useState(true); // nothing on screen until we know the setting
   // the sound panel (Muse round 4: a volume control inside every game)
   const [open, setOpen] = useState(false);
   const [vol, setVol] = useState(1);
-  const showButton = path.startsWith('/play/');
+  const showButton = path.startsWith('/play/') || tune !== null;
 
   // keep the button in step with the setting, wherever it is changed
   useEffect(() => {
@@ -42,7 +50,7 @@ export default function GameMusic() {
   }, []);
 
   // each game gets its own tune
-  useEffect(() => { if (inGame) music().choose(path.split('/').slice(0, 3).join('/')); }, [inGame, path]);
+  useEffect(() => { if (tune) music().choose(tune); }, [tune]);
 
   useEffect(() => {
     const m = music();
@@ -95,7 +103,11 @@ export default function GameMusic() {
 
   return (
     <div data-sound-panel className="fixed z-[60]"
-      style={{ right: 'max(14px, env(safe-area-inset-right))', bottom: 'max(14px, env(safe-area-inset-bottom))' }}>
+      style={{
+        right: 'max(14px, env(safe-area-inset-right))',
+        // the map has the bottom tab bar (about 68px, more on computers): sit just above it
+        bottom: path === '/play' ? 'calc(env(safe-area-inset-bottom, 0px) + 92px)' : 'max(14px, env(safe-area-inset-bottom))',
+      }}>
       {open && (
         <div className="absolute bottom-[56px] right-0 w-56 rounded-2xl p-3 shadow-xl"
           style={{ background: 'rgba(255,255,255,0.97)', border: '2px solid rgba(124,58,237,0.35)' }}>
