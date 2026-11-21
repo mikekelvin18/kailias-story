@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { say, hush, onTalking } from '@/lib/voice';
-import { soundEnabled } from '@/lib/accessibility';
+import { loadA11y, updateA11yPrefs } from '@/lib/accessibility';
 
 // Recorded in Noel's voice (scripts/voice-lines.mjs picks these up).
 const HELLO = "Hi, friend! I'm Noel. Kailia and I are going on a big adventure. Will you come with us?";
@@ -27,7 +27,14 @@ export default function NoelHello() {
 
   const hello = () => {
     setHeard(true);
-    if (soundEnabled()) say(HELLO);
+    // Tapping "say hi" is asking for sound: if sound was turned off or the
+    // volume left at zero on this device, turn it back on (otherwise the
+    // tap would do nothing and the app just seems broken).
+    const a = loadA11y();
+    if (a.reducedSound || !(Number(a.volume) > 0)) {
+      updateA11yPrefs({ reducedSound: false, volume: Number(a.volume) > 0 ? a.volume : 0.8, musicOn: true });
+    }
+    say(HELLO);
   };
 
   return (
