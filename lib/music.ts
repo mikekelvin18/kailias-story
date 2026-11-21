@@ -12,9 +12,17 @@
 //   shaker   a whisper of rhythm on the off-beats
 // Each game gets its own little tune (picked from the page's address),
 // all in the same calm style. Music dips while Noel is talking.
+//
+// The welcome tune (front page, story, map; Kelvin 2026-11-21: "a mellow
+// background sound when the app is opened, gaming kind of sound for kids,
+// fun and mellow") is a written-out, catchy little game theme instead of
+// a made-up one: a bouncy bass, a soft thump on the beat and a hummable
+// kalimba hook, still low, round and quiet. Calm mode drops the thump and
+// the bounce and plays it softer.
 
 import { onTalking } from './voice';
 import { sfxOut } from './sfx';
+import { loadA11y } from './accessibility';
 
 type Song = {
   bpm: number;
@@ -22,7 +30,32 @@ type Song = {
   chords: number[][];
   /** notes the melody may use (MIDI) */
   scale: number[];
+  /** a written-out melody (8 bars x 8 eighths) instead of a made-up one */
+  tune?: (number | null)[];
+  /** the bouncy game feel: bass on the off-beats and a soft thump */
+  bouncy?: boolean;
 };
+
+const _ = null;
+/** The welcome theme: C, Am, F, G with a hummable hook, all in the middle range. */
+export const WELCOME_SONG: Song = {
+  bpm: 92,
+  chords: [[48, 55, 60, 64], [45, 52, 57, 60], [41, 48, 53, 57], [43, 50, 55, 59]],
+  scale: [60, 62, 64, 67, 69, 72],
+  bouncy: true,
+  tune: [
+    67, _, 64, 67, 69, _, 67, _,
+    64, _, 60, 64, 67, _, _, _,
+    65, _, 69, 72, 69, _, 65, _,
+    67, _, 71, _, 67, _, _, _,
+    72, _, 67, 64, 67, _, 69, _,
+    67, _, 64, 60, 64, _, _, _,
+    65, 67, 69, _, 72, _, 69, _,
+    67, _, 62, _, 60, _, _, _,
+  ],
+};
+/** The page key that plays the welcome theme. */
+export const WELCOME = '/welcome';
 
 const SONGS: Song[] = [
   // F major, drifting down: Fmaj7, Em7, Dm7, Cmaj7
@@ -90,6 +123,11 @@ class ChillPlayer {
 
   /** Pick this page's tune. Same page, same tune, every time. */
   choose(key: string) {
+    if (key === WELCOME) {
+      this.song = WELCOME_SONG;
+      this.melody = WELCOME_SONG.tune!;
+      return;
+    }
     const h = hash(key);
     const song = SONGS[h % SONGS.length];
     this.song = song;
@@ -197,6 +235,22 @@ class ChillPlayer {
     });
   }
 
+  /** A soft, round thump on the beat (a pillow, not a drum kit). */
+  private thump(t: number) {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.09, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    o.connect(g);
+    this.send(g, 0.1);
+    o.start(t); o.stop(t + 0.25);
+  }
+
   private shaker(t: number, accent: boolean) {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
@@ -224,11 +278,17 @@ class ChillPlayer {
       const inBar = s % 8;
       const bar = Math.floor(s / 8);
       const chord = this.song.chords[bar % bars];
+      const bounce = !!this.song.bouncy && !loadA11y().calmMode;
       if (inBar === 0) {
         this.pad(chord, t, eighth * 8);
-        this.bass(chord[0], t, eighth * 5);
+        this.bass(chord[0], t, bounce ? eighth * 2.5 : eighth * 5);
       }
-      if (inBar === 5) this.bass(chord[0] + 7, t, eighth * 3); // a soft "and" note on the fifth
+      if (bounce) {
+        // the game feel: bass hops on 1, the "and" of 2, and 4; a soft thump on 1 and 3
+        if (inBar === 3) this.bass(chord[0], t, eighth * 2);
+        if (inBar === 6) this.bass(chord[0] + 7, t, eighth * 2);
+        if ((inBar === 0 || inBar === 4) && this.step >= 16) this.thump(t);
+      } else if (inBar === 5) this.bass(chord[0] + 7, t, eighth * 3); // a soft "and" note on the fifth
       // drums stay out for the first 2 bars of the first time round, then join quietly
       if (this.step >= 16 && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7);
       const note = this.melody[s];
@@ -251,7 +311,7 @@ class ChillPlayer {
       const now = ctx.currentTime;
       this.master!.gain.cancelScheduledValues(now);
       this.master!.gain.setValueAtTime(Math.max(0.0001, this.master!.gain.value), now);
-      this.master!.gain.linearRampToValueAtTime(VOLUME, now + 2.5); // fade in gently
+      this.master!.gain.linearRampToValueAtTime(loadA11y().calmMode ? VOLUME * 0.7 : VOLUME, now + 2.5); // fade in gently (softer in Calm mode)
       this.timer = setInterval(this.schedule, 100);
       this.schedule();
       this.stopTalk = onTalking(talking => {
