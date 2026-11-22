@@ -13,8 +13,9 @@
 // It never shows anything and never listens: it only lets sound play.
 
 import { useEffect } from 'react';
-import { unlockVoice, voiceReady } from '@/lib/voice';
-import { audioCtx, keepSoundOn, pauseSoundKeeper } from '@/lib/sfx';
+import { unlockVoice } from '@/lib/voice';
+import { audioCtx, keepSoundOn, markAudioStale, pauseSoundKeeper } from '@/lib/sfx';
+import { music } from '@/lib/music';
 
 export default function SoundStart() {
   useEffect(() => {
@@ -27,23 +28,25 @@ export default function SoundStart() {
     // (touchstart/pointerdown) does NOT let sound play, lifting it does.
     // Keep trying on every tap until the phone has really let sound out.
     const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
-    const stop = () => events.forEach(e => window.removeEventListener(e, wake, true));
+    // Every tap, for as long as the app is open (cheap when sound already
+    // runs): an iPhone home-screen app that was in the background comes back
+    // with its sound engines stuck silent, and only a tap can start them again.
     function wake() {
       keepSoundOn(); // iPhone: music and effects play even with the silent switch on
       unlockVoice();
-      const ctx = audioCtx(); // made (and woken) inside the tap, so later beeps can play
-      if (voiceReady() && (!ctx || ctx.state === 'running')) stop();
+      audioCtx(true); // made (or made fresh) inside the tap, so later beeps can play
     }
     events.forEach(e => window.addEventListener(e, wake, true));
-    // background: rest; back again: the next tap starts it again (keepSoundOn on every tap below)
-    const vis = () => { if (document.hidden) pauseSoundKeeper(); };
+    // background: rest; back again (or the page restored from memory): the
+    // next tap starts everything fresh
+    const vis = () => { if (document.hidden) pauseSoundKeeper(); else markAudioStale(); };
+    const shown = (e: PageTransitionEvent) => { if (e.persisted) { markAudioStale(); music().markStale(); } };
     document.addEventListener('visibilitychange', vis);
-    const again = () => keepSoundOn();
-    events.forEach(e => window.addEventListener(e, again, true));
+    window.addEventListener('pageshow', shown);
     return () => {
-      stop();
+      events.forEach(e => window.removeEventListener(e, wake, true));
       document.removeEventListener('visibilitychange', vis);
-      events.forEach(e => window.removeEventListener(e, again, true));
+      window.removeEventListener('pageshow', shown);
     };
   }, []);
   return null;

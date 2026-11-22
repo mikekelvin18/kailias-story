@@ -47,7 +47,7 @@ function spy() {
   };
   const pause = HTMLMediaElement.prototype.pause;
   HTMLMediaElement.prototype.pause = function () {
-    if (!this.paused && isVoice(this) && this.currentTime > 0 && this.currentTime < this.duration - 0.05)
+    if (!this.paused && isVoice(this) && this.currentTime > 0 && this.currentTime < this.duration - 0.15) // the last moment of a clip is silence
       log.push({ t: performance.now() - T0, ev: 'cut', f: file(this), at: +this.currentTime.toFixed(2), of: +this.duration.toFixed(2), card: this.dataset.owner === 'read-aloud' });
     return pause.call(this);
   };

@@ -10,9 +10,19 @@ import { masterVolume, A11Y_EVENT } from './accessibility';
 
 let shared: AudioContext | null = null;
 
-export function audioCtx(): AudioContext | null {
+let sharedStale = true;
+/** The app went to the background: the next tap builds a fresh sound engine. */
+export function markAudioStale() { sharedStale = true; }
+
+export function audioCtx(fromTap = false): AudioContext | null {
   if (typeof window === 'undefined') return null;
   try {
+    if (shared && fromTap && (sharedStale || (shared.state !== 'running' && shared.state !== 'suspended'))) {
+      // reopened iPhone app: the old engine can be stuck silent; start fresh inside this tap
+      try { void shared.close().catch(() => {}); } catch { /* ignore */ }
+      shared = null;
+    }
+    if (fromTap) sharedStale = false;
     if (!shared || shared.state === 'closed') {
       const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return null;
@@ -20,7 +30,7 @@ export function audioCtx(): AudioContext | null {
     }
     // browsers start a context "suspended" until a tap; every sound is
     // played from a tap (or soon after one), so waking it here is enough
-    if (shared.state === 'suspended') shared.resume().catch(() => {});
+    if (shared.state !== 'running') shared.resume().catch(() => {});
     return shared;
   } catch {
     return null;
