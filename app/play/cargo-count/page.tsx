@@ -12,6 +12,7 @@ import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
+import { shuffled } from '@/lib/shuffle';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
@@ -28,7 +29,7 @@ import { awardStarlight, levelStarlight, nextGameLevel, recordGameLevel } from '
 // overshoot is fixed, never failed. Measured quietly: first-try
 // launches, launches needed, and time per order.
 
-interface Pod { id: number; value: number; x: number; y: number; vx: number; phase: number }
+interface Pod { id: number; value: number; x: number; y: number; vx: number; phase: number; row: number }
 interface Beam { id: number; value: number; x: number; y: number }
 
 const ORDERS_PER_LEVEL = 3;
@@ -78,17 +79,43 @@ function podsFor(target: number, plan: Plan, startId: number): Pod[] {
   }
   const spare = Math.max(2, Math.min(4, 11 - vals.length));
   for (let i = 0; i < spare; i++) vals.push(plan.values[Math.floor(Math.random() * plan.values.length)]);
-  vals.sort(() => Math.random() - 0.5);
+  const mixed = shuffled(vals);
+  vals.splice(0, vals.length, ...mixed);
+  // Boxes fly in lanes. Every box in a lane moves at the lane's speed and
+  // the lanes are far enough apart, so two boxes never slide over each
+  // other and a small finger always gets the box it aimed at.
+  const rows = vals.length > 9 ? 4 : 3;
+  const perRow = Array.from({ length: rows }, (_, r) => vals.filter((_, i) => i % rows === r).length);
   return vals.map((value, i) => {
-    const row = i % 3;
+    const row = i % rows, k = Math.floor(i / rows);
     return {
-      id: startId + i, value,
-      x: 6 + ((i * 37) % 88),
-      y: 12 + row * 15 + Math.random() * 6,
-      vx: (row % 2 ? -1 : 1) * plan.speed * (0.8 + Math.random() * 0.4),
+      id: startId + i, value, row,
+      x: -4 + (k + (row % 2 ? 0.5 : 0)) * (108 / perRow[row]),
+      y: laneY(row, rows),
+      vx: laneSpeed(row, plan.speed),
       phase: Math.random() * 6,
     };
   });
+}
+const laneY = (row: number, rows: number) => (rows === 4 ? 10 + row * 14 : 12 + row * 17);
+const laneSpeed = (row: number, speed: number) => (row % 2 ? -1 : 1) * speed * [1, 0.85, 1.15, 0.95][row];
+
+/** Where a box sent back from the hold rejoins: the emptiest lane, in its biggest gap. */
+function rejoin(pods: Pod[], p: Pod, speed: number): Pod {
+  const rows = Math.max(3, ...pods.map(q => q.row + 1));
+  const counts = Array.from({ length: rows }, (_, r) => pods.filter(q => q.row === r).length);
+  const row = counts.indexOf(Math.min(...counts));
+  const xs = pods.filter(q => q.row === row).map(q => q.x).sort((a, b) => a - b);
+  let x = 50;
+  if (xs.length) {
+    let best = -1;
+    xs.forEach((a, i) => {
+      const b = i + 1 < xs.length ? xs[i + 1] : xs[0] + 108;
+      if (b - a > best) { best = b - a; x = a + (b - a) / 2; }
+    });
+    if (x > 104) x -= 108;
+  }
+  return { ...p, row, x, y: laneY(row, rows), vx: laneSpeed(row, speed) };
 }
 
 const sfx = {
@@ -212,7 +239,7 @@ export default function CargoCountPage() {
     setHold(prev => prev.filter(q => q.id !== p.id));
     setHintHold(null);
     sfx.back();
-    setPods(prev => [...prev, { ...p, x: HATCH.x - 6, y: 20 + Math.random() * 30 }]);
+    setPods(prev => [...prev, rejoin(prev, p, plan.speed)]);
   }
 
   function launch() {
