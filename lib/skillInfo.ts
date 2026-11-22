@@ -10,6 +10,16 @@ export interface SkillNote {
 }
 
 export const SKILL_INFO: Record<string, SkillNote> = {
+  'cargo-count': {
+    skills: ['Counting', 'Making numbers'],
+    builds: 'Counting out an exact amount, then making a number from parts: boxes of 2, 5 and 10 build counting on, adding and early place value. Fixing an overshoot by sending a box back builds taking away.',
+    notices: 'How often the rocket launches on the first try, how many launches each order needs, and the biggest order loaded.',
+  },
+  'reef-explorer': {
+    skills: ['Looking closely', 'Visual search'],
+    builds: 'Searching a dark, busy scene a little at a time and comparing color and pattern details: visual discrimination and steady scanning.',
+    notices: 'First-try finds, how long each search takes, and how subtle a difference your child can spot.',
+  },
   'word-wizard': {
     skills: ['📖 Books & sounds', '🔤 Phonics'],
     builds: 'Climbs the reading ladder: picture words, first letters and rhymes, blending sounds, then sentence meaning and vocabulary.',
