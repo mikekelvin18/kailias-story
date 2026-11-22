@@ -60,6 +60,7 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
     { href: '/go/garden', label: "Kailia's Garden" },
     { href: '/go/friends', label: "Friends' adventures" },
     { href: '/go/friend/sage', label: "Sage's trail" },
+    { href: '/go/animals', label: 'All side animals, moving' },
   ]},
   { group: 'Games (add ?level=N for any level)', items: GAME_ROUTES.map(g => ({ href: `/go/game/${g}?level=1`, label: g.replace(/-/g, ' ') })) },
   { group: 'Grown-up pages', items: [
