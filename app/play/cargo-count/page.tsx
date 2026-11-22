@@ -12,6 +12,7 @@ import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
+import { shuffled } from '@/lib/shuffle';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
@@ -78,7 +79,8 @@ function podsFor(target: number, plan: Plan, startId: number): Pod[] {
   }
   const spare = Math.max(2, Math.min(4, 11 - vals.length));
   for (let i = 0; i < spare; i++) vals.push(plan.values[Math.floor(Math.random() * plan.values.length)]);
-  vals.sort(() => Math.random() - 0.5);
+  const mixed = shuffled(vals);
+  vals.splice(0, vals.length, ...mixed);
   // Boxes fly in lanes. Every box in a lane moves at the lane's speed and
   // the lanes are far enough apart, so two boxes never slide over each
   // other and a small finger always gets the box it aimed at.

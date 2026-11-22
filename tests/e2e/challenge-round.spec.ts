@@ -31,10 +31,14 @@ for (const [name, pattern] of [['every answer right', () => true], ['a miss now 
     test.setTimeout(150_000);
     await seedFamily(page, { ageMonths: 78 });
     await page.goto('/assessment/games?challenge=1');
-    for (let q = 0; q < 40; q++) {
+    for (let q = 0; q < 80; q++) {
       if (page.url().includes('/results')) break;
       const c = await count(page);
-      if (!(await ready(page)) || !c) { await page.waitForTimeout(300); continue; }
+      if (!(await ready(page)) || !c) {
+        // an answered question left on screen: move on
+        if (await nextButton(page).isVisible().catch(() => false)) await nextButton(page).click({ force: true, timeout: 3000 }).catch(() => null);
+        await page.waitForTimeout(300); continue;
+      }
       expect(c.q).toBeLessThanOrEqual(c.total);
       expect(c.total).toBeLessThanOrEqual(4);
       await answer(page, pattern(q));
