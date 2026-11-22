@@ -42,13 +42,20 @@ export interface AssessmentState {
   assessmentCompleted: boolean;
   /** Every milestone answer / task result, per area — the estimator's input (lib/milestones.ts). */
   evidence: Partial<Record<MilestoneDomain, Evidence[]>>;
+  /** A challenge round left part way (Muse round 5): the area it was in,
+   *  the questions asked there and their answers, so it can carry on.
+   *  Lives in the same saved assessment (already a child-data key). */
+  challengeRound?: ChallengeRound | null;
 }
+
+export interface ChallengeRound { step: number; asked: number[]; evidence: Evidence[] }
 
 interface AssessmentContextType {
   state: AssessmentState;
   loaded: boolean;
   setChildInfo: (name: string, age: number, ageMonths?: number) => void;
   setDomainEvidence: (domain: MilestoneDomain, evidence: Evidence[]) => void;
+  setChallengeRound: (round: ChallengeRound | null) => void;
   setAssessmentType: (type: 'checklist' | 'games') => void;
   setDomainScore: (domain: keyof AssessmentState['scores'], score: number) => void;
   setSensoryScore: (pattern: keyof SensoryScores, score: number) => void;
@@ -92,6 +99,7 @@ const defaultState: AssessmentState = {
   fineMotorSubScores: null,
   assessmentCompleted: false,
   evidence: {},
+  challengeRound: null,
 };
 
 function deriveAgeGroup(age: number): AgeGroup {
@@ -263,6 +271,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
 
   const setDomainEvidence = (domain: MilestoneDomain, evidence: Evidence[]) =>
     setState(s => ({ ...s, evidence: { ...s.evidence, [domain]: evidence } }));
+  const setChallengeRound = (round: ChallengeRound | null) =>
+    setState(s => ({ ...s, challengeRound: round }));
 
   const setAssessmentType = (type: 'checklist' | 'games') =>
     setState(s => ({ ...s, assessmentType: type }));
@@ -348,6 +358,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       loaded,
       setChildInfo,
       setDomainEvidence,
+      setChallengeRound,
       setAssessmentType,
       setDomainScore,
       setSensoryScore,

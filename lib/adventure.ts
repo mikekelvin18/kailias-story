@@ -143,13 +143,11 @@ export const LANDS: Land[] = [
 ];
 
 // ── Bonus realms ──
-// Unlocked only after all six main lands are complete. Honestly labelled
-// (Muse round 4) as harder levels of an existing game, not new games. These are extra
-// depth on an existing skill (see BONUS_REALMS below for which one),
-// not a new developmental domain — Space and Underwater are new
-// SCENERY wrapped around the same measured skills, reusing existing
-// quest engines rather than building new ones (per the library
-// strategy: new content/theme on an engine, not a new engine).
+// Unlocked only after all six main lands are complete. Each realm has
+// its own game (Muse round 5): Cargo Count (making an exact amount from
+// boxes of 1, 2, 5 and 10) and Reef Explorer (spotting the matching sea
+// friend in the dark with a flashlight). They add depth to an existing
+// skill (math, senses), not a new developmental domain.
 // Positioned in a strip BELOW the main path's canvas (not woven into the
 // winding trail) so they read as standalone portals that appeared after
 // finishing the adventure, rather than two more stops that need a long
@@ -168,7 +166,7 @@ export const BONUS_LANDS: Land[] = [
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
-      { href: '/play/snack-quest', icon: 'rocket', emoji: '🛰️', title: 'Snack Quest: harder levels', desc: 'More Snack Quest, picking up at your next level: count out exactly what the crew ordered!' },
+      { href: '/play/cargo-count', icon: 'rocket', emoji: '🛰️', title: 'Cargo Count', desc: 'Beam floating cargo boxes into the rocket until the hold matches the crew\'s order, then launch!' },
     ],
   },
   {
@@ -183,7 +181,7 @@ export const BONUS_LANDS: Land[] = [
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [
-      { href: '/play/sensory', icon: 'fish', emoji: '🐚', title: 'Sense Explorer: harder levels', desc: 'More Sense Explorer, picking up at your next level: spot the color, sound or pattern that is different!' },
+      { href: '/play/reef-explorer', icon: 'fish', emoji: '🐚', title: 'Reef Explorer', desc: 'Shine your light through the dark reef and find the sea friend that looks exactly like the one on the card!' },
     ],
   },
 ];

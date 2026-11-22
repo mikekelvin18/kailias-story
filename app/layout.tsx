@@ -4,6 +4,8 @@ import './globals.css';
 import { AssessmentProvider } from '@/context/AssessmentContext';
 import AccessibilityProvider from '@/components/AccessibilityProvider';
 import PaintKit from '@/components/art/PaintKit';
+import SoundStart from '@/components/SoundStart';
+import GameMusic from '@/components/GameMusic';
 
 // A big, round, bouncy display font — reads as a kids' storybook/game
 // instead of a generic system font, for every bit of on-screen text.
@@ -24,9 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <AccessibilityProvider />
         <PaintKit />
+        <SoundStart />
         <AssessmentProvider>
           {children}
         </AssessmentProvider>
+        <GameMusic />
       </body>
     </html>
   );

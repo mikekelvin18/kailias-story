@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import KailiaSprite from '@/components/characters/KailiaSprite';
-import PandaSprite from '@/components/characters/PandaSprite';
+import NoelHello from '@/components/NoelHello';
 import LivingSky from '@/components/scenery/LivingSky';
 import { Sparkle } from '@/components/scenery/SkyDecor';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -46,12 +45,8 @@ export default function LandingPage() {
       </div>
 
       <div className="relative z-10 max-w-2xl w-full text-center">
-        {/* Kailia and Noel, standing together and breathing, blinking and
-            turning a little; tap either one and they hop. */}
-        <div className="flex items-end justify-center gap-2 mb-4" style={{ minHeight: 130 }}>
-          <KailiaSprite size={104} expression="happy" />
-          <PandaSprite size={114} expression="happy" />
-        </div>
+        {/* Kailia and Noel; a tap and Noel says hi out loud */}
+        <NoelHello />
 
         <h1
           className="text-5xl font-extrabold text-white mb-2 drop-shadow-lg"

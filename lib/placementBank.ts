@@ -221,3 +221,12 @@ export function nextPlacementQuestion(bank: Question[], answers: PlacementAnswer
   return nextQuestion(bank, asked, last.idx, last.right, ageMonths, answers.filter(a => a.right).map(a => a.idx));
 }
 
+/** The most questions this challenge area could still reach (right or
+ *  wrong on each), so the counter never promises more than can happen. */
+export function maxChallengeLen(bank: Question[], ageMonths: number, skip: number[], asked: number[]): number {
+  if (asked.length >= CHALLENGE_QS) return asked.length;
+  const last = asked[asked.length - 1];
+  const nexts = [true, false].map(r => nextChallenge(bank, ageMonths, skip, asked, last, r)).filter((n): n is number => n != null);
+  if (!nexts.length) return asked.length;
+  return Math.max(...[...new Set(nexts)].map(n => maxChallengeLen(bank, ageMonths, skip, [...asked, n])));
+}

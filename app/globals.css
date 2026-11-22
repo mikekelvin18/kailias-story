@@ -1070,3 +1070,59 @@ button:active {
   .pm-move-cross, .pm-move-march, .pm-move-dance { animation: none; }
   .pm-food, .pm-crumb, .pm-confetti, .pm-heart { animation-duration: 0.01s; }
 }
+
+/* ── Cargo Count (Space Outpost) ── */
+@keyframes cc-spin { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+.cc-spin { animation: cc-spin 9s ease-in-out infinite alternate; }
+@keyframes cc-comet { 0% { transform: translate(-20px, 20px); opacity: 0; } 8% { opacity: 1; } 30% { transform: translate(120px, -8px); opacity: 0; } 100% { transform: translate(120px, -8px); opacity: 0; } }
+.cc-comet { animation: cc-comet 16s linear infinite; }
+@keyframes cc-float { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-7px) rotate(4deg); } }
+.cc-float { animation: cc-float 3.2s steps(19) infinite; }
+@keyframes cc-flame { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.6) scaleX(0.85); } }
+.cc-flame { animation: cc-flame 0.34s steps(4) infinite; }
+.cc-flame-big { animation: cc-flame 0.2s steps(3) infinite; }
+@keyframes cc-launch {
+  0% { transform: translateY(0); }
+  12% { transform: translateY(2px) scale(1.04, 0.95); }
+  22% { transform: translateY(-6px) scale(0.96, 1.05); }
+  100% { transform: translateY(-560px); }
+}
+.cc-launch { animation: cc-launch 1.6s cubic-bezier(.55,0,.8,.4) forwards; transform-origin: 50% 100%; }
+@keyframes cc-land { 0% { transform: translateY(-420px); } 70% { transform: translateY(6px) scale(1.06, 0.92); } 85% { transform: translateY(-3px) scale(0.97, 1.04); } 100% { transform: translateY(0); } }
+.cc-land { animation: cc-land 0.8s cubic-bezier(.3,.6,.4,1) both; transform-origin: 50% 100%; }
+@keyframes cc-rumble { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-3px) rotate(-1.5deg); } 40% { transform: translateX(3px) rotate(1.5deg); } 60% { transform: translateX(-2px); } 80% { transform: translateX(2px); } }
+.cc-rumble { animation: cc-rumble 0.5s ease-in-out; transform-origin: 50% 100%; }
+@keyframes cc-smoke { 0% { transform: translate(0, 0) scale(0.4); opacity: 0.9; } 100% { transform: translate(var(--sx), -24px) scale(2.2); opacity: 0; } }
+.cc-smoke { animation: cc-smoke 1.3s ease-out forwards; }
+@keyframes cc-beam {
+  0% { transform: translate(var(--fx), var(--fy)) scale(1); opacity: 1; }
+  100% { transform: translate(0, 0) scale(0.25); opacity: 0.2; }
+}
+.cc-beam { animation: cc-beam 0.52s cubic-bezier(.5,0,.7,1) forwards; }
+@keyframes cc-beam-line { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+.cc-beam-line { animation: cc-beam-line 0.52s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .cc-spin, .cc-comet, .cc-float, .cc-flame, .cc-flame-big, .cc-rumble, .cc-land { animation: none; }
+  .cc-launch { animation-duration: 0.01s; }
+}
+
+/* ── Reef Explorer (Coral Reef) ── */
+@keyframes rf-ray { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.rf-ray { animation: rf-ray 6s ease-in-out infinite; }
+@keyframes rf-tail { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+.rf-tail { animation: rf-tail 0.5s steps(6) infinite; }
+@keyframes rf-bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+.rf-bob { animation: rf-bob 2.6s steps(16) infinite; }
+@keyframes rf-found { 0% { transform: scale(1); } 30% { transform: scale(1.35) rotate(-8deg); } 60% { transform: scale(1.25) rotate(8deg); } 100% { transform: scale(0.2) translateY(30px); opacity: 0; } }
+.rf-found { animation: rf-found 1.4s cubic-bezier(.3,.7,.4,1) forwards; }
+.rf-bubble { border-radius: 50%; border: 2px solid rgba(220,250,255,0.55); background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35) 0 8%, rgba(200,245,255,0.08) 22%, rgba(200,245,255,0.12) 70%, rgba(220,250,255,0.28) 100%); animation: rf-bubble 3s ease-in-out infinite; }
+@keyframes rf-bubble { 0%, 100% { scale: 1 1; } 50% { scale: 1.03 0.97; } }
+@media (prefers-reduced-motion: reduce) {
+  .rf-ray, .rf-tail, .rf-bob, .rf-bubble { animation: none; }
+  .rf-found { animation-duration: 0.01s; }
+}
+
+/* Moonlight Match: the friend's hint ring, above the 3D card */
+@keyframes mm-hint { 0%, 100% { box-shadow: 0 0 0 4px #FDE047, 0 0 14px 4px rgba(253,224,71,0.7); scale: 1; } 50% { box-shadow: 0 0 0 6px #FDE047, 0 0 28px 10px rgba(253,224,71,0.95); scale: 1.04; } }
+.mm-hint { border: 3px solid #FFFFFF; animation: mm-hint 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .mm-hint { animation: none; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); } }

@@ -57,10 +57,11 @@ test('Challenge round: reading, communication and math all finish, counters neve
   await page.goto('/assessment/games?challenge=1');
   for (let q = 0; q < 60; q++) {
     if (page.url().includes('/results')) break;
-    const counter = page.getByText(/Question \d+\/\d+/);
+    // "Question 2/4" or "Question 2 of up to 4"
+    const counter = page.locator('[data-challenge-counter]');
     const ready = await page.evaluate(() => !!document.querySelector('button[data-correct]') && !document.querySelector('[data-feedback]'));
     if (!ready || !(await counter.isVisible().catch(() => false))) { await page.waitForTimeout(300); continue; }
-    const [, a, b] = (await counter.innerText()).match(/Question (\d+)\/(\d+)/)!;
+    const [, a, b] = (await counter.innerText()).match(/Question (\d+)\s*(?:\/|of up to)\s*(\d+)/)!;
     expect(Number(a)).toBeLessThanOrEqual(Number(b));
     await answer(page, q % 3 !== 2);
     await next(page);

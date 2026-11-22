@@ -8,6 +8,7 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
+import { chapterLabel } from '@/lib/levels';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
@@ -160,6 +161,7 @@ export default function WheresNoelPage() {
   }, [phase]);
 
   const scene = SCENES[(level - 1) % SCENES.length];
+  const place = chapterLabel(level);
 
   const startLevel = useCallback(() => {
     // clutter grows with level; the littlest ones get fewer, bigger things
@@ -284,7 +286,7 @@ export default function WheresNoelPage() {
           <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
-            Where&apos;s Noel? <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+            Where&apos;s Noel? <span data-level-place className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level} · {place.name}</span>
           </h1>
           <span className="w-16" />
         </div>
@@ -296,8 +298,9 @@ export default function WheresNoelPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #475569 0%, #1e293b 55%, #0f172a 100%)', accent: '#FB923C', accent2: '#EA580C' }}
               pet={pet}
               story={<><p data-no-read className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                <PieceIcon kind={scene.treasure.piece} size={22} /> Level {level}: {scene.name}
+                <PieceIcon kind={scene.treasure.piece} size={22} /> <span data-level-place>Level {level} · {place.label}: {place.name}</span>
               </p>
+              <p data-no-read className="text-sm font-extrabold text-slate-700 -mt-1 mb-1">Today&apos;s hiding place: {scene.name}</p>
               <p>{scene.story}</p></>}
               extras={<div className="flex items-end justify-center gap-3"><Magnifier size={70} />
               <PeekingNoel size={58} /></div>}

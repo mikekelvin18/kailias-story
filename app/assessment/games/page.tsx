@@ -35,7 +35,7 @@ interface RunningState {
 }
 
 import { testing } from '@/lib/testHooks';
-import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, nextPlacementQuestion } from '@/lib/placementBank';
+import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, maxChallengeLen, nextPlacementQuestion } from '@/lib/placementBank';
 
 // Noel's one-line "why" after a miss (Muse round 4), matched by how the
 // question starts. Plain words a child can follow.
@@ -699,7 +699,7 @@ function gripEvidence(grip: string | null): Evidence[] {
 }
 
 export default function GamesPage() {
-  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
+  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
   const router = useRouter();
   const age = chronoMonths ?? (state.childAge ?? 8) * 12;
 
@@ -721,6 +721,8 @@ export default function GamesPage() {
   const [mode, setMode] = useState<'unknown' | 'normal' | 'challenge'>('unknown');
   /** First unfinished game after a break (4 = all four games done), or null. */
   const [resumeAt, setResumeAt] = useState<number | null>(null);
+  /** A challenge round left part way, offered to carry on (Muse round 5). */
+  const [challengeResume, setChallengeResume] = useState<{ step: number; asked: number[]; evidence: Evidence[] } | null>(null);
   const challenge = mode === 'challenge';
   /** Placement items already answered in this area (never asked again in the challenge). */
   const placedIdx = (key: string) => (state.evidence?.[key as MilestoneDomain] ?? [])
@@ -741,6 +743,18 @@ export default function GamesPage() {
       && nextChallenge(bank, age, placedIdx(game.key), asked, cur, evidence[evidence.length - 1]?.r === 1) == null)
     : asked.length >= Math.min(QUESTIONS_PER_GAME, bank.length);
   const isLastStep = gameStep === totalSteps - 1;
+  /** Challenge areas that have harder questions for this child (others are skipped). */
+  const liveChallengeSteps = CHALLENGE_STEPS.filter(st => {
+    const key = GAMES[st < 1 ? st : st - 1].key;
+    return nextChallenge(BANK[key], age, placedIdx(key), [], -1, true) != null;
+  });
+  const isLastChallengeGame = liveChallengeSteps[liveChallengeSteps.length - 1] === gameStep;
+  /** Honest question count for this challenge area (Muse round 5: it said
+   *  "1/4" when the area ended after one question). Once the answer is in
+   *  and the area ends, the count is exactly the questions asked. */
+  const challengeTotal = !challenge || !game ? 0
+    : submitted && isLastQ ? asked.length
+    : Math.max(asked.length, maxChallengeLen(bank, age, placedIdx(game.key), asked));
 
   const getScore = (): number => {
     if (!question) return 0;
@@ -767,7 +781,10 @@ export default function GamesPage() {
       setSubmitted(true);
       return;
     }
-    setEvidence(ev => [...ev, { id: `${challenge ? 'challenge-' : ''}${game.key}-${cur}`, months: question.months, r, kind: 'choice3' }]);
+    const entry: Evidence = { id: `${challenge ? 'challenge-' : ''}${game.key}-${cur}`, months: question.months, r, kind: 'choice3' };
+    setEvidence(ev => [...ev, entry]);
+    // the challenge saves every answer, so leaving part way can carry on
+    if (challenge) setChallengeRound({ step: gameStep, asked, evidence: [...evidence, entry] });
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
     let line = pool[Math.floor(Math.random() * pool.length)];
     // A miss gets a gentle "here's the one Kailia picked" so the child
@@ -799,9 +816,11 @@ export default function GamesPage() {
       const first = nextChallenge(BANK[key], age, placedIdx(key), [], -1, true);
       if (first != null) {
         setGameStep(step); setEvidence([]); setAsked([first]); resetQuestion();
+        setChallengeRound({ step, asked: [first], evidence: [] });
         return;
       }
     }
+    setChallengeRound(null);
     router.push('/results');
   };
 
@@ -810,7 +829,9 @@ export default function GamesPage() {
     const wants = new URLSearchParams(window.location.search).get('challenge') === '1';
     // eslint-disable-next-line react-hooks/set-state-in-effect -- read the address once, after the profile loads
     setMode(wants ? 'challenge' : 'normal');
-    if (wants) startChallenge(0);
+    // a challenge left part way: offer to carry on (Muse round 5)
+    if (wants && state.challengeRound && (state.challengeRound.evidence.length > 0 || state.challengeRound.step > 0)) setChallengeResume(state.challengeRound);
+    else if (wants) startChallenge(0);
     else {
       setAsked([firstQuestion(BANK[GAMES[0].key], age)]);
       // Came back after a break (Muse round 4): offer to pick up where the
@@ -844,7 +865,11 @@ export default function GamesPage() {
     if (challenge) {
       const last = evidence[evidence.length - 1];
       const next = isLastQ ? null : nextChallenge(bank, age, placedIdx(game.key), asked, cur, last?.r === 1);
-      if (next != null) { setAsked(a => [...a, next]); resetQuestion(); return; }
+      if (next != null) {
+        setAsked(a => [...a, next]); resetQuestion();
+        setChallengeRound({ step: gameStep, asked: [...asked, next], evidence });
+        return;
+      }
       // Keep the placement answers; a new challenge replaces an older one.
       const kept = (state.evidence?.[domainKey] ?? []).filter(e => !e.id.startsWith('challenge-'));
       setDomainEvidence(domainKey, [...kept, ...evidence]);
@@ -885,6 +910,36 @@ export default function GamesPage() {
   };
 
   const stepLabels = ['📖 Reading', '✍️ Fine Motor', '🗣️ Communication', '🔢 Math'];
+
+  if (challengeResume) {
+    const areaNames: Record<number, string> = { 0: 'reading', 2: 'talking', 3: 'counting' };
+    const carryOn = () => {
+      const r = challengeResume; setChallengeResume(null);
+      setGameStep(r.step); setAsked(r.asked); setEvidence(r.evidence); resetQuestion();
+      // the last question was already answered: show it answered, ready for Next
+      if (r.evidence.length >= r.asked.length && r.asked.length) { setSubmitted(true); setEncourage('Welcome back! Tap below to keep going. ⭐'); }
+    };
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: '#FFF9F0' }}>
+        <div data-challenge-resume className="max-w-md w-full rounded-3xl p-8 shadow-xl text-center bg-white">
+          <p className="text-5xl mb-2" aria-hidden="true">🐼</p>
+          <h1 className="text-2xl font-extrabold text-gray-800 mb-2">Welcome back!</h1>
+          <p className="text-gray-600 mb-6">
+            Noel saved your spot in the challenge round: the {areaNames[challengeResume.step] ?? 'next'} questions
+            {challengeResume.evidence.length ? `, ${challengeResume.evidence.length} answered so far` : ''}.
+          </p>
+          <button onClick={carryOn}
+            className="w-full px-8 py-4 rounded-full font-extrabold text-xl text-white shadow-lg mb-3"
+            style={{ background: 'linear-gradient(135deg, #059669, #7C3AED)' }}>
+            Carry on →
+          </button>
+          <button onClick={() => { setChallengeResume(null); startChallenge(0); }} className="text-sm font-bold text-gray-500 underline">
+            Start the challenge over
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   if (resumeAt !== null) {
     const names = ['the reading game', 'the tracing game', 'the talking game', 'the counting game'];
@@ -959,7 +1014,7 @@ export default function GamesPage() {
           ))}
         </div>
         <div className="flex gap-1 mb-5">
-          {Array.from({ length: challenge ? CHALLENGE_QS : shownTotal }, (_, i) => (
+          {Array.from({ length: challenge ? challengeTotal : shownTotal }, (_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
               style={{ background: i < questionIdx ? game.color : i === questionIdx ? `${game.color}66` : '#E5E7EB' }} />
           ))}
@@ -1036,7 +1091,7 @@ export default function GamesPage() {
             <button onClick={handleNext}
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
-              {challenge ? (isLastQ ? (isLastStep ? 'See My Results! 🎉' : 'Next Game! 🚀') : 'Next Question →')
+              {challenge ? (isLastQ ? (isLastChallengeGame ? 'See My Results! 🎉' : 'Next Game! 🚀') : 'Next Question →')
                 : plannedNext() != null ? 'Next Question →'
                 : isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : 'Next Game! 🚀'}
             </button>
@@ -1045,7 +1100,7 @@ export default function GamesPage() {
 
         <p className="text-center text-gray-500 text-sm font-semibold mt-4">
           {challenge
-            ? `Game ${CHALLENGE_STEPS.indexOf(gameStep) + 1} of ${CHALLENGE_STEPS.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}/${CHALLENGE_QS}`
+            ? <span data-challenge-counter>{`Game ${liveChallengeSteps.indexOf(gameStep) + 1} of ${liveChallengeSteps.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}${challengeTotal > questionIdx + 1 ? ' of up to ' : '/'}${challengeTotal}`}</span>
             : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
               {!isTracingStep && ` • Question ${questionIdx + 1}/${shownTotal}`}</>}
         </p>
