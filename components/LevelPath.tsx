@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import { LockIcon, StarIcon } from '@/components/scenery/SkyDecor';
 import { Thing } from '@/components/art/things';
-import { CHAPTERS, LEVELS_PER_CHAPTER, chapterAt, unlockedUpTo, highestBeaten } from '@/lib/levels';
+import { LEVELS_PER_CHAPTER, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
 
 // ── Level map ──
 // A small winding path of 5 level stones (one chapter) on every leveled
@@ -53,7 +53,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   const chapter = chapterAt(page);
   const first = page * LEVELS_PER_CHAPTER + 1;
   const levels = Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => first + i);
-  const chapterLabel = page < CHAPTERS.length ? `Chapter ${page + 1}` : `Star world ${page - CHAPTERS.length + 1}`;
+  const chapterLabel = chapterLabelFor(page * LEVELS_PER_CHAPTER + 1).label;
   // a world the child has only just reached (its first stone is the next one to play)
   const freshWorld = page > 0 && first === unlocked && beaten === first - 1;
   // far up the path, a quick way back to the newest level

@@ -57,11 +57,33 @@ function daysToGrow(days: number): number | null {
 // small = the map button: a plain breathing picture (no moving-parts rig,
 // so the map never runs two pet canvases at once)
 function PetPicture({ friend, stage, size, crack, small }: { friend: PlayPet; stage: Stage; size: number; crack?: boolean; small?: boolean }) {
+  const aspect = useArtAspect(friend.art);
   if (stage === 'egg') return <PetEgg size={size * 0.8} crack={crack} />;
   const w = Math.round(size * STAGE_SCALE[stage]);
   // eslint-disable-next-line @next/next/no-img-element
   if (small) return <img src={friend.art} alt="" width={w} className="art-breathe" style={{ display: 'block', width: w, height: 'auto', transformOrigin: '50% 100%' }} />;
-  return <LiveArt src={friend.art} alt={friend.name} size={w} />;
+  // In the pop-up, `size` is the room the pet has to stand in: the pet
+  // pictures are taller than wide, so size them by height or a grown pet
+  // pokes up into its own speech bubble on phones.
+  return <LiveArt src={friend.art} alt={friend.name} size={Math.round(w * aspect)} />;
+}
+
+// width ÷ height of a picture (pet art is portrait); 0.8 until it has loaded
+const aspects = new Map<string, number>();
+function useArtAspect(src: string): number {
+  const [aspect, setAspect] = useState(() => aspects.get(src) ?? 0.8);
+  useEffect(() => {
+    if (aspects.has(src)) { setAspect(aspects.get(src)!); return; } // eslint-disable-line react-hooks/set-state-in-effect
+    const img = new Image();
+    img.onload = () => {
+      if (!img.naturalHeight) return;
+      const a = Math.min(1, img.naturalWidth / img.naturalHeight);
+      aspects.set(src, a);
+      setAspect(a);
+    };
+    img.src = src;
+  }, [src]);
+  return aspect;
 }
 
 export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boolean }) {

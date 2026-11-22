@@ -7,14 +7,14 @@
 // app/layout.tsx, this:
 //  - tells iPhones this app plays sound on purpose (like a music app), so
 //    the silent switch doesn't mute the music and sound effects;
-//  - on the very first tap or key press anywhere, wakes up Noel's voice,
+//  - on the first real tap (finger lifted) or key press anywhere, wakes up Noel's voice,
 //    the sound effects and the music, and plays the Noel line that was
 //    waiting for that tap (lib/voice.ts unlockVoice).
 // It never shows anything and never listens: it only lets sound play.
 
 import { useEffect } from 'react';
-import { unlockVoice } from '@/lib/voice';
-import { audioCtx } from '@/lib/sfx';
+import { unlockVoice, voiceReady } from '@/lib/voice';
+import { audioCtx, keepSoundOn, pauseSoundKeeper } from '@/lib/sfx';
 
 export default function SoundStart() {
   useEffect(() => {
@@ -23,14 +23,28 @@ export default function SoundStart() {
       if (nav.audioSession) nav.audioSession.type = 'playback';
     } catch { /* older browsers: nothing to do */ }
 
-    const events = ['pointerdown', 'touchend', 'keydown', 'click'] as const;
-    const wake = () => {
-      events.forEach(e => window.removeEventListener(e, wake, true));
+    // Only these count as a real tap on iPhones: a finger going down
+    // (touchstart/pointerdown) does NOT let sound play, lifting it does.
+    // Keep trying on every tap until the phone has really let sound out.
+    const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
+    const stop = () => events.forEach(e => window.removeEventListener(e, wake, true));
+    function wake() {
+      keepSoundOn(); // iPhone: music and effects play even with the silent switch on
       unlockVoice();
-      audioCtx(); // made (and woken) inside the tap, so later beeps can play
-    };
+      const ctx = audioCtx(); // made (and woken) inside the tap, so later beeps can play
+      if (voiceReady() && (!ctx || ctx.state === 'running')) stop();
+    }
     events.forEach(e => window.addEventListener(e, wake, true));
-    return () => events.forEach(e => window.removeEventListener(e, wake, true));
+    // background: rest; back again: the next tap starts it again (keepSoundOn on every tap below)
+    const vis = () => { if (document.hidden) pauseSoundKeeper(); };
+    document.addEventListener('visibilitychange', vis);
+    const again = () => keepSoundOn();
+    events.forEach(e => window.addEventListener(e, again, true));
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', vis);
+      events.forEach(e => window.removeEventListener(e, again, true));
+    };
   }, []);
   return null;
 }

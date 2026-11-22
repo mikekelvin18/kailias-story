@@ -16,9 +16,13 @@
 // The welcome tune (front page, story, map; Kelvin 2026-11-21: "a mellow
 // background sound when the app is opened, gaming kind of sound for kids,
 // fun and mellow") is a written-out, catchy little game theme instead of
-// a made-up one: a bouncy bass, a soft thump on the beat and a hummable
-// kalimba hook, still low, round and quiet. Calm mode drops the thump and
-// the bounce and plays it softer.
+// a made-up one: a bouncy bass, a soft thump and clap, and a hummable
+// marimba hook over a lighter pad, at a happy walking pace. Kelvin found
+// the first version "almost like spa music" and asked for the middle
+// between calming and exciting (2026-11-21): faster, plucky, less pad;
+// then "a bit more exciting": 116 bpm, a fuller hook, a firmer beat.
+// Still round and low enough to sit under Noel's voice. Calm mode drops the
+// beat and the bounce and plays it softer, the old dreamy way.
 
 import { onTalking } from './voice';
 import { sfxOut } from './sfx';
@@ -39,19 +43,19 @@ type Song = {
 const _ = null;
 /** The welcome theme: C, Am, F, G with a hummable hook, all in the middle range. */
 export const WELCOME_SONG: Song = {
-  bpm: 92,
+  bpm: 116,
   chords: [[48, 55, 60, 64], [45, 52, 57, 60], [41, 48, 53, 57], [43, 50, 55, 59]],
   scale: [60, 62, 64, 67, 69, 72],
   bouncy: true,
   tune: [
     67, _, 64, 67, 69, _, 67, _,
-    64, _, 60, 64, 67, _, _, _,
-    65, _, 69, 72, 69, _, 65, _,
-    67, _, 71, _, 67, _, _, _,
+    64, _, 60, 64, 67, _, 69, 71,
+    72, _, 69, 72, 69, _, 65, _,
+    67, _, 71, _, 74, 72, 71, _,
     72, _, 67, 64, 67, _, 69, _,
-    67, _, 64, 60, 64, _, _, _,
-    65, 67, 69, _, 72, _, 69, _,
-    67, _, 62, _, 60, _, _, _,
+    67, _, 64, 60, 64, _, 65, 67,
+    69, 67, 69, _, 72, _, 69, _,
+    67, _, 62, _, 60, 64, 67, _,
   ],
 };
 /** The page key that plays the welcome theme. */
@@ -119,6 +123,7 @@ class ChillPlayer {
   private nextTime = 0;
   private stopTalk: (() => void) | null = null;
   private noise: AudioBuffer | null = null;
+  private tone: BiquadFilterNode | null = null;
   playing = false;
 
   /** Pick this page's tune. Same page, same tune, every time. */
@@ -149,6 +154,7 @@ class ChillPlayer {
     tone.type = 'lowpass';
     tone.frequency.value = 1800;
     tone.Q.value = 0.3;
+    this.tone = tone;
 
     // a roomy reverb made from fading noise
     const verb = ctx.createConvolver();
@@ -179,7 +185,7 @@ class ChillPlayer {
     node.connect(w).connect(this.wet!);
   }
 
-  private pad(notes: number[], t: number, dur: number) {
+  private pad(notes: number[], t: number, dur: number, level = 1) {
     const ctx = this.ctx!;
     notes.forEach((m, k) => {
       [-6, 6].forEach(cents => {
@@ -188,7 +194,7 @@ class ChillPlayer {
         o.frequency.value = hz(k === notes.length - 1 ? m - 12 : m); // low and warm, top note tucked down
         o.detune.value = cents;
         const g = ctx.createGain();
-        const peak = 0.034;
+        const peak = 0.034 * level;
         g.gain.setValueAtTime(0.0001, t);
         g.gain.linearRampToValueAtTime(peak, t + dur * 0.35);
         g.gain.linearRampToValueAtTime(peak * 0.7, t + dur * 0.8);
@@ -244,21 +250,55 @@ class ChillPlayer {
     o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.09, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.11, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
     o.connect(g);
     this.send(g, 0.1);
     o.start(t); o.stop(t + 0.25);
   }
 
-  private shaker(t: number, accent: boolean) {
+  /** A wooden marimba note: round, bright for a moment, gone quickly. Playful, not dreamy. */
+  private marimba(m: number, t: number, level = 1) {
+    const ctx = this.ctx!;
+    const f0 = hz(m);
+    [[1, 0.085, 0.42], [4, 0.01, 0.06], [10, 0.003, 0.02]].forEach(([mult, peak, decay]) => {
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = f0 * mult;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak * level, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+      o.connect(g);
+      this.send(g, 0.18);
+      o.start(t); o.stop(t + decay + 0.05);
+    });
+  }
+
+  /** A soft clap on beats 2 and 4: a puff of filtered noise. */
+  private clap(t: number) {
+    const ctx = this.ctx!;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 0.9;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.036, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+    src.connect(bp).connect(g);
+    this.send(g, 0.3);
+    src.start(t, Math.random() * 0.8); src.stop(t + 0.16);
+  }
+
+  private shaker(t: number, accent: boolean, boost = 1) {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
     src.buffer = this.noise;
     const hp = ctx.createBiquadFilter();
     hp.type = 'bandpass'; hp.frequency.value = 3800; hp.Q.value = 0.8;
     const g = ctx.createGain();
-    const peak = accent ? 0.012 : 0.006;
+    const peak = (accent ? 0.012 : 0.006) * boost;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
@@ -279,20 +319,31 @@ class ChillPlayer {
       const bar = Math.floor(s / 8);
       const chord = this.song.chords[bar % bars];
       const bounce = !!this.song.bouncy && !loadA11y().calmMode;
+      if (this.tone) this.tone.frequency.setTargetAtTime(bounce ? 2600 : 1800, t, 0.5); // a little brighter when playful
       if (inBar === 0) {
-        this.pad(chord, t, eighth * 8);
+        // lighter pad: the floaty "spa" bed was the dreamy part. The playful tune
+        // opens with the beat and the hook, no hum (Kelvin: "lessen the hymn in
+        // the start"); the soft pad only joins from bar 3, very low.
+        if (!bounce) this.pad(chord, t, eighth * 8);
+        else if (this.step >= 16) this.pad(chord, t, eighth * 8, 0.3);
         this.bass(chord[0], t, bounce ? eighth * 2.5 : eighth * 5);
       }
       if (bounce) {
         // the game feel: bass hops on 1, the "and" of 2, and 4; a soft thump on 1 and 3
         if (inBar === 3) this.bass(chord[0], t, eighth * 2);
         if (inBar === 6) this.bass(chord[0] + 7, t, eighth * 2);
-        if ((inBar === 0 || inBar === 4) && this.step >= 16) this.thump(t);
+        if (inBar === 0 || inBar === 4) this.thump(t); // the beat starts right away
+        if ((inBar === 2 || inBar === 6) && this.step >= 8) this.clap(t);
       } else if (inBar === 5) this.bass(chord[0] + 7, t, eighth * 3); // a soft "and" note on the fifth
       // drums stay out for the first 2 bars of the first time round, then join quietly
-      if (this.step >= 16 && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7);
+      if ((this.step >= 16 || (bounce && this.step >= 8)) && inBar % 2 === 1) this.shaker(t, inBar === 3 || inBar === 7, bounce ? 1.7 : 1);
       const note = this.melody[s];
-      if (note != null && this.step >= 8) this.bell(note, t + (inBar % 2 ? eighth * 0.08 : 0)); // a little swing
+      const swing = inBar % 2 ? eighth * 0.08 : 0; // a little swing
+      if (bounce) {
+        if (note != null) this.marimba(note, t + swing, 1.1); // the hook from the first note
+        // a quiet answer from the chord when the tune rests, so it keeps moving
+        else if (note == null && this.step >= 16 && inBar % 2 === 1) this.marimba(chord[1 + (inBar >> 1) % 3] + 12, t + swing, 0.45);
+      } else if (note != null && this.step >= 8) this.bell(note, t + swing);
       this.nextTime += eighth;
       this.step++;
     }
