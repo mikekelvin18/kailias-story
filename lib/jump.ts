@@ -27,6 +27,7 @@ const GAME_IDS: Record<string, string> = {
   'trail-walk': 'trail-walk', 'story-sparks': 'story-sparks', 'echo-song': 'echo-song',
   'hidden-friends': 'hidden-friends', 'moonlight-match': 'moonlight-match',
   'potion-sort': 'potion-sort', 'sky-mail': 'sky-mail',
+  'cargo-count': 'cargo-count', 'reef-explorer': 'reef-explorer',
 };
 // Names people say for a game → its route folder.
 const GAME_ALIASES: Record<string, string> = {
