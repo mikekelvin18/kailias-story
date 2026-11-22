@@ -1124,5 +1124,5 @@ button:active {
 
 /* Moonlight Match: the friend's hint ring, above the 3D card */
 @keyframes mm-hint { 0%, 100% { box-shadow: 0 0 0 4px #FDE047, 0 0 14px 4px rgba(253,224,71,0.7); scale: 1; } 50% { box-shadow: 0 0 0 6px #FDE047, 0 0 28px 10px rgba(253,224,71,0.95); scale: 1.04; } }
-.mm-hint { border: 3px solid #FFFFFF; animation: mm-hint 1s ease-in-out infinite; }
+.mm-hint { border: 3px solid #FFFFFF; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); animation: mm-hint 1s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .mm-hint { animation: none; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); } }
