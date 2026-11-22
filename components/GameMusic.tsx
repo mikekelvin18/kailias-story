@@ -72,7 +72,7 @@ export default function GameMusic() {
     // On iPhones only a finger LIFTING (touchend/click) lets sound start, not
     // touching down, so listen for those, on every tap: start() on a tune
     // that's already playing just wakes it if the phone paused it.
-    const go = () => { if (musicEnabled()) m.start(); };
+    const go = () => { if (musicEnabled()) m.start(true); };
     const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
     events.forEach(e => window.addEventListener(e, go, true));
     return () => events.forEach(e => window.removeEventListener(e, go, true));
@@ -97,13 +97,13 @@ export default function GameMusic() {
     // The very first tap of a visit, if it lands on this button, is someone
     // asking for sound (it was silent only because the phone waits for a
     // tap), so it starts the sound instead of turning it off.
-    if (soundOn && Date.now() - firstTapAt.current < 800) { if (inGame) music().start(); return; }
+    if (soundOn && Date.now() - firstTapAt.current < 800) { if (inGame) music().start(true); return; }
     const next = !soundOn;
     // off: only until the app is opened again (never saved); on: also clears an old saved "off"
     setMutedNow(!next);
     if (next) updateA11yPrefs({ reducedSound: false, musicOn: true });
     setSoundOn(next); setOn(next);
-    if (next) { if (inGame) music().start(); } else { music().stop(); hush(); }
+    if (next) { if (inGame) music().start(true); } else { music().stop(); hush(); }
   };
 
   return (

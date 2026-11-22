@@ -349,12 +349,36 @@ class ChillPlayer {
     }
   };
 
-  start() {
+  /**
+   * iPhone home-screen apps keep the page alive in the background. When the
+   * app is opened again, the old audio engine can be stuck silent while it
+   * still says "running", and only turning sound off and on woke it (Kelvin,
+   * 2026-11-22). So the first tap after the page loads and after every return
+   * from the background builds a fresh engine inside that tap.
+   */
+  private stale = true;
+  markStale() { this.stale = true; }
+
+  /** Throw the old engine away (it is rebuilt by the next start()). */
+  private renew() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    this.stopTalk?.(); this.stopTalk = null;
+    this.playing = false;
+    const old = this.ctx;
+    this.ctx = null;
+    try { void old?.close().catch(() => {}); } catch { /* ignore */ }
+  }
+
+  /** `fromTap`: called inside a real tap, the only moment a phone lets a new engine start. */
+  start(fromTap = false) {
     if (typeof window === 'undefined') return;
     try {
+      if (fromTap && this.ctx && (this.stale || (this.ctx.state !== 'running' && this.ctx.state !== 'suspended'))) this.renew();
+      if (fromTap) this.stale = false;
       if (!this.ctx) this.build();
       const ctx = this.ctx!;
-      if (ctx.state === 'suspended') void ctx.resume();
+      if (ctx.state !== 'running') void ctx.resume().catch(() => {});
       if (this.playing) return;
       this.playing = true;
       this.step = 0;
@@ -395,7 +419,7 @@ class ChillPlayer {
 
   /** Pause while the app is in the background, pick up when it's back. */
   pause() { if (this.ctx && this.playing) void this.ctx.suspend().catch(() => {}); }
-  resume() { if (this.ctx && this.playing) void this.ctx.resume().catch(() => {}); }
+  resume() { this.stale = true; if (this.ctx && this.playing) void this.ctx.resume().catch(() => {}); }
 }
 
 let player: ChillPlayer | null = null;
