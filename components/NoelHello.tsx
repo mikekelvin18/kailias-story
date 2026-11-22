@@ -12,6 +12,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { say, hush, onTalking } from '@/lib/voice';
 import { loadA11y, updateA11yPrefs } from '@/lib/accessibility';
+import TapHint, { useBeforeFirstTap } from '@/components/TapHint';
 
 // Recorded in Noel's voice (scripts/voice-lines.mjs picks these up).
 const HELLO = "Hi, friend! I'm Noel. Kailia and I are going on a big adventure. Will you come with us?";
@@ -19,6 +20,7 @@ const HELLO = "Hi, friend! I'm Noel. Kailia and I are going on a big adventure. 
 export default function NoelHello() {
   const [talking, setTalking] = useState(false);
   const [heard, setHeard] = useState(false);
+  const beforeTap = useBeforeFirstTap(); // Noel's paw shows where to tap, until the first tap
 
   useEffect(() => {
     const off = onTalking(setTalking);
@@ -40,9 +42,10 @@ export default function NoelHello() {
   return (
     <div className="relative flex flex-col items-center mb-4">
       {/* speech bubble: an invitation before the first tap, Noel's words after */}
+      <TapHint show={beforeTap && !heard} paw="below-right" pawSize={56} className="mb-2">
       <button type="button" onClick={hello}
         aria-label={heard ? 'Hear Noel again' : 'Tap to hear Noel say hi'}
-        className={`relative mb-2 flex items-center gap-2 rounded-full px-4 py-2 text-base font-extrabold text-purple-900 shadow-lg transition-transform active:scale-95 hover:scale-105 ${heard ? '' : 'kp-hop'}`}
+        className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-base font-extrabold text-purple-900 shadow-lg transition-transform active:scale-95 hover:scale-105 ${heard ? '' : 'kp-hop'}`}
         style={{ background: 'rgba(255,255,255,0.96)' }}>
         <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#7C3AED" stroke="#7C3AED" strokeWidth="1.6" strokeLinejoin="round" />
@@ -56,6 +59,7 @@ export default function NoelHello() {
         <span aria-hidden="true" className="absolute left-[62%] -bottom-[7px] w-4 h-4 rotate-45"
           style={{ background: 'rgba(255,255,255,0.96)' }} />
       </button>
+      </TapHint>
 
       {/* Kailia and Noel, standing together and breathing, blinking and
           turning a little; tap either one and they hop, and Noel says hi. */}

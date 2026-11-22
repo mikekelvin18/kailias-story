@@ -16,6 +16,7 @@ import { usePathname } from 'next/navigation';
 import { A11Y_EVENT, musicEnabled, soundEnabled, updateA11yPrefs, setMutedNow } from '@/lib/accessibility';
 import { hush } from '@/lib/voice';
 import { music, WELCOME } from '@/lib/music';
+import TapHint from '@/components/TapHint';
 
 /** Listening games, where music would cover the sounds the child must hear. */
 const LISTENING_GAMES = ['/play/echo-song'];
@@ -113,10 +114,13 @@ export default function GameMusic() {
         // the map has the bottom tab bar (about 68px, more on computers): sit just above it
         bottom: path === '/play' ? 'calc(env(safe-area-inset-bottom, 0px) + 92px)' : 'max(14px, env(safe-area-inset-bottom))',
       }}>
+      {/* until the first tap: glow, ripples, notes and Noel's paw tapping it
+          (the front page has its own paw on "Tap to say hi!", so just the glow there) */}
+      <TapHint show={!tapped && soundOn} paw={path === '/' ? 'none' : 'above-left'} pawSize={50}>
       <button type="button" onClick={toggle}
         aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'} aria-pressed={!soundOn}
         title={soundOn ? 'Sound on (tap to turn off)' : 'Sound off (tap to turn on)'}
-        className={`grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105 ${tapped || !soundOn ? '' : 'pulse'}`}
+        className={`grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105 `}
         style={{
           width: 46, height: 46,
           background: 'rgba(255,255,255,0.92)',
@@ -130,6 +134,7 @@ export default function GameMusic() {
           {!soundOn && <path d="M15.5 9.5l5 5m0-5l-5 5" stroke="#64748B" strokeWidth="2.2" strokeLinecap="round" />}
         </svg>
       </button>
+      </TapHint>
     </div>
   );
 }
