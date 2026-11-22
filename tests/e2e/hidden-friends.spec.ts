@@ -27,3 +27,22 @@ test('Hidden Friends: tapping the crowd is "keep looking", never a find', async 
   await until(async () => /keep looking|close|not noel/i.test(await guideLine(page)), 'the keep-looking line');
   expect(await guideLine(page)).not.toMatch(/found me|keep going!|everyone is found/i);
 });
+
+test("Where's Noel: level 3 names the same chapter in the intro, the level map and the header (Muse round 5)", async ({ page }) => {
+  await seedFamily(page, { levels: { 'hidden-friends': 3 } });
+  await page.goto('/play/hidden-friends');
+  const intro = page.getByTestId('game-intro');
+  await expect(intro).toBeVisible({ timeout: 30_000 });
+  // the saved level loads a moment after the intro first shows
+  await expect(intro.locator('[data-level-place]')).toHaveText('Level 3 · Chapter 1: Sprout');
+  const place = (await intro.locator('[data-level-place]').textContent())!.trim();
+  // the level map shows the same chapter
+  const map = await page.evaluate(() => {
+    const ps = [...document.querySelectorAll('p')];
+    const i = ps.findIndex(e => /^(Chapter \d+|Star world \d+)$/i.test(e.textContent!.trim()));
+    return i < 0 ? '' : `${ps[i].textContent!.trim()}: ${ps[i + 1].textContent!.trim()}`;
+  });
+  expect(place.toLowerCase()).toContain(map.toLowerCase());
+  await intro.locator('.gf-cta').first().click({ force: true });
+  await expect(page.locator('h1 [data-level-place]')).toHaveText('Lv 3 · Sprout');
+});

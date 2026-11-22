@@ -87,3 +87,25 @@ test('Word Wizard: a wrong balloon is read back kindly, never praised', async ({
   await choice(page, s.answer!).click({ force: true });
   await until(async () => (await state(page))?.popped === s.answer, 'the right balloon to pop');
 });
+
+test('Word Wizard: level 15 shows "Question n/5" while playing, matching the intro (Muse round 5)', async ({ page }) => {
+  test.setTimeout(120_000);
+  await seedFamily(page, { levels: { 'word-wizard': 15 } });
+  await page.goto('/play/reading');
+  const intro = page.locator('[data-question-total]');
+  await expect(intro).toBeVisible({ timeout: 30_000 });
+  const total = Number(await intro.getAttribute('data-question-total'));
+  await expect(intro).toContainText(`${total} words`);
+  await page.locator('[data-testid="game-intro"] .gf-cta').first().click({ force: true });
+  const seen: string[] = [];
+  for (let guard = 0; guard < 80 && !(await finished(page)); guard++) {
+    const s = await state(page);
+    if (!s || s.phase !== 'playing' || !s.answer || s.popped) { await page.waitForTimeout(150); continue; }
+    const shown = (await page.locator('[data-question-counter]').innerText()).trim();
+    expect(shown).toBe(`Question ${s.q + 1}/${total}`);
+    if (seen[seen.length - 1] !== shown) seen.push(shown);
+    await tapChoice(page, s.answer);
+    await until(async () => (await finished(page)) || (await state(page))?.q !== s.q, 'the next word', 6000).catch(() => null);
+  }
+  expect(seen).toEqual(Array.from({ length: total }, (_, i) => `Question ${i + 1}/${total}`));
+});

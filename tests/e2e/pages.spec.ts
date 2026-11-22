@@ -7,6 +7,8 @@ import { seedFamily, watchErrors } from './helpers';
 const PAGES = [
   '/', '/play', '/play/garden', '/play/friends', '/activities', '/printables', '/results', '/progress',
   '/family', '/story', '/privacy', '/retention', '/upgrade',
+  // the bonus realms' own games (Muse round 5: they used to redirect)
+  '/play/cargo-count', '/play/reef-explorer',
 ];
 
 for (const path of PAGES) {
