@@ -35,7 +35,7 @@ interface RunningState {
 }
 
 import { testing } from '@/lib/testHooks';
-import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, maxChallengeLen, nextChallenge, nextPlacementQuestion } from '@/lib/placementBank';
+import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, maxChallengeLen, nextPlacementQuestion } from '@/lib/placementBank';
 
 // Noel's one-line "why" after a miss (Muse round 4), matched by how the
 // question starts. Plain words a child can follow.

@@ -371,6 +371,10 @@ export default function MazeRunnerPage() {
   const pet = usePlayPet();
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const [petPos, setPetPos] = useState({ x: 8, y: 50, flip: false });
+  // the friend starts (still invisible) right on GO; until it has walked to
+  // its first free spot it can't be tickled, so a quick press on GO always
+  // starts the trace (the robot check caught the hidden friend eating it)
+  const [petPlaced, setPetPlaced] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [noelLine, setNoelLine] = useState('');
   const [canvasW, setCanvasW] = useState(366);
@@ -626,6 +630,7 @@ export default function MazeRunnerPage() {
       if (!spot) return;
       const nx = (spot.x / W) * 100, ny = (spot.y / H) * 100;
       setPetPos(p => (Math.abs(p.x - nx) < 0.6 && Math.abs(p.y - ny) < 0.6 ? p : { x: nx, y: ny, flip: nx < p.x }));
+      setPetPlaced(true);
     }, 220);
     return () => clearInterval(id);
   }, [phase, spotIsFree]);
@@ -903,7 +908,7 @@ export default function MazeRunnerPage() {
             style={{ filter: 'drop-shadow(0 0 1.5px #FFF8E1) drop-shadow(0 0 5px rgba(255,240,200,0.55))' }}>
             <Actor art={pet.art} name={pet.name} x={petPos.x} y={petPos.y} h={petH}
               mood={hinting ? 'talk' : petMood} moodKey={petMoodKey} moveMs={hinting ? 700 : 420}
-              flip={petPos.flip} onTap={drawing ? undefined : tickle} z={7} />
+              flip={petPos.flip} onTap={drawing || !petPlaced ? undefined : tickle} z={7} />
           </div>
           {burstLayer}
         </div>

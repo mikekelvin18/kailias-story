@@ -10,9 +10,15 @@ const PRAISE = /Yes! You got it|That's it! Kailia cheers|Spot on, explorer|You f
 const GREEN = 'rgb(16, 185, 129)';
 
 async function answer(page: Page, right: boolean) {
+  // the next question must be on screen (no feedback left from the last one)
+  await expect(page.locator('[data-feedback]')).toHaveCount(0);
   const opt = page.locator(`button[data-correct="${right}"]`).first();
   const label = (await opt.innerText()).trim();
-  await opt.click({ force: true });
+  // a tap during the question's swap-in is tapped again, like a child would
+  for (let i = 0; i < 5 && !(await page.locator('button[data-picked="true"]').count()); i++) {
+    await opt.click({ force: true });
+    await page.waitForTimeout(150);
+  }
   await page.getByRole('button', { name: /That’s my answer/ }).click({ force: true });
   const feedback = page.locator('[data-feedback]');
   await expect(feedback).toBeVisible();
@@ -57,10 +63,11 @@ test('Challenge round: reading, communication and math all finish, counters neve
   await page.goto('/assessment/games?challenge=1');
   for (let q = 0; q < 60; q++) {
     if (page.url().includes('/results')) break;
-    const counter = page.getByText(/Question \d+\/\d+/);
+    // "Question 2/4" or "Question 2 of up to 4"
+    const counter = page.locator('[data-challenge-counter]');
     const ready = await page.evaluate(() => !!document.querySelector('button[data-correct]') && !document.querySelector('[data-feedback]'));
     if (!ready || !(await counter.isVisible().catch(() => false))) { await page.waitForTimeout(300); continue; }
-    const [, a, b] = (await counter.innerText()).match(/Question (\d+)\/(\d+)/)!;
+    const [, a, b] = (await counter.innerText()).match(/Question (\d+)\s*(?:\/|of up to)\s*(\d+)/)!;
     expect(Number(a)).toBeLessThanOrEqual(Number(b));
     await answer(page, q % 3 !== 2);
     await next(page);
