@@ -672,13 +672,17 @@ export default function MazeRunnerPage() {
     return{x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)};
   };
 
+  // Listens on the whole maze box, not just the canvas: a press on GO
+  // starts the trace even when the friend or a sparkle is drawn over it
+  // (the robot check caught the friend swallowing the first press).
   const onStart = (e: React.MouseEvent|React.TouchEvent) => {
-    e.preventDefault();
     const p=getPos(e); if(!p || doneRef.current) return;
     const path=pathRef.current; if(!path.length) return;
+    const onFriend=!!(e.target as HTMLElement).closest?.('[data-pet] *');
     if (!charRef.current) {
       // the very first touch has to land on GO
       if (Math.hypot(p.x-path[0].x,p.y-path[0].y)>START_R) {
+        if (onFriend) return; // just tickling the friend
         setNoelLine('Start on the green GO circle, where Kailia is standing!');
         return;
       }
@@ -688,10 +692,12 @@ export default function MazeRunnerPage() {
       const arc=arcAlong(p,path);
       const nearKailia=Math.hypot(p.x-charRef.current.x,p.y-charRef.current.y)<=START_R+10;
       if (!nearKailia && !(onPath && arc<=progressRef.current+LEAP)) {
+        if (onFriend) return;
         setNoelLine('Put your finger back on Kailia and keep going!');
         return;
       }
     }
+    e.preventDefault();
     if (!started) setNoelLine('Nice and steady! Grab the stars on the way.');
     setStarted(true); setDrawing(true);
     charRef.current=p; drawCanvas();
@@ -896,11 +902,11 @@ export default function MazeRunnerPage() {
 
         {/* Canvas, with the friend and the sparkles laid over it */}
         <div ref={wrapRef} className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
-          style={{border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}>
+          style={{border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
+          onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
+          onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}>
           <canvas ref={canvasRef} width={W} height={H}
-            style={{width:'100%',height:'auto',display:'block',cursor:'crosshair'}}
-            onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
-            onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}/>
+            style={{width:'100%',height:'auto',display:'block',cursor:'crosshair'}}/>
           {/* a warm light rim keeps the friend visible on the dark mazes; it
               can only be tickled while no one is tracing, so a passing
               finger or mouse never gets caught on it */}
