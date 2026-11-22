@@ -114,9 +114,9 @@ export default function GameMusic() {
         // the map has the bottom tab bar (about 68px, more on computers): sit just above it
         bottom: path === '/play' ? 'calc(env(safe-area-inset-bottom, 0px) + 92px)' : 'max(14px, env(safe-area-inset-bottom))',
       }}>
-      {/* until the first tap: glow, ripples, notes and Noel's paw tapping it
-          (the front page has its own paw on "Tap to say hi!", so just the glow there) */}
-      <TapHint show={!tapped && soundOn} paw={path === '/' ? 'none' : 'above-left'} pawSize={50}>
+      {/* until the first tap: glow, ripples, notes, a pointing glove tapping it
+          and "Tap for sound!" (the front page points at "Tap to say hi!" instead, so just the glow there) */}
+      <TapHint show={!tapped && soundOn} paw={path === '/' ? 'none' : 'above-left'} pawSize={60} label={path === '/' ? undefined : 'Tap for sound!'}>
       <button type="button" onClick={toggle}
         aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'} aria-pressed={!soundOn}
         title={soundOn ? 'Sound on (tap to turn off)' : 'Sound off (tap to turn on)'}

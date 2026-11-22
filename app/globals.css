@@ -1158,3 +1158,15 @@ button:active {
   .kp-taphint-glow { box-shadow: 0 0 18px 6px rgba(var(--kp-glow), 0.65); }
   .kp-taphint-ripple, .kp-taphint-note { display: none; }
 }
+@keyframes kp-taphint-label {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50%      { transform: translateY(-50%) scale(1.06); }
+}
+.kp-taphint-label { animation: kp-taphint-label 2s ease-in-out infinite; }
+/* the page around Noel dims gently until the first tap */
+@keyframes kp-taphint-spot-in { from { opacity: 0; } to { opacity: 1; } }
+.kp-taphint-spot {
+  box-shadow: 0 0 50px 30px rgba(16, 8, 40, 0.32), 0 0 0 200vmax rgba(16, 8, 40, 0.32);
+  animation: kp-taphint-spot-in 0.8s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) { .kp-taphint-label { animation: none; transform: translateY(-50%); } }
