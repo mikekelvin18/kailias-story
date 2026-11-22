@@ -21,8 +21,6 @@ const nextConfig: NextConfig = {
       { source: '/play/maze-runner', destination: '/play/fine-motor', permanent: false },
       { source: '/play/sense-explorer', destination: '/play/sensory', permanent: false },
       { source: '/play/math', destination: '/play/snack-quest', permanent: false },
-      { source: '/play/cargo-count', destination: '/play/snack-quest', permanent: false },
-      { source: '/play/reef-explorer', destination: '/play/sensory', permanent: false },
       { source: '/play/wheres-noel', destination: '/play/hidden-friends', permanent: false },
       { source: '/print', destination: '/printables', permanent: false },
       { source: '/premium', destination: '/upgrade', permanent: false },

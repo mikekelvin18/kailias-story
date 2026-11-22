@@ -318,7 +318,7 @@ export default function WordWizardPage() {
               levels={<LevelPath gameId="word-wizard" level={level} onPick={setLevel} startLevel={startLevel} />}
               startLabel={<>Play level {level}</>}
               onStart={begin}
-              footer={<SkillIntro gameId="word-wizard" />}
+              footer={<><p data-question-total={Math.min(QUESTIONS_PER_LEVEL, BANKS[bankFor(level)].length)} className="text-sm font-bold text-white/85 mb-2">{Math.min(QUESTIONS_PER_LEVEL, BANKS[bankFor(level)].length)} words to bring home in this level</p><SkillIntro gameId="word-wizard" /></>}
             />
           </div>
         )}
@@ -326,6 +326,12 @@ export default function WordWizardPage() {
         {/* ── Playing ── */}
         {phase === 'playing' && q && (
           <div className="relative z-10">
+            {/* which word of the level this is (Muse round 5: the count was missing during play) */}
+            <p data-question-counter className="text-center mb-1">
+              <span className="inline-block px-3 py-0.5 rounded-full text-sm font-extrabold text-white" style={{ background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.35)' }}>
+                Question {qIdx + 1}/{round.length}
+              </span>
+            </p>
             {/* the signpost */}
             <div key={qIdx} className="mx-auto mt-1 drop-in" style={{ maxWidth: 320 }}>
               <div className="rounded-2xl px-4 py-3 text-center shadow-lg"

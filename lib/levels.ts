@@ -80,6 +80,17 @@ export function chapterFor(level: number): Chapter {
   return chapterAt(chapterIndex(level));
 }
 
+/** "Chapter 1" / "Star world 2" plus the chapter's name, worded exactly
+ *  as the level map (LevelPath) shows it, so a game's intro and header
+ *  can name the same chapter (Muse round 5). */
+export function chapterLabel(level: number): { label: string; name: string } {
+  const idx = chapterIndex(level);
+  return {
+    label: idx < CHAPTERS.length ? `Chapter ${idx + 1}` : `Star world ${idx - CHAPTERS.length + 1}`,
+    name: chapterAt(idx).name,
+  };
+}
+
 /** True for every level after the 30-level age ladder. */
 export function isStarLevel(level: number): boolean {
   return level > MAX_LADDER_LEVEL;

@@ -344,13 +344,10 @@ export default function MoonlightMatchPage() {
               <div className="relative grid gap-2.5 px-3 pt-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, paddingBottom: GROUND, zIndex: 8 }}>
                 {cards.map(c => (
                   <button key={c.id} ref={el => { cardEls.current[c.id] = el; }}
-                    data-mkey={c.matchKey} data-state={c.state} onClick={() => flip(c.id)}
+                    data-mkey={c.matchKey} data-state={c.state} data-hint={hintId === c.id && c.state === 'down' ? '1' : undefined} onClick={() => flip(c.id)}
                     aria-label={c.state === 'down' ? 'Sleeping feather' : c.face.replace(/^(shape|pic):/, '')}
                     className="relative w-full"
                     style={{ aspectRatio: '3 / 4', perspective: 600 }}>
-                    {hintId === c.id && c.state === 'down' && (
-                      <span className="absolute -inset-1 rounded-[18px] hint-glow pointer-events-none" style={{ border: '3px solid rgba(255,255,255,0.9)', zIndex: 2 }} />
-                    )}
                     <div className="absolute inset-0 transition-transform duration-300"
                       style={{ transformStyle: 'preserve-3d', transform: c.state === 'down' ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
                       {/* feather back: light and moonlit so it shows on the night glade */}
@@ -371,6 +368,11 @@ export default function MoonlightMatchPage() {
                         <span className={`inline-flex ${c.state === 'matched' ? 'star-burst' : ''}`}><CardFace face={c.face} cols={cols} /></span>
                       </div>
                     </div>
+                    {/* the friend's hint (Muse round 5: it was hidden under the 3D card):
+                        a thick golden ring drawn above the card, glowing and bobbing */}
+                    {hintId === c.id && c.state === 'down' && (
+                      <span className="mm-hint absolute -inset-1.5 rounded-[20px] pointer-events-none" style={{ zIndex: 5 }} />
+                    )}
                   </button>
                 ))}
               </div>
