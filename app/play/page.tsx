@@ -174,6 +174,13 @@ export default function AdventureMap() {
       setCelebrating(done);
       sfx.fanfare();
     }
+    // a preview jump link (/go/land/<id>, lib/jump.ts) opens one land's sheet
+    try {
+      const jump = sessionStorage.getItem('kailia_jump_open_land');
+      sessionStorage.removeItem('kailia_jump_open_land');
+      const land = jump ? [...LANDS, ...BONUS_LANDS].find(l => l.id === jump) : null;
+      if (land && !done) { setOpenLand(land); setNoelLine(land.noelIntro); setNoelMood('excited'); }
+    } catch { /* fine without */ }
   }, []);
 
   // For families below school age, today's quests ARE the main event —

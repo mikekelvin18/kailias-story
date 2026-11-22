@@ -108,6 +108,14 @@ This app is child-directed (under 13), so children's privacy law (COPPA) applies
 - **Music.** `lib/music.ts` is a soft generated loop in every game except listening games (`LISTENING_GAMES` in `components/GameMusic.tsx`); it dips while anyone talks. Keep it low and mellow: no long high tones.
 - Privacy: all voices and sounds are made ahead of time and shipped as static files. The app never calls a voice service and never records the child.
 
+## Showing Kelvin a change: jump links (EVERY thread, EVERY change)
+Kelvin reviews on his phone. Never send him a link that starts at the front page, sign-up or Parent Zone and makes him click his way to the change. **Always send a jump link that opens straight on whatever you changed**, on the preview where the change lives.
+- Jump links live at `/go/...` (`lib/jump.ts`, `app/go/`). Each one makes a test child "Robin" on the device with the right progress and opens the screen or pop-up directly. `/go` lists them all.
+- Examples: `/go/pet-popup` (new egg), `/go/pet-popup?pet=grown`, `/go/pet-popup?pet=little&task=play` (task = feed/play/care), `/go/map`, `/go/map?all=1` (everything unlocked), `/go/land/dragons-cave` (a land's quest sheet), `/go/land-done`, `/go/new-friend`, `/go/daily-quests`, `/go/game/moonlight-match?level=3` (any game, any level; levels 6+ turn Plus on), `/go/friends`, `/go/friend/sage`, `/go/garden`, `/go/results`, `/go/progress`, `/go/family`, `/go/activities`, `/go/upgrade`, `/go/setup`, `/go/try`, `/go/home`. Extras on any link: `?age=3` (years), `?buddy=sage` (or fox/turtle/owl/unicorn/dragon/parrot), `?all=1`, `?plus=1|0`.
+- Full link = preview address + jump path, e.g. `https://kailias-story-git-claude-project-01f98c-mikekelvin18s-projects.vercel.app/go/pet-popup`.
+- **Off on the real public site**: `/go` answers "not found" unless the build is a Vercel preview, `next dev`, or `KAILIA_JUMP_LINKS=on` (`lib/jumpGate.ts`). Never set that variable for Production.
+- If you change something no jump link reaches yet (a new pop-up, a new game, a new page), add it to `planJump` and `JUMP_LINKS` in `lib/jump.ts` in the same change, then send that link.
+
 ## Engineering conventions
 - Build on the existing app and its current `/play` route — extend, don't rewrite, unless a rewrite is clearly justified and approved first.
 - Keep game logic separate from measurement logic: games emit events; a scoring module interprets them.
