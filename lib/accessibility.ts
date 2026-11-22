@@ -38,7 +38,7 @@ const KEY = 'kailia_a11y_v1';
 // slider and a separate music switch, and some devices were left half
 // muted. Everyone starts with sound on once; after that only the sound
 // button turns it off.
-const SOUND_RESET_KEY = 'kailia_sound_reset_v2';
+const SOUND_RESET_KEY = 'kailia_sound_reset_v3'; // v3: also undo mutes the old sound button saved for good
 function soundFreshStart(prefs: AccessibilityPrefs): AccessibilityPrefs {
   try {
     if (localStorage.getItem(SOUND_RESET_KEY)) return prefs;
@@ -76,8 +76,20 @@ export function applyA11y(prefs: AccessibilityPrefs) {
 }
 
 // Games check this before playing any sound effect.
+// The sound button's "off" lasts only until the app is opened again
+// (Kelvin, 2026-11-22: "the music is off again when I opened the app";
+// he wants sound on every time, with a button to turn it off). It lives
+// in memory, so every fresh open starts with sound on. Only the grown-ups'
+// "Sound off" setting in the Parent Zone stays off for good.
+let mutedNow = false;
+export function isMutedNow() { return mutedNow; }
+export function setMutedNow(m: boolean) {
+  mutedNow = m;
+  try { window.dispatchEvent(new Event(A11Y_EVENT)); } catch { /* ignore */ }
+}
+
 export function soundEnabled(): boolean {
-  return !loadA11y().reducedSound;
+  return !mutedNow && !loadA11y().reducedSound;
 }
 
 // How loud the app's own sounds are: full, or off. Kelvin (2026-11-21):
@@ -85,13 +97,13 @@ export function soundEnabled(): boolean {
 // computer, usual volume", so there's no in-app volume any more; the
 // device's own volume buttons set how loud it is.
 export function masterVolume(): number {
-  return loadA11y().reducedSound ? 0 : 1;
+  return mutedNow || loadA11y().reducedSound ? 0 : 1;
 }
 
 // Background music plays only when music is on AND sound isn't turned down.
 export function musicEnabled(): boolean {
   const a = loadA11y();
-  return a.musicOn && !a.reducedSound;
+  return !mutedNow && a.musicOn && !a.reducedSound;
 }
 
 // Other parts of the app (the music player) listen for changes made anywhere.

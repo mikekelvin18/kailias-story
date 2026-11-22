@@ -11,9 +11,9 @@
 // Browsers only allow sound after the first tap, so the music starts on
 // the first tap (finger lifted) or key press, fading in gently.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { A11Y_EVENT, musicEnabled, soundEnabled, updateA11yPrefs } from '@/lib/accessibility';
+import { A11Y_EVENT, musicEnabled, soundEnabled, updateA11yPrefs, setMutedNow } from '@/lib/accessibility';
 import { hush } from '@/lib/voice';
 import { music, WELCOME } from '@/lib/music';
 
@@ -37,6 +37,16 @@ export default function GameMusic() {
   const [on, setOn] = useState(true);
   const [hidden, setHidden] = useState(true); // nothing on screen until we know the setting
   const [soundOn, setSoundOn] = useState(true); // the one sound button: everything on, or off
+  // Phones keep every page silent until the first tap: until then the button
+  // gently pulses, so it's clear a tap brings the sound.
+  const [tapped, setTapped] = useState(false);
+  const firstTapAt = useRef(0);
+  useEffect(() => {
+    const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
+    const done = () => { firstTapAt.current = Date.now(); setTapped(true); events.forEach(e => window.removeEventListener(e, done, true)); };
+    events.forEach(e => window.addEventListener(e, done, true));
+    return () => events.forEach(e => window.removeEventListener(e, done, true));
+  }, []);
   const showButton = path.startsWith('/play/') || tune !== null;
 
   // keep the button in step with the setting, wherever it is changed
@@ -84,8 +94,14 @@ export default function GameMusic() {
   // sound off (Noel, music, effects), tap again for all on. How loud is the
   // device's own volume.
   const toggle = () => {
+    // The very first tap of a visit, if it lands on this button, is someone
+    // asking for sound (it was silent only because the phone waits for a
+    // tap), so it starts the sound instead of turning it off.
+    if (soundOn && Date.now() - firstTapAt.current < 800) { if (inGame) music().start(); return; }
     const next = !soundOn;
-    updateA11yPrefs(next ? { reducedSound: false, musicOn: true } : { reducedSound: true });
+    // off: only until the app is opened again (never saved); on: also clears an old saved "off"
+    setMutedNow(!next);
+    if (next) updateA11yPrefs({ reducedSound: false, musicOn: true });
     setSoundOn(next); setOn(next);
     if (next) { if (inGame) music().start(); } else { music().stop(); hush(); }
   };
@@ -100,7 +116,7 @@ export default function GameMusic() {
       <button type="button" onClick={toggle}
         aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'} aria-pressed={!soundOn}
         title={soundOn ? 'Sound on (tap to turn off)' : 'Sound off (tap to turn on)'}
-        className="grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105"
+        className={`grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105 ${tapped || !soundOn ? '' : 'pulse'}`}
         style={{
           width: 46, height: 46,
           background: 'rgba(255,255,255,0.92)',
