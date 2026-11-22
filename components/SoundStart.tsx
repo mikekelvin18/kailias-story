@@ -14,7 +14,7 @@
 
 import { useEffect } from 'react';
 import { unlockVoice, voiceReady } from '@/lib/voice';
-import { audioCtx } from '@/lib/sfx';
+import { audioCtx, keepSoundOn, pauseSoundKeeper } from '@/lib/sfx';
 
 export default function SoundStart() {
   useEffect(() => {
@@ -29,12 +29,22 @@ export default function SoundStart() {
     const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
     const stop = () => events.forEach(e => window.removeEventListener(e, wake, true));
     function wake() {
+      keepSoundOn(); // iPhone: music and effects play even with the silent switch on
       unlockVoice();
       const ctx = audioCtx(); // made (and woken) inside the tap, so later beeps can play
       if (voiceReady() && (!ctx || ctx.state === 'running')) stop();
     }
     events.forEach(e => window.addEventListener(e, wake, true));
-    return stop;
+    // background: rest; back again: the next tap starts it again (keepSoundOn on every tap below)
+    const vis = () => { if (document.hidden) pauseSoundKeeper(); };
+    document.addEventListener('visibilitychange', vis);
+    const again = () => keepSoundOn();
+    events.forEach(e => window.addEventListener(e, again, true));
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', vis);
+      events.forEach(e => window.removeEventListener(e, again, true));
+    };
   }, []);
   return null;
 }

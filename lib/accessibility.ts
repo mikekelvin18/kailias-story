@@ -34,11 +34,26 @@ export const DEFAULT_A11Y: AccessibilityPrefs = {
 
 const KEY = 'kailia_a11y_v1';
 
+// One fresh start for sound (2026-11-21): earlier builds had a volume
+// slider and a separate music switch, and some devices were left half
+// muted. Everyone starts with sound on once; after that only the sound
+// button turns it off.
+const SOUND_RESET_KEY = 'kailia_sound_reset_v2';
+function soundFreshStart(prefs: AccessibilityPrefs): AccessibilityPrefs {
+  try {
+    if (localStorage.getItem(SOUND_RESET_KEY)) return prefs;
+    localStorage.setItem(SOUND_RESET_KEY, '1');
+    const next = { ...prefs, reducedSound: false, musicOn: true, volume: 1 };
+    localStorage.setItem(KEY, JSON.stringify(next));
+    return next;
+  } catch { return prefs; }
+}
+
 export function loadA11y(): AccessibilityPrefs {
   if (typeof window === 'undefined') return DEFAULT_A11Y;
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...DEFAULT_A11Y, ...JSON.parse(raw) } : DEFAULT_A11Y;
+    return soundFreshStart(raw ? { ...DEFAULT_A11Y, ...JSON.parse(raw) } : DEFAULT_A11Y);
   } catch { return DEFAULT_A11Y; }
 }
 
@@ -65,12 +80,12 @@ export function soundEnabled(): boolean {
   return !loadA11y().reducedSound;
 }
 
-// The grown-ups' volume slider, 0–1 (0 when sounds are turned down).
+// How loud the app's own sounds are: full, or off. Kelvin (2026-11-21):
+// "just have a button to turn it off, then the volume just on the phone or
+// computer, usual volume", so there's no in-app volume any more; the
+// device's own volume buttons set how loud it is.
 export function masterVolume(): number {
-  const a = loadA11y();
-  if (a.reducedSound) return 0;
-  const v = Number(a.volume);
-  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
+  return loadA11y().reducedSound ? 0 : 1;
 }
 
 // Background music plays only when music is on AND sound isn't turned down.
