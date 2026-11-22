@@ -41,15 +41,23 @@ test('Potion Sort: levels 1–3 sort every potion and finish', async ({ page }) 
 test('Potion Sort: a potion in the wrong cauldron is "close", never "perfect"', async ({ page }) => {
   await seedFamily(page);
   await startGame(page, '/play/potion-sort');
-  const bottle = await until(() => page.evaluate(() => {
+  // the potions are falling, so grab one where it is right now; a grab that
+  // misses the moving bottle is simply tried again with the next one
+  const where = () => page.evaluate(() => {
     const el = document.querySelector('[data-bottle]');
     if (!el) return null;
     const r = el.getBoundingClientRect();
     return { color: el.getAttribute('data-bottle')!, x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  }), 'a falling potion');
-  const other = (await page.evaluate(c => [...document.querySelectorAll('[data-pot]')].map(e => e.getAttribute('data-pot')!).find(k => k !== c), bottle.color))!;
-  const [pot] = await centers(page, `[data-pot="${other}"]`);
-  await drag(page, bottle, { x: pot.x, y: pot.y - pot.h * 0.3 }, 6);
-  await until(async () => /close/i.test(await guideLine(page)), 'the "close" line');
+  });
+  let said = false;
+  for (let tries = 0; tries < 4 && !said; tries++) {
+    const bottle = await until(where, 'a falling potion');
+    const other = (await page.evaluate(c => [...document.querySelectorAll('[data-pot]')].map(e => e.getAttribute('data-pot')!).find(k => k !== c), bottle.color))!;
+    const [pot] = await centers(page, `[data-pot="${other}"]`);
+    const now = (await where()) ?? bottle;
+    await drag(page, now, { x: pot.x, y: pot.y - pot.h * 0.3 }, 6);
+    said = await until(async () => /close/i.test(await guideLine(page)), 'the "close" line', 4000).then(() => true, () => false);
+  }
+  expect(said, 'a potion in the wrong cauldron gets the "close" line').toBe(true);
   expect(await guideLine(page)).not.toMatch(/perfect|just right|splash/i);
 });
