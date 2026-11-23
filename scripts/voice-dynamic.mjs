@@ -17,7 +17,8 @@ const WORDS = {
   pet: ['Shelly', 'Flick', 'Sage', 'Nova', 'Ember', 'Kiko'],
   n: range(1, 20),               // counting games top out at 12; a little room
   few: range(2, 9),
-  shape: ['The Bridge', 'The Full Moon', 'The Lightning', 'The River', 'The Great Star', 'The Snail Path'],
+  shape: ['The Bridge', 'The Full Moon', 'The Lightning', 'The River', 'The Great Star', 'The Snail Path',
+    'The Waterfall', 'The Slide', 'The Mountains', 'The Big Heart', 'The Tent', 'The Window', 'The Kite', 'The Loop-de-Loops', 'The Snowman'],
   treasure: ['3 bamboo', '3 cookies', '3 stars', '3 lanterns'],
   one: ['bamboo', 'cookie', 'star', 'lantern'],
   lookalike: ['raccoon', 'koala'],
