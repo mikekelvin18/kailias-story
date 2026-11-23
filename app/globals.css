@@ -1127,7 +1127,7 @@ button:active {
 .mm-hint { border: 3px solid #FFFFFF; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); animation: mm-hint 1s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .mm-hint { animation: none; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); } }
 
-/* ── Tap-here hint (components/TapHint.tsx): paw taps every 2s, ripple, glow, notes ── */
+/* ── "Tap to start!" (components/TapToStart.tsx): the hand taps every 2s, ripples, glow, notes ── */
 @keyframes kp-taphint-tap {
   0%, 30%  { transform: translate(9px, 9px) rotate(0deg); }
   46%      { transform: translate(0, 0) rotate(-4deg); }
@@ -1158,15 +1158,13 @@ button:active {
   .kp-taphint-glow { box-shadow: 0 0 18px 6px rgba(var(--kp-glow), 0.65); }
   .kp-taphint-ripple, .kp-taphint-note { display: none; }
 }
-@keyframes kp-taphint-label {
-  0%, 100% { transform: translateY(-50%) scale(1); }
-  50%      { transform: translateY(-50%) scale(1.06); }
+@keyframes kp-start-ripple {
+  0%   { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(1.75); opacity: 0; }
 }
-.kp-taphint-label { animation: kp-taphint-label 2s ease-in-out infinite; }
-/* the page around Noel dims gently until the first tap */
-@keyframes kp-taphint-spot-in { from { opacity: 0; } to { opacity: 1; } }
-.kp-taphint-spot {
-  box-shadow: 0 0 50px 30px rgba(16, 8, 40, 0.32), 0 0 0 200vmax rgba(16, 8, 40, 0.32);
-  animation: kp-taphint-spot-in 0.8s ease-out both;
+.kp-start-ripple { border: 4px solid rgba(255, 255, 255, 0.9); animation: kp-start-ripple 2s ease-out infinite; }
+.kp-start-glow   { --kp-glow: 253,224,71; animation: kp-taphint-glow 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .kp-start-ripple { display: none; }
+  .kp-start-glow { animation: none; box-shadow: 0 0 22px 8px rgba(253,224,71,0.65); }
 }
-@media (prefers-reduced-motion: reduce) { .kp-taphint-label { animation: none; transform: translateY(-50%); } }
