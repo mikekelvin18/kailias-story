@@ -19,12 +19,8 @@ export const GEMS = [
 export const SHAPES = ['diamond', 'round', 'triangle'] as const;
 
 // the things the friends want each round (each has its own drawing below)
-export const THINGS = ['berry', 'apple', 'ball', 'carrot', 'acorn', 'cookie', 'flower', 'coin', 'shell', 'leaf'] as const;
-export type Thing = typeof THINGS[number];
-export const PLURAL: Record<Thing, string> = {
-  berry: 'berries', apple: 'apples', ball: 'balls', carrot: 'carrots', acorn: 'acorns',
-  cookie: 'cookies', flower: 'flowers', coin: 'gold coins', shell: 'shells', leaf: 'leaves',
-};
+import { THINGS, PLURAL, type Thing } from './things';
+export { THINGS, PLURAL, type Thing };
 
 // who sits on the far bank: the baby dragons (Ember's picture) or a
 // visiting animal family (Kelvin's critter pictures)

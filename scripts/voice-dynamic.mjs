@@ -26,7 +26,7 @@ const WORDS = {
   biome: ['Sunny Meadow', 'Golden Dunes', 'Frosty Hills', 'Autumn Grove'],
   land: ['Firefly Forest', "Dragon's Treasure Cave", 'Whispering Signposts', 'Village of the Story Keepers',
     'Echo Caves', "Owl's Tower", 'Space Outpost', 'Coral Reef'],
-  color: ['red', 'blue', 'green', 'purple'],
+  color: ['red', 'blue', 'green', 'purple', 'yellow', 'orange'],
   story: ['The Fallen Ice Cream', 'The Lost Teddy', 'The Rainy Day', 'The Little Seed'],
   quest: ['Forest Trail', 'Crystal Caves', "Dragon's Lair", 'Sky Kingdom', "Wizard's Tower"],
   food: ['a long noodle', 'a round cookie', 'wiggly spaghetti', 'a crunchy pretzel', 'a star cookie', 'a cinnamon roll'],
