@@ -17,6 +17,11 @@ const NOEL_SOUND = 'noʊˈɛl';
 const NAMES_TAG = `names:${KAILIA_SOUND},${NOEL_SOUND}`;
 const HAS_NAME = /\b(kailia|noel)/i;
 const script = readFileSync('scripts/record-voice.py', 'utf8');
+// Cheer lines (said after a success) get a livelier melody and their own
+// file name tag; the same pattern as CHEER / SAD in record-voice.py.
+const pyRegex = name => new RegExp(script.match(new RegExp(`^${name} = re\\.compile\\(r"(.*)"(, re\\.I)?\\)$`, 'm'))[1], 'i');
+const CHEER = pyRegex('CHEER'), SAD = pyRegex('SAD');
+const CHEER_TAG = script.match(/^CHEER_TAG = '(.*?)'/m)[1];
 
 test('the recording script uses the agreed name sounds', () => {
   assert.match(script, new RegExp(`^KAILIA_SOUND = '${KAILIA_SOUND}'$`, 'm'));
@@ -27,6 +32,7 @@ test('the recording script uses the agreed name sounds', () => {
 /** Must match clip_name() in scripts/record-voice.py. */
 function clipName(voice, speed, key, ends) {
   let tag = ends == null ? `${voice}|${speed}|${key}` : `${voice}|${speed}|${ends}|${key}`;
+  if (CHEER.test(key) && !SAD.test(key)) tag += '|' + CHEER_TAG;
   if (HAS_NAME.test(key)) tag += '|' + NAMES_TAG;
   return createHash('sha1').update(tag).digest('hex').slice(0, 12) + '.mp3';
 }
