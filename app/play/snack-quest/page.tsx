@@ -61,13 +61,13 @@ interface RoundCfg {
 const WISHES: { thing: Thing | null; line: string }[] = [
   { thing: 'cookie', line: "It's the baby dragon's birthday! She wants cookies for her party." },
   { thing: 'berry', line: 'The baby dragon is packing a picnic. She wants berries!' },
-  { thing: 'apple', line: 'The baby dragon wants apples to share with her big brother.' },
+  { thing: 'apple', line: 'The baby dragon wants apples for a crunchy snack.' },
   { thing: 'carrot', line: 'The baby dragon is cooking carrot soup!' },
-  { thing: 'flower', line: 'The baby dragon wants flowers for her mommy.' },
+  { thing: 'flower', line: 'The baby dragon wants flowers to make a pretty crown.' },
   { thing: 'shell', line: 'The baby dragon is decorating her sandcastle with shells!' },
-  { thing: 'ball', line: 'The baby dragon wants balls to play catch with her friends!' },
+  { thing: 'ball', line: 'The baby dragon wants balls to play catch with Kailia!' },
   { thing: 'coin', line: 'The baby dragon is filling her treasure jar with gold coins.' },
-  { thing: 'acorn', line: 'The baby dragon wants acorns for the hungry squirrels.' },
+  { thing: 'acorn', line: 'The baby dragon is saving acorns for winter.' },
   { thing: 'leaf', line: 'The baby dragon is making a soft leafy bed for her nap.' },
   { thing: null, line: 'The baby dragon woke up with a rumbly tummy!' },
 ];

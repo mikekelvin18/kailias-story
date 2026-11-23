@@ -15,6 +15,7 @@ import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '
 import NightForest from '@/components/games/NightForest';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
+import StoryGuest from '@/components/games/StoryGuest';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -398,6 +399,8 @@ export default function MoonlightMatchPage() {
               </div>
 
               {/* Kailia and the friend, in the glade below the board */}
+              {/* the wise owl from the story hosts the game (unless the owl is the friend playing along) */}
+              <StoryGuest who={pet.name === 'Sage' ? null : 'owl'} x={90} y={95} size={50} z={8} />
               <KailiaActor x={kailiaX} y={96} h={80} hop={kailiaHop} z={9} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={95} h={58}

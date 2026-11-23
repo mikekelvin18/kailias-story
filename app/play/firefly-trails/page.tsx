@@ -12,6 +12,7 @@ import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
@@ -57,19 +58,20 @@ const EASY = SHAPES.filter(s => s.easy);
 
 // Why the sky picture must shine tonight: a new little story each level
 // (Kelvin 2026-11-23), dealt fairly from this deck (lib/variety.ts).
-const SKY_STORIES = [
-  'The baby owl can\'t fall asleep without her favorite sky picture.',
-  'The sailors need the sky pictures to find their way home tonight.',
-  'The moon is lonely. Let\'s draw her a friend!',
-  'The forest animals are waiting for the night sky show!',
-  'A shooting star knocked this picture right out of the sky.',
-  'The fireflies are painting a present for Noel.',
-  'Kailia wants to make a wish on tonight\'s picture.',
-  'The little stars are scared of the dark. Let\'s light them up!',
-  'The wind blew the stars all around. Let\'s put them back!',
-  'The baby dragon wants to see a sky picture before bed.',
-  'The bunnies are having a sleepover and want something to look at.',
-  'A cloud ate the stars! Let\'s draw them back.',
+// Whoever wants the sky picture watches from the meadow (StoryGuest).
+const SKY_STORIES: { line: string; who: StoryWho | null }[] = [
+  { line: 'The sleepy koala can\'t fall asleep without her favorite sky picture.', who: 'koala' },
+  { line: 'The swan needs the sky pictures to find her way home tonight.', who: 'swan' },
+  { line: 'The moon is lonely. Let\'s draw her a friend!', who: null },
+  { line: 'The deer family is waiting for the night sky show!', who: 'deer' },
+  { line: 'A shooting star knocked this picture right out of the sky.', who: null },
+  { line: 'The fireflies are painting a present for Noel.', who: null },
+  { line: 'Kailia wants to make a wish on tonight\'s picture.', who: null },
+  { line: 'The little hedgehog is scared of the dark. Let\'s light up the sky!', who: 'hedgehog' },
+  { line: 'The wind blew the stars all around. The raccoon wants them back!', who: 'raccoon' },
+  { line: 'The frog wants to see a sky picture before bed.', who: 'frog' },
+  { line: 'The bunnies are having a sleepover and want something to look at.', who: 'rabbit' },
+  { line: 'A cloud ate the stars! The squirrel wants to see them again.', who: 'squirrel' },
 ];
 
 /** The picture, its turn, and its name for a level. */
@@ -158,7 +160,8 @@ export default function FireflyTrailsPage() {
   useEffect(() => { setLevel(nextGameLevel('firefly-trails')); return () => timersRef.current.forEach(clearTimeout); }, []);
 
   const shape = useMemo(() => skyFor(level), [level]);
-  const skyStory = levelStory(SKY_STORIES, 'firefly-trails:story', level);
+  const sky = levelStory(SKY_STORIES, 'firefly-trails:story', level);
+  const skyStory = sky.line;
   const mode: Mode = tier === 'tiny' ? 'guide'
     : tier === 'small' ? (level < 3 ? 'guide' : 'faint')
     : level < 2 ? 'guide' : level < 4 ? 'faint' : 'memory';
@@ -478,6 +481,7 @@ export default function FireflyTrailsPage() {
               </div>
 
               {/* Kailia and the friend in the glade, under the sky picture */}
+              <StoryGuest who={sky.who} x={88} y={GROUND_Y} size={52} z={8} group={sky.who === 'rabbit' || sky.who === 'deer'} />
               <KailiaActor x={kailiaX} y={GROUND_Y} h={74} hop={kailiaHop} z={9} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={GROUND_Y - 0.5} h={54}

@@ -88,7 +88,7 @@ const TRAILS = [
   'Today the trail goes all the way to the waterfall!',
   'The trail friends are playing a riddle game. Can you answer them all?',
   'Kailia is collecting friends for a big group hug.',
-  'The trail leads to the old oak tree, where the owl tells stories.',
+  'The trail leads to the old oak tree, for story time.',
   'Today is the trail clean-up day, and every friend helps!',
   'The friends along the trail are waiting for the mail.',
   'Kailia is on her way to the rainbow at the end of the trail.',

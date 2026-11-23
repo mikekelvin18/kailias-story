@@ -13,6 +13,7 @@ import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '
 import { endlessRamp } from '@/lib/levels';
 import { levelStory } from '@/lib/variety';
 import { soundEnabled } from '@/lib/accessibility';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
@@ -72,19 +73,21 @@ function besideSpot(x: number, k: number, gap = 17) {
 
 // ── Who the song is for: a new little story every level ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
-const SONGS: { line: string; done: string }[] = [
-  { line: 'The sleepy bats want a lullaby. Let\'s sing it back to them!', done: 'The bats are snoozing upside down.' },
-  { line: 'A baby crystal wants to learn the grown-up song!', done: 'The baby crystal is glowing with pride!' },
-  { line: 'The cave frogs are having a singing contest!', done: 'Ribbit! You won the singing contest!' },
-  { line: 'Grandma Echo forgot her favorite tune. Let\'s remind her!', done: 'Grandma Echo is humming along!' },
-  { line: 'The glow worms want a song to dance to!', done: 'The glow worms are wiggling and dancing!' },
-  { line: 'The water drops are playing music. Let\'s join in!', done: 'Drip, drop! What a band!' },
-  { line: 'The cave is saying good night. Let\'s sing it back!', done: 'Good night, sleepy cave!' },
-  { line: 'A little lost echo is looking for its song.', done: 'The little echo found its song!' },
-  { line: 'The crystals are practicing for the big cave concert!', done: 'The crystals are ready for the concert!' },
-  { line: 'A shy cave mouse wants to hear a happy song.', done: 'The cave mouse is smiling!' },
-  { line: 'The rocks are rumbling. A song will calm them down!', done: 'Shhh. The rocks are calm and quiet.' },
-  { line: 'The cave fish want a song for their swim party!', done: 'Splash! The fish are swimming in circles!' },
+// Whoever the song is for stands in the cave while you sing (StoryGuest);
+// a story with no animal is about the crystals you can see.
+const SONGS: { line: string; done: string; who: StoryWho | null }[] = [
+  { line: 'The sleepy hedgehog wants a lullaby. Let\'s sing it back to him!', done: 'The hedgehog is snoozing in a little ball.', who: 'hedgehog' },
+  { line: 'A baby crystal wants to learn the grown-up song!', done: 'The baby crystal is glowing with pride!', who: null },
+  { line: 'The frogs are having a singing contest in the cave!', done: 'Ribbit! You won the singing contest!', who: 'frog' },
+  { line: 'Grandma Deer forgot her favorite tune. Let\'s remind her!', done: 'Grandma Deer is humming along!', who: 'deer' },
+  { line: 'The butterflies want a song to dance to!', done: 'The butterflies are twirling and dancing!', who: 'butterfly' },
+  { line: 'The bunny is lost in the cave. Let\'s sing so she can find us!', done: 'The bunny followed the song and found us!', who: 'rabbit' },
+  { line: 'The koala is saying good night to the cave. Let\'s sing it back!', done: 'Good night, sleepy koala!', who: 'koala' },
+  { line: 'The crystals are practicing for the big cave concert!', done: 'The crystals are ready for the concert!', who: null },
+  { line: 'A shy little squirrel wants to hear a happy song.', done: 'The squirrel is smiling!', who: 'squirrel' },
+  { line: 'The parrots want to learn a brand-new song!', done: 'The parrots are singing it back!', who: 'parrot' },
+  { line: 'The swan wants a song for her swim party!', done: 'Splash! The swan is swimming in circles!', who: 'swan' },
+  { line: 'The raccoon is starting a cave band. Let\'s play along!', done: 'What a band! The raccoon is drumming along.', who: 'raccoon' },
 ];
 
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
@@ -342,6 +345,7 @@ export default function EchoSongPage() {
                 );
               })}
 
+              <StoryGuest who={story.who} x={89} y={FLOOR} size={54} z={5} />
               <KailiaActor x={kailiaX} y={FLOOR} h={80} hop={kailiaHop} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petSpot} y={FLOOR} h={54}
