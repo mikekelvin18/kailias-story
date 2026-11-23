@@ -27,6 +27,26 @@ export interface Seed {
 }
 
 export async function seedFamily(page: Page, seed: Seed = {}) {
+  // A fresh visit opens with the "Tap to start!" screen (it lets sound
+  // play); the robot taps it whenever it shows, like a child would.
+  const tapToStart = page.getByRole('dialog', { name: 'Tap to start' });
+  await page.addLocatorHandler(tapToStart, async overlay => {
+    await overlay.click({ force: true });
+    await expect(overlay).toHaveCount(0);
+  });
+  // On the pages that show it, the start screen only appears once the page
+  // is live (hydrated), so waiting for it and tapping it also means the
+  // robot never taps a button before the page can hear it.
+  const goto = page.goto.bind(page);
+  page.goto = async (url, opts) => {
+    const res = await goto(url, opts);
+    const path = new URL(url, 'http://x').pathname;
+    if (['/', '/story', '/play', '/try'].includes(path) || path.startsWith('/play/')) {
+      await tapToStart.click({ force: true, timeout: 15_000 }).catch(() => {});
+      await expect(tapToStart).toHaveCount(0);
+    }
+    return res;
+  };
   const ageMonths = seed.ageMonths ?? 72;
   const now = new Date();
   const born = new Date(now.getFullYear(), now.getMonth() - ageMonths, 1);

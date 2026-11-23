@@ -22,9 +22,17 @@ const state = (page: Page) => peek<Snack>(page, 'snack');
 /** Walks to one snack and waits until Kailia is carrying it. */
 async function pickOne(page: Page) {
   const s = (await until(async () => { const v = await state(page); return v?.phase === 'playing' ? v : null; }, 'a round to play'))!;
-  const item = [...s.items].sort((a, b) => (b.r - a.r) - (a.c - b.c))[0];
-  await tapTile(page, s, item.r, item.c);
-  await until(async () => ((await state(page))?.carried ?? 0) > s.carried, 'picking up a snack');
+  // the snack farthest from the dragon's nest (top right) first, so Kailia's
+  // walk never passes the dragon and hands the snacks over early
+  const item = [...s.items].sort((a, b) => (b.r - b.c) - (a.r - a.c))[0];
+  // a tap that lands mid-step or on the trotting friend is simply tapped again
+  for (let tries = 0; tries < 3; tries++) {
+    await tapTile(page, s, item.r, item.c);
+    // picked up (or already handed over, if the walk passed the dragon)
+    const got = await until(async () => { const v = await state(page); return !!v && !v.items.some(i => i.id === item.id); }, 'picking up a snack', 8000).then(() => true, () => false);
+    if (got) return;
+  }
+  throw new Error(`Kailia never picked up the snack at row ${item.r}, column ${item.c}`);
 }
 
 async function deliver(page: Page) {
@@ -34,7 +42,8 @@ async function deliver(page: Page) {
 }
 
 async function playLevel(page: Page) {
-  for (let guard = 0; guard < 80; guard++) {
+  const end = Date.now() + 90_000;
+  while (Date.now() < end) {
     if (await finished(page)) return;
     const s = await state(page);
     if (!s || s.phase !== 'playing') { await page.waitForTimeout(200); continue; }
