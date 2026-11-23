@@ -68,6 +68,8 @@ const TEMPLATES = [
   '{pet} ran over to help.',
   // counting
   'Every baby has {n}.',
+  'Everyone has {n}.',
+  'Psst! {pet} found the one with the fewest.',
   'Every baby dragon has {n}!',
   'One berry is left for Kailia.',
   '{few} berries are left for Kailia.',
