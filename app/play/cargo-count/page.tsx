@@ -13,6 +13,7 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
 import { shuffled } from '@/lib/shuffle';
+import { levelStories } from '@/lib/variety';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
@@ -56,11 +57,28 @@ function planFor(level: number, tier: DifficultyTier): Plan {
   else { lo = L - 4; hi = L + 4; }
   hi = Math.min(50, hi); lo = Math.min(lo, hi - 1);
   let speed = Math.min(10, 2.4 + L * 0.3);
-  if (tier === 'tiny') { values = values.filter(v => v <= 2); hi = Math.min(hi, 6); lo = Math.min(lo, 4); speed *= 0.5; }
+  if (tier === 'tiny') { values = values.filter(v => v <= 2); hi = Math.min(hi, 6 + Math.floor(L / 6)); lo = Math.min(lo, 3 + Math.floor(L / 8)); speed *= 0.5; }
   else if (tier === 'small') { values = values.filter(v => v <= 5); hi = Math.min(hi, L <= 10 ? 10 : 20); lo = Math.min(lo, hi - 2); speed *= 0.8; }
   const size = Math.max(54, 74 - L * 0.7);
   return { values, lo, hi, speed, size };
 }
+
+// ── Where each rocket is going: a new little story every order ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const MISSIONS = [
+  'The moon bunnies are building a carrot farm. They need supplies!',
+  'The space crew is throwing a birthday party on Mars!',
+  'A comet needs fixing before it can zoom again.',
+  'The star whales are hungry. Let\'s send a snack rocket!',
+  'The robots are building a playground on the moon!',
+  'A baby star lost its sparkle. Send some star dust!',
+  'The astronauts are camping on a comet tonight.',
+  'The Saturn ring needs new paint!',
+  'The space garden needs seeds and water.',
+  'A rocket full of toys for the moon kids!',
+  'The space station is making pancakes for everyone!',
+  'The aliens want to build a giant snowman on Pluto!',
+];
 
 const rnd = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
 
@@ -165,8 +183,13 @@ export default function CargoCountPage() {
 
   const loaded = hold.reduce((s, p) => s + p.value, 0);
 
+  const lastTarget = useRef(0);
   const startOrder = useCallback((idx: number) => {
-    const t = rnd(plan.lo, plan.hi);
+    // a new number every order (never the one just loaded)
+    let t = rnd(plan.lo, plan.hi);
+    for (let k = 0; k < 8 && t === lastTarget.current && plan.hi > plan.lo; k++) t = rnd(plan.lo, plan.hi);
+    lastTarget.current = t;
+    const mission = levelStories(MISSIONS, 'cargo-count', level, ORDERS_PER_LEVEL)[idx];
     const made = podsFor(t, plan, nextId.current);
     nextId.current += made.length + 1;
     setTarget(t);
@@ -181,12 +204,12 @@ export default function CargoCountPage() {
     orderStart.current = performance.now();
     busyRef.current = false;
     metrics.current.maxTarget = Math.max(metrics.current.maxTarget, t);
-    setNoelLine(plan.values.length > 1
+    setNoelLine(`${mission} ${plan.values.length > 1
       ? 'Some boxes hold more than one! Load exactly what the crew ordered.'
-      : 'The crew needs this many boxes. Tap a box to beam it aboard!');
+      : 'The crew needs this many boxes. Tap a box to beam it aboard!'}`);
     setNoelMood('excited');
     setPhase('playing');
-  }, [plan]);
+  }, [plan, level]);
 
   function startGame() {
     metrics.current = { firstTry: 0, launches: 0, orderMs: [], slips: 0, maxTarget: 0, startedAt: Date.now() };

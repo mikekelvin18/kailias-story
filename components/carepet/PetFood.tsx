@@ -3,7 +3,7 @@
 // pretzel, a star cookie, a cinnamon roll), so the payoff is "you made
 // this". Drawn in SVG with the warm brown outline, never emoji.
 
-import { ShapeKind, shapePoints, toPath } from '@/lib/traceShapes';
+import { FoodShapeKind as ShapeKind, shapePoints, toPath } from '@/lib/traceShapes';
 
 const OUTLINE = '#3b2416';
 

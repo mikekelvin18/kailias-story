@@ -1,5 +1,6 @@
 'use client';
 
+import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -44,7 +45,7 @@ const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 // types rotates from level to level, then delegates to the shared,
 // picture-matches-question generator used by both Journey and Trail.
 function makeChallenge(i: number, tier: string, level: number): Challenge {
-  return makeChallengeBase(i + level, tier);
+  return makeChallengeBase(i + level, tier, level);
 }
 
 const nameOf = (creature: string) => CREATURE_NAME[creature] ?? 'friend';
@@ -77,6 +78,21 @@ const sfx = {
 
 type NearKind = 'pine' | 'tree' | 'flower' | 'mushroom' | 'rock' | 'bush';
 type FarKind = 'mountain' | 'hill' | 'cloud';
+
+// ── Where the trail goes today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const TRAILS = [
+  'Today the trail leads to the berry hill, and the friends on the way want to come too!',
+  'The friends along the trail are getting ready for a sing-along.',
+  'Kailia is delivering invitations to a garden party.',
+  'Today the trail goes all the way to the waterfall!',
+  'The trail friends are playing a riddle game. Can you answer them all?',
+  'Kailia is collecting friends for a big group hug.',
+  'The trail leads to the old oak tree, where the owl tells stories.',
+  'Today is the trail clean-up day, and every friend helps!',
+  'The friends along the trail are waiting for the mail.',
+  'Kailia is on her way to the rainbow at the end of the trail.',
+];
 
 export default function TrailWalkPage() {
   const { state, totalScore, devMonths } = useAssessment();
@@ -268,7 +284,7 @@ export default function TrailWalkPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #0f5f4a 55%, #14532d 100%)', accent: '#4ADE80', accent2: '#15803D' }}
               pet={pet}
               story={<><p>
-                A brand-new trail stretches past the meadows!
+                A brand-new trail stretches past the meadows! {levelStory(TRAILS, 'trail-walk', level)}
               </p>
               <p>
                 Walk with Kailia, meet the creatures along the way, and solve each one&apos;s little

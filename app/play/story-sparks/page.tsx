@@ -1,5 +1,6 @@
 'use client';
 
+import { dealIndex } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -89,6 +90,84 @@ const STORIES: Story[] = [
         good: { t: 'She shows Noel proudly', e: ['noel', 'flower'] }, silly: { t: 'The flower flies away like a rocket', e: ['flower', 'rocket'] } },
     ],
   },
+  {
+    title: 'The Broken Cookie',
+    beats: [
+      { scene: ['cookie', 'happy'], text: 'Kailia has one big cookie.',
+        good: { t: 'She wants to share it with Noel', e: ['noel', 'cookie'] }, silly: { t: 'She mails the cookie to the moon', e: ['cookie', 'moon'] } },
+      { scene: ['cookie-broken'], text: 'Crack! The cookie breaks into two pieces.',
+        good: { t: 'Each friend gets a piece', e: ['cookie-broken', 'happy'] }, silly: { t: 'The pieces start to dance', e: ['cookie-broken', 'note'] } },
+      { scene: ['noel', 'cookie-broken'], text: "Noel's piece is a little bit smaller.",
+        good: { t: 'Kailia swaps so it is fair', e: ['heart-pink', 'cookie'] }, silly: { t: 'Noel eats the plate too', e: ['noel', 'spoon'] } },
+      { scene: ['happy', 'happy'], text: 'Both friends munch and smile.',
+        good: { t: 'They say thank you to each other', e: ['speech', 'heart-pink'] }, silly: { t: 'The crumbs build a castle', e: ['bricks'] } },
+    ],
+  },
+  {
+    title: 'The Windy Kite',
+    beats: [
+      { scene: ['kite', 'sun'], text: "It's a windy day, and Kailia has a new kite!",
+        good: { t: 'She runs to make it fly', e: ['kite', 'cloud'] }, silly: { t: 'She puts the kite in the bath', e: ['kite', 'drop'] } },
+      { scene: ['kite', 'tree'], text: 'Oh no! The kite is stuck in a tree.',
+        good: { t: 'Kailia asks a grown-up for help', e: ['speech', 'tree'] }, silly: { t: 'She tells the tree a joke', e: ['tree', 'note'] } },
+      { scene: ['tree', 'happy'], text: 'A tall grown-up reaches the kite.',
+        good: { t: 'Kailia says thank you', e: ['speech', 'heart-pink'] }, silly: { t: 'The kite turns into a bird', e: ['kite', 'bird'] } },
+      { scene: ['kite', 'sparkle'], text: 'The kite flies high again!',
+        good: { t: 'Kailia and Noel cheer', e: ['noel', 'happy'] }, silly: { t: 'The kite goes to school', e: ['kite', 'book'] } },
+    ],
+  },
+  {
+    title: 'The New Puppy',
+    beats: [
+      { scene: ['dog', 'house'], text: 'A new puppy moved in next door!',
+        good: { t: 'Kailia waves hello', e: ['happy', 'dog'] }, silly: { t: 'She hides inside a pizza', e: ['pizza'] } },
+      { scene: ['dog', 'sad'], text: 'The puppy looks shy and scared.',
+        good: { t: 'Kailia talks softly and kindly', e: ['speech', 'heart-pink'] }, silly: { t: 'She plays a loud trumpet', e: ['note', 'note'] } },
+      { scene: ['dog', 'ball'], text: "The puppy looks at Kailia's ball.",
+        good: { t: 'Kailia rolls it gently to the puppy', e: ['ball', 'dog'] }, silly: { t: 'She hides the ball in her soup', e: ['ball', 'spoon'] } },
+      { scene: ['dog', 'happy'], text: 'Now they are new friends!',
+        good: { t: 'They play together every day', e: ['dog', 'heart-red'] }, silly: { t: 'The puppy drives a car home', e: ['dog', 'car'] } },
+    ],
+  },
+  {
+    title: 'The Forgotten Snack',
+    beats: [
+      { scene: ['basket', 'banana'], text: 'Kailia packs a snack for the park.',
+        good: { t: 'She packs a banana and water', e: ['banana', 'cup-blue'] }, silly: { t: 'She packs a hat to eat', e: ['hat', 'yum'] } },
+      { scene: ['noel', 'sad'], text: 'At the park, Noel forgot his snack!',
+        good: { t: 'Kailia shares her banana', e: ['banana', 'noel'] }, silly: { t: 'Noel eats the grass', e: ['ground'] } },
+      { scene: ['banana', 'happy'], text: 'Noel says thank you to Kailia.',
+        good: { t: "Kailia says you're welcome", e: ['speech', 'happy'] }, silly: { t: 'The banana says thank you too', e: ['banana', 'speech'] } },
+      { scene: ['heart-pink'], text: 'Sharing made the day even better.',
+        good: { t: 'They play on the carousel', e: ['carousel', 'happy'] }, silly: { t: 'They swim in the sandbox', e: ['fish', 'ground'] } },
+    ],
+  },
+  {
+    title: 'The Sleepy Bat',
+    beats: [
+      { scene: ['bat', 'moon'], text: 'A little bat wakes up at night.',
+        good: { t: 'It flies out to find food', e: ['bat', 'cherries'] }, silly: { t: 'It brushes its teeth with a carrot', e: ['carrot', 'bat'] } },
+      { scene: ['bat', 'rain'], text: "Rain starts falling on the bat's wings.",
+        good: { t: 'The bat hides under a big leaf', e: ['leaf', 'bat'] }, silly: { t: 'The bat eats an ice cream in the rain', e: ['icecream', 'rain'] } },
+      { scene: ['bat', 'sun'], text: 'The sun comes up. Time for bats to sleep!',
+        good: { t: 'The bat hangs upside down to nap', e: ['bat', 'bed'] }, silly: { t: 'The bat goes to the beach', e: ['bat', 'fish'] } },
+      { scene: ['bat', 'sparkle'], text: 'Sweet dreams, little bat.',
+        good: { t: 'Kailia whispers good night', e: ['speech', 'moon'] }, silly: { t: 'Kailia sings super loud', e: ['note', 'note'] } },
+    ],
+  },
+  {
+    title: 'The Lost Ladybug',
+    beats: [
+      { scene: ['ladybug', 'flower'], text: "A ladybug lands on Kailia's hand!",
+        good: { t: 'Kailia holds very still', e: ['ladybug', 'happy'] }, silly: { t: 'She sneezes it to the moon', e: ['moon', 'ladybug'] } },
+      { scene: ['ladybug', 'sad'], text: "The ladybug can't find her family.",
+        good: { t: 'Kailia helps her look around', e: ['flashlight', 'flower'] }, silly: { t: 'Kailia looks inside the cheese', e: ['cheese'] } },
+      { scene: ['sunflower', 'ladybug'], text: 'Look! Lots of ladybugs on the sunflower!',
+        good: { t: 'Kailia carries her there gently', e: ['ladybug', 'sunflower'] }, silly: { t: 'Kailia paints them all blue', e: ['drop', 'ladybug'] } },
+      { scene: ['ladybug', 'heart-pink'], text: 'The ladybug is home with her family.',
+        good: { t: 'Kailia waves goodbye', e: ['happy', 'ladybug'] }, silly: { t: 'The ladybugs ride a rocket', e: ['rocket', 'ladybug'] } },
+    ],
+  },
 ];
 
 import { soundEnabled } from '@/lib/accessibility';
@@ -151,7 +230,8 @@ export default function StorySparksPage() {
 
   useEffect(() => { setLevel(nextGameLevel('story-sparks')); }, []);
 
-  const story = STORIES[(level - 1) % STORIES.length];
+  // the stories are dealt like cards: every tale is told before any comes back
+  const story = STORIES[dealIndex(STORIES.length, 'story-sparks', level - 1)];
   const beat = story.beats[beatIdx];
 
   const startLevel = useCallback(() => {

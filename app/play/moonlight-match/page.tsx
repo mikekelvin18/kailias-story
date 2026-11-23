@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
+import { levelStory } from '@/lib/variety';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
@@ -90,6 +91,23 @@ function CardFace({ face, cols }: { face: string; cols: number }) {
   return <span style={{ fontSize: Math.round((isLetter ? 36 : 32) * big), lineHeight: 1 }}>{face}</span>;
 }
 
+// ── Why the owl hid her friends tonight: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const MOON_STORIES = [
+  'Tonight is the owl\'s moon party, and every friend needs a partner to dance with!',
+  'The friends are playing hide and seek with their twins!',
+  'The owl is taking a class photo. Everyone must stand next to their twin!',
+  'A sleepy wind mixed up all the feathers. Let\'s put the twins back together!',
+  'The friends are going on a moon picnic, two by two!',
+  'It\'s twin day at owl school!',
+  'The stars are counting the friends. Find every pair!',
+  'The owl lost her glasses! Help her find the matching friends.',
+  'Every friend is looking for a buddy to share a story with.',
+  'The moon is shining extra bright. Time for the twins to wake up!',
+  'The friends are getting ready for a sleepover, two in every bed!',
+  'The owl is building a feather boat, and friends ride in pairs!',
+];
+
 export default function MoonlightMatchPage() {
   const { state, totalScore, devMonths } = useAssessment();
   const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
@@ -134,6 +152,7 @@ export default function MoonlightMatchPage() {
   }, [tier]);
 
   const startLevel = useCallback((lvl: number) => {
+    const story = levelStory(MOON_STORIES, 'moonlight-match', lvl);
     const pairs = pairsForLevel(lvl);
     // content rotates by level; readers sometimes get letter pairs (A ↔ a)
     const useLetters = tier === 'big' && lvl % 3 === 0;
@@ -157,9 +176,9 @@ export default function MoonlightMatchPage() {
     setHintId(null);
     setKailiaX(28);
     setPetX(74);
-    setNoelLine(useLetters
+    setNoelLine(`${story} ${useLetters
       ? 'Tricky level — match the BIG letter with its little twin!'
-      : 'Flip two feathers — find the friends that match!');
+      : 'Flip two feathers — find the friends that match!'}`);
     setNoelMood('excited');
     setPhase('playing');
   }, [pairsForLevel, tier]);
@@ -318,7 +337,7 @@ export default function MoonlightMatchPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #5b21b6 0%, #312e81 50%, #1e1b4b 100%)', accent: '#A78BFA', accent2: '#7C3AED' }}
               pet={pet}
               story={<><p>
-                The wise owl hid her friends under <strong>moonlit feathers</strong>!
+                The wise owl hid her friends under <strong>moonlit feathers</strong>! {levelStory(MOON_STORIES, 'moonlight-match', level)}
               </p>
               <p>
                 Flip two at a time and remember where everyone sleeps. Match pairs in a row for
