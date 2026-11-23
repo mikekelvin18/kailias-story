@@ -153,7 +153,8 @@ SAD = re.compile(r"\b(miss(ed)?|sad|sorry|tired|sleepy|bye|goodbye|oh no|lost|br
 # when the text ends with a full stop. Matched on voice_key() (lower case, no
 # punctuation). scripts/name-sounds.test.mjs reads this same pattern.
 CHEER = re.compile(r"^(?!.*\b(?:breath\w*|slow|slowly|easy|steady paws|calm|try|nice and|again|missing|too many|almost|close)\b)(?:yay|yum|yummy|wow|woo+|whee|hooray|hop hop hooray|ta da|tada|yes|gotcha|got one|twins|match$|lovely|sparkly|so pretty|sharp eyes|big hug|hee hee|you(?:'re on a roll| did| found| caught| remembered| got| were amazing| helped| fixed| made| count| heard| listened| read| sang)|amazing|great|fantastic|wonderful|perfect\w*|beautiful|nice|brilliant|super|awesome|excellent|incredible|well done|good job|good drawing|bravo|exactly|just right|just the right amount|fair and square|thank you|mmm thank you|star catcher|level \d+ done|all done|all sorted|all three|another (?:star|letter home|one|pair found)|balanced in the end|every (?:star|baby dragon has|letter made it|potion found)|everyone is found|i did one|kailia is cheering|kailia made it|magic reading|wizard reading|mailbag sorted|right (?:in|on) the|roar some|special delivery|smooth as|quick hands|sparkly catch|that crystal was different|that word starts just right|that's it|that was delicious|that made me so happy|i'm so happy|i love playing|look i grew|wow i'm all grown|look at it grow|ooh a (?:star|new friend)|a star$|a rainbow letter|my treasure is happy|the reef is so happy|sunny is happy|traced from memory|the dragon does a happy|the dragon is so happy|\w+ is doing a happy dance|crack crack|hi$|hi i'm|hi it's me|it's me|i'm (?:shelly|nova|kiko|flick|sage|ember)$|we did every|we got there|what a (?:fling|memory|pattern|steady)|what quick|the (?:cauldrons are bubbling|crew loves|fireflies like|flower loves|forest is getting brighter|lantern is glowing|path glows|path is whole|signpost lit|sky is glowing|story sparkles|whole cave is ringing)|they woke up and waved|.* (?:shines again|conquered|joined your party|joins the journey))\b")
-CHEER_TAG = 'cheer1'   # part of a cheer line's file name; change it to re-record every cheer
+CHEER_TAG = 'cheer2'   # part of a cheer line's file name; change it to re-record every cheer
+CHEER_HIGH = 8          # how far a cheer leaps up, in semitones above the voice's middle
 
 
 def is_cheer(key: str) -> bool:
@@ -238,8 +239,6 @@ def pet_voice(audio: np.ndarray, sr: int, amount: float, lift: float, how: str, 
     f0 = smooth_f0(f0)
     sp = pw.cheaptrick(x, f0, t, sr); ap = pw.d4c(x, f0, t, sr)
     v = f0 > 0
-    if how == 'cheer':     # excited: wider melody, brighter overall
-        amount, lift = amount * 1.12, lift * 1.06
     if v.sum() > 5:
         lf = np.log(f0[v]); med = np.median(lf)
         f0[v] = np.exp(med + (lf - med) * amount) * lift
@@ -248,26 +247,27 @@ def pet_voice(audio: np.ndarray, sr: int, amount: float, lift: float, how: str, 
         first, last = voiced[0], voiced[-1]
         pos = np.clip((np.arange(len(f0)) - first) / max(1, last - first), 0, 1)
         if how == 'cheer':
-            # A bright start, then the line climbs to its last word. The plain
-            # voice tends to drop at the end ("THANK you."), which sounded
-            # bored. The overall shape (a slow-moving trend) is bent up to
-            # peak ~6 semitones above the voice's middle on the last word,
-            # while the voice's own small ups and downs ride on top, so it
-            # never goes flat. Deep dips are kept shallow (they crackle).
-            amt = min(max(ends, 1.0), 1.15)
+            # A real cheer, shaped like Kelvin's own example (2026-11-23):
+            # the voice LEAPS up at the start, stays up high and bright
+            # through the line ("Yaaay!"), then falls away at the very end.
+            # (An earlier try bent the END of the line up instead; Kelvin
+            # heard that as sarcastic.) The voice's own little ups and downs
+            # ride on top at a smaller size, so it doesn't go robotic.
             idx = np.where(v)[0]
             lf = np.log(f0[idx]); med = np.median(lf)
             kern = np.ones(31) / 31                       # ~150 ms
             trend = np.convolve(np.pad(lf, 15, mode='edge'), kern, 'valid')
             detail = lf - trend
             p = pos[idx]
-            w = np.clip((p - 0.5) / 0.5, 0, 1) ** 1.2
-            peak = med + np.log(1 + 0.40 * amt)
-            trend = trend + w * (peak - trend)
-            trend = trend + np.log(1 + 0.08 * amt) * np.clip(1 - p / 0.2, 0, 1)   # bright start
-            lf = trend + 0.85 * (1 - 0.75 * w) * detail   # near the end, follow the climb (the plain voice falls there)
-            lf = np.clip(lf, med - np.log(1.26), med + np.log(1.5))   # no dip below -4 or squeak above +7 semitones
+            st = np.log(2) / 12                           # one semitone, in log pitch
+            up = np.clip(p / 0.14, 0, 1); up = up * up * (3 - 2 * up)          # quick leap up
+            down = np.clip((p - 0.66) / 0.34, 0, 1) ** 1.4                    # fall at the end
+            target = med + st * (CHEER_HIGH * up - 1.2 * p - (CHEER_HIGH + 5) * down)
+            lf = np.minimum(target + 0.45 * detail, med + st * (CHEER_HIGH + 3))
             f0 = f0.copy(); f0[idx] = np.exp(lf)
+            # louder where it's high, like a real cheer
+            high = np.zeros(len(f0)); high[idx] = np.clip((target - med) / (st * CHEER_HIGH), 0, 1)
+            cheer_gain = 10 ** (4.5 * np.convolve(high, np.ones(9) / 9, 'same') / 20)
             factor = 1.0
         elif how == 'excited':
             factor = 1 + 0.20 * ends * np.clip((pos - 0.62) / 0.38, 0, 1) ** 1.6
@@ -278,6 +278,8 @@ def pet_voice(audio: np.ndarray, sr: int, amount: float, lift: float, how: str, 
         f0 = f0 * factor
     f0 = np.where(v, np.clip(f0, 70, 600), 0)
     y = pw.synthesize(f0, sp, ap, sr)[:len(x)].astype(np.float32)
+    if how == 'cheer' and 'cheer_gain' in locals():
+        y = y * np.interp(np.arange(len(y)) / sr, t, cheer_gain).astype(np.float32)
     if how == 'sad':       # a touch slower, like a little sigh
         with tempfile.NamedTemporaryFile(suffix='.wav') as a, tempfile.NamedTemporaryFile(suffix='.wav') as b:
             sf.write(a.name, y, sr)
@@ -307,9 +309,9 @@ def record_line(k: Kokoro, style, sentence: str, out_path: str):
     """Record one sentence in this speaker's voice to an mp3."""
     how = mood(sentence)
     text = spoken(sentence)
-    if how == 'cheer':           # said as an excited "!", a touch quicker
+    if how == 'cheer':           # said as an excited "!"
         text = re.sub(r'[.…]+(["\'”’]*)\s*$', r'!\1', text.rstrip())
-    audio, sr = k.create(phonemes(k, text), voice=style, speed=SPEED * (1.05 if how == 'cheer' else 1), is_phonemes=True)
+    audio, sr = k.create(phonemes(k, text), voice=style, speed=SPEED, is_phonemes=True)
     if how == 'cheer' and SPEAKER != 'kailia':   # Noel and the pets: the cheer melody, one clean pass
         audio = pet_voice(audio, sr, CFG['lively'], CFG.get('lift', 1.06), 'cheer', CFG.get('ends', 1.0))
     elif CFG.get('ends'):          # a pet friend: one clean pass (no crackle)
