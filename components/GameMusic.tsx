@@ -16,7 +16,6 @@ import { usePathname } from 'next/navigation';
 import { A11Y_EVENT, musicEnabled, soundEnabled, updateA11yPrefs, setMutedNow } from '@/lib/accessibility';
 import { hush } from '@/lib/voice';
 import { music, WELCOME } from '@/lib/music';
-import TapHint from '@/components/TapHint';
 
 /** Listening games, where music would cover the sounds the child must hear. */
 const LISTENING_GAMES = ['/play/echo-song'];
@@ -38,13 +37,11 @@ export default function GameMusic() {
   const [on, setOn] = useState(true);
   const [hidden, setHidden] = useState(true); // nothing on screen until we know the setting
   const [soundOn, setSoundOn] = useState(true); // the one sound button: everything on, or off
-  // Phones keep every page silent until the first tap: until then the button
-  // gently pulses, so it's clear a tap brings the sound.
-  const [tapped, setTapped] = useState(false);
+  // when the first tap of the visit happened (see toggle below)
   const firstTapAt = useRef(0);
   useEffect(() => {
     const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
-    const done = () => { firstTapAt.current = Date.now(); setTapped(true); events.forEach(e => window.removeEventListener(e, done, true)); };
+    const done = () => { firstTapAt.current = Date.now(); events.forEach(e => window.removeEventListener(e, done, true)); };
     events.forEach(e => window.addEventListener(e, done, true));
     return () => events.forEach(e => window.removeEventListener(e, done, true));
   }, []);
@@ -114,9 +111,6 @@ export default function GameMusic() {
         // the map has the bottom tab bar (about 68px, more on computers): sit just above it
         bottom: path === '/play' ? 'calc(env(safe-area-inset-bottom, 0px) + 92px)' : 'max(14px, env(safe-area-inset-bottom))',
       }}>
-      {/* until the first tap: glow, ripples, notes, a pointing glove tapping it
-          and "Tap for sound!" (the front page points at "Tap to say hi!" instead, so just the glow there) */}
-      <TapHint show={!tapped && soundOn} paw={path === '/' ? 'none' : 'above-left'} pawSize={60} label={path === '/' ? undefined : 'Tap for sound!'}>
       <button type="button" onClick={toggle}
         aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'} aria-pressed={!soundOn}
         title={soundOn ? 'Sound on (tap to turn off)' : 'Sound off (tap to turn on)'}
@@ -134,7 +128,6 @@ export default function GameMusic() {
           {!soundOn && <path d="M15.5 9.5l5 5m0-5l-5 5" stroke="#64748B" strokeWidth="2.2" strokeLinecap="round" />}
         </svg>
       </button>
-      </TapHint>
     </div>
   );
 }

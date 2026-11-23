@@ -53,7 +53,17 @@ function spy() {
   };
 }
 
+// the "Tap to start!" screen that opens a fresh visit (components/TapToStart.tsx)
+async function tapStart(page) {
+  const start = page.getByRole('dialog', { name: 'Tap to start' });
+  if (await start.count()) {
+    await page.touchscreen.tap(195, 420);
+    await page.waitForTimeout(1500);
+  }
+}
+
 async function tapPlay(page) {
+  await tapStart(page);
   // each game's big start button on its story card
   const btn = page.getByRole('button', {
     name: /play level|level 1 —|level 1:|catch fireflies|start the|load the rocket|dive in|open “|play as kailia|berry battle|let.?s go/i,
