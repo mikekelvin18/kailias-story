@@ -8,6 +8,7 @@
 // reactions (never "wrong"), then the level celebration, starlight, saved
 // level and one quiet number-only metric.
 
+import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import Stage, { type World } from './kit/Stage';
@@ -47,6 +48,8 @@ export interface FriendGameDef {
   slug: string;          // the friend's trail slug
   title: string;
   intro: string;         // the friend explains the game
+  /** why we play today: one little story per level, dealt fairly (lib/variety.ts) */
+  stories?: string[];
   Round: React.ComponentType<RoundProps>;
   rounds?: number;       // per level, default 5
   cheers: string[];
@@ -59,7 +62,7 @@ const MAX_D = 10;
 
 function startDifficulty(tier: DifficultyTier, level: number) {
   const base = tier === 'tiny' ? 1 : tier === 'small' ? 2 : 3;
-  return Math.min(8, base + Math.floor((level - 1) / 3));
+  return Math.min(8, base + Math.floor((level - 1) / 2));
 }
 
 const pick = <T,>(xs: T[], n: number) => xs[n % xs.length];
@@ -94,7 +97,7 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
     setRound(0);
     setResults([]);
     setPhase('play');
-    say(game.intro);
+    say(game.stories?.length ? `${levelStory(game.stories, game.id, level)} ${game.intro}` : game.intro);
   }
 
   function onDone(r: RoundResult) {

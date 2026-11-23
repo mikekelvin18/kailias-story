@@ -1,5 +1,6 @@
 'use client';
 
+import { dealIndex, levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -130,6 +131,23 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// ── Where the signposts lead today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const PATHS = [
+  'Today the signposts lead to Grandma Owl\'s cozy library.',
+  'Today the signposts lead to a secret waterfall.',
+  'Today the signposts lead to the bunny\'s birthday party!',
+  'Today the signposts lead to the treasure cave.',
+  'Today the signposts lead to the village bakery. Yum!',
+  'Today the signposts lead to the rainbow bridge.',
+  'Today the signposts lead to the friendly giant\'s garden.',
+  'Today the signposts lead to the beach, where the turtles are hatching!',
+  'Today the signposts lead to the top of the tallest tree.',
+  'Today the signposts lead to the fair, with a big spinning wheel!',
+  'Today the signposts lead to the dragon\'s playground.',
+  'Today the signposts lead to the moonlit pond.',
+];
+
 // chapter n of the level ladder → word bank (the last bank repeats for Hero, Legend and Star levels)
 function bankFor(level: number) { return Math.min(BANKS.length - 1, Math.floor((level - 1) / LEVELS_PER_CHAPTER)); }
 // 0–4: how far into its chapter this level is
@@ -147,7 +165,11 @@ function buildRound(level: number): ReadingQ[] {
   const step = stepFor(level);
   // early steps of a chapter offer fewer balloons, later ones all of them
   const nChoices = step <= 1 ? 3 : 4;
-  return shuffle(bank).slice(0, QUESTIONS_PER_LEVEL).map(q => {
+  // the bank is dealt like cards, level after level: every word comes up
+  // before any word comes back, so neighbouring levels ask new words
+  const n = Math.min(QUESTIONS_PER_LEVEL, bank.length);
+  const picked = Array.from({ length: n }, (_, k) => bank[dealIndex(bank.length, `word-wizard:${bankFor(level)}`, (level - 1) * n + k)]);
+  return picked.map(q => {
     const wrong = shuffle(q.choices.filter(c => c !== q.answer)).slice(0, Math.max(1, nChoices - 1));
     return { ...q, choices: shuffle([q.answer, ...wrong]) };
   });
@@ -217,7 +239,7 @@ export default function WordWizardPage() {
     setPopped(null); setWobble(null); setTriesThisQ(0);
     const now = Date.now();
     statsRef.current = { firstTry: 0, misses: 0, startedAt: now, qStartedAt: now, readMs: 0 };
-    setNoelLine('Tap the balloon with the right word!');
+    setNoelLine(`${levelStory(PATHS, 'word-wizard', level)} Tap the balloon with the right word!`);
     setNoelMood('happy');
     setPhase('playing');
     readSign(r[0]);
@@ -312,7 +334,7 @@ export default function WordWizardPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #2563eb 0%, #1e3a8a 55%, #172554 100%)', accent: '#60A5FA', accent2: '#2563EB' }}
               pet={pet}
               story={<><p>
-                Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons!
+                {levelStory(PATHS, 'word-wizard', level)} Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons!
                 Tap the balloon with the right word to bring it home.
               </p></>}
               levels={<LevelPath gameId="word-wizard" level={level} onPick={setLevel} startLevel={startLevel} />}

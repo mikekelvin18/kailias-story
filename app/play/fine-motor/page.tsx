@@ -1,5 +1,6 @@
 'use client';
 
+import { levelStory } from '@/lib/variety';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -288,6 +289,22 @@ function drawScenery(ctx: CanvasRenderingContext2D, lv: Level, t: number) {
   });
 }
 
+
+// ── Why Kailia runs the maze today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const MAZE_STORIES = [
+  'Ooh, the fireflies lost their way!',
+  'The baby bunny is waiting at the flag with a surprise!',
+  'Kailia is racing to the flag before the sun goes down!',
+  'The flag marks the spot where the treasure is buried!',
+  'A friendly giant dropped his lunch at the flag. Let\'s bring it back!',
+  'The fireflies are having a party at the flag tonight!',
+  'Noel is waiting at the flag with a big bamboo cake.',
+  'The flag is the finish line of the forest race!',
+  'The wind blew Kailia\'s hat all the way to the flag!',
+  'A lost kitten is meowing by the flag. Let\'s go help!',
+  'The stars fell into the maze. Let\'s collect them on the way!',
+];
 
 // Endless levels: the five mazes repeat, and each time round the
 // corridor gets a little narrower (steadier hands needed) and the maze
@@ -807,7 +824,7 @@ export default function MazeRunnerPage() {
       title="Maze Runner"
       theme={{ bg: 'radial-gradient(120% 80% at 50% 0%, #14532d 0%, #052e16 50%, #020510 100%)', accent: '#4ADE80', accent2: '#059669' }}
       pet={pet}
-      story={<p>Ooh, the fireflies lost their way! Trace the glowing trail with your finger to the flag.
+      story={<p>{levelStory(MAZE_STORIES, 'fine-motor', level)} Trace the glowing trail with your finger to the flag.
         Stay off the walls, and grab every star! {pet.name} will run along with Kailia.</p>}
       levels={<>
         <LevelPath gameId="fine-motor" level={level} onPick={setLevel} />
