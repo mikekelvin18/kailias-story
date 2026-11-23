@@ -67,14 +67,51 @@ export function dealIndex(n: number, id: string, i: number): number {
   return lapOrder(n, id, lap)[i % n];
 }
 
+const levelMemo = new Map<string, number[]>();
+
 /**
- * The stories for one level: `perLevel` cards dealt in a row, starting
- * where the previous level stopped. `fixedFirst` (optional) pins level 1's
- * opening stories, e.g. so the very first rounds introduce the game gently.
+ * The deck positions (indexes) dealt to one level: `perLevel` cards in a
+ * row, starting where the previous level stopped. On top of the fair deal,
+ * a level never shares a card with the level just before it, and never
+ * holds the same card twice; `avoid(i, level)` can rule out more cards for a
+ * level (one id always passes the same rule) (e.g. an animal already busy in another round). A card that breaks
+ * a rule is swapped for the next fitting card of the deck.
  */
-export function levelStories<T>(deck: readonly T[], id: string, level: number, perLevel: number): T[] {
+export function levelIndexes(n: number, id: string, level: number, perLevel: number, avoid?: (i: number, level: number) => boolean): number[] {
   const L = Math.max(1, level);
-  return Array.from({ length: perLevel }, (_, k) => deck[dealIndex(deck.length, id, (L - 1) * perLevel + k)]);
+  const key = `${id}|${n}|${perLevel}|${L}`;
+  const hit = levelMemo.get(key);
+  if (hit) return hit;
+  // warm the memo a little way back so a high level stays cheap
+  if (L > 2 && !levelMemo.has(`${id}|${n}|${perLevel}|${L - 1}`)) {
+    for (let k = Math.max(1, L - 40); k < L - 1; k++) levelIndexes(n, id, k, perLevel, avoid);
+  }
+  const prev = new Set(L > 1 ? levelIndexes(n, id, L - 1, perLevel, avoid) : []);
+  const out: number[] = [];
+  const fits = (i: number, strict: boolean) => !out.includes(i) && (!strict || (!prev.has(i) && !(avoid?.(i, L))));
+  for (let k = 0; k < perLevel; k++) {
+    const pos = (L - 1) * perLevel + k;
+    let i = dealIndex(n, id, pos);
+    if (!fits(i, true)) {
+      // the next cards of the deal, then any card, that fit the rules
+      let found = -1;
+      for (let step = 1; step <= n * 2 && found < 0; step++) { const j = dealIndex(n, id, pos + step); if (fits(j, true)) found = j; }
+      for (let j = 0; j < n && found < 0; j++) if (fits(j, false) && !prev.has(j)) found = j;
+      for (let j = 0; j < n && found < 0; j++) if (fits(j, false)) found = j;
+      i = found < 0 ? i : found;
+    }
+    out.push(i);
+  }
+  levelMemo.set(key, out);
+  return out;
+}
+
+/**
+ * The stories for one level: `perLevel` cards dealt fairly (see
+ * levelIndexes), never repeating a story from the level before.
+ */
+export function levelStories<T>(deck: readonly T[], id: string, level: number, perLevel: number, avoid?: (item: T, level: number) => boolean): T[] {
+  return levelIndexes(deck.length, id, level, perLevel, avoid ? (i, L) => avoid(deck[i], L) : undefined).map(i => deck[i]);
 }
 
 /** One story per level (games with one round per level). */

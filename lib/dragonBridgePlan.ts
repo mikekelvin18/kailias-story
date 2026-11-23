@@ -324,11 +324,9 @@ export function makeShare(level: number, k: number, tier: DifficultyTier): Share
  *  is already sharing in this level, so one level never shows the same
  *  family twice. */
 export function pathStories(level: number): PathStory[] {
-  const sharing = new Set(Array.from({ length: SHARES_PER_LEVEL }, (_, k) => shareStory(level, k).who));
-  const dealt = levelStories(PATH_STORIES, GAME + ':path', level, 6);
-  const fresh = dealt.filter(st => !sharing.has(st.who));
-  return [...fresh, ...dealt.filter(st => sharing.has(st.who))].slice(0, 3);
+  return levelStories(PATH_STORIES, GAME + ':path', level, 3, (st, L) => sharingWhos(L).has(st.who));
 }
+const sharingWhos = (level: number) => new Set(Array.from({ length: SHARES_PER_LEVEL }, (_, k) => shareStory(level, k).who));
 
 export function planLevel(level: number, tier: DifficultyTier): Round[] {
   const kinds = kindsFor(level);
