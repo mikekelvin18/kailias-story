@@ -38,6 +38,7 @@ type CrowdDef = { piece: PieceKind } | { critter: SpeciesKey };
 
 interface SceneDef {
   name: string; story: string;
+  more: string[];   // the scene's other stories: each visit tells a new one
   world: 'forest' | 'market' | 'snow' | 'night';
   crowd: CrowdDef[];             // the crowd (includes look-alike foils!)
   treasure: { piece: PieceKind; count: number; label: string };
@@ -50,24 +51,40 @@ const SCENES: SceneDef[] = [
   {
     name: 'The Forest Party', world: 'forest',
     story: 'The forest creatures threw a berry party — but Noel wandered off for a nap! Find him peeking out from behind a bush… and his 3 bamboo snacks!',
+    more: [
+      'Noel is playing hide and seek with the forest friends, and he is really good at it! Find him… and the 3 bamboo snacks he packed!',
+      'Noel promised to share his bamboo at the picnic, but he dozed off somewhere in the woods! Find him and his 3 bamboo snacks!',
+    ],
     crowd: [P('pine'), P('tree'), P('mushroom'), C('fox'), C('rabbit'), C('owl'), C('squirrel'), P('flower'), P('leaf'), C('raccoon'), C('koala'), P('strawberry'), P('acorn'), P('bush')],
     treasure: { piece: 'bamboo', count: 3, label: 'bamboo' },
   },
   {
     name: 'The Busy Market', world: 'market',
     story: 'Market day in the village! Noel went shopping and got lost in the crowd. Find him — and the 3 cookies he dropped!',
+    more: [
+      'Noel is baking a surprise for Kailia, but he lost his cookies at the market! Find Noel and the 3 cookies!',
+      'The market is so busy today! Noel stopped to smell the bread and got lost. Find him — and his 3 cookies!',
+    ],
     crowd: [P('basket'), P('apple'), P('carrot'), P('bread'), P('cheese'), P('grapes'), P('pot'), P('bucket'), C('rabbit'), C('raccoon'), C('koala'), P('pretzel'), C('hedgehog'), P('bush')],
     treasure: { piece: 'cookie', count: 3, label: 'cookies' },
   },
   {
     name: 'The Snowy Peaks', world: 'snow',
     story: 'Brrr! Noel climbed the snowy mountain — and white fur hides well in the snow! Spot him in the snowy crowd, and find 3 golden stars!',
+    more: [
+      'Noel built a snow fort and is hiding inside! Find him, and the 3 golden stars that fell into the snow!',
+      'The snow friends are having a sledding race, and Noel went missing! Find him and 3 golden stars!',
+    ],
     crowd: [P('snowman'), P('snowflake'), P('peak'), C('deer'), P('pine'), P('ice'), C('koala'), C('raccoon'), C('owl'), P('cloud'), P('bush')],
     treasure: { piece: 'star', count: 3, label: 'stars' },
   },
   {
     name: 'The Night Garden', world: 'night',
     story: 'The moon garden blooms at midnight! Noel snuck in to smell the flowers. Find him in the shadows — and light the 3 lost lanterns!',
+    more: [
+      'Noel is watching the stars in the night garden, but where did he go? Find him — and the 3 lost lanterns!',
+      'The night garden is having a lantern parade! Noel is hiding with the flowers. Find him and the 3 lanterns!',
+    ],
     crowd: [P('moon'), P('sparkle'), C('owl'), P('flower'), P('mushroom'), P('fern'), C('rabbit'), C('raccoon'), C('koala'), P('tulip'), P('star'), P('bush')],
     treasure: { piece: 'lantern', count: 3, label: 'lanterns' },
   },
@@ -161,6 +178,8 @@ export default function WheresNoelPage() {
   }, [phase]);
 
   const scene = SCENES[(level - 1) % SCENES.length];
+  // each visit to a scene tells one of its stories, so a place seen before has a new reason
+  const sceneStory = [scene.story, ...scene.more][Math.floor((level - 1) / SCENES.length) % (1 + scene.more.length)];
   const place = chapterLabel(level);
 
   const startLevel = useCallback(() => {
@@ -301,7 +320,7 @@ export default function WheresNoelPage() {
                 <PieceIcon kind={scene.treasure.piece} size={22} /> <span data-level-place>Level {level} · {place.label}: {place.name}</span>
               </p>
               <p data-no-read className="text-sm font-extrabold text-slate-700 -mt-1 mb-1">Today&apos;s hiding place: {scene.name}</p>
-              <p>{scene.story}</p></>}
+              <p>{sceneStory}</p></>}
               extras={<div className="flex items-end justify-center gap-3"><Magnifier size={70} />
               <PeekingNoel size={58} /></div>}
               levels={<LevelPath gameId="hidden-friends" level={level} onPick={setLevel} />}

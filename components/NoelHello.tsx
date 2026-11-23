@@ -14,7 +14,7 @@ import { say, hush, onTalking } from '@/lib/voice';
 import { loadA11y, updateA11yPrefs } from '@/lib/accessibility';
 
 // Recorded in Noel's voice (scripts/voice-lines.mjs picks these up).
-const HELLO = "Hi, friend! I'm Noel. Kailia and I are going on a big adventure. Will you come with us?";
+export const HELLO = "Hi, friend! I'm Noel. Kailia and I are going on a big adventure. Will you come with us?";
 
 export default function NoelHello() {
   const [talking, setTalking] = useState(false);
@@ -39,7 +39,6 @@ export default function NoelHello() {
 
   return (
     <div className="relative flex flex-col items-center mb-4">
-      {/* speech bubble: an invitation before the first tap, Noel's words after */}
       <button type="button" onClick={hello}
         aria-label={heard ? 'Hear Noel again' : 'Tap to hear Noel say hi'}
         className={`relative mb-2 flex items-center gap-2 rounded-full px-4 py-2 text-base font-extrabold text-purple-900 shadow-lg transition-transform active:scale-95 hover:scale-105 ${heard ? '' : 'kp-hop'}`}

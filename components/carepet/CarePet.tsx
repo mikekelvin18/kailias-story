@@ -14,6 +14,8 @@
 // yet" gets the same warm thank-you as a win; only the hidden difficulty
 // step changes.
 
+import { createPortal } from 'react-dom';
+import PopupClose from '@/components/PopupClose';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -55,11 +57,33 @@ function daysToGrow(days: number): number | null {
 // small = the map button: a plain breathing picture (no moving-parts rig,
 // so the map never runs two pet canvases at once)
 function PetPicture({ friend, stage, size, crack, small }: { friend: PlayPet; stage: Stage; size: number; crack?: boolean; small?: boolean }) {
+  const aspect = useArtAspect(friend.art);
   if (stage === 'egg') return <PetEgg size={size * 0.8} crack={crack} />;
   const w = Math.round(size * STAGE_SCALE[stage]);
   // eslint-disable-next-line @next/next/no-img-element
   if (small) return <img src={friend.art} alt="" width={w} className="art-breathe" style={{ display: 'block', width: w, height: 'auto', transformOrigin: '50% 100%' }} />;
-  return <LiveArt src={friend.art} alt={friend.name} size={w} />;
+  // In the pop-up, `size` is the room the pet has to stand in: the pet
+  // pictures are taller than wide, so size them by height or a grown pet
+  // pokes up into its own speech bubble on phones.
+  return <LiveArt src={friend.art} alt={friend.name} size={Math.round(w * aspect)} />;
+}
+
+// width ÷ height of a picture (pet art is portrait); 0.8 until it has loaded
+const aspects = new Map<string, number>();
+function useArtAspect(src: string): number {
+  const [aspect, setAspect] = useState(() => aspects.get(src) ?? 0.8);
+  useEffect(() => {
+    if (aspects.has(src)) { setAspect(aspects.get(src)!); return; } // eslint-disable-line react-hooks/set-state-in-effect
+    const img = new Image();
+    img.onload = () => {
+      if (!img.naturalHeight) return;
+      const a = Math.min(1, img.naturalWidth / img.naturalHeight);
+      aspects.set(src, a);
+      setAspect(a);
+    };
+    img.src = src;
+  }, [src]);
+  return aspect;
 }
 
 export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boolean }) {
@@ -85,6 +109,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   const uid = useRef(0);
   const petRef = useRef<HTMLButtonElement>(null);
   const plateRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // load (or start) the pet once the assessment is known
@@ -162,12 +187,25 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
     return () => clearTimeout(t);
   }, [pet, open, holdAutoOpen, openMoment]);
 
+  // while the box is open: Escape closes it, the page behind can't scroll
+  const closeFn = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFn.current(); };
+    window.addEventListener('keydown', onKey);
+    const was = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus({ preventScroll: true });
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = was; };
+  }, [open]);
+
   function close() {
     stopSpeaking();
     timers.current.forEach(clearTimeout);
     timers.current = [];
     setOpen(false);
   }
+  useEffect(() => { closeFn.current = close; });
 
   function celebrate() {
     const bits = Array.from({ length: 34 }, (_, i) => ({
@@ -294,7 +332,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   const big = 'min-h-[64px] px-10 rounded-full text-xl font-extrabold text-white shadow-lg active:scale-[0.97] transition-transform';
   const feeding = task?.kind === 'feed' && (phase === 'task' || phase === 'eat');
   const shownStage: Stage = hatching ? 'egg' : stage;
-  const petSize = feeding ? 120 : phase === 'task' ? 150 : 200;
+  const petSize = feeding ? 96 : phase === 'task' ? 150 : 180;
   const move = phase === 'task' && task && task.kind !== 'feed' && task.game?.type === 'count' && count < task.game.reps ? task.game.move : null;
   const g = growth(pet.happyDays);
 
@@ -312,29 +350,31 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       </button>
 
       {/* ── The pet moment, in the middle of the screen ── */}
-      {open && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center sm:p-6" role="dialog" aria-modal="true" aria-label="Your pet friend"
-          onKeyDown={e => { if (e.key === 'Escape') close(); }}>
-          <div className="absolute inset-0 fade-in" style={{ background: 'rgba(30,20,60,0.55)', backdropFilter: 'blur(4px)' }} onClick={close} />
-          <div className="pm-card relative w-full h-full sm:h-auto sm:max-w-[480px] sm:rounded-[36px] overflow-hidden flex flex-col"
+      {open && createPortal(
+        <div className="fixed inset-0 z-[70] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Your pet friend"
+          style={{ padding: 'max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))' }}>
+          {/* the page behind goes dim; tapping it closes the box */}
+          <div className="absolute inset-0 fade-in" style={{ background: 'rgba(30,20,60,0.62)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }} onClick={close} />
+          {/* a floating box in the middle: rounded, white rim, deep shadow */}
+          <div className="pm-card relative w-full max-w-[440px]">
+          <div className="relative overflow-hidden flex flex-col rounded-[32px]"
             style={{
               background: 'linear-gradient(180deg, #C9E3FF 0%, #E3EEFF 26%, #FFF1E2 52%, #FFFBF5 70%)',
-              maxHeight: '100dvh', boxShadow: '0 24px 70px rgba(20,10,50,0.45)',
+              maxHeight: 'calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+              border: '4px solid #FFFFFF',
+              boxShadow: '0 28px 80px rgba(20,10,50,0.55), 0 0 0 1px rgba(59,47,99,0.08)',
             }}>
-            {/* top bar: read again · growth path · close */}
-            <div className="relative z-10 flex items-center gap-3 px-4" style={{ paddingTop: 'max(14px, env(safe-area-inset-top))' }}>
+            {/* top bar: read again · growth path (the X sits on the corner) */}
+            <div className="relative z-10 flex items-center gap-3 pl-3 pr-12 pt-3">
               <RoundButton label="Read it again" onClick={() => speak(line)}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
                   <path d="M4 9v6h4l5 4V5L8 9z" fill={ACCENT} /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />
                 </svg>
               </RoundButton>
               <GrowthPath friend={friend} value={g} from={prevGrowth} stage={stage} />
-              <RoundButton label="Close" onClick={close}>
-                <svg width="20" height="20" viewBox="0 0 24 24" stroke="#6B7280" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-              </RoundButton>
             </div>
 
-            <div className="relative flex-1 overflow-y-auto overflow-x-hidden px-5" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
+            <div className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-5" style={{ paddingBottom: 20 }}>
               {/* centred on tall screens, scrolls on short ones */}
               <div className="min-h-full flex flex-col justify-center pb-6">
               {/* the stage: sky sparkles, speech bubble, pet on its cushion */}
@@ -344,7 +384,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
                 <Sparkle size={18} className="absolute sparkle" style={{ right: '6%', top: 120, animationDelay: '1.3s' }} />
 
                 {phase !== 'gate' && line && (
-                  <div key={line} className="pm-bubble relative max-w-[360px] rounded-[28px] px-5 py-3 text-center text-[21px] sm:text-[22px] font-extrabold leading-snug"
+                  <div key={line} className={`pm-bubble relative max-w-[360px] rounded-[28px] text-center font-extrabold leading-snug ${phase === 'task' ? 'px-4 py-2 text-[17px] sm:text-[19px]' : 'px-5 py-3 text-[21px] sm:text-[22px]'}`}
                     style={{ background: '#FFFFFF', color: INK, boxShadow: '0 6px 18px rgba(59,47,99,0.14)' }} aria-live="polite">
                     {line}
                     <span aria-hidden="true" className="absolute left-1/2 -bottom-[11px] -translate-x-1/2 w-6 h-6 rotate-45" style={{ background: '#FFFFFF', borderRadius: 4 }} />
@@ -401,7 +441,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
                       <p className="text-center text-base font-bold mt-3" style={{ color: '#6D5FA0' }}>Start at the green dot and follow the glow.</p>
                     </>
                   ) : (
-                    <div className="relative flex items-center justify-center w-full" style={{ height: 'calc(min(78vw, 300px) + 24px + 44px)' }}>
+                    <div className="relative flex items-center justify-center w-full" style={{ height: 'calc(min(68vw, 300px) + 24px + 44px)' }}>
                       {/* same height as the plate + hint above, so nothing jumps */}
                       <PetFood shape={task.shape} size={200} className="pm-food relative z-10" style={{ ['--pm-fly' as string]: `${flyPx}px` }} />
                     </div>
@@ -485,7 +525,11 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
               </div>
             )}
           </div>
-        </div>
+          {/* big, clear X on the box's corner */}
+          <PopupClose onClose={close} buttonRef={closeRef} color={ACCENT} />
+          </div>
+        </div>,
+        document.body,
       )}
     </>
   );

@@ -8,11 +8,11 @@ import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
+import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak } from '@/lib/speak';
-import { chapterFor, endlessRamp, isStarLevel } from '@/lib/levels';
+import { chapterFor } from '@/lib/levels';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
@@ -22,6 +22,13 @@ import LiveArt from '@/components/characters/LiveArt';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { petWidth } from '@/lib/companionTrails';
 import { sfxOut } from '@/lib/sfx';
+import { CritterSprite } from '@/components/characters/CritterSprite';
+import { sceneLook } from '@/lib/variety';
+import { GAME, GEMS, PLURAL, pathStories, SHAPES, WHO_NAME, kindsFor, planLevel, same, shareStory, type Round, type Thing, type Tok, type Who } from '@/lib/dragonBridgePlan';
+import { ThingIcon, ThingShape } from '@/components/games/Things';
+
+// the clock, read only in event handlers and timers
+const now = () => Date.now();
 
 // ─── Dragon Bridge ──────────────────────────────────────────────────────────
 // The second game of the Dragon's Treasure Cave (math). Kailia has to get
@@ -44,146 +51,6 @@ import { sfxOut } from '@/lib/sfx';
 // The friend plays along on the near bank (it cheers, wobbles on a miss and
 // walks to the right answer after two misses); Ember's picture plays the
 // baby dragons, each a different color. A miss is never "wrong".
-
-// ── Gems, shapes and the round plans ──
-
-const GEMS = [
-  { hex: '#EF4444', dark: '#991B1B', name: 'red' },
-  { hex: '#3B82F6', dark: '#1E3A8A', name: 'blue' },
-  { hex: '#FACC15', dark: '#A16207', name: 'yellow' },
-  { hex: '#22C55E', dark: '#166534', name: 'green' },
-  { hex: '#A855F7', dark: '#6B21A8', name: 'purple' },
-];
-const SHAPES = ['diamond', 'round', 'triangle'] as const;
-
-interface Tok { c: number; s: number; n?: number }
-const same = (a: Tok, b: Tok) => a.c === b.c && a.s === b.s && a.n === b.n;
-
-interface ShareRound { kind: 'share'; babies: number; each: number; extra: number }
-interface PatternRound {
-  kind: 'pattern';
-  seq: Tok[];
-  blanks: number[];          // stone indexes the child fills, left to right
-  options: Tok[][];          // choices for each blank
-  numbers: boolean;
-  fam: string;
-}
-type Round = ShareRound | PatternRound;
-
-type Fam = 'AB' | 'AAB' | 'ABB' | 'ABC' | 'AABB' | 'shapeAB' | 'ABCD' | 'mixABC'
-  | 'up1' | 'up2' | 'up3' | 'up5' | 'up10' | 'down1' | 'down2';
-const STEP: Partial<Record<Fam, number>> = { up1: 1, up2: 2, up3: 3, up5: 5, up10: 10, down1: -1, down2: -2 };
-
-// the clock, read only in event handlers and timers
-const now = () => Date.now();
-const rint = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo + 1));
-const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
-function shuffle<T>(a: T[]): T[] {
-  const b = [...a];
-  for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
-  return b;
-}
-
-// Which kind of pattern a level asks for: the 30-level ladder climbs
-// through them in order; the Star worlds mix all the harder ones.
-function famFor(level: number): Fam {
-  if (level <= 4) return 'AB';
-  if (level <= 8) return pick(['AAB', 'ABB'] as const);
-  if (level <= 12) return 'ABC';
-  if (level <= 16) return pick(['AABB', 'shapeAB'] as const);
-  if (level <= 20) return 'up1';
-  if (level <= 24) return 'up2';
-  if (level <= 28) return pick(['up5', 'up10'] as const);
-  if (level <= 30) return 'down1';
-  return pick(['ABCD', 'AABB', 'mixABC', 'shapeAB', 'up2', 'up3', 'up5', 'up10', 'down1', 'down2'] as const);
-}
-
-function makePattern(level: number, tier: DifficultyTier): PatternRound {
-  const fam = famFor(level);
-  const star = isStarLevel(level);
-  const tiny = tier === 'tiny';
-  const len = level <= 8 || tiny ? 6 : star ? 8 : 7;
-  const nOpts = tiny && level <= 8 ? 2 : 3;
-  const step = STEP[fam];
-  let seq: Tok[];
-  let unitLen = 2;
-
-  if (step !== undefined) {
-    // counting on (or back) along the stones
-    const reach = Math.round(endlessRamp(level, 3, 80, 25));
-    let start = step === 1 ? rint(1, reach) : Math.abs(step) * rint(0, Math.max(2, Math.round(reach / Math.abs(step) / 2)));
-    if (step < 0) start = Math.abs(step) * (len + rint(0, 4)) + (step === -1 ? rint(0, reach) : 0);
-    seq = Array.from({ length: len }, (_, i) => ({ c: -1, s: 0, n: start + i * step }));
-    unitLen = 2;
-  } else {
-    const cols = shuffle([0, 1, 2, 3, 4]);
-    const s0 = rint(0, 2);
-    const shp = shuffle([0, 1, 2]);
-    const T = (ci: number, s = s0): Tok => ({ c: cols[ci], s });
-    const unit: Tok[] = {
-      AB: [T(0), T(1)],
-      AAB: [T(0), T(0), T(1)],
-      ABB: [T(0), T(1), T(1)],
-      ABC: [T(0), T(1), T(2)],
-      AABB: [T(0), T(0), T(1), T(1)],
-      ABCD: [T(0), T(1), T(2), T(3)],
-      shapeAB: [T(0, shp[0]), T(0, shp[1])],
-      mixABC: [T(0, shp[0]), T(1, shp[1]), T(2, shp[2])],
-    }[fam as 'AB'];
-    unitLen = unit.length;
-    seq = Array.from({ length: len }, (_, i) => unit[i % unit.length]);
-  }
-
-  // which stones are missing: the last one; later sometimes two, and in
-  // the Star worlds sometimes one in the middle (always after a full
-  // pattern has been shown)
-  const blanks: number[] = [];
-  const two = !tiny && ((level >= 21 && Math.random() < 0.4) || (star && Math.random() < 0.55));
-  if (star && Math.random() < 0.45) {
-    blanks.push(rint(Math.max(unitLen + 1, 3), len - 2));
-    if (two) blanks.push(len - 1);
-  } else {
-    if (two) blanks.push(len - 2);
-    blanks.push(len - 1);
-  }
-
-  const options = blanks.map(bi => {
-    const ans = seq[bi];
-    const pool: Tok[] = [];
-    if (step !== undefined) {
-      const n = ans.n!;
-      [n + step, n - step, n + 1, n - 1, n + 2, n + 10, n - 10].forEach(v => { if (v >= 0) pool.push({ c: -1, s: 0, n: v }); });
-    } else {
-      seq.forEach(t => pool.push(t));
-      // a same-color, other-shape gem makes shape patterns a real look
-      pool.push({ c: ans.c, s: (ans.s + 1) % 3 }, { c: (ans.c + 1) % 5, s: ans.s });
-    }
-    const wrong: Tok[] = [];
-    for (const t of shuffle(pool)) {
-      if (wrong.length >= nOpts - 1) break;
-      if (!same(t, ans) && !wrong.some(w => same(w, t))) wrong.push(t);
-    }
-    return shuffle([ans, ...wrong]);
-  });
-
-  return { kind: 'pattern', seq, blanks, options, numbers: step !== undefined, fam };
-}
-
-function makeShare(level: number, tier: DifficultyTier): ShareRound {
-  const star = isStarLevel(level);
-  let babies = level <= 8 ? 2 : level <= 20 ? 3 : level <= 30 ? 4 : rint(2, 5);
-  let each = level <= 30 ? Math.min(5, 1 + Math.ceil(level / 6)) : rint(2, 6);
-  if (tier === 'tiny') { babies = Math.min(babies, level <= 15 ? 2 : 3); each = Math.min(each, 3); }
-  const extra = tier !== 'tiny' && (star ? Math.random() < 0.6 : level >= 26) ? rint(1, babies - 1) : 0;
-  return { kind: 'share', babies, each, extra };
-}
-
-function planLevel(level: number, tier: DifficultyTier): Round[] {
-  const kinds: Round['kind'][] = level <= 2 ? ['share', 'pattern', 'share']
-    : level < 15 ? ['share', 'pattern', 'share', 'pattern']
-    : ['pattern', 'share', 'pattern', 'share', 'pattern'];
-  return kinds.map(k => (k === 'share' ? makeShare(level, tier) : makePattern(level, tier)));
-}
 
 // ── Where things stand, in % of the play area ──
 const FAR_Y = 44;      // feet on the far bank
@@ -297,22 +164,27 @@ export default function DragonBridgePage() {
     roundClean.current = true;
     roundStart.current = now();
     if (r.kind === 'share') {
-      setCounts(Array(r.babies).fill(0));
-      setBasket(r.babies * r.each + r.extra);
+      const given = r.start.reduce((a, b) => a + b, 0);
+      setCounts([...r.start]);
+      setBasket(r.babies * r.each + r.extra - given);
       setKailia({ x: 16, y: GROUND });
       m.current.maxBerries = Math.max(m.current.maxBerries, r.babies * r.each + r.extra);
-      say(r.extra
-        ? `Share the berries so every baby dragon gets the SAME. Any berries that can't be shared are a treat for Kailia!`
-        : `The baby dragons are hungry! Tap a baby to give a berry, until everyone has the SAME.`, 'excited', true);
+      // the round's little story, then what to do
+      say(`${r.story.line} ${r.twist === 'headstart'
+        ? 'Some already have a few. Share the rest so everyone has the SAME!'
+        : r.twist === 'leftover'
+          ? 'Give everyone the SAME. Any that can\'t be shared are a treat for Kailia!'
+          : 'Tap each friend to give one, until everyone has the SAME.'}`, 'excited', true);
     } else {
       setFilled(r.blanks.map(() => null));
       setBi(0);
       setKailia({ x: 12, y: GROUND });
       r.seq.forEach(t => { if (t.n !== undefined) m.current.maxNumber = Math.max(m.current.maxNumber, t.n); });
       const many = r.blanks.length > 1;
-      say(r.numbers
+      say(`${r.story.line} ${r.numbers
         ? many ? 'Two number stones are missing! Which number comes next? Fill them one by one.' : 'Count along the stones. Which number comes next?'
-        : many ? 'Two stones are missing! Look at the pattern and fill them one by one.' : 'Look at the gems on the stones. What comes next in the pattern?', 'excited', true);
+        : many ? 'Two stones are missing! Look at the pattern and fill them one by one.'
+          : r.things ? 'Look at the stones. What comes next in the pattern?' : 'Look at the gems on the stones. What comes next in the pattern?'}`, 'excited', true);
     }
     setPhase('playing');
   }
@@ -376,6 +248,7 @@ export default function DragonBridgePage() {
     const dx = ((BASKET.x - nestX(i, k)) / 100) * w;
     const dy = ((BASKET.y - PLATE_Y) / 100) * h;
     const min = Math.min(...counts);
+    const wasFewest = counts[i] === min;
 
     if (basket === 0 || (unfair && counts[i] > min)) {
       // give one back to the basket from a baby that has more
@@ -388,10 +261,10 @@ export default function DragonBridgePage() {
         launch(i, true, -dx, -dy);
         setHintNest(-1);
         setUnfair(false);
-        say('Thank you! Now give it to a baby with fewer.', 'happy');
+        say('Thank you! Now give it to one with fewer.', 'happy');
       } else {
         setBabyFx(f => ({ i, n: f.n + 1 }));
-        say('This baby has the fewest already. Try a baby with more!', 'thinking');
+        say('This one has the fewest already. Try one with more!', 'thinking');
       }
       return;
     }
@@ -404,7 +277,7 @@ export default function DragonBridgePage() {
     setHop(n => n + 1);
     launch(i, false, dx, dy);
     setBabyFx(f => ({ i, n: f.n + 1 }));
-    checkShare(next, left);
+    checkShare(next, left, wasFewest);
   }
 
   function launch(nest: number, back: boolean, dx: number, dy: number) {
@@ -414,7 +287,7 @@ export default function DragonBridgePage() {
     later(() => setFlyers(f => f.filter(x => x.id !== id)), 520);
   }
 
-  function checkShare(next: number[], left: number) {
+  function checkShare(next: number[], left: number, wasFewest: boolean) {
     if (round?.kind !== 'share') return;
     const k = round.babies;
     const lo = Math.min(...next), hi = Math.max(...next);
@@ -430,9 +303,9 @@ export default function DragonBridgePage() {
           setHop(n => n + 1);
           fire(16, 86, ['#818CF8', '#FFFFFF', '#FDE047'], 10, 40);
         }, 500);
-        later(() => roundWon(`Fair and square! Every baby has ${lo}. ${left === 1 ? 'One berry is' : `${left} berries are`} left for Kailia. Yum!`), 700);
+        later(() => roundWon(`Fair and square! Everyone has ${lo}. The extra ones are a treat for Kailia! ${round.story.done}`), 700);
       } else {
-        later(() => roundWon(`Fair and square! Every baby dragon has ${lo}!`), 500);
+        later(() => roundWon(`Fair and square! Everyone has ${lo}. ${round.story.done}`), 500);
       }
       return;
     }
@@ -444,13 +317,13 @@ export default function DragonBridgePage() {
       const most = next.indexOf(hi);
       setHintNest(most);
       setPetMood('oops');
-      say('Is it fair? Tap a baby with more to take a berry back.', 'thinking', true);
+      say('Is it fair? Tap one with more to take one back.', 'thinking', true);
       return;
     }
-    if (hi - lo >= 2) {
+    if (hi - lo >= 2 && !wasFewest) {
       roundClean.current = false;
       setHintNest(next.indexOf(lo));
-      say(`Psst! ${pet.name} found the baby with the fewest. Give that one a berry!`, 'thinking');
+      say(`Psst! ${pet.name} found the one with the fewest. Give that one first!`, 'thinking');
     } else if (hintNest >= 0 && next[hintNest] >= hi) {
       setHintNest(-1);
       say('Nice sharing!', 'excited');
@@ -482,7 +355,7 @@ export default function DragonBridgePage() {
         return;
       }
       say('The path is whole! Go, Kailia!', 'celebrating');
-      cross(round.seq.length);
+      cross(round.seq.length, round.story.done);
       return;
     }
     // a gentle miss: the stone wobbles and stays in the tray
@@ -501,13 +374,13 @@ export default function DragonBridgePage() {
   }
 
   // Kailia hops stone by stone to the far bank
-  function cross(n: number) {
+  function cross(n: number, done: string) {
     setCrossing(true);
     for (let j = 0; j < n; j++) {
       later(() => { setKailia({ x: stoneX(j, n), y: STONE_Y + 1.5 }); setHop(h => h + 1); sfx.hop(j); }, 350 + j * 330);
     }
     later(() => { setKailia({ x: 78, y: FAR_Y }); setHop(h => h + 1); }, 350 + n * 330);
-    later(() => roundWon(pick(['Kailia made it across!', 'Hop, hop, hooray!', 'What a pattern path!'])), 700 + n * 330);
+    later(() => roundWon(done), 700 + n * 330);
   }
 
   function tickle() {
@@ -517,6 +390,9 @@ export default function DragonBridgePage() {
 
   // ── Screens ──
   const chapter = chapterFor(level);
+  const look = sceneLook(GAME, level);
+  // who the child will meet on this level (shown on the intro)
+  const preview = planPreview(level);
 
   const theme = { bg: 'radial-gradient(130% 85% at 50% 0%, #6b2f7a 0%, #3b1a52 50%, #1c0b2b 100%)', accent: '#F59E0B', accent2: '#C2410C' };
 
@@ -525,20 +401,18 @@ export default function DragonBridgePage() {
       title="Dragon Bridge"
       theme={theme}
       pet={pet}
-      story={<p>The dragons&apos; treasure is across the crystal river! Share berries <strong>fairly</strong> with the
-        baby dragons and finish the <strong>stepping-stone patterns</strong> so Kailia can hop across.</p>}
+      story={<p>The dragons&apos; treasure is across the crystal river! Help every new friend share <strong>fairly</strong>,
+        and finish the <strong>stepping-stone patterns</strong> so Kailia can hop across.</p>}
       extras={
-        <div className="flex justify-center items-end gap-2" aria-hidden>
-          <span className="float inline-block mr-1">
-            <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, 56)} kind="pet" />
-          </span>
-          {[0, 1, 2, 3].map(i => (
-            <span key={i} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}>
-              <GemToken t={{ c: [0, 1, 0, 1][i], s: 0 }} size={30} />
+        // this level's friends and what they want, so every level's
+        // opening looks different
+        <div className="flex justify-center items-end gap-3 flex-wrap" aria-hidden data-level-friends={preview.map(p => p.who).join(',')}>
+          {preview.map((p, i) => (
+            <span key={i} className="float inline-flex flex-col items-center" style={{ animationDelay: `${i * 0.3}s` }}>
+              <WhoArt who={p.who} h={52} />
+              {p.thing && <span className="-mt-1"><ThingIcon k={p.thing} size={24} /></span>}
             </span>
           ))}
-          <span className="soft-pulse inline-flex items-center justify-center rounded-full font-extrabold text-amber-200"
-            style={{ width: 30, height: 30, border: '2.5px dashed #FDE68A' }}>?</span>
         </div>
       }
       levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} />}
@@ -599,7 +473,8 @@ export default function DragonBridgePage() {
           className="relative w-full rounded-[28px] overflow-hidden select-none"
           style={{ aspectRatio: '3 / 4.2', touchAction: 'manipulation', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
 
-          <CrystalCave />
+          {/* each level the cave glows in its own colors (the background only) */}
+          <div className="absolute inset-0" style={{ filter: look.filter }}><CrystalCave /></div>
 
           {/* the treasure chest up in its glowing nook: one gem per round won */}
           <div className="absolute pointer-events-none" style={{ left: '85%', top: '29%', width: '20%', transform: 'translate(-50%, -100%)', zIndex: 2 }}>
@@ -616,22 +491,22 @@ export default function DragonBridgePage() {
             const happy = phase === 'roundDone';
             return (
               <button key={`baby-${ri}-${i}`} onClick={() => tapBaby(i)} data-baby={i}
-                aria-label={`Baby dragon ${i + 1}, ${shown} berries`}
+                aria-label={`${WHO_NAME[share.story.who]} ${i + 1}, ${shown} ${PLURAL[share.story.thing]}`}
                 className="absolute flex flex-col items-center justify-end"
                 style={{ left: `${x}%`, top: '10%', height: '37%', width: `${Math.min(30, 80 / k)}%`, transform: 'translateX(-50%)', zIndex: 6 }}>
                 <span key={babyFx.i === i ? babyFx.n : 'still'}
                   className={`${happy ? 'fg-dance' : babyFx.i === i ? 'kp-jelly' : 'critter-bob'} ${hintNest === i ? 'hint-glow' : ''} inline-block`}
-                  style={{ transformOrigin: '50% 100%', filter: BABY_TINT[i % BABY_TINT.length], animationDelay: `${-i * 0.4}s` }}>
-                  <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, babyH)} kind="pet" pokeable={false} />
+                  style={{ transformOrigin: '50% 100%', filter: share.story.who === 'dragon' ? BABY_TINT[i % BABY_TINT.length] : undefined, animationDelay: `${-i * 0.4}s` }}>
+                  <WhoArt who={share.story.who} h={babyH} />
                 </span>
-                <Plate n={Math.max(0, shown)} />
+                <Plate n={Math.max(0, shown)} k={share.story.thing} />
               </button>
             );
           })}
 
           {share && (
             <div className="absolute pointer-events-none" style={{ left: `${BASKET.x}%`, top: `${BASKET.y}%`, width: '27%', transform: 'translate(-50%, -50%)', zIndex: 7 }}>
-              <Basket n={basket} />
+              <Basket n={basket} k={share.story.thing} />
             </div>
           )}
 
@@ -642,7 +517,7 @@ export default function DragonBridgePage() {
             return (
               <span key={f.id} className="absolute pointer-events-none db-fly"
                 style={{ left: `${x}%`, top: `${y}%`, zIndex: 9, ['--dx' as string]: `${f.dx}px`, ['--dy' as string]: `${f.dy}px` } as CSSProperties}>
-                <Berry size={18} />
+                <ThingIcon k={share.story.thing} size={20} />
               </span>
             );
           })}
@@ -676,7 +551,7 @@ export default function DragonBridgePage() {
               <div className="absolute pointer-events-none rounded-full" style={{ left: '54%', top: `${TRAY_Y}%`, width: '66%', height: '15%', transform: 'translate(-50%, -50%)', background: 'rgba(59,36,22,0.55)', border: '2px solid rgba(253,230,138,0.35)', zIndex: 3 }} />
               {pat.options[bi].map((t, oi) => (
                 <button key={`opt-${ri}-${bi}-${oi}`} onClick={() => pickStone(oi)} data-opt={oi}
-                  aria-label={t.n !== undefined ? `Stone with ${t.n}` : `${GEMS[t.c].name} ${SHAPES[t.s]} gem stone`}
+                  aria-label={t.n !== undefined ? `Stone with ${t.n}` : t.k ? `Stone with ${t.k === 'berry' ? 'a berry' : t.k === 'apple' || t.k === 'acorn' ? `an ${t.k}` : `a ${t.k}`}` : `${GEMS[t.c].name} ${SHAPES[t.s]} gem stone`}
                   className="absolute drop-in"
                   style={{ left: `${optX(oi, pat.options[bi].length)}%`, top: `${TRAY_Y}%`, width: '19%', transform: 'translate(-50%, -50%)', zIndex: 8, animationDelay: `${oi * 90}ms`, animationFillMode: 'both' }}>
                   <div key={wobble.i === oi ? wobble.n : 'still'} className={`${wobble.i === oi ? 'soft-wobble' : ''} ${hintOpt === oi ? 'hint-glow' : ''} relative`}>
@@ -690,11 +565,11 @@ export default function DragonBridgePage() {
             </>
           )}
 
-          {/* in pattern rounds a baby dragon waits on the far bank for Kailia */}
+          {/* in pattern rounds the round's friend waits on the far bank for Kailia */}
           {pat && (
-            <div className="absolute pointer-events-none" style={{ left: '91%', top: `${FAR_Y}%`, transform: 'translate(-50%, -100%)', zIndex: 5 }}>
-              <span className={`${phase === 'roundDone' ? 'fg-dance' : 'critter-bob'} inline-block`} style={{ transformOrigin: '50% 100%', filter: BABY_TINT[ri % BABY_TINT.length] }}>
-                <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, 62)} kind="pet" pokeable={false} />
+            <div className="absolute pointer-events-none" data-waiting={pat.story.who} style={{ left: '91%', top: `${FAR_Y}%`, transform: 'translate(-50%, -100%)', zIndex: 5 }}>
+              <span className={`${phase === 'roundDone' ? 'fg-dance' : 'critter-bob'} inline-block`} style={{ transformOrigin: '50% 100%', filter: pat.story.who === 'dragon' ? BABY_TINT[ri % BABY_TINT.length] : undefined }}>
+                <WhoArt who={pat.story.who} h={62} />
               </span>
             </div>
           )}
@@ -772,16 +647,15 @@ function GemShape({ t }: { t: Tok }) {
   );
 }
 
-function GemToken({ t, size }: { t: Tok; size: number }) {
-  return (
-    <svg viewBox="0 0 40 40" width={size} height={size} aria-hidden style={{ overflow: 'visible', filter: `drop-shadow(0 0 2px #FFF8E1) drop-shadow(0 0 6px ${GEMS[t.c].hex}99)` }}>
-      <g filter="url(#kp-brush)"><GemShape t={t} /></g>
-    </svg>
-  );
-}
-
 // a token on a stone: a gem, or a number painted on a little shell
 function TokenView({ t, size }: { t: Tok; size: number }) {
+  if (t.k) return (
+    <span className="block" style={{ width: `${size * 100}%` }}>
+      <svg viewBox="0 0 20 20" width="100%" aria-hidden style={{ display: 'block', overflow: 'visible', filter: 'drop-shadow(0 0 2px #FFF8E1) drop-shadow(0 0 5px #FDE68A99)' }}>
+        <g filter="url(#kp-brush)"><ThingShape k={t.k} /></g>
+      </svg>
+    </span>
+  );
   if (t.n !== undefined) return (
     <span className="flex items-center justify-center rounded-full font-extrabold"
       style={{ width: `${size * 100}%`, aspectRatio: '1', background: '#FFF4D6', border: `3px solid ${SK}`, color: SK,
@@ -811,19 +685,30 @@ function Stone() {
   );
 }
 
-function Berry({ size }: { size: number }) {
-  return (
-    <svg viewBox="0 0 20 20" width={size} height={size} aria-hidden style={{ display: 'block', overflow: 'visible', filter: 'drop-shadow(0 0 2px #FFFFFF)' }}>
-      <circle cx="10" cy="11" r="8" fill="#6366F1" stroke={SK} strokeWidth="1.6" />
-      <path d="M7 3.5 L10 6 L13 3.5" stroke="#16A34A" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <circle cx="7" cy="9" r="2.2" fill="#FFFFFF" opacity="0.7" />
-    </svg>
-  );
+// the round's friend: a baby dragon (Ember's picture) or a visiting animal
+function WhoArt({ who, h }: { who: Who; h: number }) {
+  if (who === 'dragon') return <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, h)} kind="pet" pokeable={false} />;
+  return <CritterSprite species={who} size={h} />;
 }
 
-// a leaf plate under each baby, berries in neat rows of three so the
+// who and what a level brings, for its opening screen
+function planPreview(level: number): { who: Who; thing?: Thing }[] {
+  const seen = new Set<string>();
+  const out: { who: Who; thing?: Thing }[] = [];
+  const paths = pathStories(level);
+  let p = 0, k = 0;
+  for (const kind of kindsFor(level)) {
+    const item = kind === 'share' ? (() => { const st = shareStory(level, k++); return { who: st.who, thing: st.thing }; })()
+      : { who: paths[p++].who };
+    const key = `${item.who}|${'thing' in item ? item.thing : ''}`;
+    if (!seen.has(key)) { seen.add(key); out.push(item); }
+  }
+  return out;
+}
+
+// a leaf plate under each friend, things in neat rows of three so the
 // amounts are easy to compare at a glance
-function Plate({ n }: { n: number }) {
+function Plate({ n, k }: { n: number; k: Thing }) {
   const rows = Math.ceil(n / 3);
   return (
     <span className="relative block" style={{ width: 62, height: 30 + Math.max(0, rows - 2) * 11, marginTop: -8 }}>
@@ -836,8 +721,8 @@ function Plate({ n }: { n: number }) {
       {Array.from({ length: n }, (_, i) => {
         const row = Math.floor(i / 3), col = i % 3;
         return (
-          <span key={i} className="absolute drop-in" style={{ left: 13 + col * 13, bottom: 7 + row * 11 }}>
-            <Berry size={14} />
+          <span key={i} className="absolute drop-in" style={{ left: 12 + col * 13, bottom: 7 + row * 11 }}>
+            <ThingIcon k={k} size={15} />
           </span>
         );
       })}
@@ -845,7 +730,7 @@ function Plate({ n }: { n: number }) {
   );
 }
 
-function Basket({ n }: { n: number }) {
+function Basket({ n, k }: { n: number; k: Thing }) {
   const shown = Math.min(n, 24);
   return (
     <div className="relative w-full" style={{ aspectRatio: '100 / 70' }}>
@@ -855,12 +740,12 @@ function Basket({ n }: { n: number }) {
           <path d="M18 30 Q50 -8 82 30" fill="none" strokeWidth="1.5" />
         </g>
       </svg>
-      {/* the berries heaped inside */}
+      {/* the things heaped inside */}
       {Array.from({ length: shown }, (_, i) => {
         const row = Math.floor(i / 6), col = i % 6;
         return (
           <span key={i} className="absolute" style={{ left: `${12 + col * 12.5 + (row % 2) * 6}%`, bottom: `${54 + row * 12}%` }}>
-            <Berry size={15} />
+            <ThingIcon k={k} size={16} />
           </span>
         );
       })}

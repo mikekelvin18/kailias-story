@@ -14,7 +14,9 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { soundEnabled } from '@/lib/accessibility';
-import { sayLine, hush } from '@/lib/voice';
+import { sayLine, hush, hushOwn } from '@/lib/voice';
+
+const OWNER = 'read-aloud';
 
 const SELECTOR = '[data-read-aloud]';
 
@@ -67,12 +69,13 @@ export default function NoelVoice() {
       if (next) {
         const { el, words } = next as { el: Element; words: string };
         reading = el;
-        if (soundEnabled()) sayLine(words);
+        if (soundEnabled()) sayLine(words, { owner: OWNER });
       } else if (reading && (!onScreen(reading) || !reading.matches(SELECTOR))) {
         // the story card closed (the game started) or the bubble went quiet:
-        // stop mid-sentence instead of talking over the game
+        // stop mid-sentence instead of talking over the game, but only our
+        // own line: if the game already started its first line, let it finish
         reading = null;
-        hush();
+        hushOwn(OWNER);
       }
     };
     // games re-draw many times a second; look at most a few times a second
@@ -85,7 +88,7 @@ export default function NoelVoice() {
     // tap a bubble to hear it again
     const replay = (e: MouseEvent) => {
       const el = (e.target as Element | null)?.closest?.(SELECTOR);
-      if (el && soundEnabled()) { reading = el; sayLine(wordsOf(el), { force: true }); }
+      if (el && soundEnabled()) { reading = el; sayLine(wordsOf(el), { force: true, owner: OWNER }); }
     };
     document.addEventListener('click', replay);
 

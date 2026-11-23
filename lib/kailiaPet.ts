@@ -19,7 +19,7 @@ import { ACTIVITIES, ParentActivity, reportActivity, ReportScore } from './activ
 import { PET_CARDS, PetCard, PetGame } from './petTasks';
 import { developmentalBand, difficultyTier } from './difficulty';
 import type { AgeGroup } from '@/context/AssessmentContext';
-import type { ShapeKind } from './traceShapes';
+import type { FoodShapeKind as ShapeKind } from './traceShapes';
 
 const KEY = 'kailia_pet_v1';
 export const PET_CONFIG = DEFAULT_CONFIG;

@@ -21,6 +21,9 @@ import { seeded } from '@/components/friends/kit/Stage';
 import { chime } from '@/components/friends/voice';
 import { COMPANIONS } from '@/lib/rewards';
 import { petWidth } from '@/lib/companionTrails';
+import { levelStories, randInt, roundRandom } from '@/lib/variety';
+import { PLURAL, type Thing } from '@/lib/things';
+import { ThingShape } from '@/components/games/Things';
 
 // ─── Snack Quest ──────────────────────────────────────────────────────────────
 // Embodied math: the child walks their character around a little field,
@@ -49,6 +52,49 @@ interface RoundCfg {
   want: number;   // what the dragon wishes for in total
   have: number;   // what the dragon already has (addition rounds)
   intro: string;
+  thing: Thing | null;   // what she wants this round (null: the field's own cookies or bamboo)
+  walls: Tile[];
+}
+
+// ── Why the baby dragon wants snacks: a new little story every round ──
+// (Kelvin 2026-11-23: "first berries, then toys, then apples".) Dealt
+// fairly from this deck (lib/variety.ts), and what she wants changes too.
+const WISHES: { thing: Thing | null; line: string }[] = [
+  { thing: 'cookie', line: "It's the baby dragon's birthday! She wants cookies for her party." },
+  { thing: 'berry', line: 'The baby dragon is packing a picnic. She wants berries!' },
+  { thing: 'apple', line: 'The baby dragon wants apples to share with her big brother.' },
+  { thing: 'carrot', line: 'The baby dragon is cooking carrot soup!' },
+  { thing: 'flower', line: 'The baby dragon wants flowers for her mommy.' },
+  { thing: 'shell', line: 'The baby dragon is decorating her sandcastle with shells!' },
+  { thing: 'ball', line: 'The baby dragon wants balls to play catch with her friends!' },
+  { thing: 'coin', line: 'The baby dragon is filling her treasure jar with gold coins.' },
+  { thing: 'acorn', line: 'The baby dragon wants acorns for the hungry squirrels.' },
+  { thing: 'leaf', line: 'The baby dragon is making a soft leafy bed for her nap.' },
+  { thing: null, line: 'The baby dragon woke up with a rumbly tummy!' },
+];
+
+/** A fresh field of rocks or bushes for a round: random, but every free
+ *  tile can still be reached from the start. */
+function wallsFor(level: number, idx: number): Tile[] {
+  const rand = roundRandom('snack-quest:walls', level, idx);
+  const count = Math.min(10, 6 + Math.floor(level / 6));
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const walls: Tile[] = [];
+    const taken = new Set<string>();
+    while (walls.length < count) {
+      const t = { r: randInt(rand, 1, 6), c: randInt(rand, 0, COLS - 1) };
+      const k = `${t.r},${t.c}`;
+      if (taken.has(k) || inDragonZone(t) || (t.r <= 2 && t.c >= 4) || (t.r >= 6 && t.c <= 1)) continue;
+      taken.add(k); walls.push(t);
+    }
+    let ok = true;
+    for (let r = 0; r < ROWS && ok; r++) for (let c = 0; c < COLS && ok; c++) {
+      if (taken.has(`${r},${c}`) || (r === START.r && c === START.c)) continue;
+      if (!findPath(START, { r, c }, walls)) ok = false;
+    }
+    if (ok) return walls;
+  }
+  return WALLS[idx % WALLS.length];
 }
 
 // wall layouts per round — hand-placed so every tile stays reachable
@@ -236,7 +282,7 @@ export default function SnackQuestPage() {
   }, [phase]);
   useEffect(() => () => { if (walkTimer.current) clearInterval(walkTimer.current); }, []);
 
-  const cfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '' };
+  const cfg: RoundCfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '', thing: null, walls: WALLS[0] };
   // what the robot player in tests/ needs to know (does nothing for real players)
   useEffect(() => { testHook('snack', { phase, round: roundIdx, want: cfg.want, have: cfg.have, kept, carried, items, cols: COLS, rows: ROWS }); });
 
@@ -255,17 +301,26 @@ export default function SnackQuestPage() {
       big:   { w: [4, 7, 9], h: [0, 3, 4] },
     };
     const { w, h } = plans[tier];
-    const bump = Math.floor((lvl - 1) / 3);
     const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
-    const intros = [
-      `The baby dragon is hungry! Walk to a snack to pick it up, then bring it to her!`,
-      `Look — she already has some! How many MORE does she need?`,
-      `One last feast! Count carefully — you've got this!`,
-    ];
-    return w.map((base, i) => {
-      const want = Math.min(cap, base + bump);
-      const have = h[i] > 0 ? Math.min(want - 1, h[i] + Math.floor(bump / 2)) : 0;
-      return { want, have, intro: intros[i] };
+    // the wishes grow every level (a step each two levels, plus a little
+    // surprise up or down), and a round never asks for the same as the
+    // same round of the level before
+    const wantAt = (L: number, i: number) => {
+      const rand = roundRandom('snack-quest:want', L, i);
+      return Math.max(h[i] + 1, Math.min(cap, w[i] + Math.floor((L - 1) / 2) + randInt(rand, -1, 1)));
+    };
+    const wishes = levelStories(WISHES, 'snack-quest', lvl, 3);
+    return w.map((_, i) => {
+      let want = wantAt(lvl, i);
+      if (lvl > 1 && want === wantAt(lvl - 1, i)) want = want < cap ? want + 1 : want - 1;
+      const bump = Math.floor((lvl - 1) / 3);
+      const have = h[i] > 0 ? Math.max(1, Math.min(want - 1, h[i] + Math.floor(bump / 2) + randInt(roundRandom('snack-quest:have', lvl, i), -1, 1))) : 0;
+      // the very first round ever keeps the field's own snack
+      const wish = lvl === 1 && i === 0 ? WISHES[WISHES.length - 1] : wishes[i];
+      const intro = `${wish.line} ${have
+        ? 'Look, she already has some! How many MORE does she need?'
+        : 'Walk to a snack to pick it up, then bring it to her!'}`;
+      return { want, have, intro, thing: wish.thing, walls: wallsFor(lvl, i) };
     });
   }, [state.ageGroup, totalScore, devMonths]);
 
@@ -296,7 +351,7 @@ export default function SnackQuestPage() {
     queuedRef.current = null;
     countTapRef.current = null;
     const round = roundPlan[idx];
-    const wallSet = WALLS[idx % WALLS.length];
+    const wallSet = round.walls;
     attemptsRef.current = 0;
     tripsRef.current = 0;
     roundStartRef.current = Date.now();
@@ -624,7 +679,7 @@ export default function SnackQuestPage() {
                 <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 52)} kind="pet" pokeable={false} />
                 <span className="inline-flex items-center gap-1">
                   I wish for <span className="text-4xl mx-1" style={{ color: '#B45309' }}>{cfg.want}</span>
-                  <Snack cave={cave} size={38} />
+                  <Snack cave={cave} thing={cfg.thing} size={38} />
                 </span>
               </p>
               {cfg.have > 0 && (
@@ -634,7 +689,7 @@ export default function SnackQuestPage() {
                 <p className="leading-none mt-1.5 flex items-center justify-center gap-1 flex-wrap">
                   {Array.from({ length: cfg.want }).map((_, i) => (
                     i < cfg.have + kept + revealed
-                      ? <span key={i} className={i >= cfg.have + kept ? 'star-burst' : undefined} style={{ display: 'inline-block' }}><Snack cave={cave} size={30} /></span>
+                      ? <span key={i} className={i >= cfg.have + kept ? 'star-burst' : undefined} style={{ display: 'inline-block' }}><Snack cave={cave} thing={cfg.thing} size={30} /></span>
                       : <span key={i} className="inline-flex items-center justify-center rounded-full"
                           style={{ width: 26, height: 26, margin: 2, border: '2.5px dashed #9CA3AF' }} />
                   ))}
@@ -677,7 +732,7 @@ export default function SnackQuestPage() {
                 {(cfg.have + kept + revealed) > 0 && (
                   <span className="absolute bottom-0 inline-flex items-center justify-center flex-wrap rounded-xl"
                     style={{ maxWidth: '100%', padding: '1px 3px', background: 'rgba(255,255,255,0.92)', border: '2px solid #3b2416' }}>
-                    {Array.from({ length: cfg.have + kept + revealed }).map((_, i) => <Snack key={i} cave={cave} size={Math.max(10, tilePx * 0.24)} />)}
+                    {Array.from({ length: cfg.have + kept + revealed }).map((_, i) => <Snack key={i} cave={cave} thing={cfg.thing} size={Math.max(10, tilePx * 0.24)} />)}
                   </span>
                 )}
               </div>
@@ -692,7 +747,7 @@ export default function SnackQuestPage() {
                   {hintItem === it.id && (
                     <span className="absolute rounded-full hint-glow" style={{ width: '92%', height: '92%', border: '3px solid #FFFFFF' }} />
                   )}
-                  <span className="relative sparkle inline-block"><Snack cave={cave} size={tilePx * 0.62} /></span>
+                  <span className="relative sparkle inline-block"><Snack cave={cave} thing={cfg.thing} size={tilePx * 0.62} /></span>
                 </span>
               ))}
 
@@ -716,7 +771,7 @@ export default function SnackQuestPage() {
                   <span data-carried={carried}
                     className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-base font-extrabold whitespace-nowrap inline-flex items-center gap-0.5"
                     style={{ background: 'white', color: '#92400E', boxShadow: '0 2px 6px rgba(0,0,0,0.3)', zIndex: 2 }}>
-                    <Snack cave={cave} size={18} />×{carried}
+                    <Snack cave={cave} thing={cfg.thing} size={18} />×{carried}
                   </span>
                 )}
                 {/* a soft light under the feet keeps the hero readable on any floor */}
@@ -763,7 +818,7 @@ export default function SnackQuestPage() {
               </div>
             </div>
             <p className="text-center text-sm font-semibold mt-2" style={{ color: skin.accent }}>
-              Tap anywhere to walk. Pick up {skin.itemName}, then bring them to the dragon!
+              Tap anywhere to walk. Pick up {cfg.thing ? PLURAL[cfg.thing] : skin.itemName}, then bring them to the dragon!
             </p>
           </>
         )}
@@ -795,7 +850,12 @@ export default function SnackQuestPage() {
 const SK = '#3b2416';
 
 // ── The snacks: a chocolate-chip cookie (cave) or a bamboo shoot (meadow) ──
-function Snack({ cave, size, style }: { cave: boolean; size: number; style?: React.CSSProperties }) {
+function Snack({ cave, size, style, thing }: { cave: boolean; size: number; style?: React.CSSProperties; thing?: Thing | null }) {
+  if (thing) return (
+    <svg viewBox="0 0 20 20" width={size} height={size} aria-hidden="true" style={{ overflow: 'visible', ...style }}>
+      <g filter="url(#kp-brush)"><ThingShape k={thing} /></g>
+    </svg>
+  );
   return (
     <svg viewBox="0 0 40 40" width={size} height={size} aria-hidden="true" style={{ overflow: 'visible', ...style }}>
       <g filter="url(#kp-brush)">

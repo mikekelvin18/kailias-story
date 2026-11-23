@@ -2,7 +2,7 @@
 
 import ChildAvatar from '@/components/characters/ChildAvatar';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
@@ -21,6 +21,7 @@ import { TRAILS, companionFor } from '@/lib/companionTrails';
 import { characterArt } from '@/components/characters/characters.config';
 import BottomNav from '@/components/BottomNav';
 import CarePet from '@/components/carepet/CarePet';
+import PopupClose, { OnTop } from '@/components/PopupClose';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -174,6 +175,13 @@ export default function AdventureMap() {
       setCelebrating(done);
       sfx.fanfare();
     }
+    // a preview jump link (/go/land/<id>, lib/jump.ts) opens one land's sheet
+    try {
+      const jump = sessionStorage.getItem('kailia_jump_open_land');
+      sessionStorage.removeItem('kailia_jump_open_land');
+      const land = jump ? [...LANDS, ...BONUS_LANDS].find(l => l.id === jump) : null;
+      if (land && !done) { setOpenLand(land); setNoelLine(land.noelIntro); setNoelMood('excited'); }
+    } catch { /* fine without */ }
   }, []);
 
   // For families below school age, today's quests ARE the main event —
@@ -194,6 +202,21 @@ export default function AdventureMap() {
     try { localStorage.setItem(scopedKey(DAILY_SEEN_KEY), todayKey()); } catch { /* ignore */ }
     setDailyPrompt(null);
   }
+  // Escape closes whichever map pop-up box is open
+  const escRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    escRef.current = () => {
+      if (openLand) setOpenLand(null);
+      else if (showGuide) setShowGuide(false);
+      else if (dailyPrompt) dismissDaily();
+    };
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') escRef.current(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
 
   // Noel chats while idle
   useEffect(() => {
@@ -605,11 +628,13 @@ export default function AdventureMap() {
 
       {/* ── Starlight guide — explains the whole reward system ── */}
       {showGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(10,8,40,0.85)' }} onClick={() => setShowGuide(false)}>
-          <div className="w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl"
+        <OnTop>
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Starlight"
+          style={{ background: 'rgba(10,8,40,0.78)', backdropFilter: 'blur(4px)' }} onClick={() => setShowGuide(false)}>
+          <div className="relative w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl"
             style={{ background: 'linear-gradient(180deg, #1e1b4b, #312e81)', border: '2px solid rgba(253,224,71,0.35)' }}
             onClick={e => e.stopPropagation()}>
+            <PopupClose onClose={() => setShowGuide(false)} color="#FBBF24" />
             <div className="text-center mb-3">
               <PandaSprite size={70} expression="excited" className="mx-auto float" />
               <h2 className="text-2xl font-extrabold text-yellow-300 inline-flex items-center gap-2"><StarIcon size={26} /> Starlight!</h2>
@@ -655,15 +680,18 @@ export default function AdventureMap() {
             </button>
           </div>
         </div>
+        </OnTop>
       )}
 
       {/* ── Today's quests popup — the main event for little ones ── */}
       {dailyPrompt && band && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(10,8,40,0.85)' }} onClick={dismissDaily}>
-          <div className="w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl text-center"
-            style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)' }}
+        <OnTop>
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Today's quests"
+          style={{ background: 'rgba(10,8,40,0.78)', backdropFilter: 'blur(4px)' }} onClick={dismissDaily}>
+          <div className="relative w-full max-w-md rounded-3xl p-5 bounce-in text-center"
+            style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)', border: '4px solid #FFFFFF', boxShadow: '0 28px 80px rgba(20,10,50,0.55)' }}
             onClick={e => e.stopPropagation()}>
+            <PopupClose onClose={dismissDaily} color="#F59E0B" />
             <PandaSprite size={84} expression="excited" className="mx-auto float" />
             <h2 className="text-2xl font-extrabold text-amber-900 mt-1">Today&apos;s Quests!</h2>
             <p className="text-sm font-semibold text-amber-800 mb-1">
@@ -696,15 +724,18 @@ export default function AdventureMap() {
             </button>
           </div>
         </div>
+        </OnTop>
       )}
 
       {/* ── Land panel ── */}
       {openLand && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setOpenLand(null)}>
-          <div className="w-full max-w-md rounded-3xl p-5 slide-up shadow-2xl" style={{ background: openLand.sky }}
+        <OnTop>
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={openLand.name}
+          style={{ background: 'rgba(10,8,40,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setOpenLand(null)}>
+          <div className="relative w-full max-w-md rounded-3xl p-5 bounce-in" style={{ background: openLand.sky, border: '4px solid #FFFFFF', boxShadow: '0 28px 80px rgba(20,10,50,0.5)' }}
             onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-1">
+            <PopupClose onClose={() => setOpenLand(null)} color={openLand.color} />
+            <div className="flex items-center gap-3 mb-1 pr-9">
               {openLand.art
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={openLand.art} alt="" width={72} height={72} style={{ width: 72, height: 72, objectFit: 'contain', flexShrink: 0 }} />
@@ -790,6 +821,7 @@ export default function AdventureMap() {
             </button>
           </div>
         </div>
+        </OnTop>
       )}
 
       {/* ── Land complete celebration ── */}

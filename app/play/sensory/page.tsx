@@ -1,5 +1,6 @@
 'use client';
 
+import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -70,9 +71,28 @@ const HUNTS: Hunt[] = [
       { e: 'owl', c: 'wings' }, { e: 'octopus', c: 'fins' }, { e: 'penguin', c: 'wings' }, { e: 'snail', c: 'crawl' }] },
 ];
 
-type Round =
+type Round = ({ story?: string }) & (
   | { kind: 'hunt'; hunt: Hunt; pieces: { id: number; item: HuntItem; x: number; y: number; dx: number; dy: number; dur: number }[] }
-  | { kind: 'odd'; hue: number; delta: number; count: number; oddIdx: number };
+  | { kind: 'odd'; hue: number; delta: number; count: number; oddIdx: number });
+
+// ── Why we're looking: a new little story every round ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const SENSE_STORIES = [
+  'The rainbow fairy is collecting colors for her paint box.',
+  'The magpie wants something special for her nest.',
+  'Kailia\'s lantern is hungry for light!',
+  'The cave museum needs new treasures for the big show.',
+  'The baby owl is practicing spotting things in the dark.',
+  'The wizard needs just the right things for a spell.',
+  'A gust of wind blew the treasures all around the cave!',
+  'The crystal cave is having a treasure hunt!',
+  'The fox wants to decorate her cozy den.',
+  'The bats are playing a looking game.',
+  'The cave queen lost something special.',
+  'The cave elves are tidying up before bedtime.',
+  'The glow worms want to build a sparkly tower.',
+  'Grandpa mole needs help, because his eyes are tired.',
+];
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -80,10 +100,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function buildHunt(level: number, tiny: boolean): Round {
+function buildHunt(level: number, tiny: boolean, avoid?: string): Round {
   const ch = chapterFor(level).n;
   const step = (level - 1) % LEVELS_PER_CHAPTER;
-  const pool = HUNTS.filter(h => h.fromChapter <= Math.min(ch, 3));
+  const all = HUNTS.filter(h => h.fromChapter <= Math.min(ch, 3));
+  // never the same hunt twice in a row
+  const pool = all.filter(h => h.target !== avoid).length ? all.filter(h => h.target !== avoid) : all;
   const hunt = pool[Math.floor(Math.random() * pool.length)];
   const want = Math.min(5, (tiny ? 2 : 3) + Math.floor(ch / 2));
   const total = Math.min(14, (tiny ? 6 : 8) + step + ch);
@@ -203,15 +225,22 @@ export default function SenseExplorerPage() {
 
   const announce = useCallback((r: Round | undefined) => {
     if (!r) return;
+    const pre = r.story ? `${r.story} ` : '';
     const line = r.kind === 'hunt' ? r.hunt.prompt : 'One crystal is a little bit different. Can you spot it?';
-    setNoelLine(line);
+    setNoelLine(pre + line);
     setNoelMood('happy');
-    speak(r.kind === 'hunt' ? r.hunt.say : 'One crystal is a little bit different. Can you spot it?');
+    speak(pre + (r.kind === 'hunt' ? r.hunt.say : 'One crystal is a little bit different. Can you spot it?'));
   }, []);
 
+  const lastHunt = useRef<string | undefined>(undefined);
   const begin = useCallback(() => {
-    const rs: Round[] = Array.from({ length: ROUNDS_PER_LEVEL }, (_, i) =>
-      (i % 2 === (level % 2)) ? buildOdd(level, tiny) : buildHunt(level, tiny));
+    const stories = levelStories(SENSE_STORIES, 'sensory', level, ROUNDS_PER_LEVEL);
+    const rs: Round[] = [];
+    for (let i = 0; i < ROUNDS_PER_LEVEL; i++) {
+      const r = (i % 2 === (level % 2)) ? buildOdd(level, tiny) : buildHunt(level, tiny, lastHunt.current);
+      if (r.kind === 'hunt') lastHunt.current = r.hunt.target;
+      rs.push({ ...r, story: stories[i] });
+    }
     setRounds(rs); setRIdx(0);
     setCaught(new Set()); setTries(0); setRoundDone(false); setWobble(null);
     setKailiaX(34); setPetX(60); setLit(0);

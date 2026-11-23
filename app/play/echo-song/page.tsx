@@ -11,6 +11,8 @@ import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { difficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { endlessRamp } from '@/lib/levels';
+import { levelStory } from '@/lib/variety';
 import { soundEnabled } from '@/lib/accessibility';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
@@ -69,6 +71,23 @@ function besideSpot(x: number, k: number, gap = 17) {
   return Math.abs(left - x) < Math.abs(right - x) ? left : right;
 }
 
+// ── Who the song is for: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const SONGS: { line: string; done: string }[] = [
+  { line: 'The sleepy bats want a lullaby. Let\'s sing it back to them!', done: 'The bats are snoozing upside down.' },
+  { line: 'A baby crystal wants to learn the grown-up song!', done: 'The baby crystal is glowing with pride!' },
+  { line: 'The cave frogs are having a singing contest!', done: 'Ribbit! You won the singing contest!' },
+  { line: 'Grandma Echo forgot her favorite tune. Let\'s remind her!', done: 'Grandma Echo is humming along!' },
+  { line: 'The glow worms want a song to dance to!', done: 'The glow worms are wiggling and dancing!' },
+  { line: 'The water drops are playing music. Let\'s join in!', done: 'Drip, drop! What a band!' },
+  { line: 'The cave is saying good night. Let\'s sing it back!', done: 'Good night, sleepy cave!' },
+  { line: 'A little lost echo is looking for its song.', done: 'The little echo found its song!' },
+  { line: 'The crystals are practicing for the big cave concert!', done: 'The crystals are ready for the concert!' },
+  { line: 'A shy cave mouse wants to hear a happy song.', done: 'The cave mouse is smiling!' },
+  { line: 'The rocks are rumbling. A song will calm them down!', done: 'Shhh. The rocks are calm and quiet.' },
+  { line: 'The cave fish want a song for their swim party!', done: 'Splash! The fish are swimming in circles!' },
+];
+
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
@@ -105,10 +124,15 @@ export default function EchoSongPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
   useEffect(() => { setLevel(nextGameLevel('echo-song')); const timers = timersRef; return () => timers.current.forEach(clearTimeout); }, []);
 
+  // the song grows a note each early level, then a note every three
+  // levels, and the crystals sing a little faster every level, so levels
+  // keep getting harder long after the song is long
   const seqLen = useCallback((lvl: number) => {
     const base = tier === 'tiny' ? 2 : tier === 'small' ? 2 : 3;
-    return Math.min(base + (lvl - 1), 8);
+    const cap = tier === 'tiny' ? 6 : tier === 'small' ? 8 : 10;
+    return Math.min(cap, lvl <= 4 ? base + lvl - 1 : base + 3 + Math.floor((lvl - 4) / 3));
   }, [tier]);
+  const story = levelStory(SONGS, 'echo-song', level);
 
   const sing = useCallback((c: number, d?: number) => {
     setLit(c); setRingKey(k => k + 1); tone(CRYSTALS[c].tone, d);
@@ -122,7 +146,7 @@ export default function EchoSongPage() {
     timersRef.current = [];
     // Kailia and the friend step back to the middle of the floor to listen
     setKailiaX(42); setPetX(60);
-    const gap = tier === 'big' ? 620 : 780;
+    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14));
     s.forEach((c, i) => {
       timersRef.current.push(setTimeout(() => sing(c), 500 + i * gap));
       timersRef.current.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.6));
@@ -132,10 +156,16 @@ export default function EchoSongPage() {
       setNoelLine('Your turn — echo the song!');
       setNoelMood('excited');
     }, 500 + s.length * gap + 200));
-  }, [tier, sing]);
+  }, [tier, sing, level]);
 
   const startLevel = useCallback((lvl: number) => {
-    const s = Array.from({ length: seqLen(lvl) }, () => Math.floor(Math.random() * 4));
+    // a fresh song: never the same crystal three times in a row
+    const s: number[] = [];
+    while (s.length < seqLen(lvl)) {
+      const c = Math.floor(Math.random() * 4);
+      if (s.length >= 2 && s[s.length - 1] === c && s[s.length - 2] === c) continue;
+      s.push(c);
+    }
     statsRef.current = { attempts: 0, replays: 0, startedAt: Date.now() };
     setSeq(s);
     setSlips(0); setHintOn(false);
@@ -178,7 +208,7 @@ export default function EchoSongPage() {
         recordGameLevel('echo-song', level);
         setEarned(stars);
         setPhase('cheer');
-        setNoelLine('You sang the whole song! Listen to the cave ring!');
+        setNoelLine(`You sang the whole song! ${story.done}`);
         setNoelMood('celebrating');
         setKailiaHop(n => n + 1);
         setPetMood('cheer');
@@ -249,7 +279,7 @@ export default function EchoSongPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #164e63 50%, #082f49 100%)', accent: '#22D3EE', accent2: '#0891B2' }}
               pet={pet}
               story={<><p>
-                Deep in Echo Caves, the <strong>crystals sing</strong>!
+                Deep in Echo Caves, the <strong>crystals sing</strong>! {story.line}
               </p>
               <p>
                 Listen to their little song… then <strong>echo it back</strong> by tapping the

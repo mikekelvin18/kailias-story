@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
@@ -12,6 +12,7 @@ import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
+import { levelStories, randInt, roundRandom } from '@/lib/variety';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
@@ -36,14 +37,54 @@ interface RoundCfg {
   speed: number;   // drift speed, px/s
   jitter: number;  // random direction changes (zippy round)
   mode: 'tap' | 'drag';
+  done?: string;   // the round's happy ending
 }
 
-const ROUNDS: RoundCfg[] = [
+const BASE_ROUNDS: RoundCfg[] = [
   { label: 'Sleepy fireflies',  noel: 'Tap the fireflies gently to catch them!',                      count: 5, r: 34, speed: 26, jitter: 0,  mode: 'tap' },
   { label: 'Playful fireflies', noel: 'Ooh, these ones like to wander — follow the glow!',            count: 6, r: 26, speed: 55, jitter: 0,  mode: 'tap' },
   { label: 'Zippy fireflies',   noel: 'Whoa, speedy ones! Watch closely and tap right on them!',      count: 6, r: 20, speed: 92, jitter: 70, mode: 'tap' },
   { label: 'Carry them home',   noel: 'These sleepy ones need a ride. Drag each one into the lantern!', count: 4, r: 30, speed: 0, jitter: 0, mode: 'drag' },
 ];
+
+// ── Why Kailia needs the fireflies tonight: a new little story every round ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const NIGHTS: { line: string; done: string }[] = [
+  { line: 'The old owl wants to read a bedtime story. Let\'s light her lamp!', done: 'Now the owl can read her story!' },
+  { line: 'A little bunny is lost in the dark. Let\'s light the way home!', done: 'The bunny found her way home!' },
+  { line: 'The village is having a night party. Let\'s fill the lanterns!', done: 'The party lanterns are glowing!' },
+  { line: 'The baby frog is scared of the dark. Let\'s make his pond glow!', done: 'The baby frog is smiling now!' },
+  { line: 'The squirrel dropped her acorns in the dark. Let\'s light up the forest floor!', done: 'She found every acorn!' },
+  { line: 'The moon is hiding behind the clouds. Let\'s make our own moonlight!', done: 'What a bright, glowing night!' },
+  { line: 'The deer family is going for a night walk. Let\'s light their path!', done: 'The deer family is walking safely!' },
+  { line: 'The little hedgehog wants a night light for his bedroom.', done: 'Sweet dreams, little hedgehog!' },
+  { line: 'The bees want to see their flowers at night!', done: 'The flowers are twinkling for the bees!' },
+  { line: 'It\'s the koala\'s birthday! Let\'s make a glowing birthday cake.', done: 'Happy birthday, koala!' },
+  { line: 'The swan wants to dance on a sparkly lake!', done: 'The swan is dancing in the light!' },
+  { line: 'Let\'s draw a twinkly picture in the sky!', done: 'What a beautiful sky picture!' },
+  { line: 'The raccoon is building a fort and needs some light!', done: 'The raccoon\'s fort is glowing!' },
+  { line: 'The butterflies are having a sleepover. Let\'s light their tent!', done: 'Good night, butterflies!' },
+];
+
+// The level's rounds: how many fireflies, where the "carry them home"
+// round falls, and the story of each round, all changing level to level.
+function planFor(level: number): RoundCfg[] {
+  const L = Math.max(1, level);
+  const nights = levelStories(NIGHTS, 'firefly-catch', L, 4);
+  const taps = BASE_ROUNDS.filter(r => r.mode === 'tap');
+  const drag = BASE_ROUNDS.find(r => r.mode === 'drag')!;
+  const rand = roundRandom('firefly-catch:plan', L);
+  // early levels end with the carry round; later the carry round can come
+  // anywhere after the first
+  const dragAt = L <= 3 ? 3 : randInt(rand, 1, 3);
+  const order: RoundCfg[] = [...taps];
+  order.splice(dragAt, 0, drag);
+  return order.map((r, i) => {
+    const extra = r.mode === 'drag' ? Math.floor((L - 1) / 4) : Math.floor((L - 1) / 3);
+    const count = Math.min(r.mode === 'drag' ? 7 : 12, r.count + extra + randInt(rand, 0, 1));
+    return { ...r, count, noel: `${nights[i].line} ${r.noel}`, done: nights[i].done };
+  });
+}
 
 const PRAISE = [
   'Amazing catching!', 'The forest is getting brighter!', 'Wow, quick fingers!',
@@ -101,7 +142,8 @@ export default function FireflyCatchPage() {
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('firefly-catch')); }, []);
   const [roundIdx, setRoundIdx] = useState(0);
-  const [cfg, setCfg] = useState<RoundCfg>(ROUNDS[0]);
+  const ROUNDS = useMemo(() => planFor(level), [level]);
+  const [cfg, setCfg] = useState<RoundCfg>(BASE_ROUNDS[0]);
   const [fireflies, setFireflies] = useState<Firefly[]>([]);
   const [homing, setHoming] = useState<Homing[]>([]);
   const [gulp, setGulp] = useState(0);
@@ -117,7 +159,7 @@ export default function FireflyCatchPage() {
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const { layer: burstLayer, fire } = useBursts();
   const [totalCaught, setTotalCaught] = useState(0);
-  const [noelLine, setNoelLine] = useState(ROUNDS[0].noel);
+  const [noelLine, setNoelLine] = useState(BASE_ROUNDS[0].noel);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
   const [praise, setPraise] = useState(PRAISE[0]);
 
@@ -191,7 +233,7 @@ export default function FireflyCatchPage() {
     setNoelLine(round.noel);
     setNoelMood('excited');
     setPhase('playing');
-  }, [tuning, level]);
+  }, [tuning, level, ROUNDS]);
 
   function startGame() {
     metricsRef.current = { tapOffsets: [], catchMs: [], misses: 0, dragRatios: [], dropOffsets: [], startedAt: Date.now() };
@@ -237,10 +279,10 @@ export default function FireflyCatchPage() {
     if (phase !== 'playing' || fireflies.length === 0) return;
     if (fireflies.every(f => f.caught)) {
       setPhase('roundDone');
-      setPraise(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+      setPraise(cfg.done ?? PRAISE[Math.floor(Math.random() * PRAISE.length)]);
       setNoelMood('celebrating');
     }
-  }, [fireflies, phase]);
+  }, [fireflies, phase, cfg.done]);
 
   // ── Advance to the next round (or finish) ──
   // Kept separate from detection so the timer survives the phase change.
@@ -269,7 +311,7 @@ export default function FireflyCatchPage() {
     recordGameLevel('firefly-catch', level);
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
-  }, [phase, roundIdx, startRound, level]);
+  }, [phase, roundIdx, startRound, level, ROUNDS.length]);
 
   // ── The friend plays along ──
   // While fireflies drift, the friend scampers along the ground after

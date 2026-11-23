@@ -39,13 +39,17 @@ export const DOMAIN: Record<ChType, string> = { count: 'math', memory: 'processi
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 
-export function makeChallenge(i: number, tier: string): Challenge {
+// `level` (optional) makes the riddles grow: bigger groups to count and
+// more friends to remember as levels climb (Kelvin 2026-11-23: levels
+// must really get harder, not repeat).
+export function makeChallenge(i: number, tier: string, level = 1): Challenge {
+  const grow = Math.max(0, Math.floor((level - 1) / 4));
   const types: ChType[] = tier === 'tiny' ? ['count', 'color', 'memory', 'feeling'] : ['count', 'memory', 'word', 'color', 'feeling'];
   const type = types[i % types.length];
   const creature = pick(CREATURES[type]);
 
   if (type === 'count') {
-    const max = tier === 'tiny' ? 4 : tier === 'small' ? 6 : 9;
+    const max = Math.min(tier === 'tiny' ? 6 : 12, (tier === 'tiny' ? 4 : tier === 'small' ? 6 : 9) + grow);
     const n = 2 + Math.floor(Math.random() * (max - 1));
     let wrong = n + pick([-1, 1, 2]); if (wrong < 1 || wrong === n) wrong = n + 1;
     let wrong2 = n + pick([-2, 2, 3]); if (wrong2 < 1 || wrong2 === n || wrong2 === wrong) wrong2 = n + 3;
@@ -54,7 +58,7 @@ export function makeChallenge(i: number, tier: string): Challenge {
   }
 
   if (type === 'memory') {
-    const castSize = tier === 'big' ? 4 : 3;
+    const castSize = Math.min(tier === 'tiny' ? 3 : 6, (tier === 'big' ? 4 : 3) + Math.floor(grow / 2));
     const others = shuffle(ALL_CREATURES.filter(c => c !== creature)).slice(0, castSize - 1);
     const full = shuffle([creature, ...others]);
     const hiddenIdx = Math.floor(Math.random() * full.length);

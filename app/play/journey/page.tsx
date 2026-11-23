@@ -1,6 +1,7 @@
 'use client';
 
 import { testHook } from '@/lib/testHooks';
+import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -151,7 +152,7 @@ function buildWorld(tier: string, level: number) {
   encounterIdx.forEach((idx, i) => {
     const p = path[idx];
     grid[p.y][p.x] = 'tallgrass';
-    encounters[key(p)] = { challenge: makeChallenge(i, tier), solved: false };
+    encounters[key(p)] = { challenge: makeChallenge(i + level, tier, level), solved: false };
   });
 
   const goal = path[path.length - 1];
@@ -225,6 +226,21 @@ function bfsPath(start: Pt, goal: Pt, grid: TileType[][]): Pt[] | null {
   return path;
 }
 
+
+// ── Why Kailia is walking today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const JOURNEYS = [
+  'The wild friends are gathering for a big parade at the flag!',
+  'A storm is coming, and the wild friends need a safe place to stay.',
+  'The flag marks a secret picnic spot. Let\'s bring friends!',
+  'The wild friends want to see the fireworks from the flag.',
+  'Kailia is building a team for the big friendship race.',
+  'The flag is where the treasure map ends!',
+  'The wild friends are lost after a windy night. Let\'s bring them home!',
+  'Tonight is the campfire story party at the flag.',
+  'The wild friends want to make a giant sandcastle together.',
+  'A new baby animal was born at the flag. Let\'s say hello!',
+];
 
 export default function JourneyPage() {
   const { state, totalScore, devMonths } = useAssessment();
@@ -527,7 +543,7 @@ export default function JourneyPage() {
                   theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #334155 0%, #1e293b 50%, #0f172a 100%)', accent: '#38BDF8', accent2: '#0284C7' }}
                   pet={playPet}
                   story={<>
-                    <p>A brand-new world stretches ahead!</p>
+                    <p>A brand-new world stretches ahead! {levelStory(JOURNEYS, 'journey', level)}</p>
                     <p>
                       Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
                       anywhere on the map to walk there! Step into patches of <strong>tall grass</strong> to meet

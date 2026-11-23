@@ -111,6 +111,12 @@ export interface SayOptions {
   pitch?: number;
   /** who is talking: a pet friend's name ("Shelly"). Omitted = Noel. */
   voice?: string;
+  /**
+   * who asked for the line ("read-aloud" = NoelVoice reading a card). Lets a
+   * reader stop only its own line: closing the story card must not cut off
+   * the line the game itself just started ("The baby dragons are hungry…").
+   */
+  owner?: string;
 }
 
 // ── The pet friends' own voices ──
@@ -237,7 +243,14 @@ export function unlockVoice() {
     }
   } catch { /* ignore */ }
   // the waiting line plays right here, inside the tap, which is what wakes the player
-  if (w) { say(w.text, w.opts); return; }
+  if (w && !w.opts.owner) { say(w.text, w.opts); return; }
+  // a story card's line: the tap may be "Play", which closes the card. Wake the
+  // player with silence now and read the card a moment later only if it is
+  // still open, so the child never hears two words and a cut.
+  if (w) {
+    replay = w;
+    setTimeout(() => { if (replay === w) { replay = null; say(w.text, w.opts); } }, 260);
+  }
   try {
     // only when nothing is playing: a silent clip must never cut Noel off
     player = player ?? new Audio();
@@ -253,6 +266,7 @@ export function unlockVoice() {
 function stopClip() {
   if (!player) return;
   player.onended = null; player.onerror = null;
+  if (player.src === SILENCE) return; // the wake-up clip is silent; let it finish waking the player
   try { player.pause(); } catch { /* ignore */ }
 }
 
@@ -265,6 +279,7 @@ function playClips(files: string[], gen: number, fallback: () => void, base = '/
     if (gen !== generation) return;
     if (i >= files.length) { setTalking(false); return; }
     audio.src = `${base}/${files[i++]}`;
+    audio.dataset.owner = lineOwner ?? ''; // whose line this is (scripts/voice-check.mjs reads it)
     audio.volume = masterVolume();
     audio.onended = () => setTimeout(next, 140); // a small breath between sentences
     audio.onerror = () => { if (gen === generation) fallback(); };
@@ -287,10 +302,15 @@ function playClips(files: string[], gen: number, fallback: () => void, base = '/
  * one before, so two lines never talk over each other.
  */
 let lastLine: { text: string; opts: SayOptions } | null = null;
+let lineOwner: string | null = null;
+/** a story card's line waiting to be read just after the first tap (see unlockVoice) */
+let replay: { text: string; opts: SayOptions } | null = null;
 
 export function say(text: string, opts: SayOptions = {}) {
   if (typeof window === 'undefined') return;
   lastLine = { text, opts };
+  lineOwner = opts.owner ?? null;
+  replay = null;
   try {
     // Recorded lines must play even where the browser has no speech
     // engine or no voices at all (Muse's test browser said "This device
@@ -390,9 +410,15 @@ export function sayLine(text: string, opts: SayOptions & { force?: boolean } = {
   say(text, opts);
 }
 
+/** Stop the current line only if `owner` started it (a newer line from a game keeps playing). */
+export function hushOwn(owner: string) {
+  if (lineOwner === owner) hush();
+}
+
 export function hush() {
   generation++;
   waiting = null;
+  replay = null;
   stopClip();
   try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
   setTalking(false);

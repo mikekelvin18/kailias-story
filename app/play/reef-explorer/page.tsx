@@ -1,5 +1,6 @@
 'use client';
 
+import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -35,6 +36,26 @@ type Trait = 'body' | 'pattern' | 'ink' | 'count' | 'fin';
 interface Fish { id: number; look: Look; x: number; y: number; vx: number; bob: number; target: boolean; diff: Trait | null }
 
 const FINDS_PER_LEVEL = 5;
+
+// ── Why each fish is being looked for: a new little story every find ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const REEF_STORIES = [
+  'Mama fish is looking for her baby. Help her find him!',
+  'This fish is late for school!',
+  'It\'s this little fish\'s birthday. Let\'s find her for the party!',
+  'The crab wants to give this fish a present.',
+  'This fish is playing hide and seek. Ready or not!',
+  'The sea turtle needs this fish to help carry shells.',
+  'This fish forgot her lunch at home!',
+  'The octopus wants to teach this fish a dance.',
+  'This fish is the star of tonight\'s bubble show!',
+  'Grandpa whale is telling a story. This fish doesn\'t want to miss it!',
+  'This fish lost his way in the dark reef.',
+  'The seahorses are racing, and this fish is the winner!',
+  'This fish is sleepy and wants to go home to bed.',
+  'The starfish found a pearl for this fish!',
+  'A little fish is collecting bubbles. Can you find him?',
+];
 const BODIES = ['#FB7185', '#FACC15', '#38BDF8', '#84CC16', '#A78BFA', '#FB923C'];
 const INKS = ['#FFFFFF', '#1E3A8A', '#3b2416'];
 const FINS = ['#F472B6', '#22D3EE', '#FDE68A', '#86EFAC'];
@@ -174,10 +195,11 @@ export default function ReefExplorerPage() {
     setPetX(36);
     roundMisses.current = 0;
     roundStart.current = performance.now();
-    setNoelLine(idx === 0 ? 'Shine your light and find the fish that looks just like this one!' : 'Another friend is hiding. Can you find this one?');
+    const story = levelStories(REEF_STORIES, 'reef-explorer', level, FINDS_PER_LEVEL)[idx];
+    setNoelLine(`${story} ${idx === 0 ? 'Shine your light and find the fish that looks just like this one!' : 'Can you find this one?'}`);
     setNoelMood('excited');
     setPhase('playing');
-  }, [plan.band, plan.fish, plan.speed]);
+  }, [plan.band, plan.fish, plan.speed, level]);
 
   function startGame() {
     metrics.current = { firstTry: 0, misses: 0, findMs: [], startedAt: Date.now() };

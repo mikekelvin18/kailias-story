@@ -187,6 +187,61 @@ def shape_ending(audio: np.ndarray, sr: int, how: str, amount: float = 1.0) -> n
     return y
 
 
+def smooth_f0(f0: np.ndarray) -> np.ndarray:
+    """Clean the pitch track before resynthesis. The pitch finder sometimes
+    jumps an octave for a frame or two on a high, breathy voice, and each
+    jump comes out as a click or crackle. Snap those back to their
+    neighbours and soften frame-to-frame wobble."""
+    f0 = f0.copy()
+    v = np.where(f0 > 0)[0]
+    if len(v) < 5:
+        return f0
+    vals = f0[v]
+    k = 3
+    pad = np.pad(vals, k, mode='edge')
+    med = np.array([np.median(pad[i:i + 2 * k + 1]) for i in range(len(vals))])
+    ratio = vals / med
+    vals = np.where((ratio > 1.4) | (ratio < 0.7), med, vals)   # octave glitches
+    sm = np.convolve(np.pad(vals, 1, mode='edge'), [0.25, 0.5, 0.25], 'valid')
+    f0[v] = sm
+    return f0
+
+
+def pet_voice(audio: np.ndarray, sr: int, amount: float, lift: float, how: str, ends: float) -> np.ndarray:
+    """The pets' cheerful intonation and sentence ending in ONE resynthesis
+    with a cleaned pitch track. (They used to go through the vocoder twice,
+    once for liveliness and once for the ending, with the raw pitch track;
+    Kelvin heard that as crackling, 2026-11-22.)"""
+    import pyworld as pw
+    x = audio.astype(np.float64)
+    f0, t = pw.harvest(x, sr, f0_floor=70, f0_ceil=600)
+    f0 = smooth_f0(f0)
+    sp = pw.cheaptrick(x, f0, t, sr); ap = pw.d4c(x, f0, t, sr)
+    v = f0 > 0
+    if v.sum() > 5:
+        lf = np.log(f0[v]); med = np.median(lf)
+        f0[v] = np.exp(med + (lf - med) * amount) * lift
+    voiced = np.where(v)[0]
+    if how != 'plain' and ends > 0 and len(voiced) >= 8:
+        first, last = voiced[0], voiced[-1]
+        pos = np.clip((np.arange(len(f0)) - first) / max(1, last - first), 0, 1)
+        if how == 'excited':
+            factor = 1 + 0.20 * ends * np.clip((pos - 0.62) / 0.38, 0, 1) ** 1.6
+        elif how == 'ask':
+            factor = 1 + 0.26 * ends * np.clip((pos - 0.72) / 0.28, 0, 1) ** 1.4
+        else:
+            factor = 1 - 0.14 * ends * np.clip((pos - 0.45) / 0.55, 0, 1)
+        f0 = f0 * factor
+    f0 = np.where(v, np.clip(f0, 70, 600), 0)
+    y = pw.synthesize(f0, sp, ap, sr)[:len(x)].astype(np.float32)
+    if how == 'sad':       # a touch slower, like a little sigh
+        with tempfile.NamedTemporaryFile(suffix='.wav') as a, tempfile.NamedTemporaryFile(suffix='.wav') as b:
+            sf.write(a.name, y, sr)
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', a.name, '-af', 'atempo=0.93', b.name], check=True)
+            y, _ = sf.read(b.name, dtype='float32')
+    return y
+
+
 def tidy(audio: np.ndarray, sr: int) -> np.ndarray:
     """Trim long silence at the ends, even out loudness, keep peaks safe."""
     level = np.abs(audio)
@@ -226,16 +281,16 @@ def main():
             try: os.remove(f'{OUT}/{manifest[key]}')
             except FileNotFoundError: pass
         audio, sr = k.create(phonemes(k, spoken(sentence)), voice=style, speed=SPEED, is_phonemes=True)
-        if CFG['lively']:
+        if CFG.get('ends'):          # a pet friend: one clean pass (no crackle)
+            audio = pet_voice(audio, sr, CFG['lively'], CFG.get('lift', 1.06), mood(sentence), CFG['ends'])
+        elif CFG['lively']:          # Noel: as Kelvin picked him (take 1)
             audio = expressive(audio, sr, CFG['lively'], CFG.get('lift', 1.06))
-        if CFG.get('ends'):
-            audio = shape_ending(audio, sr, mood(sentence), CFG['ends'])
         audio = tidy(audio, sr)
         with tempfile.NamedTemporaryFile(suffix='.wav') as wav:
             sf.write(wav.name, audio, sr)
             lift = ['-af', f"rubberband=pitch={CFG['pitch']}:formant=shifted"] if CFG['pitch'] != 1.0 else []
             subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', wav.name, *lift, '-ac', '1', '-ar', '24000',
-                            '-codec:a', 'libmp3lame', '-b:a', '48k', f'{OUT}/{name}'], check=True)
+                            '-codec:a', 'libmp3lame', '-b:a', '64k' if CFG.get('ends') else '48k', f'{OUT}/{name}'], check=True)
         manifest[key] = name
         made += 1
         if made % 50 == 0:
