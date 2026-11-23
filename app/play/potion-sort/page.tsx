@@ -14,6 +14,7 @@ import { soundEnabled } from '@/lib/accessibility';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import { audioCtx, sfxOut } from '@/lib/sfx';
@@ -43,28 +44,30 @@ const COLORS = [
   { key: 'orange', hex: '#F97316', dark: '#C2410C' },
 ];
 
-interface RoundCfg { colors: string[]; fallMs: number; spawnMs: number; bottles: number; noel: string; done: string }
+interface RoundCfg { colors: string[]; fallMs: number; spawnMs: number; bottles: number; noel: string; done: string; who: StoryWho }
 
 // ── Who the potions are for: a little story every round ──
 // (Kelvin 2026-11-23: every round its own story.) Dealt fairly from this
 // deck (lib/variety.ts): all are brewed once before any comes back.
-const ORDERS: { line: string; done: string }[] = [
-  { line: 'The old owl has the hiccups! Let\'s brew a hiccup cure.', done: 'Hic... all better! The owl says thank you.' },
-  { line: 'The garden flowers are thirsty. Let\'s make a growing potion!', done: 'The flowers are growing tall!' },
-  { line: 'A baby dragon caught a sniffly cold. Time for a warm-up potion!', done: 'Achoo! The baby dragon feels cozy now.' },
-  { line: 'The moon is too dim tonight. Let\'s brew a moonshine potion!', done: 'The moon is glowing bright again!' },
-  { line: 'The frog wants to jump higher. Let\'s make a bouncy potion!', done: 'Boing! The frog jumps over the tower!' },
-  { line: 'The bunny is too sleepy to play. Let\'s mix a wake-up potion!', done: 'The bunny is hopping around again!' },
-  { line: 'The rainbow lost its colors. Let\'s sort a rainbow potion!', done: 'The rainbow is bright again!' },
-  { line: 'The squirrel\'s tail lost its fluff. Let\'s brew a fluffy potion!', done: 'What a fluffy tail!' },
-  { line: 'The village is having a party! Let\'s make a bubble potion.', done: 'Bubbles everywhere! What a party.' },
-  { line: 'The owl\'s books flew off the shelf. Let\'s make a tidy-up potion!', done: 'Every book is back on its shelf!' },
-  { line: 'The deer wants to see in the dark. Let\'s brew a glow potion!', done: 'The deer is glowing like a star!' },
-  { line: 'The snowman is melting! Quick, a cool-down potion!', done: 'Brrr! The snowman is frosty again.' },
-  { line: 'The bees are too tired to make honey. Let\'s mix a buzzy potion!', done: 'Buzz, buzz! The bees are busy again.' },
-  { line: 'A star fell into the garden. Let\'s brew a flying potion to send it home!', done: 'Whoosh! The star is back in the sky.' },
-  { line: 'The hedgehog wants to be soft for hugs. Let\'s make a cuddly potion!', done: 'Aww! The softest hug ever.' },
-  { line: 'The swan lost her singing voice. Let\'s brew a song potion!', done: 'La la la! The swan is singing again.' },
+// Every order names a friend who really stands in the tower while you brew
+// (Kelvin 2026-11-23: a story's friend must be on screen), see StoryGuest.
+const ORDERS: { line: string; done: string; who: StoryWho }[] = [
+  { line: 'The koala has the hiccups! Let\'s brew a hiccup cure.', done: 'Hic... all better! The koala says thank you.', who: 'koala' },
+  { line: 'The bee\'s flowers are thirsty. Let\'s make a growing potion!', done: 'The flowers are growing tall!', who: 'bee' },
+  { line: 'A baby dragon caught a sniffly cold. Time for a warm-up potion!', done: 'Achoo! The baby dragon feels cozy now.', who: 'dragon' },
+  { line: 'The butterfly\'s wings lost their sparkle. Let\'s brew a shiny potion!', done: 'Her wings are sparkling again!', who: 'butterfly' },
+  { line: 'The frog wants to jump higher. Let\'s make a bouncy potion!', done: 'Boing! The frog jumps over the tower!', who: 'frog' },
+  { line: 'The bunny is too sleepy to play. Let\'s mix a wake-up potion!', done: 'The bunny is hopping around again!', who: 'rabbit' },
+  { line: 'The peacock\'s feathers lost their colors. Let\'s sort a rainbow potion!', done: 'Her feathers are bright again!', who: 'peacock' },
+  { line: 'The squirrel\'s tail lost its fluff. Let\'s brew a fluffy potion!', done: 'What a fluffy tail!', who: 'squirrel' },
+  { line: 'The parrots are having a party! Let\'s make a bubble potion.', done: 'Bubbles everywhere! What a party.', who: 'parrot' },
+  { line: 'The raccoon\'s books flew off the shelf. Let\'s make a tidy-up potion!', done: 'Every book is back on its shelf!', who: 'raccoon' },
+  { line: 'The deer wants to see in the dark. Let\'s brew a glow potion!', done: 'The deer is glowing like a star!', who: 'deer' },
+  { line: 'The hedgehog is too hot in the sun. Quick, a cool-down potion!', done: 'Brrr! The hedgehog feels cool again.', who: 'hedgehog' },
+  { line: 'The bees are too tired to make honey. Let\'s mix a buzzy potion!', done: 'Buzz, buzz! The bees are busy again.', who: 'bee' },
+  { line: 'The swan lost her singing voice. Let\'s brew a song potion!', done: 'La la la! The swan is singing again.', who: 'swan' },
+  { line: 'The koala wants to be extra cuddly. Let\'s make a cuddly potion!', done: 'Aww! The softest hug ever.', who: 'koala' },
+  { line: 'The rabbit wants to fly like a bird. Let\'s brew a flying potion!', done: 'Whoosh! The rabbit is floating!', who: 'rabbit' },
 ];
 
 // The level curve: more bottles, faster falls and more colors each
@@ -91,6 +94,7 @@ function planRounds(level: number): RoundCfg[] {
       bottles: Math.min(18, 6 + Math.floor((L - 1) / 2) + r),
       noel: `${stories[r].line} ${instr}`,
       done: stories[r].done,
+      who: stories[r].who,
     };
   });
 }
@@ -512,6 +516,7 @@ export default function PotionSortPage() {
             );
           })}
 
+          <StoryGuest who={ROUNDS[roundIdx]?.who} x={92} y={GROUND} size={46} z={11} cheer={phase === 'roundDone'} />
           <KailiaActor x={kailiaAt} y={GROUND} h={68} hop={kailiaHop} z={12} />
           <div data-pet>
             <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 0.5} h={50}

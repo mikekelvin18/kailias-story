@@ -134,17 +134,17 @@ function shuffle<T>(arr: T[]): T[] {
 // ── Where the signposts lead today: a new little story every level ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
 const PATHS = [
-  'Today the signposts lead to Grandma Owl\'s cozy library.',
+  'Today the signposts lead to the cozy library.',
   'Today the signposts lead to a secret waterfall.',
-  'Today the signposts lead to the bunny\'s birthday party!',
+  'Today the signposts lead to a birthday party in the meadow!',
   'Today the signposts lead to the treasure cave.',
   'Today the signposts lead to the village bakery. Yum!',
   'Today the signposts lead to the rainbow bridge.',
-  'Today the signposts lead to the friendly giant\'s garden.',
-  'Today the signposts lead to the beach, where the turtles are hatching!',
+  'Today the signposts lead to the giant pumpkin garden.',
+  'Today the signposts lead to the beach, where the seashells sparkle!',
   'Today the signposts lead to the top of the tallest tree.',
   'Today the signposts lead to the fair, with a big spinning wheel!',
-  'Today the signposts lead to the dragon\'s playground.',
+  'Today the signposts lead to the playground on the hill.',
   'Today the signposts lead to the moonlit pond.',
 ];
 

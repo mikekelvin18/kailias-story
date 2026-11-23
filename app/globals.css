@@ -785,6 +785,15 @@ button:active {
   100% { transform: translate(0, 0) scale(0.3); opacity: 0; }
 }
 .ff-home { animation: ff-home 0.7s cubic-bezier(.5,0,.6,1) forwards; }
+/* Firefly Catch carry round: a ghost firefly shows the way to the lamp (--fx/--fy = lamp offset) */
+@keyframes ff-guide {
+  0%   { transform: translate(0, 0) scale(0.9); opacity: 0; }
+  12%  { opacity: 0.85; }
+  80%  { transform: translate(var(--fx), var(--fy)) scale(0.75); opacity: 0.85; }
+  100% { transform: translate(var(--fx), var(--fy)) scale(0.4); opacity: 0; }
+}
+.ff-guide { animation: ff-guide 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .ff-guide { animation: none; opacity: 0.6; } }
 @keyframes lantern-swing { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
 .lantern-swing { animation: lantern-swing 2.6s ease-in-out infinite; transform-origin: 50% 0; }
 @keyframes lantern-gulp { 0% { transform: scale(1); } 35% { transform: scale(1.18, 0.88); } 70% { transform: scale(0.94, 1.08); } 100% { transform: scale(1); } }

@@ -294,15 +294,15 @@ function drawScenery(ctx: CanvasRenderingContext2D, lv: Level, t: number) {
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
 const MAZE_STORIES = [
   'Ooh, the fireflies lost their way!',
-  'The baby bunny is waiting at the flag with a surprise!',
+  'A surprise is waiting at the flag!',
   'Kailia is racing to the flag before the sun goes down!',
   'The flag marks the spot where the treasure is buried!',
-  'A friendly giant dropped his lunch at the flag. Let\'s bring it back!',
+  'Noel left his lunch at the flag. Let\'s go get it!',
   'The fireflies are having a party at the flag tonight!',
-  'Noel is waiting at the flag with a big bamboo cake.',
+  'There\'s a big bamboo cake for Noel at the flag!',
   'The flag is the finish line of the forest race!',
   'The wind blew Kailia\'s hat all the way to the flag!',
-  'A lost kitten is meowing by the flag. Let\'s go help!',
+  'Kailia hears a happy song coming from the flag!',
   'The stars fell into the maze. Let\'s collect them on the way!',
 ];
 
