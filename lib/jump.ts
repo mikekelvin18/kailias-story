@@ -16,6 +16,7 @@
 import { CHILD_DATA_KEYS } from './family';
 import { LANDS } from './adventure';
 import { COMPANIONS } from './rewards';
+import { LADDERS, MILESTONE_DOMAINS, type Evidence } from './milestones';
 
 export const JUMP_CHILD_ID = 'child-jump';
 /** The outside reviewers' test child (/go/review): made once, then reused by
@@ -224,7 +225,8 @@ export function applyJump(plan: JumpPlan) {
       assessmentType: 'checklist', assessmentCompleted: true, sensoryCompleted: true,
       scores: { reading: s, writing: s, communication: s, math: s },
       sensoryScores: { lowRegistration: 0, seeking: 0, sensitive: 0, avoiding: 0 },
-      fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null, evidence: {},
+      fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null,
+      evidence: Object.keys(plan.levels).length ? {} : onTrackAnswers(m),
     }));
   }
 
@@ -333,4 +335,21 @@ function setCalm(ls: Storage, calm: boolean | null) {
     const a = JSON.parse(ls.getItem('kailia_a11y_v1') ?? '{}');
     ls.setItem('kailia_a11y_v1', JSON.stringify({ ...a, calmMode: calm }));
   } catch { /* ignore */ }
+}
+
+/** A believable check-up for the made-up child: the questions up to their
+ *  age answered yes, the year above it a mix, so the results and progress
+ *  pages read like a real on-track child ("about 6 to 6½ years, at or
+ *  above their age"), not "10–12 years" (Muse and Grok, round 6). */
+function onTrackAnswers(ageMonths: number): Partial<Record<string, Evidence[]>> {
+  const out: Partial<Record<string, Evidence[]>> = {};
+  for (const d of MILESTONE_DOMAINS) {
+    if (d === 'processing') continue;
+    const near = LADDERS[d].filter(it => it.months >= ageMonths - 24 && it.months <= ageMonths + 12);
+    out[d] = near.map((it, i) => ({
+      id: it.id, months: it.months, kind: 'parent' as const,
+      r: it.months <= ageMonths ? 1 : it.months <= ageMonths + 6 ? (i % 2 ? 1 : 0.5) : 0,
+    }));
+  }
+  return out;
 }
