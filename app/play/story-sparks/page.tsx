@@ -8,7 +8,9 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import Stage from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
@@ -209,6 +211,7 @@ function Pic({ s, size }: { s: string[]; size: number }) {
 
 export default function StorySparksPage() {
   const [level, setLevel] = useState(1);
+  const fit = useGameFit('story-sparks');
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
   const [beatIdx, setBeatIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);        // randomize option order
@@ -228,7 +231,9 @@ export default function StorySparksPage() {
   const [sillyThisBeat, setSillyThisBeat] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
 
-  useEffect(() => { setLevel(nextGameLevel('story-sparks')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('story-sparks', fit.startLevel)); }, [fit.startLevel]);
 
   // the stories are dealt like cards: every tale is told before any comes back
   const story = STORIES[dealIndex(STORIES.length, 'story-sparks', level - 1)];
@@ -276,7 +281,7 @@ export default function StorySparksPage() {
             level, beats: story.beats.length, sillyPicks: s.silly, totalMs: Date.now() - s.startedAt,
           });
           awardStarlight(levelStarlight(level, s.silly));
-          recordGameLevel('story-sparks', level);
+          recordGameLevel('story-sparks', level, roundEase(s.silly, story.beats.length));
           sfx.fanfare();
           setPhase('levelDone');
         }
@@ -347,7 +352,7 @@ export default function StorySparksPage() {
                 next, and the tale comes back to life!
               </p></>}
               extras={<div className="flex items-end justify-center gap-3"><span className="mb-2 float inline-block" style={{ animationDelay: '0.5s' }}><Book size={50} /></span></div>}
-              levels={<LevelPath gameId="story-sparks" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="story-sparks" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Open &ldquo;{story.title}&rdquo;</>}
               onStart={startLevel}
               footer={<SkillIntro gameId="story-sparks" />}
@@ -451,7 +456,7 @@ export default function StorySparksPage() {
             message={<>The story lives again! &ldquo;{story.title}&rdquo; is back on the Story Keepers&apos; shelf.</>}
             earned={levelStarlight(level, statsRef.current.silly)}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next story <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('story-sparks', level)); setPhase('intro'); }}>Next story <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

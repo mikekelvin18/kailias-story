@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
@@ -119,8 +119,8 @@ const SCENE_H = 1.27;
 const GROUND_Y = 97; // feet line, % of the whole scene
 
 export default function FireflyTrailsPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('firefly-trails');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'watch' | 'trace' | 'shine' | 'done'>('intro');
@@ -157,7 +157,10 @@ export default function FireflyTrailsPage() {
   const lastLitRef = useRef(0);
   const prevPtRef = useRef<{ x: number; y: number } | null>(null); // last finger spot in this stroke
 
-  useEffect(() => { setLevel(nextGameLevel('firefly-trails')); return () => timersRef.current.forEach(clearTimeout); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('firefly-trails', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { return () => timersRef.current.forEach(clearTimeout); }, []);
 
   const shape = useMemo(() => skyFor(level), [level]);
   const sky = levelStory(SKY_STORIES, 'firefly-trails:story', level);
@@ -168,7 +171,8 @@ export default function FireflyTrailsPage() {
   // generous enough for small fingers on a phone (22px at the top tier made
   // a slow, careful trace miss dots and never finish; Muse review 2026-11-18)
   // and it narrows a little every few levels for steadier hands
-  const tolerance = (tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30) - Math.min(tier === 'tiny' ? 4 : 8, Math.floor((level - 1) / 4));
+  // (never under 24px, and wider for younger age bands: lib/ageBands.ts)
+  const tolerance = Math.max(24, Math.max(tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30, fit.look.pathTolerance) - Math.min(tier === 'tiny' ? 4 : 8, Math.floor((level - 1) / 4)));
 
   const startLevel = useCallback(() => {
     const pts = skyPoints(shape);
@@ -339,7 +343,7 @@ export default function FireflyTrailsPage() {
         peeks, totalMs: Date.now() - s.startedAt,
       });
       awardStarlight(levelStarlight(level, peeks));
-      recordGameLevel('firefly-trails', level);
+      recordGameLevel('firefly-trails', level, roundEase(peeks, 3));
       sfx.fanfare();
       // the whole picture lights up and everyone celebrates before the finale
       /* eslint-disable react-hooks/set-state-in-effect -- the finished picture shines for a moment */
@@ -399,7 +403,7 @@ export default function FireflyTrailsPage() {
                 {mode === 'memory' && <> Tonight is tricky: the trail <strong>fades</strong>, so remember it!</>}
               </p></>}
               extras={<div className="flex items-end justify-center gap-3"><span className="self-start mt-2 fg-bob inline-block"><GlowBug size={40} seed={3} /></span></div>}
-              levels={<LevelPath gameId="firefly-trails" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="firefly-trails" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<><ShapeGlyph kind={shape.kind} turn={shape.turn} mirror={shape.mirror} size={40} /> <span className="whitespace-nowrap">Level {level}: {shape.name}</span></>}
               onStart={startLevel}
               footer={<SkillIntro gameId="firefly-trails" />}
@@ -513,7 +517,7 @@ export default function FireflyTrailsPage() {
             message={<>{shape.name} shines again! {mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}</>}
             earned={stars}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('firefly-trails', level); setLevel(nl); setPhase('intro'); }}>{nextLabel('firefly-trails', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

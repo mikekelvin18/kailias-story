@@ -7,9 +7,10 @@ import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -73,18 +74,19 @@ const ORDERS: { line: string; done: string; who: StoryWho }[] = [
 // The level curve: more bottles, faster falls and more colors each
 // level, with every round of a level a little busier than the last. Which
 // colors show up (and the order of the cauldrons) changes level to level.
-function planRounds(level: number): RoundCfg[] {
+function planRounds(level: number, maxChoices = 4, tapToMove = false): RoundCfg[] {
   const L = Math.max(1, level);
   const n = L <= 2 ? 3 : 4;
   const stories = levelStories(ORDERS, 'potion-sort', L, 4);
   const palette = seededShuffle(COLORS.map(c => c.key), roundRandom('potion-sort:colors', L));
   const pace = endlessRamp(L, 1, 0.5, 14);           // 1 → slower, 0.5 → twice as fast
-  const maxColors = L <= 6 ? 3 : 4;
+  // never more cauldrons than the age band's choices (under 3: 2, 3–4: 3)
+  const maxColors = Math.min(Math.max(2, maxChoices), L <= 6 ? 3 : 4);
   const counts = Array.from({ length: n }, (_, r) => Math.min(maxColors, 2 + Math.floor((L - 1) / 4) + (r >= Math.max(1, n - 2) ? 1 : 0)));
   return Array.from({ length: n }, (_, r) => {
     const colorCount = counts[r];
     const f = pace * (1 - r * 0.07);
-    const instr = r === 0 ? 'Drag each potion into the cauldron with the SAME color!'
+    const instr = r === 0 ? (tapToMove ? 'Tap a potion, then tap the cauldron with the SAME color!' : 'Drag each potion into the cauldron with the SAME color!')
       : colorCount > counts[r - 1] ? 'A new color joined the shelf. Keep those cauldrons matching!'
         : r === n - 1 ? 'Last batch! Quick hands, matching colors!' : 'Faster potions! Quick hands, matching colors!';
     return {
@@ -136,11 +138,16 @@ const sfx = {
 };
 
 export default function PotionSortPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
+  const fit = useGameFit('potion-sort');
+  // falls slower for younger age bands, a little quicker from 9 (lib/ageBands.ts)
+  const bandPace = Math.min(2.2, 1 / fit.look.speed);
+  const tuning = { fall: Math.max(TIER_TUNING[fit.tier].fall, bandPace), spawn: Math.max(TIER_TUNING[fit.tier].spawn, bandPace) };
+  if (fit.band === 'older') { tuning.fall = bandPace; tuning.spawn = bandPace; }
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('potion-sort')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('potion-sort', fit.startLevel)); }, [fit.startLevel]);
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [ROUNDS, setRounds] = useState<RoundCfg[]>(() => planRounds(1));
@@ -194,7 +201,7 @@ export default function PotionSortPage() {
     setCombo(0);
     setKailiaX(30); setPetX(62);
     sfx.round();
-    const rs = planRounds(level);
+    const rs = planRounds(level, fit.look.maxChoices, fit.look.tapToMove);
     setRounds(rs);
     startRound(0, rs);
   }
@@ -314,7 +321,7 @@ export default function PotionSortPage() {
     const light = levelStarlight(level, m.missed);
     awardStarlight(light);
     setEarned(light);
-    recordGameLevel('potion-sort', level);
+    recordGameLevel('potion-sort', level, roundEase(m.missed + m.wrong, m.correct + m.missed + m.wrong));
     const t = setTimeout(() => setPhase('done'), 1600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -355,6 +362,9 @@ export default function PotionSortPage() {
     const zoneIdx = Math.min(zoneCount - 1, Math.max(0, Math.floor(p.x / zoneW)));
     const bottle = bottles.find(b => b.id === drag.id);
     if (!bottle) return;
+    // little ones (age bands under 5, lib/ageBands.ts): tap a potion, then tap
+    // its cauldron; a tap up high keeps holding the potion, no dragging needed
+    if (fit.look.tapToMove && !inZoneY) { dragRef.current = drag; return; }
 
     if (inZoneY) {
       const targetColor = activeColors()[zoneIdx].key;
@@ -428,12 +438,12 @@ export default function PotionSortPage() {
         <strong> same color</strong> before it lands. Kailia will stir them in!</p>}
       extras={
         <div className="flex justify-center items-end gap-3">
-          {planRounds(level).at(-1)!.colors.map(k => COLORS.find(c => c.key === k)!).map((c, i) => (
+          {planRounds(level, fit.look.maxChoices, fit.look.tapToMove).at(-1)!.colors.map(k => COLORS.find(c => c.key === k)!).map((c, i) => (
             <span key={c.key} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}><PotionBottle color={c.hex} size={38} /></span>
           ))}
         </div>
       }
-      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} />}
+      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
       startLabel={<>Play level {level}</>}
       onStart={() => { setPhase('playing'); startGame(); }}
       footer={<SkillIntro gameId="potion-sort" />}
@@ -449,7 +459,7 @@ export default function PotionSortPage() {
       message={<>Every cauldron is bubbling. {pet.name} is doing a potion dance!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('potion-sort', level)); setPhase('intro'); }}>{nextLabel('potion-sort', level)} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

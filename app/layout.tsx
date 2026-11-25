@@ -4,6 +4,7 @@ import './globals.css';
 import { AssessmentProvider } from '@/context/AssessmentContext';
 import AccessibilityProvider from '@/components/AccessibilityProvider';
 import PaintKit from '@/components/art/PaintKit';
+import BigKidLook from '@/components/BigKidLook';
 import SoundStart from '@/components/SoundStart';
 import GameMusic from '@/components/GameMusic';
 import TapToStart from '@/components/TapToStart';
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <AccessibilityProvider />
         <PaintKit />
+        <BigKidLook />
         <SoundStart />
         <AssessmentProvider>
           {children}

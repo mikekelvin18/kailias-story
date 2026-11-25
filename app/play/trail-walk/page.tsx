@@ -3,14 +3,14 @@
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
@@ -44,8 +44,8 @@ const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 // level folded into the picked index so each walk's mix of challenge
 // types rotates from level to level, then delegates to the shared,
 // picture-matches-question generator used by both Journey and Trail.
-function makeChallenge(i: number, tier: string, level: number): Challenge {
-  return makeChallengeBase(i + level, tier, level);
+function makeChallenge(i: number, tier: string, level: number, months?: number | null): Challenge {
+  return makeChallengeBase(i + level, tier, level, months);
 }
 
 const nameOf = (creature: string) => CREATURE_NAME[creature] ?? 'friend';
@@ -95,8 +95,8 @@ const TRAILS = [
 ];
 
 export default function TrailWalkPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('trail-walk');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'walking' | 'challenge' | 'memoryShow' | 'done'>('intro');
@@ -135,7 +135,9 @@ export default function TrailWalkPage() {
     return () => ro.disconnect();
   }, [inScene]);
 
-  useEffect(() => { setLevel(nextGameLevel('trail-walk')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('trail-walk', fit.startLevel)); }, [fit.startLevel]);
 
   const scenery = useMemo(() => {
     const worldW = (STOPS + 1) * SEG + 600;
@@ -158,7 +160,7 @@ export default function TrailWalkPage() {
   }, [level, sceneW]);
 
   const startWalk = useCallback(() => {
-    challengesRef.current = Array.from({ length: STOPS }, (_, i) => makeChallenge(i, tier, level));
+    challengesRef.current = Array.from({ length: STOPS }, (_, i) => makeChallenge(i, tier, level, fit.fitMonths));
     setStops(challengesRef.current);
     wrongsRef.current = 0; attemptsRef.current = 0; startedRef.current = Date.now();
     setParty([]);
@@ -169,7 +171,7 @@ export default function TrailWalkPage() {
     setAtFlag(false);
     setNoelLine("Off we go! Tap WALK and let's see who we meet!");
     setPhase('walking');
-  }, [tier, level]);
+  }, [tier, level, fit.fitMonths]);
 
   const walking = useRef(false);
   const [isWalking, setIsWalking] = useState(false);
@@ -203,7 +205,7 @@ export default function TrailWalkPage() {
       logQuestMetric('processing', 'trail-walk', { level, friends: STOPS, wrongAnswers: wrongsRef.current, totalMs });
       const stars = levelStarlight(level, wrongsRef.current);
       awardStarlight(stars);
-      recordGameLevel('trail-walk', level);
+      recordGameLevel('trail-walk', level, roundEase(wrongsRef.current, STOPS));
       setEarned(stars);
       setAtFlag(true);
       setNoelLine('We made it to the flag! Hooray!');
@@ -290,7 +292,7 @@ export default function TrailWalkPage() {
                 Walk with Kailia, meet the creatures along the way, and solve each one&apos;s little
                 riddle. Every solved friend <strong>joins your party</strong> until you reach the flag!
               </p></>}
-              levels={<LevelPath gameId="trail-walk" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="trail-walk" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<><span className="whitespace-nowrap">Start the walk!</span> <TrailFlag size={26} /></>}
               onStart={startWalk}
               footer={<SkillIntro gameId="trail-walk" />}
@@ -418,8 +420,8 @@ export default function TrailWalkPage() {
                 {challenge.display && (
                   <div className="mb-3 flex items-center justify-center flex-wrap gap-1">
                     {challenge.type === 'count'
-                      ? Array.from({ length: [...challenge.display.matchAll(/\p{Extended_Pictographic}️?/gu)].length }, (_, i) => (
-                          <Critter key={i} emoji={challenge.creature} size={36} animate={false} />
+                      ? Array.from(challenge.display.matchAll(/\p{Extended_Pictographic}️?/gu), (_, i) => (
+                          <Critter key={i} emoji={challenge.creature} size={challenge.display.length > 24 ? 30 : 36} animate={false} />
                         ))
                       : challenge.type === 'color'
                         ? <PaintDot emoji={challenge.display} size={56} />
@@ -456,7 +458,7 @@ export default function TrailWalkPage() {
             message={<>You reached the flag!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('trail-walk', level); setLevel(nl); setPhase('intro'); }}>{nextLabel('trail-walk', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />
