@@ -454,7 +454,7 @@ export default function TrailWalkPage() {
             theme={{ bg: 'linear-gradient(135deg, #0e7490, #15803d)', accent: '#4ADE80', accent2: '#15803D' }}
             pet={pet}
             trophy={<span className="inline-block mb-2"><TrailFlag size={80} raised /></span>}
-            message={<>You reached the flag!</>}
+            message={`You reached the flag!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

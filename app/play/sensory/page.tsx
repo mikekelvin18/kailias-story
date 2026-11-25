@@ -510,7 +510,7 @@ export default function SenseExplorerPage() {
             trophy={<span className="inline-flex items-end gap-1" style={{ filter: 'drop-shadow(0 0 16px rgba(165,243,252,0.9))' }}>
               <Crystal hue={190} size={40} /><Crystal hue={290} size={56} /><Crystal hue={330} size={40} />
             </span>}
-            message={<>Super-sharp {chapter.name} eyes! The caves are sparkling, and {pet.name} is dancing.</>}
+            message={`Super-sharp ${chapter.name} eyes! The caves are sparkling, and ${pet.name} is dancing.`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

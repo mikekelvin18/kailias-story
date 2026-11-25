@@ -448,7 +448,7 @@ export default function PotionSortPage() {
       theme={theme}
       pet={pet}
       trophy={<span className="inline-flex items-end gap-2">{COLORS.map(c => <PotionBottle key={c.key} color={c.hex} size={34} />)}</span>}
-      message={<>Every cauldron is bubbling. {pet.name} is doing a potion dance!</>}
+      message={`Every cauldron is bubbling. ${pet.name} is doing a potion dance!`}
       earned={earned}
       actions={<>
         <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

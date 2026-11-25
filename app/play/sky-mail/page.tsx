@@ -766,7 +766,7 @@ export default function SkyMailPage() {
             pet={pet}
             earned={earned}
             trophy={<Mailbox size={96} flagUp />}
-            message={<>Every letter in this bag found its mailbox. {availableDecks.length - doneDecks.length} more {availableDecks.length - doneDecks.length === 1 ? 'bag is' : 'bags are'} waiting!</>}
+            message={`Every letter in this bag found its mailbox. ${availableDecks.length - doneDecks.length} more ${availableDecks.length - doneDecks.length === 1 ? 'bag is' : 'bags are'} waiting!`}
             actions={<>
               <PlayButton theme={GOLD} onClick={backToShelf}>Next mailbag <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
@@ -784,7 +784,7 @@ export default function SkyMailPage() {
             pet={pet}
             earned={earned}
             trophy={<Mailbox size={96} flagUp />}
-            message={<>The wise owl hoots with joy — what a wind-fast sorter! {pet.name} is doing a happy dance!</>}
+            message={`The wise owl hoots with joy — what a wind-fast sorter! ${pet.name} is doing a happy dance!`}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setDoneDecks([]); setPhase('select'); }}>Play again!</PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>

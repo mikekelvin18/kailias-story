@@ -384,7 +384,7 @@ export default function EchoSongPage() {
                 </svg>
               ))}
             </span>}
-            message={<>A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</>}
+            message={`A ${seq.length}-note song, echoed back! The caves are ringing and ${pet.name} is dancing!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} <GoArrow /></PlayButton>

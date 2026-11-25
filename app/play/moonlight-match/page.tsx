@@ -441,7 +441,7 @@ export default function MoonlightMatchPage() {
             theme={{ bg: 'linear-gradient(135deg, #1e1b4b, #5b21b6)', accent: '#A78BFA', accent2: '#7C3AED' }}
             pet={pet}
             trophy={<span className="inline-block" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Shape kind="moon" size={84} /></span>}
-            message={<>Every friend found their twin under the moon. {pet.name} is doing a happy dance!{statsRef.current.bestStreak >= 2 && <><br />Best combo ×{statsRef.current.bestStreak}!</>}</>}
+            message={<>{`Every friend found their twin under the moon. ${pet.name} is doing a happy dance!`}{statsRef.current.bestStreak >= 2 && <><br />{`Best combo ×${statsRef.current.bestStreak}!`}</>}</>}
             earned={levelStarlight(level, statsRef.current.mismatches)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} <GoArrow /></PlayButton>

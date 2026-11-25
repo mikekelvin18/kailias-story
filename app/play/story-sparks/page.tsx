@@ -452,7 +452,7 @@ export default function StorySparksPage() {
             theme={{ bg: 'linear-gradient(135deg, #581c87, #9d174d)', accent: '#E879F9', accent2: '#A21CAF' }}
             pet={pet}
             trophy={<span className="inline-block" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Book size={92} open /></span>}
-            message={<>The story lives again! &ldquo;{story.title}&rdquo; is back on the Story Keepers&apos; shelf.</>}
+            message={`The story lives again! “${story.title}” is back on the Story Keepers’ shelf.`}
             earned={levelStarlight(level, statsRef.current.silly)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next story <GoArrow /></PlayButton>

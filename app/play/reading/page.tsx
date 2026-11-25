@@ -512,7 +512,7 @@ export default function WordWizardPage() {
             title={`Level ${level} complete!`}
             theme={{ bg: 'linear-gradient(135deg, #1e3a8a, #2563eb)', accent: '#60A5FA', accent2: '#2563EB' }}
             pet={pet}
-            message={<>{chapter.name} reader! Every signpost is glowing again.</>}
+            message={`${chapter.name} reader! Every signpost is glowing again.`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

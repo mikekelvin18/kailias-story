@@ -514,7 +514,7 @@ export default function FireflyTrailsPage() {
             title={`Level ${level} complete!`}
             theme={{ bg: 'linear-gradient(135deg, #0b2440, #14532d)', accent: '#A3E635', accent2: '#16A34A' }}
             pet={pet}
-            message={<>{shape.name} shines again! {mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}</>}
+            message={`${shape.name} shines again! ${mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}`}
             earned={stars}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

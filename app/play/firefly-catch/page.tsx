@@ -712,7 +712,7 @@ export default function FireflyCatchPage() {
             theme={{ bg: 'linear-gradient(135deg, #065f46, #0f766e)', accent: '#34D399', accent2: '#059669' }}
             pet={pet}
             trophy={<span className="inline-block"><Lantern glow={1} size={96} /></span>}
-            message={<>Every firefly made it home. {pet.name} is doing a happy dance!</>}
+            message={`Every firefly made it home. ${pet.name} is doing a happy dance!`}
             earned={levelStarlight(level, metricsRef.current.misses)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

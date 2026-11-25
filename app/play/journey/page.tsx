@@ -831,7 +831,7 @@ export default function JourneyPage() {
                 {party.filter(p => !p.startsWith(PET_TAG)).map((p, i) => <Critter key={i} emoji={p} size={40} />)}
               </div>
             </div>}
-            message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
+            message={`You crossed ${world.biome.name}! ${party.length - partyPets} new friends joined your journey.`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>

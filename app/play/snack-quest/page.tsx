@@ -859,7 +859,7 @@ export default function SnackQuestPage() {
             trophy={<span className="inline-block mb-2">
               <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 104)} kind="pet" />
             </span>}
-            message={<>The dragon is full and happy! {pet.name} is doing a happy dance!</>}
+            message={`The dragon is full and happy! ${pet.name} is doing a happy dance!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}>Level {level + 1} <GoArrow /></PlayButton>

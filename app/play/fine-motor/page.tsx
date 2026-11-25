@@ -847,7 +847,7 @@ export default function MazeRunnerPage() {
       theme={{ bg: 'radial-gradient(120% 80% at 50% 0%, #14532d 0%, #052e16 50%, #020510 100%)', accent: '#4ADE80', accent2: '#059669' }}
       pet={pet}
       story={<p>{levelStory(MAZE_STORIES, 'fine-motor', level)} Trace the glowing trail with your finger to the flag.
-        Stay off the walls, and grab every star! {pet.name} will run along with Kailia.</p>}
+        {`Stay off the walls, and grab every star! ${pet.name} will run along with Kailia.`}</p>}
       levels={<>
         <LevelPath gameId="fine-motor" level={level} onPick={setLevel} startLevel={fit.startLevel} />
         <p className="mt-3 text-sm font-bold text-green-200">
@@ -883,7 +883,7 @@ export default function MazeRunnerPage() {
           </div>}
         message={<>
           {bigWin ? `Level ${level} complete! Your very first quest: ${lv.name} conquered!` : `${lv.name} conquered! ${pet.name} is doing a happy dance.`}
-          <span className="block text-sm text-white/80 mt-1">{snapStars === 3 ? 'Every star! ' : ''}{chapter.name} path-finder!</span>
+          <span className="block text-sm text-white/80 mt-1">{`${snapStars === 3 ? 'Every star! ' : ''}${chapter.name} path-finder!`}</span>
           {showReassess && <div className="mt-3"><ReassessBanner onGo={()=>router.push('/assessment/games')} /></div>}
         </>}
         earned={earnedLight}

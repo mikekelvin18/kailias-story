@@ -428,7 +428,7 @@ export default function DragonBridgePage() {
       theme={theme}
       pet={pet}
       trophy={<div style={{ width: 120 }} className="mx-auto"><Chest gems={rounds.length} open /></div>}
-      message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
+      message={`The treasure chest is sparkling, ${chapter.name} bridge-builder!`}
       earned={earned}
       actions={<>
         <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>

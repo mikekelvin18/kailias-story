@@ -462,7 +462,7 @@ export default function ReefExplorerPage() {
             theme={{ bg: 'linear-gradient(135deg, #0B4F6C, #0E7490)', accent: '#67E8F9', accent2: '#0891B2' }}
             pet={pet}
             trophy={<span className="inline-flex gap-1">{found.slice(0, 3).map((l, i) => <FishArt key={i} look={l} size={56} flip={i === 1} />)}</span>}
-            message={<>You found every hiding friend. They want to swim with {pet.name}!</>}
+            message={`You found every hiding friend. They want to swim with ${pet.name}!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
