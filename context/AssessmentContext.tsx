@@ -106,10 +106,12 @@ const defaultState: AssessmentState = {
   placementRound: null,
 };
 
-function deriveAgeGroup(age: number): AgeGroup {
-  if (age === 0.5) return 'infant';
-  if (age === 1)   return 'toddler';
-  if (age <= 4)    return 'preschool';
+// Under 12 months, 12–23 months, 2–4 years, 5+ (from months when known).
+function deriveAgeGroup(age: number, months?: number | null): AgeGroup {
+  const m = months ?? (age === 0.5 ? 6 : age * 12);
+  if (m < 12) return 'infant';
+  if (m < 24) return 'toddler';
+  if (m < 60) return 'preschool';
   return 'schoolAge';
 }
 
@@ -271,7 +273,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   }, [state, loaded]);
 
   const setChildInfo = (name: string, age: number, ageMonths?: number) =>
-    setState(s => ({ ...s, childName: name, childAge: age, childAgeMonths: ageMonths ?? null, ageGroup: deriveAgeGroup(age) }));
+    setState(s => ({ ...s, childName: name, childAge: age, childAgeMonths: ageMonths ?? null, ageGroup: deriveAgeGroup(age, ageMonths) }));
 
   const setDomainEvidence = (domain: MilestoneDomain, evidence: Evidence[]) =>
     setState(s => ({ ...s, evidence: { ...s.evidence, [domain]: evidence } }));

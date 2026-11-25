@@ -16,10 +16,12 @@ import { Sparkle } from '@/components/scenery/SkyDecor';
 // The child's nickname and birth month/year come from the profile the
 // PARENT created in the Parent Zone (/family) after giving consent.
 
-function getGroupForAge(age: number) {
-  if (age === 0.5) return 'infant';
-  if (age === 1)   return 'toddler';
-  if (age <= 4)    return 'preschool';
+// Explicit boundaries by age in months (Grok round 6: a baby under 1 got
+// the wrong check-up): under 12 months, 12–23 months, 2–4 years, 5+.
+function getGroupForAge(months: number) {
+  if (months < 12) return 'infant';
+  if (months < 24) return 'toddler';
+  if (months < 60) return 'preschool';
   return 'schoolAge';
 }
 
@@ -40,7 +42,8 @@ export default function SetupPage() {
   useEffect(() => { setChild(activeChild()); setLoaded(true); }, []);
 
   const ageNum = child ? Math.min(childAgeYears(child), 12) : 0;
-  const group = child ? getGroupForAge(ageNum) : null;
+  const months = child ? ageInMonths(child.birthYear, child.birthMonth) : 0;
+  const group = child ? getGroupForAge(months) : null;
   const isYoung = group === 'infant' || group === 'toddler' || group === 'preschool';
   const willUseChecklist = isYoung || preferParent;
   const activeColor = group ? getColorForGroup(group) : '#7C3AED';
@@ -55,7 +58,7 @@ export default function SetupPage() {
 
   const pathLabel = () => {
     if (!group) return null;
-    if (group === 'infant')    return { icon: '📋', text: 'Parent Questionnaire — Infant (6–11 months)', note: 'You answer on behalf of your baby, then a few questions about their senses. About 6 minutes.', color: '#EC4899' };
+    if (group === 'infant')    return { icon: '📋', text: 'Parent Questionnaire — Baby (under 12 months)', note: 'You answer on behalf of your baby, then a few questions about their senses. About 6 minutes.', color: '#EC4899' };
     if (group === 'toddler')   return { icon: '📋', text: 'Parent Questionnaire — Toddler (12–23 months)', note: 'You answer on behalf of your toddler, then a few questions about their senses. About 6 minutes.', color: '#F97316' };
     if (group === 'preschool') return { icon: '📋', text: 'Parent Questionnaire — Preschool (2–4 years)', note: 'You answer for your child, then a few questions about their senses. About 7 minutes.', color: '#F59E0B' };
     if (preferParent)          return { icon: '📋', text: 'Parent Questionnaire — School Age (5–12 years)', note: 'You answer on behalf of your child, then a few questions about their senses.', color: '#059669' };
