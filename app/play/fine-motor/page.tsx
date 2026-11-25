@@ -209,7 +209,7 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=30;
 // The trace has to really follow the path: it starts on GO, picks up near
 // where Kailia stands after a lift, and only counts progress that moves
 // along the path a little at a time (no tapping the flag, no shortcuts
@@ -732,7 +732,7 @@ export default function MazeRunnerPage() {
 
     const dist=closestOnPath(p,pathRef.current);
     const ok=dist<=corridorRef.current;
-    if (ok) {
+    if (dist <= corridorRef.current * 1.7) { // on the path, or just cutting a corner
       // a quick swipe may cover a lot of path between two events; a jump
       // across a wall covers lots of path with very little finger movement
       const prev=charRef.current;
@@ -758,8 +758,10 @@ export default function MazeRunnerPage() {
     trailRef.current=[...trailRef.current,{x:p.x,y:p.y,ok}];
     charRef.current=p;
 
-    // Wall hit
-    if (!ok) {
+    // Wall hit. Cutting a corner a little (within most of a path width of
+    // the glow) is not a wall touch (Grok/Muse round 6: straight drags
+    // between corners kept hearing "Back to the glowing ring!").
+    if (!ok && dist > corridorRef.current * 1.7) {
       const now=Date.now();
       if (now-lastHitRef.current>HIT_CD) {
         lastHitRef.current=now;
@@ -791,8 +793,10 @@ export default function MazeRunnerPage() {
     // Reached end?
     const end=pathRef.current[pathRef.current.length-1];
     const coverage = coveredRef.current.size / Math.max(1, pathRef.current.length);
+    // Most of the path followed is a win: a cut corner never blocks the flag.
     if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
-        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.85)) {
+        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.6
+            || progressRef.current>=lengthRef.current*0.6)) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);
