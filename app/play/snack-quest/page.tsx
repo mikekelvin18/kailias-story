@@ -399,7 +399,7 @@ export default function SnackQuestPage() {
   }
 
   // ── Walking ──
-  function walkTo(target: Tile, stepMs = 70) {
+  function walkTo(target: Tile, stepMs = 55) {
     // Already on the way to a snack? Finish picking it up first, then go
     // (a quick tap on the dragon used to cancel the pickup).
     const dest = destRef.current;
@@ -843,7 +843,9 @@ export default function SnackQuestPage() {
               </div>
             </div>
             <p className="text-center text-sm font-semibold mt-2" style={{ color: skin.accent }}>
-              Tap anywhere to walk. Pick up {cfg.thing ? PLURAL[cfg.thing] : skin.itemName}, then bring them to the dragon!
+              {/* one piece of text, always this round's wish (Muse round 6), and
+                  it says Kailia can carry them all in one trip */}
+              <span data-snack-help>{`Tap anywhere to walk. Kailia can carry lots of ${cfg.thing ? PLURAL[cfg.thing] : skin.itemName} at once: pick them up, then bring them all to the dragon!`}</span>
             </p>
           </>
         )}
