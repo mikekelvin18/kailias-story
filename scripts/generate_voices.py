@@ -209,6 +209,16 @@ def finish(wav_in: Path, mp3_out: Path, rate: int, semitones: float = 0):
     ln = f"loudnorm=I={LOUDNESS['I']}:TP={LOUDNESS['TP']}:LRA={LOUDNESS['LRA']}"
     log = ffmpeg('-i', str(wav_in), '-af', f'{pre},{ln}:print_format=json', '-f', 'null', '-')
     measured = json.loads(log[log.rindex('{'):log.rindex('}') + 1])
+    mp3_out.parent.mkdir(parents=True, exist_ok=True)
+    if 'inf' in str(measured['input_i']):
+        # too short for a loudness reading (under 0.4 s, e.g. "Ta-da!"):
+        # bring its loudest point up to the same true-peak limit instead
+        vol = ffmpeg('-i', str(wav_in), '-af', f'{pre},volumedetect', '-f', 'null', '-')
+        peak = float(vol.split('max_volume:')[1].split('dB')[0])
+        gain = LOUDNESS['TP'] - peak
+        ffmpeg('-i', str(wav_in), '-af', f'{pre},volume={gain:.2f}dB', '-ac', '1', '-ar', '24000',
+               '-c:a', 'libmp3lame', '-b:a', '96k', str(mp3_out))
+        return
     second = (f"{ln}:measured_I={measured['input_i']}:measured_TP={measured['input_tp']}"
               f":measured_LRA={measured['input_lra']}:measured_thresh={measured['input_thresh']}"
               f":offset={measured['target_offset']}")
@@ -294,11 +304,19 @@ def chatterbox():
 def chatterbox_wav(text: str, ref: Path, cfg: dict, excited: bool, path: Path) -> int:
     import torchaudio as ta
     model = chatterbox()
-    wav = model.generate(
-        tts_text(text), audio_prompt_path=str(ref),
-        exaggeration=cfg['excited_exaggeration'] if excited else cfg['exaggeration'],
-        cfg_weight=cfg['cfg_weight'], temperature=cfg['temperature'],
-    )
+    # Chatterbox now and then returns silence for a very short cheer
+    # ("Wheee!"): try again a few times before giving up on the line
+    for attempt in range(4):
+        wav = model.generate(
+            tts_text(text), audio_prompt_path=str(ref),
+            exaggeration=cfg['excited_exaggeration'] if excited else cfg['exaggeration'],
+            cfg_weight=cfg['cfg_weight'], temperature=cfg['temperature'] + 0.05 * attempt,
+        )
+        if wav.numel() > model.sr * 0.25 and float(wav.abs().max()) > 0.02:
+            break
+        print(f'  (silent take, trying again)')
+    else:
+        raise RuntimeError(f'Chatterbox gave only silence for: {text}')
     ta.save(str(path), wav, model.sr)
     return model.sr
 

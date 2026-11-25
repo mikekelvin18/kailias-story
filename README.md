@@ -34,7 +34,7 @@ On your own computer instead (needs Python 3.10+ and ffmpeg):
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install kokoro-onnx soundfile numpy chatterbox-tts torchaudio
+pip install kokoro-onnx soundfile numpy chatterbox-tts torchaudio "setuptools<81"
 python3 scripts/generate_voices.py --dry-run      # what would be made
 python3 scripts/generate_voices.py                # make every new or changed line
 python3 scripts/generate_voices.py --ref-only     # only Kailia's reference clip (Kokoro, no GPU)

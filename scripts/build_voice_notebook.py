@@ -49,7 +49,7 @@ Everything runs in your own Colab. Nothing is sent to any voice company.
     code("""
 # 1. Check the GPU and install the free voice tools (Chatterbox, Kokoro)
 !nvidia-smi --query-gpu=name --format=csv,noheader || echo "No GPU: Runtime > Change runtime type > T4 GPU"
-!pip -q install chatterbox-tts kokoro-onnx soundfile
+!pip -q install chatterbox-tts kokoro-onnx soundfile "setuptools<81"
 !ffmpeg -version | head -1
 """),
     code(
