@@ -12,7 +12,7 @@ import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoAr
 import LevelPath from '@/components/LevelPath';
 import { shuffled } from '@/lib/shuffle';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
@@ -447,7 +447,7 @@ export default function MoonlightMatchPage() {
             message={<>Every friend found their twin under the moon. {pet.name} is doing a happy dance!{statsRef.current.bestStreak >= 2 && <><br />Best combo ×{statsRef.current.bestStreak}!</>}</>}
             earned={levelStarlight(level, statsRef.current.mismatches)}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('moonlight-match', level); setLevel(nl); startLevel(nl); }}>{nextLabel('moonlight-match', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

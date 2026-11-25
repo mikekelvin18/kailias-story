@@ -10,7 +10,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { endlessRamp } from '@/lib/levels';
 import { levelStory } from '@/lib/variety';
 import { soundEnabled } from '@/lib/accessibility';
@@ -386,7 +386,7 @@ export default function EchoSongPage() {
             message={<>A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('echo-song', level); setLevel(nl); startLevel(nl); }}>{nextLabel('echo-song', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

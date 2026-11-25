@@ -8,7 +8,7 @@ import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
-import { awardStarlight, recordGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, COMPANIONS, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak } from '@/lib/speak';
 import { chapterFor } from '@/lib/levels';
@@ -424,7 +424,7 @@ export default function DragonBridgePage() {
       message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('dragon-bridge', level)); setPhase('intro'); }}>{nextLabel('dragon-bridge', level)} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

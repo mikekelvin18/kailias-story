@@ -10,7 +10,7 @@ import { logQuestMetric } from '@/lib/metrics';
 import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import NightForestArt from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import { levelStories, randInt, roundRandom } from '@/lib/variety';
@@ -727,7 +727,7 @@ export default function FireflyCatchPage() {
             message={<>Every firefly made it home. {pet.name} is doing a happy dance!</>}
             earned={levelStarlight(level, metricsRef.current.misses)}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('firefly-catch', level)); setPhase('intro'); }}>{nextLabel('firefly-catch', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

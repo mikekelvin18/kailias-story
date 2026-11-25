@@ -11,7 +11,7 @@ import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
 import { makeChallenge, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import { COMPANIONS } from '@/lib/rewards';
@@ -825,7 +825,7 @@ export default function JourneyPage() {
             message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('journey', level); setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

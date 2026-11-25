@@ -17,7 +17,7 @@ import { logQuestMetric } from '@/lib/metrics';
 import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { reefPlan } from '@/lib/gameCurves';
-import { awardStarlight, levelStarlight, recordGameLevel } from '@/lib/rewards';
+import { awardStarlight, levelStarlight, recordGameLevel, levelAfter, nextLabel } from '@/lib/rewards';
 
 // ─── Reef Explorer (Coral Reef) ───────────────────────────────────────────────
 // Its own game, not a re-skin (Muse round 5): the reef is dark, and
@@ -454,7 +454,7 @@ export default function ReefExplorerPage() {
             message={<>You found every hiding friend. They want to swim with {pet.name}!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('reef-explorer', level)); setPhase('intro'); }}>{nextLabel('reef-explorer', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

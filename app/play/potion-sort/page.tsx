@@ -10,7 +10,7 @@ import { logQuestMetric } from '@/lib/metrics';
 import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -459,7 +459,7 @@ export default function PotionSortPage() {
       message={<>Every cauldron is bubbling. {pet.name} is doing a potion dance!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('potion-sort', level)); setPhase('intro'); }}>{nextLabel('potion-sort', level)} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

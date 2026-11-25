@@ -8,7 +8,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
 import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import Stage from '@/components/friends/kit/Stage';
@@ -456,7 +456,7 @@ export default function StorySparksPage() {
             message={<>The story lives again! &ldquo;{story.title}&rdquo; is back on the Story Keepers&apos; shelf.</>}
             earned={levelStarlight(level, statsRef.current.silly)}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next story <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('story-sparks', level)); setPhase('intro'); }}>Next story <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

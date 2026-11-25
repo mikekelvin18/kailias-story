@@ -11,7 +11,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
@@ -534,7 +534,7 @@ export default function WordWizardPage() {
             message={<>{chapter.name} reader! Every signpost is glowing again.</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('word-wizard', level)); setPhase('intro'); }}>{nextLabel('word-wizard', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />
