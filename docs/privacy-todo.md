@@ -26,7 +26,7 @@ call in `app/`, `components/`, `lib/`, and every child-reachable input.
 
 ### Still open (would break a rule, or might)
 
-1. **Wallet lab is in the build.** `@erc8426/*`, `viem` and `@upstash/redis` plus `/api/wallet-lab`, `/wallet-pass`, `/wallet-apple` ship in every build, though switched off (`WALLET_LAB_ENABLED`). Apple reviews Kids-category apps for anything crypto-related. Recommend leaving the wallet lab out of the phone-app build entirely.
+1. **Wallet lab is in the build.** `@erc8426/*`, `viem` and `@upstash/redis` plus `/api/wallet-lab`, `/wallet-pass`, `/wallet-apple` ship in every build, though switched off (`WALLET_LAB_ENABLED`). Apple reviews Kids-category apps for anything crypto-related. **Kelvin decided 2026-11-25: no crypto wallet** — leave the wallet lab out of the phone-app build entirely.
 2. **The Family page (Parent Zone) has no grown-up check.** A child can tap "Family" in the bottom bar and reach add-child, delete and settings. Not strictly required by the store rules (they cover purchases and outside links), but recommended. Decide: put `ParentGatePage` in front of `/family`?
 3. **The care pet's grown-up check is a simple addition sum** (`components/carepet/CarePet.tsx`), easy for a 6-year-old. Swap for the shared check.
 4. **No contact email** in `/privacy` or `SECURITY.md`. COPPA requires the operator's name and contact details in the policy.
@@ -36,7 +36,7 @@ call in `app/`, `components/`, `lib/`, and every child-reachable input.
 
 ## Questions for Kelvin (and the lawyer)
 
-1. **Who is the "operator"?** COPPA policies must name the company or person running the app, with a postal address, email and phone. Will you form a company (an LLC) before launch?
+1. **Who is the "operator"?** (Kelvin 2026-11-25: business name and contact email come when he registers the company; placeholders stay until then.) COPPA policies must name the company or person running the app, with a postal address, email and phone. Will you form a company (an LLC) before launch?
 2. **Consent method.** Today a parent ticks a box. Because child data never leaves the device, the lawyer may say this is enough. When accounts or sync arrive, consent needs a stronger check (for example a card check at purchase). Confirm with the lawyer.
 3. **Pro session notes** are free text about a child, which our own rules forbid. Should Pro notes be pick-from-a-list only, or allowed with a lawyer's sign-off?
 4. **Pro for therapists** means children's data on a server, possibly health information (HIPAA if clinics use it). Budget for the lawyer before building Pro.
