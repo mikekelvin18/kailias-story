@@ -279,14 +279,18 @@ export default function ActivityLibraryPage() {
               <h2 className={`text-lg font-extrabold ${theme.title}`}>📚 The Whole Library</h2>
               <button onClick={() => setShowLibrary(false)} className={`text-xs font-bold ${theme.link}`}>Hide ▴</button>
             </div>
-            <div className="flex gap-2 mb-3 justify-center">
+            {/* each shelf says who it's for (Muse round 6: "Band 1–4" alone
+                didn't tell a parent which one fits their child). These are
+                the shelves' typical ages, not an estimate of the child. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
               {([1, 2, 3, 4] as const).map(b => (
-                <button key={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
-                  className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
+                <button key={b} data-band={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
+                  className="min-h-[48px] px-3 py-1.5 rounded-2xl text-sm font-extrabold transition-all leading-tight"
                   style={band === b
                     ? { background: '#FBBF24', color: '#451a03' }
                     : { background: theme.badgeBg, color: bright ? '#4338CA' : '#e9d5ff', border: `1.5px solid ${theme.panelBorder}` }}>
-                  {BAND_INFO[b].emoji} Band {b}
+                  <span className="block">{`${BAND_INFO[b].emoji} ${BAND_INFO[b].name}`}</span>
+                  <span className="block text-xs font-bold opacity-80">{`For ${BAND_INFO[b].ages}`}</span>
                 </button>
               ))}
             </div>
