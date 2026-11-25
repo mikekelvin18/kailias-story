@@ -5,6 +5,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import { LockIcon, StarIcon } from '@/components/scenery/SkyDecor';
 import { Thing } from '@/components/art/things';
 import { useGameFit } from '@/hooks/useGameFit';
+import { nextGameLevel } from '@/lib/rewards';
 import { PLAY_TOGETHER_NOTE } from '@/lib/ageBands';
 import { LEVELS_PER_CHAPTER, MAX_LADDER_LEVEL, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
 
@@ -36,6 +37,7 @@ const SPOTS = [
 export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Props) {
   const [unlocked, setUnlocked] = useState(startLevel);
   const [beaten, setBeaten] = useState(0);
+  const [next, setNext] = useState(1); // this game's own next level (a reviewer's open levels aren't "beaten")
   const [page, setPage] = useState(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
   const fit = useGameFit(gameId);
   // grown-ups can open any level (Grok's review 2026-11-25): a sum first, so a child can't
@@ -51,6 +53,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
     /* eslint-disable react-hooks/set-state-in-effect */
     setUnlocked(unlockedUpTo(gameId, startLevel));
     setBeaten(highestBeaten(gameId));
+    setNext(nextGameLevel(gameId));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [gameId, startLevel]);
 
@@ -71,7 +74,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   // This game's own newest level: the one after the highest it has beaten
   // (Muse round 6: with every level open for reviewers it said "31" on
   // every game).
-  const newest = Math.max(startLevel, Math.min(unlocked, beaten + 1));
+  const newest = Math.max(startLevel, Math.min(unlocked, next));
   const newestPage = Math.floor((newest - 1) / LEVELS_PER_CHAPTER);
 
   return (

@@ -327,13 +327,7 @@ export default function EchoSongPage() {
                 </span>
               </div>
               {/* hear it again any time, no slip counted (Muse round 6) */}
-              {phase === 'echo' && progress === 0 && (
-                <button data-replay-song onClick={replaySong}
-                  className="absolute right-2 bottom-2 min-h-[48px] px-4 rounded-full text-base font-extrabold"
-                  style={{ zIndex: 14, background: 'rgba(255,255,255,0.92)', color: '#0c4a6e', boxShadow: '0 3px 0 rgba(0,0,0,0.25)' }}>
-                  ♪ Hear it again
-                </button>
-              )}
+
 
               {CRYSTALS.map((c, i) => {
                 const [x, y] = SPOTS[i];
@@ -380,6 +374,16 @@ export default function EchoSongPage() {
               {burstLayer}
             </div>
 
+            {/* hear it again any time before echoing, no slip counted (Muse round 6) */}
+            <div className="flex justify-center mt-3" style={{ minHeight: 48 }}>
+              {phase === 'echo' && progress === 0 && (
+                <button data-replay-song onClick={replaySong}
+                  className="min-h-[48px] px-5 rounded-full text-base font-extrabold"
+                  style={{ background: 'rgba(255,255,255,0.92)', color: '#0c4a6e', boxShadow: '0 3px 0 rgba(0,0,0,0.25)' }}>
+                  ♪ Hear the song again
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
