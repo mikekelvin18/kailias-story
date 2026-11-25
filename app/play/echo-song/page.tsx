@@ -41,6 +41,8 @@ const CRYSTALS = [
   { tone: 392, color: '#C084FC', light: '#E2C6FE', name: 'purple' },
   { tone: 523, color: '#FB923C', light: '#FEC79C', name: 'orange' },
 ];
+/** How high each crystal sings, for the note captions (lowest to highest). */
+const PITCH = ['low', 'middle', 'high', 'highest'];
 // where each crystal stands in the cave (centre x and base y, % of the scene):
 // two on ledges up high, two on rock pillars below
 const SPOTS: [number, number][] = [[27, 40], [73, 40], [27, 72], [73, 72]];
@@ -241,6 +243,14 @@ export default function EchoSongPage() {
     }
   }
 
+  // the song once more, before the child starts echoing (no slip counted)
+  function replaySong() {
+    if (phase !== 'echo' || posRef.current > 0) return;
+    statsRef.current.replays += 1;
+    setNoelLine('Listen again… then echo it!');
+    playSeq(seq);
+  }
+
   function tickle() {
     setPetMood('dance');
     timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300));
@@ -307,9 +317,21 @@ export default function EchoSongPage() {
               <div className="absolute left-0 right-0 top-2 flex justify-center pointer-events-none" style={{ zIndex: 12 }}>
                 <span className="px-4 py-1 rounded-full text-sm font-extrabold"
                   style={{ background: 'rgba(7,20,40,0.72)', border: '1.5px solid rgba(255,255,255,0.35)', color: phase === 'echo' ? '#A5F3FC' : '#FDE047' }}>
-                  {phase === 'showing' ? 'The crystals are singing…' : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
+                  {/* a caption for every note (Muse round 6, for children who hear
+                      differently): which crystal and how high it sings */}
+                  {phase === 'showing'
+                    ? (lit !== null ? <span data-note-caption>{`♪ ${CRYSTALS[lit].name}, ${PITCH[lit]} note`}</span> : 'The crystals are singing…')
+                    : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
                 </span>
               </div>
+              {/* hear it again any time, no slip counted (Muse round 6) */}
+              {phase === 'echo' && progress === 0 && (
+                <button data-replay-song onClick={replaySong}
+                  className="absolute right-2 bottom-2 min-h-[48px] px-4 rounded-full text-base font-extrabold"
+                  style={{ zIndex: 14, background: 'rgba(255,255,255,0.92)', color: '#0c4a6e', boxShadow: '0 3px 0 rgba(0,0,0,0.25)' }}>
+                  ♪ Hear it again
+                </button>
+              )}
 
               {CRYSTALS.map((c, i) => {
                 const [x, y] = SPOTS[i];
