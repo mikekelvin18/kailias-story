@@ -195,3 +195,13 @@ export function fitStartLevel(id: string, months: number | null | undefined): nu
   }
   return best;
 }
+
+// ── The free part (Kelvin, 2026-11-25) ──
+// Free = the first five levels AT THE CHILD'S OWN LEVEL, not levels 1–5:
+// an 8-year-old who starts on level 21 plays 21–25 free (and every easier
+// level below their start), then Plus. Use this when the level paywall is
+// switched on (lib/premium.ts PAYWALL_ENABLED).
+export const FREE_LEVELS = 5;
+export function isFreeLevel(level: number, startLevel: number): boolean {
+  return level < Math.max(1, startLevel) + FREE_LEVELS;
+}
