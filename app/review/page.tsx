@@ -21,9 +21,9 @@ const START: Item[] = [
   { href: '/go/review', label: 'Start here: the world map, everything open', note: 'A 6-year-old test child who finished the check-up. All lands, friends and levels are open.' },
   { href: '/go/home', label: 'Front page', note: 'What a new family sees first.' },
   { href: '/go/story', label: 'Story opening', note: 'The short animated story before the map.' },
-  { href: '/go/map', label: 'The map on day one', note: 'Only the first land open, like a brand new player.' },
-  { href: '/go/try', label: 'Try one game with no account', note: 'The try-before-sign-up path.' },
-  { href: '/go/setup', label: 'First check-up', note: 'The placement games a new child plays (signup already done).' },
+  { href: '/go/map', label: 'The map on day one (starts fresh)', note: 'Only the first land open, like a brand new player.' },
+  { href: '/go/try', label: 'Try one game with no account (starts fresh)', note: 'The try-before-sign-up path.' },
+  { href: '/go/setup', label: 'First check-up (starts fresh)', note: 'The placement games a new child plays (signup already done).' },
 ];
 
 const PET: Item[] = [
@@ -32,8 +32,8 @@ const PET: Item[] = [
   { href: '/go/pet-popup?pet=grown', label: 'Daily pet: grown pet' },
   { href: '/go/pet-popup?pet=little&task=play', label: 'Daily pet: a Play task' },
   { href: '/go/pet-popup?pet=little&task=care', label: 'Daily pet: a Care task' },
-  { href: '/go/new-friend', label: 'A new friend joins' },
-  { href: '/go/land-done', label: 'Land finished party' },
+  { href: '/go/new-friend', label: 'A new friend joins (starts fresh)' },
+  { href: '/go/land-done', label: 'Land finished party (starts fresh)' },
   { href: '/go/garden', label: "Kailia's Garden" },
   { href: '/go/friends', label: "Friends' adventures" },
   { href: '/go/friend/sage', label: "One friend's trail (Sage the owl)" },
@@ -46,8 +46,8 @@ const GROWN_UPS: Item[] = [
   { href: '/go/activities', label: 'Parent & Baby quests' },
   { href: '/go/printables', label: 'Printable worksheets' },
   { href: '/go/upgrade', label: 'Plus plan page' },
-  { href: '/go/map?age=2', label: 'The map for a 2-year-old' },
-  { href: '/go/daily-quests', label: "Today's grown-up quests (2-year-old)" },
+  { href: '/go/map?age=2', label: 'The map for a 2-year-old (starts fresh)' },
+  { href: '/go/daily-quests', label: "Today's grown-up quests, 2-year-old (starts fresh)" },
 ];
 
 const route = (href: string) => href.replace('/play/', '');
@@ -83,11 +83,12 @@ export default async function ReviewGuide() {
         </p>
         <p className="mt-2 text-base" style={{ color: '#4C1D95' }}>
           <b>No account or email needed.</b> Every link below makes a made-up test child called Robin on your own
-          device and opens straight on that screen. Nothing is sent to a server. Opening a link starts Robin fresh,
-          so you can jump around freely.
+          device and opens straight on that screen. Nothing is sent to a server. After you press Start, Robin keeps
+          their progress as you follow the links (every level of every game is open). Only the few links marked
+          &ldquo;starts fresh&rdquo; make a separate brand-new test child for that one screen.
         </p>
 
-        {/* full page load on purpose: the test child is set up fresh */}
+        {/* full page load on purpose: the test child is set up (once) */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/go/review" className="mt-5 block text-center rounded-2xl px-5 py-4 text-xl font-extrabold shadow"
           style={{ background: '#6D28D9', color: 'white' }}>
@@ -102,7 +103,8 @@ export default async function ReviewGuide() {
         <section className="mt-8">
           <h2 className="text-lg font-extrabold">Every game</h2>
           <p className="text-sm mt-1" style={{ color: '#5B21B6' }}>
-            Each opens on level 1. Change <b>?level=1</b> in the address to any number to jump to a harder level.
+            Each opens on level 1, and every level is open on the game&apos;s level map. Change <b>?level=1</b> in the
+            address to any number to jump straight to a harder level.
           </p>
           {lands.map(land => (
             <div key={land.id} className="mt-4">
@@ -125,7 +127,8 @@ export default async function ReviewGuide() {
         <section className="mt-8 rounded-2xl px-4 py-4" style={{ background: '#EDE9FE' }}>
           <h2 className="text-lg font-extrabold">Good to know</h2>
           <ul className="mt-2 list-disc pl-5 text-base grid gap-1" style={{ color: '#4C1D95' }}>
-            <li>Add <b>?age=3</b> to any link to play as a 3-year-old, or <b>?buddy=sage</b> to pick a different friend.</li>
+            <li>Add <b>?age=3</b> to any link to play as a 3-year-old (that starts fresh), or <b>?buddy=sage</b> to pick a different friend.</li>
+            <li>&ldquo;Tap to start&rdquo; shows once per browser session.</li>
             <li>Children never see scores, timers or a paywall. Results and plans are on grown-up pages only.</li>
             <li>Sound is on. Most lines are read aloud by Noel the panda.</li>
             <li>This is a test build. The real public site does not have these links.</li>
