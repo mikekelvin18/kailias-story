@@ -335,7 +335,7 @@ export default function FireflyCatchPage() {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < ROUNDS.length) {
       sfx.round();
-      const t = setTimeout(() => startRound(roundIdx + 1), 1700);
+      const t = setTimeout(() => startRound(roundIdx + 1), 2400);
       return () => clearTimeout(t);
     }
     // game finished — log the quiet metrics
@@ -544,7 +544,8 @@ export default function FireflyCatchPage() {
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Firefly Catch <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="flex justify-end gap-1 w-16">
+          <span className="flex items-center justify-end gap-1 min-w-16" role="img" aria-label={`Round ${Math.min(roundIdx + 1, ROUNDS.length)} of ${ROUNDS.length}`}>
+            {phase !== 'intro' && <span className="text-xs font-bold text-yellow-200 mr-1">{`Round ${Math.min(roundIdx + 1, ROUNDS.length)}/${ROUNDS.length}`}</span>}
             {Array.from({ length: ROUNDS.length }).map((_, i) => (
               <span key={i} className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: '#FDE047', boxShadow: '0 0 8px #FDE047', opacity: i <= roundIdx && phase !== 'intro' ? 1 : 0.25 }} />
             ))}
@@ -685,6 +686,11 @@ export default function FireflyCatchPage() {
                       ? <span className="inline-block kp-hop"><CritterSprite species={cfg.who} size={96} /></span>
                       : <PandaSprite size={90} expression="celebrating" />}
                     <p className="text-xl font-extrabold text-white drop-shadow mt-1">{praise}</p>
+                    {/* Muse round 6: a full round then "0/6" looked like nothing counted */}
+                    <p data-round-done className="mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-base font-extrabold"
+                      style={{ background: 'rgba(253,224,71,0.92)', color: '#3b2416' }}>
+                      {`Round ${roundIdx + 1} of ${ROUNDS.length} done! Next round coming…`}
+                    </p>
                   </div>
                 </div>
               )}
