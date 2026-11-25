@@ -1,5 +1,6 @@
 'use client';
 
+import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -13,9 +14,9 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, levelStarlight, nextGameLevel, recordGameLevel } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { reefPlan } from '@/lib/gameCurves';
+import { awardStarlight, levelStarlight, recordGameLevel } from '@/lib/rewards';
 
 // ─── Reef Explorer (Coral Reef) ───────────────────────────────────────────────
 // Its own game, not a re-skin (Muse round 5): the reef is dark, and
@@ -35,6 +36,26 @@ type Trait = 'body' | 'pattern' | 'ink' | 'count' | 'fin';
 interface Fish { id: number; look: Look; x: number; y: number; vx: number; bob: number; target: boolean; diff: Trait | null }
 
 const FINDS_PER_LEVEL = 5;
+
+// ── Why each fish is being looked for: a new little story every find ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const REEF_STORIES = [
+  'This baby fish swam away from home. Help find him!',
+  'This fish is late for school!',
+  'It\'s this little fish\'s birthday. Let\'s find her for the party!',
+  'This fish has a present to give. Let\'s find her!',
+  'This fish is playing hide and seek. Ready or not!',
+  'This fish is collecting shiny shells.',
+  'This fish forgot her lunch at home!',
+  'This fish is learning a brand-new dance!',
+  'This fish is the star of tonight\'s bubble show!',
+  'Story time is starting. This fish doesn\'t want to miss it!',
+  'This fish lost his way in the dark reef.',
+  'This fish just won the big race!',
+  'This fish is sleepy and wants to go home to bed.',
+  'This fish found a shiny pearl!',
+  'A little fish is collecting bubbles. Can you find him?',
+];
 const BODIES = ['#FB7185', '#FACC15', '#38BDF8', '#84CC16', '#A78BFA', '#FB923C'];
 const INKS = ['#FFFFFF', '#1E3A8A', '#3b2416'];
 const FINS = ['#F472B6', '#22D3EE', '#FDE68A', '#86EFAC'];
@@ -55,23 +76,8 @@ const other = <T,>(a: T[], not: T) => pick(a.filter(v => v !== not));
 const same = (a: Look, b: Look) => a.body === b.body && a.pattern === b.pattern && a.ink === b.ink && a.fin === b.fin
   && (a.pattern === 'plain' || a.pattern === 'zigzag' || a.count === b.count);
 
-interface Plan { fish: number; speed: number; light: number; dark: number; band: number; size: number }
-
-function planFor(level: number, tier: DifficultyTier): Plan {
-  const L = Math.max(1, level);
-  const band = L <= 5 ? 0 : L <= 10 ? 1 : L <= 15 ? 2 : 3;
-  const plan: Plan = {
-    fish: Math.min(9, 4 + Math.floor((L - 1) / 2)),
-    speed: Math.min(9, 2.5 + L * 0.25),
-    light: Math.max(14, 27 - L * 0.55),
-    dark: Math.min(0.93, 0.72 + L * 0.012),
-    band,
-    size: Math.max(52, 72 - L * 0.8),
-  };
-  if (tier === 'tiny') { plan.fish = Math.min(plan.fish, 4); plan.speed *= 0.5; plan.light += 8; plan.dark = Math.min(plan.dark, 0.62); plan.band = Math.min(band, 1); }
-  else if (tier === 'small') { plan.fish = Math.min(plan.fish, 6); plan.speed *= 0.8; plan.light += 4; plan.dark = Math.min(plan.dark, 0.82); plan.band = Math.min(band, 2); }
-  return plan;
-}
+// the level curve lives in lib/gameCurves.ts (checked against ages by scripts/age-fit.test.mjs)
+const planFor = reefPlan;
 
 function lookFor(band: number): Look {
   const pattern = band >= 3 ? pick(['stripes', 'spots'] as Pattern[]) : pick(PATTERNS);
@@ -112,12 +118,13 @@ const sfx = {
 const HAND = { x: 21, y: 119 };
 
 export default function ReefExplorerPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('reef-explorer');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'found' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('reef-explorer')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('reef-explorer', fit.startLevel)); }, [fit.startLevel]);
   const plan = useMemo(() => planFor(level, tier), [level, tier]);
   const [earned, setEarned] = useState(0);
 
@@ -141,6 +148,8 @@ export default function ReefExplorerPage() {
   const { layer: burstLayer, fire } = useBursts();
 
   const areaRef = useRef<HTMLDivElement>(null);
+  const sizeRef = useRef(plan.size);
+  useEffect(() => { sizeRef.current = plan.size; }, [plan.size]);
   const draggingRef = useRef(false);
   const nextId = useRef(1);
   const roundStart = useRef(0);
@@ -174,10 +183,11 @@ export default function ReefExplorerPage() {
     setPetX(36);
     roundMisses.current = 0;
     roundStart.current = performance.now();
-    setNoelLine(idx === 0 ? 'Shine your light and find the fish that looks just like this one!' : 'Another friend is hiding. Can you find this one?');
+    const story = levelStories(REEF_STORIES, 'reef-explorer', level, FINDS_PER_LEVEL)[idx];
+    setNoelLine(`${story} ${idx === 0 ? 'Shine your light and find the fish that looks just like this one!' : 'Can you find this one?'}`);
     setNoelMood('excited');
     setPhase('playing');
-  }, [plan.band, plan.fish, plan.speed]);
+  }, [plan.band, plan.fish, plan.speed, level]);
 
   function startGame() {
     metrics.current = { firstTry: 0, misses: 0, findMs: [], startedAt: Date.now() };
@@ -195,14 +205,29 @@ export default function ReefExplorerPage() {
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      setFish(prev => prev.map(f => {
-        if (f.id === foundIdRef.current) return f;
-        let { x, vx } = f;
-        x += vx * dt;
-        if (x > 90) { x = 90; vx = -Math.abs(vx); }
-        if (x < 10) { x = 10; vx = Math.abs(vx); }
-        return { ...f, x, vx };
-      }));
+      // how wide a fish is, in % of the reef
+      const w = areaRef.current?.clientWidth || 360;
+      const gap = (sizeRef.current / w) * 100 * 0.85;
+      setFish(prev => {
+        const next = prev.map(f => {
+          if (f.id === foundIdRef.current) return f;
+          let { x, vx } = f;
+          x += vx * dt;
+          if (x > 90) { x = 90; vx = -Math.abs(vx); }
+          if (x < 10) { x = 10; vx = Math.abs(vx); }
+          return { ...f, x, vx };
+        });
+        // friends in the same lane bump gently and swim apart, so one fish
+        // never hides behind another for long (the one you need stays findable)
+        for (let i = 0; i < next.length; i++) for (let j = i + 1; j < next.length; j++) {
+          const a = next[i], b = next[j];
+          if (Math.abs(a.y - b.y) > 8 || Math.abs(a.x - b.x) > gap) continue;
+          const [l, r] = a.x <= b.x ? [i, j] : [j, i];
+          if (next[l].id !== foundIdRef.current) next[l] = { ...next[l], vx: -Math.abs(next[l].vx) };
+          if (next[r].id !== foundIdRef.current) next[r] = { ...next[r], vx: Math.abs(next[r].vx) };
+        }
+        return next;
+      });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -307,9 +332,9 @@ export default function ReefExplorerPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #06263f 0%, #0a3557 60%, #0b3d63 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-cyan-200">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-cyan-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Reef Explorer <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -329,7 +354,7 @@ export default function ReefExplorerPage() {
                 <strong>Move Kailia&apos;s flashlight</strong> to find the friend that looks just like the one on the card, then tap it!
               </p></>}
               extras={<div className="flex items-end justify-center gap-2"><FishArt look={{ body: '#FB7185', pattern: 'stripes', ink: '#FFFFFF', count: 3, fin: '#FDE68A' }} size={64} /><FishArt look={{ body: '#38BDF8', pattern: 'spots', ink: '#1E3A8A', count: 3, fin: '#F472B6' }} size={56} flip /></div>}
-              levels={<LevelPath gameId="reef-explorer" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="reef-explorer" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Dive in!</>}
               onStart={startGame}
               footer={<SkillIntro gameId="reef-explorer" />}
@@ -357,7 +382,7 @@ export default function ReefExplorerPage() {
               </div>
             </div>
 
-            <div ref={areaRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+            <div ref={areaRef} data-play-field onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
               data-reef data-light-x={Math.round(light.x)} data-light-y={Math.round(light.y)}
               className="relative w-full rounded-[28px] overflow-hidden select-none"
               style={{ aspectRatio: '3 / 4', touchAction: 'none', cursor: 'crosshair', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>

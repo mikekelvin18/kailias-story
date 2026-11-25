@@ -785,6 +785,15 @@ button:active {
   100% { transform: translate(0, 0) scale(0.3); opacity: 0; }
 }
 .ff-home { animation: ff-home 0.7s cubic-bezier(.5,0,.6,1) forwards; }
+/* Firefly Catch carry round: a ghost firefly shows the way to the lamp (--fx/--fy = lamp offset) */
+@keyframes ff-guide {
+  0%   { transform: translate(0, 0) scale(0.9); opacity: 0; }
+  12%  { opacity: 0.85; }
+  80%  { transform: translate(var(--fx), var(--fy)) scale(0.75); opacity: 0.85; }
+  100% { transform: translate(var(--fx), var(--fy)) scale(0.4); opacity: 0; }
+}
+.ff-guide { animation: ff-guide 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .ff-guide { animation: none; opacity: 0.6; } }
 @keyframes lantern-swing { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
 .lantern-swing { animation: lantern-swing 2.6s ease-in-out infinite; transform-origin: 50% 0; }
 @keyframes lantern-gulp { 0% { transform: scale(1); } 35% { transform: scale(1.18, 0.88); } 70% { transform: scale(0.94, 1.08); } 100% { transform: scale(1); } }
@@ -850,11 +859,14 @@ button:active {
    The opening title card and the end-of-level party every game shares.
    Entrances overshoot and settle; the Play button breathes and shines;
    confetti flutters down. "Reduce motion" shows it all still. */
-.gf-screen { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; }
+.gf-screen { position: relative; min-height: 100vh; overflow: hidden; overflow: clip; isolation: isolate; }
+/* the intro's Play button stays in view on a short phone (overflow: clip, not
+   hidden, so position: sticky still follows the page) */
+.gf-cta-dock { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; }
 /* Calm mode (grown-ups' Display settings): no painted scenery behind games */
 :root[data-calm="true"] .gf-backdrop { display: none; }
 .gf-back {
-  display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px;
+  display: inline-flex; align-items: center; min-height: 48px; padding: 8px 18px; border-radius: 999px; font-weight: 800; font-size: 16px;
   color: #fff; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.35);
   backdrop-filter: blur(4px);
 }
@@ -1126,3 +1138,207 @@ button:active {
 @keyframes mm-hint { 0%, 100% { box-shadow: 0 0 0 4px #FDE047, 0 0 14px 4px rgba(253,224,71,0.7); scale: 1; } 50% { box-shadow: 0 0 0 6px #FDE047, 0 0 28px 10px rgba(253,224,71,0.95); scale: 1.04; } }
 .mm-hint { border: 3px solid #FFFFFF; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); animation: mm-hint 1s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .mm-hint { animation: none; box-shadow: 0 0 0 5px #FDE047, 0 0 20px 6px rgba(253,224,71,0.85); } }
+
+/* ── "Tap to start!" (components/TapToStart.tsx): the hand taps every 2s, ripples, glow, notes ── */
+@keyframes kp-taphint-tap {
+  0%, 30%  { transform: translate(9px, 9px) rotate(0deg); }
+  46%      { transform: translate(0, 0) rotate(-4deg); }
+  52%      { transform: translate(-2px, -2px) scale(0.9, 0.84) rotate(-4deg); }
+  60%      { transform: translate(0, 0) rotate(-2deg); }
+  80%,100% { transform: translate(9px, 9px) rotate(0deg); }
+}
+@keyframes kp-taphint-ripple {
+  0%, 50%  { transform: scale(1); opacity: 0; }
+  52%      { transform: scale(1); opacity: 0.9; }
+  100%     { transform: scale(1.7, 2.1); opacity: 0; }
+}
+@keyframes kp-taphint-glow {
+  0%, 100% { box-shadow: 0 0 10px 2px rgba(var(--kp-glow), 0.45); }
+  50%      { box-shadow: 0 0 26px 9px rgba(var(--kp-glow), 0.8); }
+}
+@keyframes kp-taphint-note {
+  0%   { transform: translate(0, 4px) scale(0.6) rotate(-8deg); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(6px, -34px) scale(1) rotate(10deg); opacity: 0; }
+}
+.kp-taphint-tap    { animation: kp-taphint-tap 2s ease-in-out infinite; transform-origin: 30% 30%; }
+.kp-taphint-ripple { border: 3px solid rgba(255, 255, 255, 0.95); box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.35); animation: kp-taphint-ripple 2s ease-out infinite; }
+.kp-taphint-glow   { animation: kp-taphint-glow 2.4s ease-in-out infinite; }
+.kp-taphint-note   { animation: kp-taphint-note 2.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .kp-taphint-tap, .kp-taphint-glow { animation: none; }
+  .kp-taphint-glow { box-shadow: 0 0 18px 6px rgba(var(--kp-glow), 0.65); }
+  .kp-taphint-ripple, .kp-taphint-note { display: none; }
+}
+@keyframes kp-start-ripple {
+  0%   { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+.kp-start-ripple { border: 4px solid rgba(255, 255, 255, 0.9); animation: kp-start-ripple 2s ease-out infinite; }
+.kp-start-glow   { --kp-glow: 253,224,71; animation: kp-taphint-glow 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .kp-start-ripple { display: none; }
+  .kp-start-glow { animation: none; box-shadow: 0 0 22px 8px rgba(253,224,71,0.65); }
+}
+
+/* ── Every game fits the phone screen (reviewer, 2026-11-25) ──
+   A game marks its column [data-play-col] and its main play area
+   [data-play-field]. The play area never lets a finger scroll or bounce the
+   page. On a phone turned sideways (short and wide) the game becomes two
+   columns: the story, wish and buttons on the left, the play area on the
+   right, sized to the visible screen height (100dvh minus the notch/home bar),
+   so nothing scrolls while a child plays. */
+:root { --kp-safe-y: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)); }
+[data-play-field] { touch-action: none; overscroll-behavior: none; }
+html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behavior: none; }
+@media (orientation: landscape) and (max-height: 600px) {
+  html:has([data-play-field]), html:has([data-play-field]) body { overflow: hidden; height: 100dvh; }
+  main:has([data-play-field]) { padding-top: 0 !important; padding-bottom: 0 !important; height: 100dvh; min-height: 0 !important; }
+  [data-play-col]:has([data-play-field]) {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: repeat(12, auto) 1fr;
+    column-gap: 18px; align-items: start; max-width: 64rem !important; width: 100% !important;
+    padding-left: max(12px, env(safe-area-inset-left)) !important; padding-right: max(12px, env(safe-area-inset-right)) !important;
+  }
+  /* a wrapper around the play area (and its sign or wish) steps aside, so
+     its pieces join the two columns too */
+  [data-play-col] > :has([data-play-field]):not([data-play-field]) { display: contents; }
+  [data-play-col]:has([data-play-field]) > *,
+  [data-play-col] > :has([data-play-field]) > * { grid-column: 1; min-width: 0; }
+  [data-play-col] > [data-play-field],
+  [data-play-col] > :has([data-play-field]) > [data-play-field] {
+    grid-column: 2; grid-row: 1 / -1; margin-top: calc(8px + env(safe-area-inset-top, 0px)) !important; margin-bottom: 0 !important;
+    height: calc(100dvh - 16px - var(--kp-safe-y)) !important; width: auto !important; max-width: 62vw;
+  }
+  /* a wide play area (the maze) keeps its own shape: as wide as fits */
+  [data-play-col] > [data-play-field][data-wide] {
+    height: auto !important; align-self: center;
+    width: min(64vw, calc((100dvh - 16px - var(--kp-safe-y)) * var(--kp-ar))) !important; max-width: none;
+  }
+  [data-play-field][data-wide] canvas { width: 100% !important; height: auto !important; }
+  /* a play area with its own fixed height (Kailia's Trail) keeps it */
+  [data-play-col] > [data-play-field][data-fixed] { height: var(--kp-h) !important; width: min(54vw, 460px) !important; align-self: center; }
+  /* the memory cards: as wide as the cards need to fit the screen height */
+  [data-play-col] > :has([data-play-field]) > [data-play-field][data-cards] {
+    width: calc(((100dvh - 16px - var(--kp-safe-y) - var(--top-pad, 12px) - var(--ground) - (var(--rows) - 1) * 10px) / var(--rows)) * 0.75 * var(--cols) + (var(--cols) - 1) * 10px + 24px) !important;
+  }
+  /* the header sits tighter so the left column fits the short screen */
+  [data-play-col]:has([data-play-field]) > :first-child { padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 2px !important; }
+}
+
+/* ── The map on a phone turned sideways ──
+   A short, wide screen has no room for the map above the Garden, Friends and
+   Noel rows (the lands were squeezed away to nothing). There the map takes the
+   left side at full height and the rows stack on the right. */
+@media (orientation: landscape) and (max-height: 500px) {
+  [data-map-col] {
+    display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(212px, 27%);
+    grid-template-rows: auto repeat(6, auto) 1fr; column-gap: 12px; align-content: start;
+    max-width: 100% !important; padding-left: max(12px, env(safe-area-inset-left)) !important; padding-right: max(12px, env(safe-area-inset-right)) !important;
+  }
+  [data-map-col] > * { grid-column: 2; margin-top: 6px !important; margin-bottom: 0 !important; min-width: 0; }
+  [data-map-col] > :first-child { grid-column: 1 / -1; margin-top: 0 !important; padding-top: 6px !important; }
+  [data-map-col] [data-map-sub] { display: none; }
+  /* the title on the left, the day/night, calm and sound switches on the right, one row */
+  [data-map-col] > :first-child { grid-column: 1 !important; }
+  [data-map-col] > [data-map-switches] { grid-column: 2; grid-row: 1; justify-content: flex-end; margin-top: 0 !important; padding-top: 6px; }
+  /* the grown-ups' link is one tap away under Family on a short screen */
+  [data-map-col] > [data-map-grownups] { display: none; }
+  /* smaller islands, so the first and last land stay inside the frame */
+  [data-map-main] { --kp-map-s: 0.9; --kp-map-sy: 0.78; --kp-map-dy: 6px; }
+  [data-map-main] [data-island] { width: 17% !important; }
+  /* the island picture follows that width (its phone/tablet sizes are for the tall map) */
+  [data-map-main] [data-island] > span.relative.inline-block { width: 92% !important; }
+  [data-map-main] [data-island] > span.relative.block { font-size: 10px; }
+  [data-map-main] [data-island] > span.inline-flex { width: 46px !important; height: 46px !important; }
+  [data-map-main] [data-island] > span.inline-flex svg { width: 26px; height: 26px; }
+  [data-map-col] > [data-map-main] { grid-column: 1; grid-row: 2 / -1; min-height: 0; height: 100%; margin-top: 4px !important; justify-content: center; align-items: center; container-type: size; }
+  /* the wide map keeps the shape it was drawn for, so no land is cut off */
+  [data-map-col] > [data-map-main] > div { flex: 0 0 auto !important; width: min(100cqw, 100cqh * 1180 / 460); height: min(100cqh, 100cqw * 460 / 1180); }
+  [data-map-col] > [data-map-main] > div:has(> [data-map-portrait]) { display: none; }
+  [data-map-col] > [data-map-main] > div:not(:has(> [data-map-portrait])) { display: flex !important; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  [data-map-col] > a, [data-map-col] > button { font-size: 0.875rem; }
+  /* the narrow side column: three friends' faces, and Noel's words a little smaller */
+  [data-map-col] > :is(a, button) > span.flex > img:nth-child(n+4) { display: none; }
+  [data-map-col] [data-noel-bubble] { font-size: 0.875rem; padding-inline: 10px; }
+}
+
+/* Tall phones: a game with a lot above and below its play area (Word
+   Wizard's sign, Cargo Count's buttons) gives it a width that still lets
+   everything fit the screen (--kp-chrome = the space the rest needs). */
+@media (orientation: portrait) {
+  [data-play-field][style*="--kp-chrome"] {
+    width: min(100%, calc((100dvh - var(--kp-chrome) - var(--kp-safe-y)) * (var(--kp-ar)))) !important; margin-inline: auto;
+  }
+}
+
+/* ── Read-aloud: the sentence being read, and the replay speaker ──
+   components/NoelVoice.tsx marks the sentence it is reading as the
+   "kp-reading" highlight. Every bubble it reads (data-read-aloud) shows a
+   small speaker in its top corner; tapping there reads the whole bubble
+   again, tapping a sentence reads that sentence again. */
+::highlight(kp-reading) { background-color: #FEF08A; color: #1f2937; }
+[data-read-aloud] { position: relative; padding-right: 2.6rem !important; cursor: pointer; }
+[data-read-aloud]::after {
+  content: ""; position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 9999px;
+  background: #EDE9FE url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9.5h3.5L12 5.5v13l-4.5-4H4z' fill='%235B21B6'/%3E%3Cpath d='M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12' fill='none' stroke='%235B21B6' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / 20px no-repeat;
+  box-shadow: 0 0 0 2px #fff; pointer-events: none;
+}
+
+/* a small round button that still takes a 48px finger: the tap area
+   reaches 4px past its edge on every side */
+.kp-tap-pad { position: relative; }
+.kp-tap-pad::before { content: ''; position: absolute; inset: -4px; border-radius: 999px; }
+.kp-tap-pad-lg::before { inset: -9px; }
+
+/* pages with the bottom tab bar (components/BottomNav.tsx): room under the
+   last thing on the page for the whole bar (about 70px), the phone's home
+   bar, and a little breathing space, so nothing ends up hidden behind it */
+.kp-nav-pad { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .kp-nav-pad { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); } }
+@media print { .kp-nav-pad { padding-bottom: 1rem; } }
+
+/* every game's "← Map" link: a whole fingertip (48px) and easy-to-read 16px */
+.kp-back { display: inline-flex !important; align-items: center; min-height: 48px; min-width: 48px; padding-inline: 12px; font-size: 16px !important; border-radius: 999px; }
+@media (orientation: landscape) and (max-height: 600px) {
+  /* a sideways phone has little height: the link is drawn 40px tall and its
+     tap area still reaches 48px */
+  .kp-back { min-height: 40px; position: relative; }
+  .kp-back::before { content: ''; position: absolute; inset: -4px; border-radius: 999px; }
+}
+
+/* ── Device "reduce motion" respected by default ──
+   Before the app's own script runs (and on pages it never reaches), a phone
+   set to reduce motion gets the same still app as the Parent Zone switch
+   (lib/accessibility.ts also marks <html> data-reduced-motion for the
+   pieces that move by script). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Calm mode (Parent Zone > Display, or the moon button on the map) ──
+   For children who focus better with less to look at, in every game:
+   • plain backgrounds: one soft, flat night-blue behind every game and
+     intro, no painted scenery, no drifting dust;
+   • nothing pulses, glows, sparkles or twinkles, and no confetti;
+   • the scenery inside the play area holds still (trees, falling leaves,
+     clouds); the things to tap still move, and the characters still breathe.
+   Hints that point at something stay, just shown steady. */
+:root[data-calm="true"] .gf-screen,
+:root[data-calm="true"] main:has(> [data-play-col]) { background: #26304F !important; }
+:root[data-calm="true"] :is(.gf-backdrop, .gf-dust, .gf-confetti, .gf-rays, .gf-shine, .rise-fade, .pm-confetti) { display: none !important; }
+:root[data-calm="true"] :is(.pulse, .portal-pulse, .portal-ring, .gf-cta, .wiggle, .sparkle, .sky-twinkle,
+  .deco-spin, .deco-breathe, .deco-twinkle, .deco-wing, .deco-flutter-path, .deco-sway, .deco-glide, .deco-flap,
+  .fg-twinkle, .fg-glow, .fg-drift, .fg-rise, .fg-sway, .nf-sway-far, .nf-sway-mid, .gb-pulse, .gb-blink, .gb-wing, .gb-wing-slow,
+  .lantern-swing, .gw-ripple, .gw-drip, .gw-zzz, .pm-glow, .lp-trail, .gf-stage, .gf-flutter) { animation: none !important; }
+:root[data-calm="true"] .fg-fall { display: none !important; }
+:root[data-calm="true"] .sky-lane { animation: none !important; transform: translateX(var(--rest)); }
+:root[data-calm="true"] :is(.soft-pulse, .hint-glow) { animation: none !important; opacity: 1; }
+/* the big button sits still, with a softer shadow */
+:root[data-calm="true"] .gf-cta { box-shadow: 0 5px 0 #3b2416; }

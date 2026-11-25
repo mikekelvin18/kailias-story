@@ -33,8 +33,9 @@ test("Where's Noel: level 3 names the same chapter in the intro, the level map a
   await page.goto('/play/hidden-friends');
   const intro = page.getByTestId('game-intro');
   await expect(intro).toBeVisible({ timeout: 30_000 });
+  // the saved level loads a moment after the intro first shows
+  await expect(intro.locator('[data-level-place]')).toHaveText('Level 3 · Chapter 1: Sprout');
   const place = (await intro.locator('[data-level-place]').textContent())!.trim();
-  expect(place).toBe('Level 3 · Chapter 1: Sprout');
   // the level map shows the same chapter
   const map = await page.evaluate(() => {
     const ps = [...document.querySelectorAll('p')];

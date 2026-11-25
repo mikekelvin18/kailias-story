@@ -1,15 +1,15 @@
 'use client';
 
+import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
@@ -43,8 +43,8 @@ const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 // level folded into the picked index so each walk's mix of challenge
 // types rotates from level to level, then delegates to the shared,
 // picture-matches-question generator used by both Journey and Trail.
-function makeChallenge(i: number, tier: string, level: number): Challenge {
-  return makeChallengeBase(i + level, tier);
+function makeChallenge(i: number, tier: string, level: number, months?: number | null): Challenge {
+  return makeChallengeBase(i + level, tier, level, months);
 }
 
 const nameOf = (creature: string) => CREATURE_NAME[creature] ?? 'friend';
@@ -78,9 +78,24 @@ const sfx = {
 type NearKind = 'pine' | 'tree' | 'flower' | 'mushroom' | 'rock' | 'bush';
 type FarKind = 'mountain' | 'hill' | 'cloud';
 
+// ── Where the trail goes today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const TRAILS = [
+  'Today the trail leads to the berry hill, and the friends on the way want to come too!',
+  'The friends along the trail are getting ready for a sing-along.',
+  'Kailia is delivering invitations to a garden party.',
+  'Today the trail goes all the way to the waterfall!',
+  'The trail friends are playing a riddle game. Can you answer them all?',
+  'Kailia is collecting friends for a big group hug.',
+  'The trail leads to the old oak tree, for story time.',
+  'Today is the trail clean-up day, and every friend helps!',
+  'The friends along the trail are waiting for the mail.',
+  'Kailia is on her way to the rainbow at the end of the trail.',
+];
+
 export default function TrailWalkPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('trail-walk');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'walking' | 'challenge' | 'memoryShow' | 'done'>('intro');
@@ -119,7 +134,9 @@ export default function TrailWalkPage() {
     return () => ro.disconnect();
   }, [inScene]);
 
-  useEffect(() => { setLevel(nextGameLevel('trail-walk')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('trail-walk', fit.startLevel)); }, [fit.startLevel]);
 
   const scenery = useMemo(() => {
     const worldW = (STOPS + 1) * SEG + 600;
@@ -142,7 +159,7 @@ export default function TrailWalkPage() {
   }, [level, sceneW]);
 
   const startWalk = useCallback(() => {
-    challengesRef.current = Array.from({ length: STOPS }, (_, i) => makeChallenge(i, tier, level));
+    challengesRef.current = Array.from({ length: STOPS }, (_, i) => makeChallenge(i, tier, level, fit.fitMonths));
     setStops(challengesRef.current);
     wrongsRef.current = 0; attemptsRef.current = 0; startedRef.current = Date.now();
     setParty([]);
@@ -153,7 +170,7 @@ export default function TrailWalkPage() {
     setAtFlag(false);
     setNoelLine("Off we go! Tap WALK and let's see who we meet!");
     setPhase('walking');
-  }, [tier, level]);
+  }, [tier, level, fit.fitMonths]);
 
   const walking = useRef(false);
   const [isWalking, setIsWalking] = useState(false);
@@ -246,9 +263,9 @@ export default function TrailWalkPage() {
 
   return (
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 45%, #86efac 100%)' }}>
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
           <h1 className="text-xl font-extrabold text-sky-950 drop-shadow-sm whitespace-nowrap">
             Kailia&apos;s Trail <span className="text-xs font-bold text-amber-800 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.4)' }}>Lv {level}</span>
           </h1>
@@ -268,13 +285,13 @@ export default function TrailWalkPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #0f5f4a 55%, #14532d 100%)', accent: '#4ADE80', accent2: '#15803D' }}
               pet={pet}
               story={<><p>
-                A brand-new trail stretches past the meadows!
+                A brand-new trail stretches past the meadows! {levelStory(TRAILS, 'trail-walk', level)}
               </p>
               <p>
                 Walk with Kailia, meet the creatures along the way, and solve each one&apos;s little
                 riddle. Every solved friend <strong>joins your party</strong> until you reach the flag!
               </p></>}
-              levels={<LevelPath gameId="trail-walk" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="trail-walk" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<><span className="whitespace-nowrap">Start the walk!</span> <TrailFlag size={26} /></>}
               onStart={startWalk}
               footer={<SkillIntro gameId="trail-walk" />}
@@ -284,8 +301,8 @@ export default function TrailWalkPage() {
 
         {phase !== 'intro' && (
           <>
-            <div ref={sceneRef} className="relative w-full rounded-3xl overflow-hidden select-none"
-              style={{ height: SCENE_H, border: '3px solid rgba(14,116,144,0.3)', boxShadow: '0 8px 0 rgba(14,116,144,0.18)',
+            <div ref={sceneRef} data-play-field data-fixed className="relative w-full rounded-3xl overflow-hidden select-none"
+              style={{ height: SCENE_H, ['--kp-h' as string]: `${SCENE_H}px`, border: '3px solid rgba(14,116,144,0.3)', boxShadow: '0 8px 0 rgba(14,116,144,0.18)',
                 background: 'linear-gradient(180deg, #6cc8f5 0%, #bfe7fb 52%, #e3f6ff 66%)' }}>
               {/* sky: the sun turns slowly, clouds drift by on their own */}
               <Sun size={48} className="absolute" style={{ right: 14, top: 12, pointerEvents: 'none' }} />
@@ -402,8 +419,8 @@ export default function TrailWalkPage() {
                 {challenge.display && (
                   <div className="mb-3 flex items-center justify-center flex-wrap gap-1">
                     {challenge.type === 'count'
-                      ? Array.from({ length: [...challenge.display.matchAll(/\p{Extended_Pictographic}️?/gu)].length }, (_, i) => (
-                          <Critter key={i} emoji={challenge.creature} size={36} animate={false} />
+                      ? Array.from(challenge.display.matchAll(/\p{Extended_Pictographic}️?/gu), (_, i) => (
+                          <Critter key={i} emoji={challenge.creature} size={challenge.display.length > 24 ? 30 : 36} animate={false} />
                         ))
                       : challenge.type === 'color'
                         ? <PaintDot emoji={challenge.display} size={56} />

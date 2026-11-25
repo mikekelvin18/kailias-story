@@ -30,10 +30,10 @@ export default function StepGuide({ step, tone = 'light', className = '' }: {
 
   return (
     <div className={`w-full max-w-lg mx-auto ${className}`} role="group" aria-label={`Setup step ${step} of ${SETUP_STEPS.length}: ${current.label}`}>
-      <p className="text-center text-sm font-extrabold mb-2" style={{ color: ink }}>
+      <p className="text-center text-base font-extrabold mb-2" style={{ color: ink }}>
         <span style={{ color: soft }}>Step {step} of {SETUP_STEPS.length}</span>
         <span aria-hidden="true" style={{ color: soft }}> · </span>
-        {current.emoji} {current.label}
+        {current.label}
       </p>
       <ol className="flex gap-1.5" aria-hidden="true">
         {SETUP_STEPS.map((s, i) => {

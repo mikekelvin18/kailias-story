@@ -42,7 +42,7 @@ export default function ProgressReportPage() {
   if (!loaded) return <main className="min-h-screen" style={{ background: '#F8FAFC' }} />;
 
   return (
-    <main className="min-h-screen pb-24 print:pb-4" style={{ background: '#F8FAFC' }}>
+    <main className="min-h-screen kp-nav-pad print:pb-4" style={{ background: '#F8FAFC' }}>
       <style>{`@media print { .no-print { display: none !important; } }`}</style>
       <div className="max-w-md sm:max-w-2xl mx-auto px-4 pt-6 print:pt-0">
         <div className="flex items-center justify-between mb-3 no-print">

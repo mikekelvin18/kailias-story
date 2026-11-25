@@ -65,13 +65,13 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
       <div className="flex items-center justify-between">
         <button aria-label="Previous chapter" onClick={() => setPage(p => Math.max(0, p - 1))}
           disabled={page === 0}
-          className="w-11 h-11 rounded-full text-xl font-extrabold text-white disabled:opacity-20"
+          className="w-12 h-12 rounded-full text-xl font-extrabold text-white disabled:opacity-20"
           style={{ background: 'rgba(255,255,255,0.12)' }}>‹</button>
         <div className="text-center" key={page}>
-          <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">{chapterLabel}</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-white/70">{chapterLabel}</p>
           <p className="text-lg font-extrabold text-white slide-up inline-flex items-center gap-1.5"><Thing id={chapter.icon} size={24} />{chapter.name}</p>
           {freshWorld && (
-            <p className="bounce-in text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 mt-0.5 rounded-full inline-block"
+            <p className="bounce-in text-sm font-extrabold uppercase tracking-wider px-2 py-0.5 mt-0.5 rounded-full inline-block"
               style={{ background: chapter.color, color: '#1E1B4B', boxShadow: `0 0 12px ${chapter.color}` }}>
               New world!
             </p>
@@ -79,7 +79,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
         </div>
         <button aria-label="Next chapter" onClick={() => setPage(p => Math.min(maxPage, p + 1))}
           disabled={page >= maxPage}
-          className="w-11 h-11 rounded-full text-xl font-extrabold text-white disabled:opacity-20"
+          className="w-12 h-12 rounded-full text-xl font-extrabold text-white disabled:opacity-20"
           style={{ background: 'rgba(255,255,255,0.12)' }}>›</button>
       </div>
 

@@ -78,8 +78,13 @@ for (const bagName of BAGS) {
 test('Sky Mail: a letter in the wrong mailbox bounces back with a hint', async ({ page }) => {
   await seedFamily(page);
   await page.goto('/play/sky-mail');
-  await page.locator('.gf-choice').first().click({ force: true });
+  await expect(page.getByTestId('game-intro')).toBeVisible();
   const card = page.locator('[data-card]');
+  // a tap before the page is ready is simply tapped again
+  await expect(async () => {
+    if (!(await card.count())) await page.locator('.gf-choice').first().click({ force: true });
+    await expect(card).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 20_000 });
   const dir = (await card.getAttribute('data-correct'))!;
   const before = await card.innerText();
   await swipe(page, dir === 'left' ? 'right' : 'left');

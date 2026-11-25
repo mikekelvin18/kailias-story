@@ -3,15 +3,18 @@
 import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { echoSeqLen } from '@/lib/gameCurves';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { endlessRamp } from '@/lib/levels';
+import { levelStory } from '@/lib/variety';
 import { soundEnabled } from '@/lib/accessibility';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
@@ -69,11 +72,30 @@ function besideSpot(x: number, k: number, gap = 17) {
   return Math.abs(left - x) < Math.abs(right - x) ? left : right;
 }
 
+// ── Who the song is for: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+// Whoever the song is for stands in the cave while you sing (StoryGuest);
+// a story with no animal is about the crystals you can see.
+const SONGS: { line: string; done: string; who: StoryWho | null }[] = [
+  { line: 'The sleepy hedgehog wants a lullaby. Let\'s sing it back to him!', done: 'The hedgehog is snoozing in a little ball.', who: 'hedgehog' },
+  { line: 'A baby crystal wants to learn the grown-up song!', done: 'The baby crystal is glowing with pride!', who: null },
+  { line: 'The frogs are having a singing contest in the cave!', done: 'Ribbit! You won the singing contest!', who: 'frog' },
+  { line: 'Grandma Deer forgot her favorite tune. Let\'s remind her!', done: 'Grandma Deer is humming along!', who: 'deer' },
+  { line: 'The butterflies want a song to dance to!', done: 'The butterflies are twirling and dancing!', who: 'butterfly' },
+  { line: 'The bunny is lost in the cave. Let\'s sing so she can find us!', done: 'The bunny followed the song and found us!', who: 'rabbit' },
+  { line: 'The koala is saying good night to the cave. Let\'s sing it back!', done: 'Good night, sleepy koala!', who: 'koala' },
+  { line: 'The crystals are practicing for the big cave concert!', done: 'The crystals are ready for the concert!', who: null },
+  { line: 'A shy little squirrel wants to hear a happy song.', done: 'The squirrel is smiling!', who: 'squirrel' },
+  { line: 'The parrots want to learn a brand-new song!', done: 'The parrots are singing it back!', who: 'parrot' },
+  { line: 'The swan wants a song for her swim party!', done: 'Splash! The swan is swimming in circles!', who: 'swan' },
+  { line: 'The raccoon is starting a cave band. Let\'s play along!', done: 'What a band! The raccoon is drumming along.', who: 'raccoon' },
+];
+
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('echo-song');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'cheer' | 'levelDone'>('intro');
@@ -102,13 +124,16 @@ export default function EchoSongPage() {
   const statsRef = useRef({ attempts: 0, replays: 0, startedAt: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('echo-song')); const timers = timersRef; return () => timers.current.forEach(clearTimeout); }, []);
+  useEffect(() => { setLevel(openingLevel('echo-song', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { const timers = timersRef; return () => timers.current.forEach(clearTimeout); }, []);
 
-  const seqLen = useCallback((lvl: number) => {
-    const base = tier === 'tiny' ? 2 : tier === 'small' ? 2 : 3;
-    return Math.min(base + (lvl - 1), 8);
-  }, [tier]);
+  // the song grows a note every three levels (capped near what the child's
+  // stage can remember: lib/gameCurves.ts), and the crystals sing a little
+  // faster every level, so levels keep getting harder after the song is long
+  const seqLen = useCallback((lvl: number) => echoSeqLen(lvl, tier), [tier]);
+  const story = levelStory(SONGS, 'echo-song', level);
 
   const sing = useCallback((c: number, d?: number) => {
     setLit(c); setRingKey(k => k + 1); tone(CRYSTALS[c].tone, d);
@@ -122,7 +147,7 @@ export default function EchoSongPage() {
     timersRef.current = [];
     // Kailia and the friend step back to the middle of the floor to listen
     setKailiaX(42); setPetX(60);
-    const gap = tier === 'big' ? 620 : 780;
+    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14));
     s.forEach((c, i) => {
       timersRef.current.push(setTimeout(() => sing(c), 500 + i * gap));
       timersRef.current.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.6));
@@ -132,10 +157,16 @@ export default function EchoSongPage() {
       setNoelLine('Your turn — echo the song!');
       setNoelMood('excited');
     }, 500 + s.length * gap + 200));
-  }, [tier, sing]);
+  }, [tier, sing, level]);
 
   const startLevel = useCallback((lvl: number) => {
-    const s = Array.from({ length: seqLen(lvl) }, () => Math.floor(Math.random() * 4));
+    // a fresh song: never the same crystal three times in a row
+    const s: number[] = [];
+    while (s.length < seqLen(lvl)) {
+      const c = Math.floor(Math.random() * 4);
+      if (s.length >= 2 && s[s.length - 1] === c && s[s.length - 2] === c) continue;
+      s.push(c);
+    }
     statsRef.current = { attempts: 0, replays: 0, startedAt: Date.now() };
     setSeq(s);
     setSlips(0); setHintOn(false);
@@ -178,7 +209,7 @@ export default function EchoSongPage() {
         recordGameLevel('echo-song', level);
         setEarned(stars);
         setPhase('cheer');
-        setNoelLine('You sang the whole song! Listen to the cave ring!');
+        setNoelLine(`You sang the whole song! ${story.done}`);
         setNoelMood('celebrating');
         setKailiaHop(n => n + 1);
         setPetMood('cheer');
@@ -226,9 +257,9 @@ export default function EchoSongPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 80%, #155e75 130%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Echo Song <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -249,7 +280,7 @@ export default function EchoSongPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #164e63 50%, #082f49 100%)', accent: '#22D3EE', accent2: '#0891B2' }}
               pet={pet}
               story={<><p>
-                Deep in Echo Caves, the <strong>crystals sing</strong>!
+                Deep in Echo Caves, the <strong>crystals sing</strong>! {story.line}
               </p>
               <p>
                 Listen to their little song… then <strong>echo it back</strong> by tapping the
@@ -258,7 +289,7 @@ export default function EchoSongPage() {
               extras={<div className="flex items-end justify-center gap-3"><svg viewBox="0 0 100 120" width={54} height={65} aria-hidden="true" style={{ overflow: 'visible' }}>
                 <Crystal c={0} lit={false} />
               </svg></div>}
-              levels={<LevelPath gameId="echo-song" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="echo-song" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Level {level} — listen!</>}
               onStart={() => startLevel(level)}
               footer={<SkillIntro gameId="echo-song" />}
@@ -268,7 +299,7 @@ export default function EchoSongPage() {
 
         {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && (
           <div className="relative z-10">
-            <div className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
+            <div data-play-field className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
               style={{ aspectRatio: '3 / 3.5', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)' }}>
               <EchoCave />
 
@@ -315,6 +346,7 @@ export default function EchoSongPage() {
                 );
               })}
 
+              <StoryGuest who={story.who} x={89} y={FLOOR} size={54} z={5} />
               <KailiaActor x={kailiaX} y={FLOOR} h={80} hop={kailiaHop} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petSpot} y={FLOOR} h={54}

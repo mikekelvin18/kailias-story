@@ -1,17 +1,17 @@
 'use client';
 
 import { testHook } from '@/lib/testHooks';
+import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import OverworldSprite, { type Facing } from '@/components/characters/OverworldSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { makeChallenge, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import { COMPANIONS } from '@/lib/rewards';
@@ -133,7 +133,7 @@ function buildPath(): Pt[] {
   return pts;
 }
 
-function buildWorld(tier: string, level: number) {
+function buildWorld(tier: string, level: number, months?: number | null) {
   const biome = BIOMES[(level - 1) % BIOMES.length];
   const path = buildPath();
   const key = (p: Pt) => `${p.x},${p.y}`;
@@ -151,7 +151,7 @@ function buildWorld(tier: string, level: number) {
   encounterIdx.forEach((idx, i) => {
     const p = path[idx];
     grid[p.y][p.x] = 'tallgrass';
-    encounters[key(p)] = { challenge: makeChallenge(i, tier), solved: false };
+    encounters[key(p)] = { challenge: makeChallenge(i + level, tier, level, months), solved: false };
   });
 
   const goal = path[path.length - 1];
@@ -226,9 +226,24 @@ function bfsPath(start: Pt, goal: Pt, grid: TileType[][]): Pt[] | null {
 }
 
 
+// ── Why Kailia is walking today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const JOURNEYS = [
+  'The wild friends are gathering for a big parade at the flag!',
+  'A storm is coming, and the wild friends need a safe place to stay.',
+  'The flag marks a secret picnic spot. Let\'s bring friends!',
+  'The wild friends want to see the fireworks from the flag.',
+  'Kailia is building a team for the big friendship race.',
+  'The flag is where the treasure map ends!',
+  'The wild friends are lost after a windy night. Let\'s bring them home!',
+  'Tonight is the campfire story party at the flag.',
+  'The wild friends want to make a giant sandcastle together.',
+  'A new baby animal was born at the flag. Let\'s say hello!',
+];
+
 export default function JourneyPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('journey');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');
@@ -292,10 +307,12 @@ export default function JourneyPage() {
     return () => ro.disconnect();
   }, [phase]);
 
-  useEffect(() => { setLevel(nextGameLevel('journey')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('journey', fit.startLevel)); }, [fit.startLevel]);
 
   const beginWorld = useCallback((starter?: (typeof STARTERS)[number]) => {
-    const w = buildWorld(tier, level);
+    const w = buildWorld(tier, level, fit.fitMonths);
     worldRef.current = w;
     playerRef.current = w.start;
     pathQueueRef.current = [];
@@ -310,7 +327,7 @@ export default function JourneyPage() {
     wrongRef.current = 0; stepsRef.current = 0; startedRef.current = Date.now();
     setDialog(`Welcome to the ${w.biome.name}! Walk into the tall grass to meet a wild friend!`);
     setPhase('walking');
-  }, [tier, level]);
+  }, [tier, level, fit.fitMonths]);
 
   const startLevel = useCallback(() => {
     if (level === 1) setPhase('starter');
@@ -527,7 +544,7 @@ export default function JourneyPage() {
                   theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #334155 0%, #1e293b 50%, #0f172a 100%)', accent: '#38BDF8', accent2: '#0284C7' }}
                   pet={playPet}
                   story={<>
-                    <p>A brand-new world stretches ahead!</p>
+                    <p>A brand-new world stretches ahead! {levelStory(JOURNEYS, 'journey', level)}</p>
                     <p>
                       Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
                       anywhere on the map to walk there! Step into patches of <strong>tall grass</strong> to meet
@@ -541,7 +558,7 @@ export default function JourneyPage() {
                       ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
                     </span>
                   </div>}
-                  levels={<LevelPath gameId="journey" level={level} onPick={setLevel} />}
+                  levels={<LevelPath gameId="journey" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
                   startLabel={<>Enter the world!</>}
                   onStart={startLevel}
                   footer={<SkillIntro gameId="journey" />}
@@ -618,7 +635,7 @@ export default function JourneyPage() {
           {/* ── Floating header, on top of the world ── */}
           <div className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-between px-3 pt-3 pb-6 pointer-events-none"
             style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.55), transparent)' }}>
-            <Link href="/play" className="h-10 px-3 inline-flex items-center rounded-full text-sm font-bold text-white pointer-events-auto"
+            <Link href="/play" className="kp-back h-10 px-3 inline-flex items-center rounded-full text-sm font-bold text-white pointer-events-auto"
               style={{ background: 'rgba(15,23,42,0.45)' }}>← Map</Link>
             <h1 className="text-lg font-extrabold text-white drop-shadow">
               Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.2)', border: '1px solid rgba(253,224,71,0.5)' }}>Lv {level}</span>
@@ -849,7 +866,7 @@ function ChallengeDisplay({ ch }: { ch: Challenge }) {
     const n = ch.display.split(ch.creature).length - 1;
     return (
       <div className="flex flex-wrap justify-center gap-1" style={{ maxWidth: 280 }}>
-        {Array.from({ length: n }, (_, i) => <Critter key={i} emoji={ch.creature} size={n > 6 ? 36 : 44} animate={false} />)}
+        {Array.from({ length: n }, (_, i) => <Critter key={i} emoji={ch.creature} size={n > 12 ? 30 : n > 6 ? 36 : 44} animate={false} />)}
       </div>
     );
   }

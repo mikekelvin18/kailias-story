@@ -1,5 +1,6 @@
 'use client';
 
+import { dealIndex } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -7,7 +8,8 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import Stage from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
@@ -89,6 +91,84 @@ const STORIES: Story[] = [
         good: { t: 'She shows Noel proudly', e: ['noel', 'flower'] }, silly: { t: 'The flower flies away like a rocket', e: ['flower', 'rocket'] } },
     ],
   },
+  {
+    title: 'The Broken Cookie',
+    beats: [
+      { scene: ['cookie', 'happy'], text: 'Kailia has one big cookie.',
+        good: { t: 'She wants to share it with Noel', e: ['noel', 'cookie'] }, silly: { t: 'She mails the cookie to the moon', e: ['cookie', 'moon'] } },
+      { scene: ['cookie-broken'], text: 'Crack! The cookie breaks into two pieces.',
+        good: { t: 'Each friend gets a piece', e: ['cookie-broken', 'happy'] }, silly: { t: 'The pieces start to dance', e: ['cookie-broken', 'note'] } },
+      { scene: ['noel', 'cookie-broken'], text: "Noel's piece is a little bit smaller.",
+        good: { t: 'Kailia swaps so it is fair', e: ['heart-pink', 'cookie'] }, silly: { t: 'Noel eats the plate too', e: ['noel', 'spoon'] } },
+      { scene: ['happy', 'happy'], text: 'Both friends munch and smile.',
+        good: { t: 'They say thank you to each other', e: ['speech', 'heart-pink'] }, silly: { t: 'The crumbs build a castle', e: ['bricks'] } },
+    ],
+  },
+  {
+    title: 'The Windy Kite',
+    beats: [
+      { scene: ['kite', 'sun'], text: "It's a windy day, and Kailia has a new kite!",
+        good: { t: 'She runs to make it fly', e: ['kite', 'cloud'] }, silly: { t: 'She puts the kite in the bath', e: ['kite', 'drop'] } },
+      { scene: ['kite', 'tree'], text: 'Oh no! The kite is stuck in a tree.',
+        good: { t: 'Kailia asks a grown-up for help', e: ['speech', 'tree'] }, silly: { t: 'She tells the tree a joke', e: ['tree', 'note'] } },
+      { scene: ['tree', 'happy'], text: 'A tall grown-up reaches the kite.',
+        good: { t: 'Kailia says thank you', e: ['speech', 'heart-pink'] }, silly: { t: 'The kite turns into a bird', e: ['kite', 'bird'] } },
+      { scene: ['kite', 'sparkle'], text: 'The kite flies high again!',
+        good: { t: 'Kailia and Noel cheer', e: ['noel', 'happy'] }, silly: { t: 'The kite goes to school', e: ['kite', 'book'] } },
+    ],
+  },
+  {
+    title: 'The New Puppy',
+    beats: [
+      { scene: ['dog', 'house'], text: 'A new puppy moved in next door!',
+        good: { t: 'Kailia waves hello', e: ['happy', 'dog'] }, silly: { t: 'She hides inside a pizza', e: ['pizza'] } },
+      { scene: ['dog', 'sad'], text: 'The puppy looks shy and scared.',
+        good: { t: 'Kailia talks softly and kindly', e: ['speech', 'heart-pink'] }, silly: { t: 'She plays a loud trumpet', e: ['note', 'note'] } },
+      { scene: ['dog', 'ball'], text: "The puppy looks at Kailia's ball.",
+        good: { t: 'Kailia rolls it gently to the puppy', e: ['ball', 'dog'] }, silly: { t: 'She hides the ball in her soup', e: ['ball', 'spoon'] } },
+      { scene: ['dog', 'happy'], text: 'Now they are new friends!',
+        good: { t: 'They play together every day', e: ['dog', 'heart-red'] }, silly: { t: 'The puppy drives a car home', e: ['dog', 'car'] } },
+    ],
+  },
+  {
+    title: 'The Forgotten Snack',
+    beats: [
+      { scene: ['basket', 'banana'], text: 'Kailia packs a snack for the park.',
+        good: { t: 'She packs a banana and water', e: ['banana', 'cup-blue'] }, silly: { t: 'She packs a hat to eat', e: ['hat', 'yum'] } },
+      { scene: ['noel', 'sad'], text: 'At the park, Noel forgot his snack!',
+        good: { t: 'Kailia shares her banana', e: ['banana', 'noel'] }, silly: { t: 'Noel eats the grass', e: ['ground'] } },
+      { scene: ['banana', 'happy'], text: 'Noel says thank you to Kailia.',
+        good: { t: "Kailia says you're welcome", e: ['speech', 'happy'] }, silly: { t: 'The banana says thank you too', e: ['banana', 'speech'] } },
+      { scene: ['heart-pink'], text: 'Sharing made the day even better.',
+        good: { t: 'They play on the carousel', e: ['carousel', 'happy'] }, silly: { t: 'They swim in the sandbox', e: ['fish', 'ground'] } },
+    ],
+  },
+  {
+    title: 'The Sleepy Bat',
+    beats: [
+      { scene: ['bat', 'moon'], text: 'A little bat wakes up at night.',
+        good: { t: 'It flies out to find food', e: ['bat', 'cherries'] }, silly: { t: 'It brushes its teeth with a carrot', e: ['carrot', 'bat'] } },
+      { scene: ['bat', 'rain'], text: "Rain starts falling on the bat's wings.",
+        good: { t: 'The bat hides under a big leaf', e: ['leaf', 'bat'] }, silly: { t: 'The bat eats an ice cream in the rain', e: ['icecream', 'rain'] } },
+      { scene: ['bat', 'sun'], text: 'The sun comes up. Time for bats to sleep!',
+        good: { t: 'The bat hangs upside down to nap', e: ['bat', 'bed'] }, silly: { t: 'The bat goes to the beach', e: ['bat', 'fish'] } },
+      { scene: ['bat', 'sparkle'], text: 'Sweet dreams, little bat.',
+        good: { t: 'Kailia whispers good night', e: ['speech', 'moon'] }, silly: { t: 'Kailia sings super loud', e: ['note', 'note'] } },
+    ],
+  },
+  {
+    title: 'The Lost Ladybug',
+    beats: [
+      { scene: ['ladybug', 'flower'], text: "A ladybug lands on Kailia's hand!",
+        good: { t: 'Kailia holds very still', e: ['ladybug', 'happy'] }, silly: { t: 'She sneezes it to the moon', e: ['moon', 'ladybug'] } },
+      { scene: ['ladybug', 'sad'], text: "The ladybug can't find her family.",
+        good: { t: 'Kailia helps her look around', e: ['flashlight', 'flower'] }, silly: { t: 'Kailia looks inside the cheese', e: ['cheese'] } },
+      { scene: ['sunflower', 'ladybug'], text: 'Look! Lots of ladybugs on the sunflower!',
+        good: { t: 'Kailia carries her there gently', e: ['ladybug', 'sunflower'] }, silly: { t: 'Kailia paints them all blue', e: ['drop', 'ladybug'] } },
+      { scene: ['ladybug', 'heart-pink'], text: 'The ladybug is home with her family.',
+        good: { t: 'Kailia waves goodbye', e: ['happy', 'ladybug'] }, silly: { t: 'The ladybugs ride a rocket', e: ['rocket', 'ladybug'] } },
+    ],
+  },
 ];
 
 import { soundEnabled } from '@/lib/accessibility';
@@ -130,6 +210,7 @@ function Pic({ s, size }: { s: string[]; size: number }) {
 
 export default function StorySparksPage() {
   const [level, setLevel] = useState(1);
+  const fit = useGameFit('story-sparks');
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
   const [beatIdx, setBeatIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);        // randomize option order
@@ -149,9 +230,12 @@ export default function StorySparksPage() {
   const [sillyThisBeat, setSillyThisBeat] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
 
-  useEffect(() => { setLevel(nextGameLevel('story-sparks')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('story-sparks', fit.startLevel)); }, [fit.startLevel]);
 
-  const story = STORIES[(level - 1) % STORIES.length];
+  // the stories are dealt like cards: every tale is told before any comes back
+  const story = STORIES[dealIndex(STORIES.length, 'story-sparks', level - 1)];
   const beat = story.beats[beatIdx];
 
   const startLevel = useCallback(() => {
@@ -238,10 +322,10 @@ export default function StorySparksPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #3b0764 0%, #6b21a8 60%, #9d174d 130%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
 
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Story Sparks <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -267,7 +351,7 @@ export default function StorySparksPage() {
                 next, and the tale comes back to life!
               </p></>}
               extras={<div className="flex items-end justify-center gap-3"><span className="mb-2 float inline-block" style={{ animationDelay: '0.5s' }}><Book size={50} /></span></div>}
-              levels={<LevelPath gameId="story-sparks" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="story-sparks" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Open &ldquo;{story.title}&rdquo;</>}
               onStart={startLevel}
               footer={<SkillIntro gameId="story-sparks" />}
@@ -286,7 +370,7 @@ export default function StorySparksPage() {
             </div>
 
             {/* the Story Keepers' sky: two story bubbles, the page-stone path and the book */}
-            <Stage world="nova" className="mt-3" style={{ aspectRatio: '1 / 0.86' }}>
+            <Stage field world="nova" className="mt-3" style={{ aspectRatio: '1 / 0.86' }}>
               <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <g filter="url(#kp-brush)">
                   <path d="M0 86 Q20 80 42 85 T78 83 T100 84 V100 H0z" fill="#F3D9F7" stroke="#3b2416" strokeWidth="0.5" />

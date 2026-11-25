@@ -1,21 +1,22 @@
 'use client';
 
+import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import { Thing } from '@/components/art/things';
@@ -70,9 +71,29 @@ const HUNTS: Hunt[] = [
       { e: 'owl', c: 'wings' }, { e: 'octopus', c: 'fins' }, { e: 'penguin', c: 'wings' }, { e: 'snail', c: 'crawl' }] },
 ];
 
-type Round =
+type Round = ({ story?: string; who?: StoryWho | null }) & (
   | { kind: 'hunt'; hunt: Hunt; pieces: { id: number; item: HuntItem; x: number; y: number; dx: number; dy: number; dur: number }[] }
-  | { kind: 'odd'; hue: number; delta: number; count: number; oddIdx: number };
+  | { kind: 'odd'; hue: number; delta: number; count: number; oddIdx: number });
+
+// ── Why we're looking: a new little story every round ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+// Whoever the story is about waits in the cave beside Kailia (StoryGuest).
+const SENSE_STORIES: { line: string; who: StoryWho | null }[] = [
+  { line: 'The peacock is collecting colors for her feathers.', who: 'peacock' },
+  { line: 'The parrot wants something special for her nest.', who: 'parrot' },
+  { line: 'Kailia\'s lantern is hungry for light!', who: null },
+  { line: 'The raccoon needs new treasures for his cave museum.', who: 'raccoon' },
+  { line: 'The little hedgehog is practicing spotting things in the dark.', who: 'hedgehog' },
+  { line: 'The koala needs just the right things for a magic trick.', who: 'koala' },
+  { line: 'A gust of wind blew the treasures all around the cave!', who: null },
+  { line: 'The squirrel is having a treasure hunt in the cave!', who: 'squirrel' },
+  { line: 'The bunny wants to decorate her cozy den.', who: 'rabbit' },
+  { line: 'The frogs are playing a looking game.', who: 'frog' },
+  { line: 'The swan lost something special in the cave.', who: 'swan' },
+  { line: 'The deer are tidying up before bedtime.', who: 'deer' },
+  { line: 'The bees want to build a sparkly tower.', who: 'bee' },
+  { line: 'Grandpa hedgehog needs help, because his eyes are tired.', who: 'hedgehog' },
+];
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -80,10 +101,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function buildHunt(level: number, tiny: boolean): Round {
+function buildHunt(level: number, tiny: boolean, avoid?: string): Round {
   const ch = chapterFor(level).n;
   const step = (level - 1) % LEVELS_PER_CHAPTER;
-  const pool = HUNTS.filter(h => h.fromChapter <= Math.min(ch, 3));
+  const all = HUNTS.filter(h => h.fromChapter <= Math.min(ch, 3));
+  // never the same hunt twice in a row
+  const pool = all.filter(h => h.target !== avoid).length ? all.filter(h => h.target !== avoid) : all;
   const hunt = pool[Math.floor(Math.random() * pool.length)];
   const want = Math.min(5, (tiny ? 2 : 3) + Math.floor(ch / 2));
   const total = Math.min(14, (tiny ? 6 : 8) + step + ch);
@@ -164,8 +187,8 @@ const besideKailia = (petX: number, kx: number) => {
 };
 
 export default function SenseExplorerPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tiny = difficultyTier(state.ageGroup, totalScore, devMonths) === 'tiny';
+  const fit = useGameFit('sense-explorer');
+  const tiny = fit.tier === 'tiny';
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
@@ -192,8 +215,10 @@ export default function SenseExplorerPage() {
   const statsRef = useRef({ huntMisses: 0, oddMisses: 0, oddFirstTry: 0, startedAt: 0, smallestDelta: 999 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('sense-explorer', fit.startLevel)); }, [fit.startLevel]);
   useEffect(() => {
-    setLevel(nextGameLevel('sense-explorer'));
     const timers = timersRef.current;
     return () => { timers.forEach(clearTimeout); stopSpeaking(); };
   }, []);
@@ -203,15 +228,22 @@ export default function SenseExplorerPage() {
 
   const announce = useCallback((r: Round | undefined) => {
     if (!r) return;
+    const pre = r.story ? `${r.story} ` : '';
     const line = r.kind === 'hunt' ? r.hunt.prompt : 'One crystal is a little bit different. Can you spot it?';
-    setNoelLine(line);
+    setNoelLine(pre + line);
     setNoelMood('happy');
-    speak(r.kind === 'hunt' ? r.hunt.say : 'One crystal is a little bit different. Can you spot it?');
+    speak(pre + (r.kind === 'hunt' ? r.hunt.say : 'One crystal is a little bit different. Can you spot it?'));
   }, []);
 
+  const lastHunt = useRef<string | undefined>(undefined);
   const begin = useCallback(() => {
-    const rs: Round[] = Array.from({ length: ROUNDS_PER_LEVEL }, (_, i) =>
-      (i % 2 === (level % 2)) ? buildOdd(level, tiny) : buildHunt(level, tiny));
+    const stories = levelStories(SENSE_STORIES, 'sensory', level, ROUNDS_PER_LEVEL);
+    const rs: Round[] = [];
+    for (let i = 0; i < ROUNDS_PER_LEVEL; i++) {
+      const r = (i % 2 === (level % 2)) ? buildOdd(level, tiny) : buildHunt(level, tiny, lastHunt.current);
+      if (r.kind === 'hunt') lastHunt.current = r.hunt.target;
+      rs.push({ ...r, story: stories[i].line, who: stories[i].who });
+    }
     setRounds(rs); setRIdx(0);
     setCaught(new Set()); setTries(0); setRoundDone(false); setWobble(null);
     setKailiaX(34); setPetX(60); setLit(0);
@@ -335,9 +367,9 @@ export default function SenseExplorerPage() {
     <main className="relative min-h-screen pb-8 overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 70%, #155e75 120%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Sense Explorer <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
@@ -362,7 +394,7 @@ export default function SenseExplorerPage() {
                 Little things are floating in glowing bubbles in the caves! Catch the ones Noel asks for, and spot the
                 crystal that&apos;s <strong>a tiny bit different</strong>.
               </p></>}
-              levels={<LevelPath gameId="sense-explorer" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="sense-explorer" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<><span className="whitespace-nowrap">Play level {level}</span></>}
               onStart={begin}
               footer={<SkillIntro gameId="sense-explorer" />}
@@ -393,7 +425,7 @@ export default function SenseExplorerPage() {
             </div>
 
             {/* the cave */}
-            <div key={rIdx} className="relative w-full rounded-[28px] overflow-hidden select-none bounce-in"
+            <div key={rIdx} data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none bounce-in"
               style={{ aspectRatio: '3 / 3.9', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <CrystalCave />
 
@@ -449,6 +481,7 @@ export default function SenseExplorerPage() {
                 );
               })}
 
+              <StoryGuest who={round?.who} x={74} y={GROUND} size={48} z={5} cheer={roundDone} />
               <KailiaActor x={kailiaAt} y={GROUND} h={74} hop={kailiaHop} z={6} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 1} h={54}

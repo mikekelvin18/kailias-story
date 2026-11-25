@@ -1,13 +1,16 @@
 'use client';
 
+import { levelStory } from '@/lib/variety';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { mazeCorridor } from '@/lib/gameCurves';
+import type { DifficultyTier } from '@/lib/difficulty';
 import { usePlayCount } from '@/hooks/usePlayCount';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { characterArt } from '@/components/characters/characters.config';
-import { loadRewards, awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { loadRewards, awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { logQuestMetric } from '@/lib/metrics';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import LevelPath from '@/components/LevelPath';
@@ -290,14 +293,31 @@ function drawScenery(ctx: CanvasRenderingContext2D, lv: Level, t: number) {
 }
 
 
+// ── Why Kailia runs the maze today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const MAZE_STORIES = [
+  'Ooh, the fireflies lost their way!',
+  'A surprise is waiting at the flag!',
+  'Kailia is racing to the flag before the sun goes down!',
+  'The flag marks the spot where the treasure is buried!',
+  'Noel left his lunch at the flag. Let\'s go get it!',
+  'The fireflies are having a party at the flag tonight!',
+  'There\'s a big bamboo cake for Noel at the flag!',
+  'The flag is the finish line of the forest race!',
+  'The wind blew Kailia\'s hat all the way to the flag!',
+  'Kailia hears a happy song coming from the flag!',
+  'The stars fell into the maze. Let\'s collect them on the way!',
+];
+
 // Endless levels: the five mazes repeat, and each time round the
 // corridor gets a little narrower (steadier hands needed) and the maze
 // is mirrored so it never feels like the same walk twice.
-function mazeFor(level: number) {
+// The littlest hands get a wider path (lib/gameCurves.ts mazeCorridor).
+function mazeFor(level: number, tier: DifficultyTier) {
   const lap = Math.floor((level - 1) / LEVELS.length);
   return {
     maze: LEVELS[(level - 1) % LEVELS.length],
-    corridor: Math.max(13, 28 - lap * 3),
+    corridor: mazeCorridor(level, tier),
     mirror: lap % 2 === 1,
   };
 }
@@ -305,7 +325,7 @@ function mazeFor(level: number) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MazeRunnerPage() {
-  useAssessment();
+  const fit = useGameFit('fine-motor');
   const router = useRouter();
   const { increment } = usePlayCount();
 
@@ -326,7 +346,9 @@ export default function MazeRunnerPage() {
   useEffect(() => { setIsFirstEver(loadRewards().starlight === 0); setPlayerName(activeChild()?.nickname ?? ''); }, []);
   // snapshot values for levelcomplete display (avoids ref-in-render)
   const [snapStars, setSnapStars]   = useState(0);
-  useEffect(() => { setLevel(nextGameLevel('fine-motor')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('fine-motor', fit.startLevel)); }, [fit.startLevel]);
 
   // Refs — canvas state, not needed for React renders
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -390,7 +412,7 @@ export default function MazeRunnerPage() {
   }, []);
 
   // Sync levelRef in effect (not during render)
-  const { maze: lv, corridor, mirror } = mazeFor(level);
+  const { maze: lv, corridor, mirror } = mazeFor(level, fit.tier);
   useEffect(() => { levelRef.current = lv; corridorRef.current = corridor; levelNumRef.current = level; }, [lv, corridor, level]);
 
   // ── Draw — reads everything from refs, empty deps = stable reference ──────────
@@ -820,10 +842,10 @@ export default function MazeRunnerPage() {
       title="Maze Runner"
       theme={{ bg: 'radial-gradient(120% 80% at 50% 0%, #14532d 0%, #052e16 50%, #020510 100%)', accent: '#4ADE80', accent2: '#059669' }}
       pet={pet}
-      story={<p>Ooh, the fireflies lost their way! Trace the glowing trail with your finger to the flag.
+      story={<p>{levelStory(MAZE_STORIES, 'fine-motor', level)} Trace the glowing trail with your finger to the flag.
         Stay off the walls, and grab every star! {pet.name} will run along with Kailia.</p>}
       levels={<>
-        <LevelPath gameId="fine-motor" level={level} onPick={setLevel} />
+        <LevelPath gameId="fine-motor" level={level} onPick={setLevel} startLevel={fit.startLevel} />
         <p className="mt-3 text-sm font-bold text-green-200">
           <span className="inline-block w-3 h-3 rounded-full align-middle mr-1.5" style={{ background: lv.accent, boxShadow: `0 0 8px ${lv.accent}` }} />
           Next up: {lv.name}{corridor < 28 ? ', a narrower path!' : ''}
@@ -875,10 +897,10 @@ export default function MazeRunnerPage() {
   return (
     <main className="min-h-screen px-3 py-4"
       style={{background:`linear-gradient(135deg,${lv.bg},${lv.wall})`}}>
-      <div className="max-w-2xl mx-auto">
+      <div data-play-col className="max-w-2xl mx-auto">
 
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
+          <Link href="/play" className="kp-back font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.85)'}}>
             Lv {level}
@@ -901,8 +923,8 @@ export default function MazeRunnerPage() {
         </div>
 
         {/* Canvas, with the friend and the sparkles laid over it */}
-        <div ref={wrapRef} className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
-          style={{border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
+        <div ref={wrapRef} data-play-field data-wide className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
+          style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
           onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
           onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}>
           <canvas ref={canvasRef} width={W} height={H}

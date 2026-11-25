@@ -2,18 +2,20 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { moonPairs } from '@/lib/gameCurves';
+import { levelStory } from '@/lib/variety';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { shuffled } from '@/lib/shuffle';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
+import StoryGuest from '@/components/games/StoryGuest';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -39,9 +41,9 @@ interface CardT {
 }
 
 // the sleeping creatures, painted (components/art/things)
-const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel'];
+const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel', 'pic:penguin', 'pic:octopus'];
 const SHAPES = SHAPE_KINDS.map(k => `shape:${k}`);
-const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
+const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff', 'Hh', 'Nn'];
 
 import { soundEnabled } from '@/lib/accessibility';
 import { Thing } from '@/components/art/things';
@@ -81,6 +83,7 @@ const besideKailia = (petX: number, kailiaX: number) =>
   Math.abs(petX - kailiaX) >= 15 ? petX : clampPct(kailiaX + (kailiaX > 50 ? -17 : 17));
 
 const GROUND = 112; // px of glade below the board, where Kailia and the friend stand
+const SKY = 46;     // px of night sky above the board, so the moon is never hidden under a card
 
 function CardFace({ face, cols }: { face: string; cols: number }) {
   const big = cols <= 3 ? 1.35 : cols === 4 ? 1.1 : 0.9;
@@ -90,9 +93,26 @@ function CardFace({ face, cols }: { face: string; cols: number }) {
   return <span style={{ fontSize: Math.round((isLetter ? 36 : 32) * big), lineHeight: 1 }}>{face}</span>;
 }
 
+// ── Why the owl hid her friends tonight: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const MOON_STORIES = [
+  'Tonight is the owl\'s moon party, and every friend needs a partner to dance with!',
+  'The friends are playing hide and seek with their twins!',
+  'The owl is taking a class photo. Everyone must stand next to their twin!',
+  'A sleepy wind mixed up all the feathers. Let\'s put the twins back together!',
+  'The friends are going on a moon picnic, two by two!',
+  'It\'s twin day at owl school!',
+  'The stars are counting the friends. Find every pair!',
+  'The owl lost her glasses! Help her find the matching friends.',
+  'Every friend is looking for a buddy to share a story with.',
+  'The moon is shining extra bright. Time for the twins to wake up!',
+  'The friends are getting ready for a sleepover, two in every bed!',
+  'The owl is building a feather boat, and friends ride in pairs!',
+];
+
 export default function MoonlightMatchPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('moonlight-match');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [cards, setCards] = useState<CardT[]>([]);
@@ -124,20 +144,21 @@ export default function MoonlightMatchPage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const cardEls = useRef<Record<number, HTMLButtonElement | null>>({});
 
-  useEffect(() => { setLevel(nextGameLevel('moonlight-match')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('moonlight-match', fit.startLevel)); }, [fit.startLevel]);
 
   // pairs grow with level; the starting size and cap follow the child's tier
-  const pairsForLevel = useCallback((lvl: number) => {
-    const base = tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4;
-    const cap = tier === 'tiny' ? 6 : tier === 'small' ? 8 : 10;
-    return Math.min(base + (lvl - 1), cap);
-  }, [tier]);
+  // (lib/gameCurves.ts: one more pair every three levels, capped by stage)
+  const pairsForLevel = useCallback((lvl: number) => moonPairs(lvl, tier), [tier]);
 
   const startLevel = useCallback((lvl: number) => {
+    const story = levelStory(MOON_STORIES, 'moonlight-match', lvl);
     const pairs = pairsForLevel(lvl);
     // content rotates by level; readers sometimes get letter pairs (A ↔ a)
     const useLetters = tier === 'big' && lvl % 3 === 0;
-    const pool = useLetters ? LETTERS : lvl % 2 === 0 ? SHAPES : CREATURES;
+    // (there are 10 shapes, so the biggest boards use creatures)
+    const pool = useLetters ? LETTERS : lvl % 2 === 0 && pairs <= SHAPES.length ? SHAPES : CREATURES;
     const chosen = shuffled(pool).slice(0, pairs);
     const deck: CardT[] = shuffled(chosen.flatMap((key, i) => {
       const [a, b] = useLetters ? [key[0], key[1]] : [key, key];
@@ -157,9 +178,9 @@ export default function MoonlightMatchPage() {
     setHintId(null);
     setKailiaX(28);
     setPetX(74);
-    setNoelLine(useLetters
+    setNoelLine(`${story} ${useLetters
       ? 'Tricky level — match the BIG letter with its little twin!'
-      : 'Flip two feathers — find the friends that match!');
+      : 'Flip two feathers — find the friends that match!'}`);
     setNoelMood('excited');
     setPhase('playing');
   }, [pairsForLevel, tier]);
@@ -296,11 +317,11 @@ export default function MoonlightMatchPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
 
         {/* Header */}
-        <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+        <div className="flex items-center justify-between pb-2 px-1 relative z-10" style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
+          <Link href="/play" className="kp-back h-12 px-4 inline-flex items-center rounded-full text-base font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Moonlight Match <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -318,7 +339,7 @@ export default function MoonlightMatchPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #5b21b6 0%, #312e81 50%, #1e1b4b 100%)', accent: '#A78BFA', accent2: '#7C3AED' }}
               pet={pet}
               story={<><p>
-                The wise owl hid her friends under <strong>moonlit feathers</strong>!
+                The wise owl hid her friends under <strong>moonlit feathers</strong>! {levelStory(MOON_STORIES, 'moonlight-match', level)}
               </p>
               <p>
                 Flip two at a time and remember where everyone sleeps. Match pairs in a row for
@@ -327,7 +348,7 @@ export default function MoonlightMatchPage() {
               extras={<div className="flex items-end justify-center gap-3"><span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
                 <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
               </span></div>}
-              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Level {level} — flip!</>}
               onStart={() => startLevel(level)}
               footer={<SkillIntro gameId="moonlight-match" />}
@@ -338,11 +359,11 @@ export default function MoonlightMatchPage() {
         {/* ── The board, in the moonlit glade ── */}
         {phase !== 'intro' && (
           <div className="relative z-10">
-            <div ref={stageRef} className="relative w-full rounded-[28px] overflow-hidden select-none mt-1"
-              style={{ boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+            <div ref={stageRef} data-play-field data-cards className="relative w-full rounded-[28px] overflow-hidden select-none mt-1"
+              style={{ ['--cols' as string]: cols, ['--rows' as string]: Math.ceil(cards.length / cols) || 1, ['--ground' as string]: `${GROUND}px`, ['--top-pad' as string]: `${SKY}px`, boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <NightForest glow={cards.length ? cards.filter(c => c.state === 'matched').length / cards.length : 0} />
 
-              <div className="relative grid gap-2.5 px-3 pt-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, paddingBottom: GROUND, zIndex: 8 }}>
+              <div className="relative grid gap-2.5 px-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, paddingTop: SKY, paddingBottom: GROUND, zIndex: 8 }}>
                 {cards.map(c => (
                   <button key={c.id} ref={el => { cardEls.current[c.id] = el; }}
                     data-mkey={c.matchKey} data-state={c.state} data-hint={hintId === c.id && c.state === 'down' ? '1' : undefined} onClick={() => flip(c.id)}
@@ -379,6 +400,8 @@ export default function MoonlightMatchPage() {
               </div>
 
               {/* Kailia and the friend, in the glade below the board */}
+              {/* the wise owl from the story hosts the game (unless the owl is the friend playing along) */}
+              <StoryGuest who={pet.name === 'Sage' ? null : 'owl'} x={90} y={95} size={50} z={8} />
               <KailiaActor x={kailiaX} y={96} h={80} hop={kailiaHop} z={9} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={95} h={58}

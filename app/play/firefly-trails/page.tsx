@@ -2,23 +2,24 @@
 
 import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
-import { ShapeKind, shapePoints, toPath } from '@/lib/traceShapes';
+import { ShapeKind, shapePoints, toPath, transformPoints } from '@/lib/traceShapes';
+import { dealIndex, levelStory, randPick, roundRandom } from '@/lib/variety';
 
 // ─── Firefly Trails ───────────────────────────────────────────────────────────
 // Gamified tracing with a cognitive twist: a firefly draws a glowing
@@ -34,14 +35,55 @@ import { ShapeKind, shapePoints, toPath } from '@/lib/traceShapes';
 
 type Mode = 'guide' | 'faint' | 'memory';
 
-const SHAPES: { kind: ShapeKind; name: string }[] = [
-  { kind: 'line', name: 'The Bridge' },
-  { kind: 'circle', name: 'The Full Moon' },
-  { kind: 'zigzag', name: 'The Lightning' },
-  { kind: 'wave', name: 'The River' },
-  { kind: 'star', name: 'The Great Star' },
-  { kind: 'spiral', name: 'The Snail Path' },
+// Every sky picture, and the ways it may be turned or flipped so that a
+// picture seen before still looks new (only turns that keep it looking
+// like itself). The first five levels deal the gentle pictures; after
+// that every picture is in the deck.
+type Variant = [turn: number, mirror: boolean, name?: string];
+const SHAPES: { kind: ShapeKind; name: string; easy?: boolean; variants: Variant[] }[] = [
+  { kind: 'line', name: 'The Bridge', easy: true, variants: [[0, false], [90, false, 'The Waterfall'], [-30, false, 'The Slide']] },
+  { kind: 'circle', name: 'The Full Moon', easy: true, variants: [[0, false], [0, true]] },
+  { kind: 'zigzag', name: 'The Lightning', easy: true, variants: [[0, false], [180, false]] },
+  { kind: 'wave', name: 'The River', easy: true, variants: [[0, false], [0, true]] },
+  { kind: 'mountain', name: 'The Mountains', easy: true, variants: [[0, false], [0, true]] },
+  { kind: 'star', name: 'The Great Star', variants: [[0, false], [0, true]] },
+  { kind: 'spiral', name: 'The Snail Path', variants: [[0, false], [0, true]] },
+  { kind: 'heart', name: 'The Big Heart', variants: [[0, false], [0, true]] },
+  { kind: 'triangle', name: 'The Tent', variants: [[0, false], [0, true]] },
+  { kind: 'square', name: 'The Window', variants: [[0, false], [45, false, 'The Kite']] },
+  { kind: 'loops', name: 'The Loop-de-Loops', variants: [[0, false], [0, true]] },
+  { kind: 'eight', name: 'The Snowman', variants: [[0, false], [0, true]] },
 ];
+const EASY = SHAPES.filter(s => s.easy);
+
+// Why the sky picture must shine tonight: a new little story each level
+// (Kelvin 2026-11-23), dealt fairly from this deck (lib/variety.ts).
+// Whoever wants the sky picture watches from the meadow (StoryGuest).
+const SKY_STORIES: { line: string; who: StoryWho | null }[] = [
+  { line: 'The sleepy koala can\'t fall asleep without her favorite sky picture.', who: 'koala' },
+  { line: 'The swan needs the sky pictures to find her way home tonight.', who: 'swan' },
+  { line: 'The moon is lonely. Let\'s draw her a friend!', who: null },
+  { line: 'The deer family is waiting for the night sky show!', who: 'deer' },
+  { line: 'A shooting star knocked this picture right out of the sky.', who: null },
+  { line: 'The fireflies are painting a present for Noel.', who: null },
+  { line: 'Kailia wants to make a wish on tonight\'s picture.', who: null },
+  { line: 'The little hedgehog is scared of the dark. Let\'s light up the sky!', who: 'hedgehog' },
+  { line: 'The wind blew the stars all around. The raccoon wants them back!', who: 'raccoon' },
+  { line: 'The frog wants to see a sky picture before bed.', who: 'frog' },
+  { line: 'The bunnies are having a sleepover and want something to look at.', who: 'rabbit' },
+  { line: 'A cloud ate the stars! The squirrel wants to see them again.', who: 'squirrel' },
+];
+
+/** The picture, its turn, and its name for a level. */
+function skyFor(level: number) {
+  const L = Math.max(1, level);
+  const def = L <= 5 ? levelStory(EASY, 'firefly-trails:easy', L) : SHAPES[dealIndex(SHAPES.length, 'firefly-trails', L - 6)];
+  // level 1 is always the plain picture; then the turn is a surprise
+  const v: Variant = L === 1 ? def.variants[0] : randPick(roundRandom('firefly-trails:turn', L), def.variants);
+  return { kind: def.kind, name: v[2] ?? def.name, turn: v[0], mirror: v[1] };
+}
+const skyPoints = (sky: { kind: ShapeKind; turn: number; mirror: boolean }, n?: number) =>
+  sky.turn || sky.mirror ? transformPoints(shapePoints(sky.kind, n), sky.turn, sky.mirror) : shapePoints(sky.kind, n);
 
 import { soundEnabled } from '@/lib/accessibility';
 import { audioCtx, sfxOut } from '@/lib/sfx';
@@ -77,8 +119,8 @@ const SCENE_H = 1.27;
 const GROUND_Y = 97; // feet line, % of the whole scene
 
 export default function FireflyTrailsPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('firefly-trails');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'watch' | 'trace' | 'shine' | 'done'>('intro');
@@ -115,18 +157,24 @@ export default function FireflyTrailsPage() {
   const lastLitRef = useRef(0);
   const prevPtRef = useRef<{ x: number; y: number } | null>(null); // last finger spot in this stroke
 
-  useEffect(() => { setLevel(nextGameLevel('firefly-trails')); return () => timersRef.current.forEach(clearTimeout); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('firefly-trails', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { return () => timersRef.current.forEach(clearTimeout); }, []);
 
-  const shape = SHAPES[(level - 1) % SHAPES.length];
+  const shape = useMemo(() => skyFor(level), [level]);
+  const sky = levelStory(SKY_STORIES, 'firefly-trails:story', level);
+  const skyStory = sky.line;
   const mode: Mode = tier === 'tiny' ? 'guide'
     : tier === 'small' ? (level < 3 ? 'guide' : 'faint')
     : level < 2 ? 'guide' : level < 4 ? 'faint' : 'memory';
   // generous enough for small fingers on a phone (22px at the top tier made
   // a slow, careful trace miss dots and never finish; Muse review 2026-11-18)
-  const tolerance = tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30;
+  // and it narrows a little every few levels for steadier hands
+  const tolerance = (tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30) - Math.min(tier === 'tiny' ? 4 : 8, Math.floor((level - 1) / 4));
 
   const startLevel = useCallback(() => {
-    const pts = shapePoints(shape.kind);
+    const pts = skyPoints(shape);
     testHook('trail', { pts });
     ptsRef.current = pts;
     setPts(pts);
@@ -148,7 +196,7 @@ export default function FireflyTrailsPage() {
       setPhase('watch');
       setShowGuide(true);
       setWatchIdx(0);
-      setNoelLine(`Watch the firefly draw ${shape.name}… remember it!`);
+      setNoelLine(`${skyStory} Watch the firefly draw ${shape.name}… remember it!`);
       // the firefly flies the whole picture once while the child watches
       const step = Math.floor(2800 / pts.length);
       pts.forEach((_, i) => timersRef.current.push(setTimeout(() => setWatchIdx(i), 200 + i * step)));
@@ -161,10 +209,10 @@ export default function FireflyTrailsPage() {
       setShowGuide(true);
       setPhase('trace');
       setNoelLine(mode === 'guide'
-        ? `Trace ${shape.name}: follow the firefly and the glowing dots!`
-        : `The trail is faint tonight. Trace ${shape.name} carefully!`);
+        ? `${skyStory} Trace ${shape.name}: follow the firefly and the glowing dots!`
+        : `${skyStory} The trail is faint tonight. Trace ${shape.name} carefully!`);
     }
-  }, [shape, mode]);
+  }, [shape, mode, skyStory]);
 
   function peek() {
     if (mode !== 'memory' || phase !== 'trace') return;
@@ -290,7 +338,7 @@ export default function FireflyTrailsPage() {
       const s = statsRef.current;
       const avgDev = s.devN ? Math.round(s.devSum / s.devN) : 0;
       logQuestMetric('fine motor', 'firefly-trails', {
-        level, shapeIdx: (level - 1) % SHAPES.length, memoryMode: mode === 'memory' ? 1 : 0,
+        level, shapeIdx: SHAPES.findIndex(d => d.kind === shape.kind), memoryMode: mode === 'memory' ? 1 : 0,
         coverage: Math.round((litNow / lit.length) * 100), avgDeviationPx: avgDev,
         peeks, totalMs: Date.now() - s.startedAt,
       });
@@ -309,7 +357,7 @@ export default function FireflyTrailsPage() {
       fire(50, 40, ['#FFE066', '#FFF7B0', '#FFFFFF', '#8BE3FF'], 18, 110);
       timersRef.current.push(setTimeout(() => setPhase('done'), 1700));
     }
-  }, [lit, phase, level, mode, peeks, shape.name, fire, setPetMood]);
+  }, [lit, phase, level, mode, peeks, shape.name, shape.kind, fire, setPetMood]);
 
   const nextIdx = lit.findIndex(v => !v);
   // where the firefly waits: flying the picture (watch), else at the next
@@ -325,9 +373,9 @@ export default function FireflyTrailsPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #071527 0%, #0b2440 60%, #0f3d2e 130%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-emerald-200 whitespace-nowrap">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-emerald-200 whitespace-nowrap">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow whitespace-nowrap">
             Firefly Trails <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -347,7 +395,7 @@ export default function FireflyTrailsPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #1e3a5f 0%, #0b2440 50%, #04111f 100%)', accent: '#A3E635', accent2: '#16A34A' }}
               pet={pet}
               story={<><p>
-                The night sky pictures went dark!
+                The night sky pictures went dark! {skyStory}
               </p>
               <p>
                 A little firefly knows every trail. <strong>Trace her glowing paths</strong> to wake
@@ -355,8 +403,8 @@ export default function FireflyTrailsPage() {
                 {mode === 'memory' && <> Tonight is tricky: the trail <strong>fades</strong>, so remember it!</>}
               </p></>}
               extras={<div className="flex items-end justify-center gap-3"><span className="self-start mt-2 fg-bob inline-block"><GlowBug size={40} seed={3} /></span></div>}
-              levels={<LevelPath gameId="firefly-trails" level={level} onPick={setLevel} />}
-              startLabel={<><ShapeGlyph kind={shape.kind} size={40} /> <span className="whitespace-nowrap">Level {level}: {shape.name}</span></>}
+              levels={<LevelPath gameId="firefly-trails" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
+              startLabel={<><ShapeGlyph kind={shape.kind} turn={shape.turn} mirror={shape.mirror} size={40} /> <span className="whitespace-nowrap">Level {level}: {shape.name}</span></>}
               onStart={startLevel}
               footer={<SkillIntro gameId="firefly-trails" />}
             />
@@ -367,12 +415,12 @@ export default function FireflyTrailsPage() {
           <>
             <p className="text-center text-base font-extrabold mb-2 flex items-center justify-center gap-2"
               style={{ color: phase === 'watch' ? '#FDE047' : '#A7F3D0' }}>
-              <ShapeGlyph kind={shape.kind} size={28} light />
+              <ShapeGlyph kind={shape.kind} turn={shape.turn} mirror={shape.mirror} size={28} light />
               {phase === 'watch' ? `Watch and remember ${shape.name}…` : phase === 'trace' ? `Trace ${shape.name}!` : `${shape.name} shines!`}
             </p>
 
             {/* the scene: night sky to trace in, a glade below for Kailia and the friend */}
-            <div className="relative w-full rounded-[28px] overflow-hidden select-none"
+            <div data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
               style={{ aspectRatio: `1 / ${SCENE_H}`, boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <NightForest glow={litCount / Math.max(1, lit.length)} />
 
@@ -437,6 +485,7 @@ export default function FireflyTrailsPage() {
               </div>
 
               {/* Kailia and the friend in the glade, under the sky picture */}
+              <StoryGuest who={sky.who} x={88} y={GROUND_Y} size={52} z={8} group={sky.who === 'rabbit' || sky.who === 'deer'} />
               <KailiaActor x={kailiaX} y={GROUND_Y} h={74} hop={kailiaHop} z={9} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={GROUND_Y - 0.5} h={54}
@@ -481,8 +530,8 @@ export default function FireflyTrailsPage() {
 // ── A sky picture in miniature ──
 // The trail's own shape drawn as a little glowing constellation: used on
 // the start button, above the scene and on the finale (instead of emoji).
-function ShapeGlyph({ kind, size, light }: { kind: ShapeKind; size: number; light?: boolean }) {
-  const pts = shapePoints(kind, 40);
+function ShapeGlyph({ kind, size, light, turn = 0, mirror = false }: { kind: ShapeKind; size: number; light?: boolean; turn?: number; mirror?: boolean }) {
+  const pts = skyPoints({ kind, turn, mirror }, 40);
   const d = toPath(pts, 40);
   return (
     <svg viewBox="-4 -4 48 48" width={size} height={size} aria-hidden="true" style={{ flexShrink: 0, overflow: 'visible' }}>

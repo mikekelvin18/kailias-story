@@ -7,16 +7,19 @@ import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import { audioCtx, sfxOut } from '@/lib/sfx';
+import { endlessRamp } from '@/lib/levels';
+import { levelStories, roundRandom, seededShuffle } from '@/lib/variety';
 
 // ─── Potion Sort ────────────────────────────────────────────────────────────
 // A fast-paced drag-to-sort game in the owl's potion room: colored potion
@@ -37,16 +40,64 @@ const COLORS = [
   { key: 'blue',   hex: '#3B82F6', dark: '#1D4ED8' },
   { key: 'green',  hex: '#22C55E', dark: '#15803D' },
   { key: 'purple', hex: '#A855F7', dark: '#7E22CE' },
+  { key: 'yellow', hex: '#FACC15', dark: '#A16207' },
+  { key: 'orange', hex: '#F97316', dark: '#C2410C' },
 ];
 
-interface RoundCfg { colorCount: number; fallMs: number; spawnMs: number; bottles: number; noel: string; }
+interface RoundCfg { colors: string[]; fallMs: number; spawnMs: number; bottles: number; noel: string; done: string; who: StoryWho }
 
-const ROUNDS: RoundCfg[] = [
-  { colorCount: 2, fallMs: 5200, spawnMs: 1500, bottles: 6,  noel: 'Drag each potion into the cauldron with the SAME color!' },
-  { colorCount: 3, fallMs: 4400, spawnMs: 1250, bottles: 8,  noel: 'A third color joined the shelf. Keep those cauldrons matching!' },
-  { colorCount: 3, fallMs: 3600, spawnMs: 1050, bottles: 9,  noel: 'Faster potions! Quick hands, matching colors!' },
-  { colorCount: 4, fallMs: 3200, spawnMs: 950,  bottles: 10, noel: 'All four colors now. The owl believes in you!' },
+// ── Who the potions are for: a little story every round ──
+// (Kelvin 2026-11-23: every round its own story.) Dealt fairly from this
+// deck (lib/variety.ts): all are brewed once before any comes back.
+// Every order names a friend who really stands in the tower while you brew
+// (Kelvin 2026-11-23: a story's friend must be on screen), see StoryGuest.
+const ORDERS: { line: string; done: string; who: StoryWho }[] = [
+  { line: 'The koala has the hiccups! Let\'s brew a hiccup cure.', done: 'Hic... all better! The koala says thank you.', who: 'koala' },
+  { line: 'The bee\'s flowers are thirsty. Let\'s make a growing potion!', done: 'The flowers are growing tall!', who: 'bee' },
+  { line: 'A baby dragon caught a sniffly cold. Time for a warm-up potion!', done: 'Achoo! The baby dragon feels cozy now.', who: 'dragon' },
+  { line: 'The butterfly\'s wings lost their sparkle. Let\'s brew a shiny potion!', done: 'Her wings are sparkling again!', who: 'butterfly' },
+  { line: 'The frog wants to jump higher. Let\'s make a bouncy potion!', done: 'Boing! The frog jumps over the tower!', who: 'frog' },
+  { line: 'The bunny is too sleepy to play. Let\'s mix a wake-up potion!', done: 'The bunny is hopping around again!', who: 'rabbit' },
+  { line: 'The peacock\'s feathers lost their colors. Let\'s sort a rainbow potion!', done: 'Her feathers are bright again!', who: 'peacock' },
+  { line: 'The squirrel\'s tail lost its fluff. Let\'s brew a fluffy potion!', done: 'What a fluffy tail!', who: 'squirrel' },
+  { line: 'The parrots are having a party! Let\'s make a bubble potion.', done: 'Bubbles everywhere! What a party.', who: 'parrot' },
+  { line: 'The raccoon\'s books flew off the shelf. Let\'s make a tidy-up potion!', done: 'Every book is back on its shelf!', who: 'raccoon' },
+  { line: 'The deer wants to see in the dark. Let\'s brew a glow potion!', done: 'The deer is glowing like a star!', who: 'deer' },
+  { line: 'The hedgehog is too hot in the sun. Quick, a cool-down potion!', done: 'Brrr! The hedgehog feels cool again.', who: 'hedgehog' },
+  { line: 'The bees are too tired to make honey. Let\'s mix a buzzy potion!', done: 'Buzz, buzz! The bees are busy again.', who: 'bee' },
+  { line: 'The swan lost her singing voice. Let\'s brew a song potion!', done: 'La la la! The swan is singing again.', who: 'swan' },
+  { line: 'The koala wants to be extra cuddly. Let\'s make a cuddly potion!', done: 'Aww! The softest hug ever.', who: 'koala' },
+  { line: 'The rabbit wants to fly like a bird. Let\'s brew a flying potion!', done: 'Whoosh! The rabbit is floating!', who: 'rabbit' },
 ];
+
+// The level curve: more bottles, faster falls and more colors each
+// level, with every round of a level a little busier than the last. Which
+// colors show up (and the order of the cauldrons) changes level to level.
+function planRounds(level: number): RoundCfg[] {
+  const L = Math.max(1, level);
+  const n = L <= 2 ? 3 : 4;
+  const stories = levelStories(ORDERS, 'potion-sort', L, 4);
+  const palette = seededShuffle(COLORS.map(c => c.key), roundRandom('potion-sort:colors', L));
+  const pace = endlessRamp(L, 1, 0.5, 14);           // 1 → slower, 0.5 → twice as fast
+  const maxColors = L <= 6 ? 3 : 4;
+  const counts = Array.from({ length: n }, (_, r) => Math.min(maxColors, 2 + Math.floor((L - 1) / 4) + (r >= Math.max(1, n - 2) ? 1 : 0)));
+  return Array.from({ length: n }, (_, r) => {
+    const colorCount = counts[r];
+    const f = pace * (1 - r * 0.07);
+    const instr = r === 0 ? 'Drag each potion into the cauldron with the SAME color!'
+      : colorCount > counts[r - 1] ? 'A new color joined the shelf. Keep those cauldrons matching!'
+        : r === n - 1 ? 'Last batch! Quick hands, matching colors!' : 'Faster potions! Quick hands, matching colors!';
+    return {
+      colors: palette.slice(0, colorCount),
+      fallMs: Math.round(5200 * f),
+      spawnMs: Math.round(1500 * f),
+      bottles: Math.min(18, 6 + Math.floor((L - 1) / 2) + r),
+      noel: `${stories[r].line} ${instr}`,
+      done: stories[r].done,
+      who: stories[r].who,
+    };
+  });
+}
 
 const COMBO_LINES = ['Nice!', 'Great!', 'Fantastic!', 'Amazing!', "You're on a roll!"];
 
@@ -85,13 +136,16 @@ const sfx = {
 };
 
 export default function PotionSortPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
+  const fit = useGameFit('potion-sort');
+  const tuning = TIER_TUNING[fit.tier];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('potion-sort')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('potion-sort', fit.startLevel)); }, [fit.startLevel]);
 
   const [roundIdx, setRoundIdx] = useState(0);
+  const [ROUNDS, setRounds] = useState<RoundCfg[]>(() => planRounds(1));
   const [bottles, setBottles] = useState<Bottle[]>([]);
   const [combo, setCombo] = useState(0);
   const [comboLine, setComboLine] = useState('');
@@ -122,17 +176,17 @@ export default function PotionSortPage() {
   useEffect(() => { bottlesRef.current = bottles; }, [bottles]);
   const metricsRef = useRef({ correct: 0, wrong: 0, missed: 0, sortMs: [] as number[], bestCombo: 0, startedAt: 0 });
 
-  const activeColors = () => COLORS.slice(0, ROUNDS[roundIdx].colorCount);
+  const activeColors = () => ROUNDS[roundIdx].colors.map(k => COLORS.find(c => c.key === k)!);
   const zoneCenter = (i: number, n: number) => ((i + 0.5) / n) * 100;
 
-  const startRound = useCallback((idx: number) => {
+  const startRound = useCallback((idx: number, rs: RoundCfg[]) => {
     roundMissesRef.current = 0;
     slipStreakRef.current = 0;
     spawnedRef.current = 0;
     setBottles([]);
     setHintColor(null);
     setRoundIdx(idx);
-    setNoelLine(ROUNDS[idx].noel);
+    setNoelLine(rs[idx].noel);
     setNoelMood('excited');
     setPhase('playing');
   }, []);
@@ -142,7 +196,9 @@ export default function PotionSortPage() {
     setCombo(0);
     setKailiaX(30); setPetX(62);
     sfx.round();
-    startRound(0);
+    const rs = planRounds(level);
+    setRounds(rs);
+    startRound(0, rs);
   }
 
   // after two slips the friend runs to the cauldron the next potion
@@ -235,15 +291,15 @@ export default function PotionSortPage() {
       setNoelMood('celebrating');
       setHintColor(null);
       setPetMood('cheer');
-      setNoelLine(['Every potion found a home!', 'The cauldrons are bubbling happily!', 'What quick hands!', 'All sorted!'][roundIdx]);
+      setNoelLine(ROUNDS[roundIdx].done);
     }
-  }, [bottles, phase, roundIdx, setPetMood]);
+  }, [bottles, phase, roundIdx, setPetMood, ROUNDS]);
 
   useEffect(() => {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < ROUNDS.length) {
       sfx.round();
-      const t = setTimeout(() => startRound(roundIdx + 1), 1600);
+      const t = setTimeout(() => startRound(roundIdx + 1, ROUNDS), 2200);
       return () => clearTimeout(t);
     }
     sfx.fanfare();
@@ -374,12 +430,12 @@ export default function PotionSortPage() {
         <strong> same color</strong> before it lands. Kailia will stir them in!</p>}
       extras={
         <div className="flex justify-center items-end gap-3">
-          {COLORS.map((c, i) => (
+          {planRounds(level).at(-1)!.colors.map(k => COLORS.find(c => c.key === k)!).map((c, i) => (
             <span key={c.key} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}><PotionBottle color={c.hex} size={38} /></span>
           ))}
         </div>
       }
-      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} />}
+      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
       startLabel={<>Play level {level}</>}
       onStart={() => { setPhase('playing'); startGame(); }}
       footer={<SkillIntro gameId="potion-sort" />}
@@ -406,9 +462,9 @@ export default function PotionSortPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg,#1e1b4b,#312e81)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="font-bold text-sm text-purple-200">← Map</Link>
+          <Link href="/play" className="kp-back font-bold text-sm text-purple-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Potion Sort <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -421,7 +477,7 @@ export default function PotionSortPage() {
           </span>
         </div>
 
-        <div ref={areaRef} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerLeave={onDragEnd}
+        <div ref={areaRef} data-play-field onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerLeave={onDragEnd}
           className="relative w-full rounded-[28px] overflow-hidden select-none"
           style={{ aspectRatio: '3 / 4.2', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
 
@@ -462,6 +518,7 @@ export default function PotionSortPage() {
             );
           })}
 
+          <StoryGuest who={ROUNDS[roundIdx]?.who} x={92} y={GROUND} size={46} z={11} cheer={phase === 'roundDone'} />
           <KailiaActor x={kailiaAt} y={GROUND} h={68} hop={kailiaHop} z={12} />
           <div data-pet>
             <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 0.5} h={50}

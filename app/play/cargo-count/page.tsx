@@ -7,16 +7,18 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import SpaceScene from '@/components/games/SpaceScene';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
 import { shuffled } from '@/lib/shuffle';
+import { levelStories } from '@/lib/variety';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, levelStarlight, nextGameLevel, recordGameLevel } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { cargoPlan, type CargoPlan } from '@/lib/gameCurves';
+import { awardStarlight, levelStarlight, recordGameLevel } from '@/lib/rewards';
 
 // ─── Cargo Count (Space Outpost) ──────────────────────────────────────────────
 // Its own game, not a re-skin (Muse round 5): the space crew orders an
@@ -42,25 +44,28 @@ const POD_COLORS: Record<number, { body: string; band: string; dot: string }> = 
   10: { body: '#FDE68A', band: '#F59E0B', dot: '#4A2E05' },
 };
 
-interface Plan { values: number[]; lo: number; hi: number; speed: number; size: number }
+// the level curve lives in lib/gameCurves.ts (checked against ages by scripts/age-fit.test.mjs)
+type Plan = CargoPlan;
+const planFor = cargoPlan;
 
-// the level curve: which boxes exist, how big the orders are, how fast
-// boxes drift and how big they are drawn
-function planFor(level: number, tier: DifficultyTier): Plan {
-  const L = Math.max(1, level);
-  let values = L <= 5 ? [1] : L <= 10 ? [1, 2] : L <= 15 ? [1, 2, 5] : [1, 2, 5, 10];
-  let lo: number, hi: number;
-  if (L <= 5) { lo = L + 1; hi = L + 3; }
-  else if (L <= 10) { lo = L - 1; hi = L + 2; }
-  else if (L <= 15) { lo = L - 2; hi = L + 3; }
-  else { lo = L - 4; hi = L + 4; }
-  hi = Math.min(50, hi); lo = Math.min(lo, hi - 1);
-  let speed = Math.min(10, 2.4 + L * 0.3);
-  if (tier === 'tiny') { values = values.filter(v => v <= 2); hi = Math.min(hi, 6); lo = Math.min(lo, 4); speed *= 0.5; }
-  else if (tier === 'small') { values = values.filter(v => v <= 5); hi = Math.min(hi, L <= 10 ? 10 : 20); lo = Math.min(lo, hi - 2); speed *= 0.8; }
-  const size = Math.max(54, 74 - L * 0.7);
-  return { values, lo, hi, speed, size };
-}
+// ── Where each rocket is going: a new little story every order ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+// Every crew order comes from a space friend who waits by the rocket
+// (StoryGuest), so the story's friend is always on screen.
+const MISSIONS: { line: string; who: StoryWho | null }[] = [
+  { line: 'The moon bunnies are building a carrot farm. They need supplies!', who: 'rabbit' },
+  { line: 'Captain Raccoon is throwing a birthday party on Mars!', who: 'raccoon' },
+  { line: 'A comet needs fixing before it can zoom again.', who: null },
+  { line: 'The space koala is hungry. Let\'s send a snack rocket!', who: 'koala' },
+  { line: 'The squirrel is building a playground on the moon!', who: 'squirrel' },
+  { line: 'A baby star lost its sparkle. Send some star dust!', who: null },
+  { line: 'The space frogs are camping on a comet tonight.', who: 'frog' },
+  { line: 'The Saturn ring needs new paint!', who: null },
+  { line: 'The bees are planting a space garden. They need seeds and water.', who: 'bee' },
+  { line: 'A rocket full of toys for the hedgehog on the moon!', who: 'hedgehog' },
+  { line: 'The space peacock is making pancakes for everyone!', who: 'peacock' },
+  { line: 'The deer want to build a giant snowman on Pluto!', who: 'deer' },
+];
 
 const rnd = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
 
@@ -128,12 +133,13 @@ const sfx = {
 const CHEERS = ['Lift off! Perfect count!', 'Whoosh! The crew loves it!', 'Right on the number! Off it goes!'];
 
 export default function CargoCountPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('cargo-count');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'launching' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('cargo-count')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('cargo-count', fit.startLevel)); }, [fit.startLevel]);
   const plan = useMemo(() => planFor(level, tier), [level, tier]);
   const [earned, setEarned] = useState(0);
 
@@ -154,6 +160,7 @@ export default function CargoCountPage() {
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const [petX, setPetX] = useState(38);
   const [kailiaX, setKailiaX] = useState(20);
+  const [guest, setGuest] = useState<StoryWho | null>(null);
   const [kailiaHop, setKailiaHop] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
 
@@ -165,8 +172,15 @@ export default function CargoCountPage() {
 
   const loaded = hold.reduce((s, p) => s + p.value, 0);
 
+  const lastTarget = useRef(0);
   const startOrder = useCallback((idx: number) => {
-    const t = rnd(plan.lo, plan.hi);
+    // a new number every order (never the one just loaded)
+    let t = rnd(plan.lo, plan.hi);
+    for (let k = 0; k < 8 && t === lastTarget.current && plan.hi > plan.lo; k++) t = rnd(plan.lo, plan.hi);
+    lastTarget.current = t;
+    const missionStory = levelStories(MISSIONS, 'cargo-count', level, ORDERS_PER_LEVEL)[idx];
+    const mission = missionStory.line;
+    setGuest(missionStory.who);
     const made = podsFor(t, plan, nextId.current);
     nextId.current += made.length + 1;
     setTarget(t);
@@ -181,12 +195,12 @@ export default function CargoCountPage() {
     orderStart.current = performance.now();
     busyRef.current = false;
     metrics.current.maxTarget = Math.max(metrics.current.maxTarget, t);
-    setNoelLine(plan.values.length > 1
+    setNoelLine(`${mission} ${plan.values.length > 1
       ? 'Some boxes hold more than one! Load exactly what the crew ordered.'
-      : 'The crew needs this many boxes. Tap a box to beam it aboard!');
+      : 'The crew needs this many boxes. Tap a box to beam it aboard!'}`);
     setNoelMood('excited');
     setPhase('playing');
-  }, [plan]);
+  }, [plan, level]);
 
   function startGame() {
     metrics.current = { firstTry: 0, launches: 0, orderMs: [], slips: 0, maxTarget: 0, startedAt: Date.now() };
@@ -322,9 +336,9 @@ export default function CargoCountPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0d0826 0%, #1b1450 60%, #241a5e 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-indigo-200">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-indigo-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Cargo Count <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -348,7 +362,7 @@ export default function CargoCountPage() {
                 Cargo boxes are floating all around. <strong>Beam aboard exactly what the crew ordered</strong>, then press Launch!
               </p></>}
               extras={<div className="flex items-end justify-center gap-2"><PodArt value={1} size={44} /><PodArt value={2} size={48} /><Rocket size={70} /></div>}
-              levels={<LevelPath gameId="cargo-count" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="cargo-count" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Load the rocket!</>}
               onStart={startGame}
               footer={<SkillIntro gameId="cargo-count" />}
@@ -372,8 +386,8 @@ export default function CargoCountPage() {
               </div>
             </div>
 
-            <div className="relative w-full rounded-[28px] overflow-hidden select-none"
-              style={{ aspectRatio: '3 / 4', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+            <div data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
+              style={{ aspectRatio: '3 / 4', ['--kp-ar' as string]: '3 / 4', ['--kp-chrome' as string]: '480px', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <SpaceScene />
 
               {/* the rocket on its launch pad */}
@@ -395,6 +409,7 @@ export default function CargoCountPage() {
                 )}
               </div>
 
+              <StoryGuest who={guest} x={47} y={83} size={46} z={4} />
               <KailiaActor x={kailiaX} y={94} h={80} hop={kailiaHop} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={93} h={58} mood={petMood} moodKey={petMoodKey} onTap={tickle} z={7} />

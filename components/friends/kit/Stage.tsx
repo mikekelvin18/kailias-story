@@ -254,11 +254,13 @@ function Backdrop({ world }: { world: World }) {
   }
 }
 
-export default function Stage({ world, children, className, style }: {
+export default function Stage({ world, children, className, style, field }: {
   world: World; children?: ReactNode; className?: string; style?: CSSProperties;
+  /** the game's main play area: fitted to the screen (see [data-play-field] in globals.css) */
+  field?: boolean;
 }) {
   return (
-    <div className={`relative w-full overflow-hidden rounded-[28px] select-none ${className ?? ''}`}
+    <div {...(field ? { 'data-play-field': '' } : {})} className={`relative w-full overflow-hidden rounded-[28px] select-none ${className ?? ''}`}
       style={{ boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)', ...style }}>
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true"><Backdrop world={world} /></div>
       {children}
