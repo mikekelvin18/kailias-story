@@ -4,8 +4,9 @@ import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
-import { SNACK_PLANS, SNACK_MORE_FROM_MONTHS, snackCap, snackGrowth, snackWobble } from '@/lib/gameCurves';
+import { SNACK_PLANS, SNACK_MAX_STEP, snackAgeCap, snackGrowth, snackMode, snackWobble } from '@/lib/gameCurves';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -309,8 +310,10 @@ export default function SnackQuestPage() {
     // gets the "I already have 2! How many more?" rounds.
     const months = fitMonths != null && chronoMonths != null ? Math.min(fitMonths, chronoMonths)
       : fitMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
-    const h = months >= SNACK_MORE_FROM_MONTHS ? plans[tier].h : plans[tier].h.map(() => 0);
-    const cap = snackCap(tier);
+    // age band (lib/ageBands.ts): count to a wish → "bring me 2 more" → "how many MORE?"
+    const mode = snackMode(months);
+    const h = mode === 'howManyMore' ? plans[tier].h : plans[tier].h.map(() => 0);
+    const cap = snackAgeCap(months, tier);
     const [wLo, wHi] = snackWobble(tier);
     // the wishes grow with the level (plus a little surprise), and a round
     // never asks for the same as the same round of the level before
@@ -319,15 +322,25 @@ export default function SnackQuestPage() {
       return Math.max(h[i] + 1, Math.min(cap, w[i] + snackGrowth(L, tier) + randInt(rand, wLo, wHi)));
     };
     const wishes = levelStories(WISHES, 'snack-quest', lvl, 3);
+    let prevWant = 0;
     return w.map((_, i) => {
       let want = wantAt(lvl, i);
       // little ones are nudged down (never past what their age can count)
       if (lvl > 1 && want === wantAt(lvl - 1, i)) want = tier !== 'big' && want - 1 >= h[i] + 1 ? want - 1 : want < cap ? want + 1 : want - 1;
+      // no big jumps inside one feast (3 then 8)
+      if (prevWant) want = Math.max(h[i] + 1, Math.min(want, prevWant + SNACK_MAX_STEP));
+      want = Math.min(cap, want);
+      prevWant = want;
       const bump = Math.floor((lvl - 1) / 3);
-      const have = h[i] > 0 ? Math.max(1, Math.min(want - 1, h[i] + Math.floor(bump / 2) + randInt(roundRandom('snack-quest:have', lvl, i), -1, 1))) : 0;
+      let have = h[i] > 0 ? Math.max(1, Math.min(want - 1, h[i] + Math.floor(bump / 2) + randInt(roundRandom('snack-quest:have', lvl, i), -1, 1))) : 0;
+      // 5–6 year olds: after the first wish, she has some and asks for just 2 more
+      const twoMore = mode === 'twoMore' && i > 0 && want >= 3;
+      if (twoMore) have = want - 2;
       // the very first round ever keeps the field's own snack
       const wish = lvl === 1 && i === 0 ? WISHES[WISHES.length - 1] : wishes[i];
-      const intro = `${wish.line} ${have
+      const intro = `${wish.line} ${twoMore
+        ? 'She already has some. Bring her 2 more!'
+        : have
         ? 'Look, she already has some! How many MORE does she need?'
         : 'Walk to a snack to pick it up, then bring it to her!'}`;
       return { want, have, intro, thing: wish.thing, walls: wallsFor(lvl, i) };
@@ -612,7 +625,7 @@ export default function SnackQuestPage() {
     // ✨ starlight for the feast: perfect first tries shine extra
     const stars = levelStarlight(level, m.attempts);
     awardStarlight(stars);
-    recordGameLevel('snack-quest', level);
+    recordGameLevel('snack-quest', level, roundEase(m.attempts, 3));
     const t = setTimeout(() => { setEarned(stars); setPhase('done'); }, 1500);
     return () => clearTimeout(t);
   }, [phase, roundIdx, rounds, startRound, level]);

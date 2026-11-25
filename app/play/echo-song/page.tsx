@@ -3,6 +3,7 @@
 import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { echoSeqLen } from '@/lib/gameCurves';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -149,7 +150,8 @@ export default function EchoSongPage() {
     timersRef.current = [];
     // Kailia and the friend step back to the middle of the floor to listen
     setKailiaX(42); setPetX(60);
-    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14));
+    // younger age bands hear the song a little slower (lib/ageBands.ts speed)
+    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14) * (1 + (1 - fit.look.speed) * 0.6));
     s.forEach((c, i) => {
       timersRef.current.push(setTimeout(() => sing(c), 500 + i * gap));
       timersRef.current.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.6));
@@ -159,7 +161,7 @@ export default function EchoSongPage() {
       setNoelLine('Your turn — echo the song!');
       setNoelMood('excited');
     }, 500 + s.length * gap + 200));
-  }, [tier, sing, level]);
+  }, [tier, sing, level, fit.look.speed]);
 
   const startLevel = useCallback((lvl: number) => {
     // a fresh song: never the same crystal three times in a row
@@ -208,7 +210,7 @@ export default function EchoSongPage() {
         });
         const stars = levelStarlight(level, s.attempts);
         awardStarlight(stars);
-        recordGameLevel('echo-song', level);
+        recordGameLevel('echo-song', level, roundEase(s.attempts, seq.length));
         setEarned(stars);
         setPhase('cheer');
         setNoelLine(`You sang the whole song! ${story.done}`);

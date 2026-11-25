@@ -1343,3 +1343,13 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 :root[data-calm="true"] :is(.soft-pulse, .hint-glow) { animation: none !important; opacity: 1; }
 /* the big button sits still, with a softer shadow */
 :root[data-calm="true"] .gf-cta { box-shadow: 0 5px 0 #3b2416; }
+
+/* ── Big Kid look (Family → Game level; components/BigKidLook.tsx) ──
+   For older children who find the games babyish: no sparkles or confetti,
+   a calmer title, and the cast on the game cards a little smaller. Targets,
+   hints and the game itself are unchanged. */
+:root[data-bigkid="true"] :is(.sparkle, .gf-dust, .gf-confetti, .gf-rays, .gf-shine, .pm-confetti, .rise-fade, .sky-twinkle, .fg-twinkle) { display: none !important; }
+:root[data-bigkid="true"] .gf-title { font-size: 34px; letter-spacing: 1px; text-shadow: 0 3px 0 #3b2416; }
+:root[data-bigkid="true"] .gf-letter { animation: none; }
+:root[data-bigkid="true"] .gf-cast { transform: scale(0.82); transform-origin: 50% 100%; }
+:root[data-bigkid="true"] .gf-stage { animation: none; }

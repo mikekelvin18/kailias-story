@@ -7,6 +7,7 @@
 // check runs in plain Node.
 
 import type { DifficultyTier } from './difficulty';
+import { BAND_SETTINGS, bandForMonths, type AgeBand } from './ageBands';
 
 // ── Echo Song: how many notes the crystals sing ──
 // Remembering a sequence of lights + tones (like the Corsi / Simon tasks):
@@ -27,8 +28,16 @@ export function echoSeqLen(level: number, tier: DifficultyTier): number {
 // Memory-match: 2–3 year olds manage 2–3 pairs, 4-year-olds about 4–6,
 // 5–6 year olds 8, older children 10–12+. One more pair every three levels
 // (it was one more EVERY level, so level 5 already asked a 3-year-old for 7).
-export function moonPairs(level: number, tier: DifficultyTier): number {
+// Age bands (Grok's review 2026-11-25): level 1 starts at the band's own
+// number of pairs (under 3: 2, 3–4: 3, 5–6: 4, 7–8: 6, 9–12: 8), so every
+// child starts Moonlight Match on level 1 and climbs from there.
+const MOON_BAND_CAP: Record<AgeBand, number> = { together: 3, little: 5, early: 8, big: 10, older: 12 };
+export function moonPairs(level: number, tier: DifficultyTier, months?: number | null): number {
   const L = Math.max(1, level);
+  if (months != null) {
+    const band = bandForMonths(months);
+    return Math.min(MOON_BAND_CAP[band], BAND_SETTINGS[band].memoryPairs + Math.floor((L - 1) / 3));
+  }
   const base = tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4;
   const cap = tier === 'tiny' ? 4 : tier === 'small' ? 8 : 12;
   return Math.min(cap, base + Math.floor((L - 1) / 3));
@@ -37,10 +46,16 @@ export function moonPairs(level: number, tier: DifficultyTier): number {
 // ── Maze Runner: how far from the path a finger may wander ──
 // Every lap of the five mazes narrows the path a little. The littlest hands
 // get a wider path (it was the same for a 2-year-old and a 12-year-old).
-export function mazeCorridor(level: number, tier: DifficultyTier = 'big'): number {
+// Under 7 the age band (lib/ageBands.ts) widens the path by its tolerance
+// over the big kids' 28 (under 3: +28, 3–4: +16, 5–6: +6, in maze units),
+// and it still narrows a little each lap, so the levels keep growing.
+export function mazeCorridor(level: number, tier: DifficultyTier = 'big', months?: number | null): number {
   const lap = Math.floor((Math.max(1, level) - 1) / 5);
   const widen = tier === 'tiny' ? 8 : tier === 'small' ? 4 : 0;
-  return Math.max(13, 28 - lap * 3) + widen;
+  const curve = Math.max(13, 28 - lap * 3) + widen;
+  if (months == null) return curve;
+  const bandWiden = Math.max(0, BAND_SETTINGS[bandForMonths(months)].pathTolerance - BAND_SETTINGS.big.pathTolerance);
+  return Math.max(13, 28 - lap * 3) + Math.max(widen, bandWiden);
 }
 
 // ── Cargo Count: which boxes float, how big the orders are ──
@@ -91,7 +106,22 @@ export const SNACK_PLANS: Record<DifficultyTier, { w: number[]; h: number[] }> =
   big:   { w: [4, 7, 9], h: [0, 3, 4] },
 };
 export const snackCap = (tier: DifficultyTier) => (tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12); // the field's free spots
-export const SNACK_MORE_FROM_MONTHS = 72;
+// Age bands (lib/ageBands.ts, Grok's review 2026-11-25): under 5 count to a
+// wish of 1–5 ("I wish for 3 cookies"); 5–6 count to 10 and meet "Bring me
+// 2 more!"; only 7+ get "I already have 4, how many MORE?".
+export const SNACK_MORE_FROM_MONTHS = 84;
+export const SNACK_TWO_MORE_FROM_MONTHS = 60;
+export type SnackMode = 'count' | 'twoMore' | 'howManyMore';
+export function snackMode(months: number): SnackMode {
+  return months >= SNACK_MORE_FROM_MONTHS ? 'howManyMore' : months >= SNACK_TWO_MORE_FROM_MONTHS ? 'twoMore' : 'count';
+}
+/** The biggest wish for an age: 2 under 3, 5 at 3–4, 10 at 5–6, then the tier's own cap. */
+export function snackAgeCap(months: number, tier: DifficultyTier): number {
+  const byAge = months < 36 ? 2 : months < 60 ? 5 : months < 84 ? 10 : Infinity;
+  return Math.min(snackCap(tier), byAge);
+}
+/** Within one feast a wish grows by at most this much over the last one (no 3 → 8 jumps). */
+export const SNACK_MAX_STEP = 2;
 /** How much the wishes have grown by a level: school-age wishes grow every
  *  two levels, little ones' once a chapter (3-year-olds count to about 3). */
 export const snackGrowth = (level: number, tier: DifficultyTier) =>
@@ -100,9 +130,10 @@ export const snackGrowth = (level: number, tier: DifficultyTier) =>
 export const snackWobble = (tier: DifficultyTier): [number, number] => (tier === 'big' ? [-1, 1] : [-1, 0]);
 /** The biggest wish a level can make (base + growth + surprise + the "not the
  *  same as last level" nudge, which only nudges up for school-age children). */
-export function snackBiggestWish(level: number, tier: DifficultyTier): number {
+export function snackBiggestWish(level: number, tier: DifficultyTier, months?: number): number {
   const { w } = SNACK_PLANS[tier];
-  return Math.min(snackCap(tier), w[w.length - 1] + snackGrowth(level, tier) + snackWobble(tier)[1] + (tier === 'big' ? 1 : 0));
+  const cap = months != null ? snackAgeCap(months, tier) : snackCap(tier);
+  return Math.min(cap, w[w.length - 1] + snackGrowth(level, tier) + snackWobble(tier)[1] + (tier === 'big' ? 1 : 0));
 }
 
 // ── Sky Mail: the math mailbag, by age in months ──

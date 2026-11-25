@@ -9,6 +9,7 @@ import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoAr
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import Stage from '@/components/friends/kit/Stage';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -280,7 +281,7 @@ export default function StorySparksPage() {
             level, beats: story.beats.length, sillyPicks: s.silly, totalMs: Date.now() - s.startedAt,
           });
           awardStarlight(levelStarlight(level, s.silly));
-          recordGameLevel('story-sparks', level);
+          recordGameLevel('story-sparks', level, roundEase(s.silly, story.beats.length));
           sfx.fanfare();
           setPhase('levelDone');
         }

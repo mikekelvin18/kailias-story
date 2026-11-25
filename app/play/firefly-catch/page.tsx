@@ -7,6 +7,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
@@ -225,8 +226,10 @@ export default function FireflyCatchPage() {
     const lvlSize = Math.max(0.72, 1 - (level - 1) * 0.035);
     const round: RoundCfg = {
       ...base,
-      r: Math.round(base.r * tuning.r * lvlSize * (struggled ? 1.3 : 1)),
-      speed: base.speed * tuning.speed * lvlSpeed * (struggled ? 0.75 : 1),
+      // never smaller than the age band's smallest tap (lib/ageBands.ts),
+      // and as fast as the band's speed (under 3: 0.4×, 3–4: 0.6× … 9–12: 1.2×)
+      r: Math.max(Math.round(fit.look.minTap / 2), Math.round(base.r * tuning.r * lvlSize * (struggled ? 1.3 : 1))),
+      speed: base.speed * fit.look.speed * lvlSpeed * (struggled ? 0.75 : 1),
     };
 
     roundMissesRef.current = 0;
@@ -253,10 +256,11 @@ export default function FireflyCatchPage() {
     setRoundIdx(idx);
     setFireflies(flies);
     setCarried(0);
-    setNoelLine(round.noel);
+    // little ones send a sleepy firefly home with one tap (no dragging needed)
+    setNoelLine(round.mode === 'drag' && fit.look.tapToMove ? round.noel.replace('Drag each firefly to the lamp!', 'Tap each sleepy firefly to send it home to the lamp!') : round.noel);
     setNoelMood('excited');
     setPhase('playing');
-  }, [tuning, level, ROUNDS]);
+  }, [tuning, level, ROUNDS, fit.look]);
 
   function startGame() {
     metricsRef.current = { tapOffsets: [], catchMs: [], misses: 0, dragRatios: [], dropOffsets: [], startedAt: Date.now() };
@@ -353,7 +357,7 @@ export default function FireflyCatchPage() {
     });
     // ✨ higher levels shine brighter
     awardStarlight(levelStarlight(level, m.misses));
-    recordGameLevel('firefly-catch', level);
+    recordGameLevel('firefly-catch', level, roundEase(m.misses, totalNeeded));
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
   }, [phase, roundIdx, startRound, level, ROUNDS.length]);
@@ -433,6 +437,14 @@ export default function FireflyCatchPage() {
 
     if (cfg.mode === 'drag') {
       const target = fireflies.find(f => !f.caught && Math.hypot(f.x - x, f.y - y) <= cfg.r + 18);
+      if (target && fit.look.tapToMove) {
+        // tap to move: the firefly floats straight home to the lamp
+        const home = lanternPos();
+        dragRef.current = { id: target.id, path: Math.hypot(home.x - target.x, home.y - target.y), lx: home.x, ly: home.y, sx: target.x, sy: target.y, cx: home.x, cy: home.y };
+        chime.tap();
+        onPointerUp();
+        return;
+      }
       if (target) {
         dragRef.current = { id: target.id, path: 0, lx: x, ly: y, sx: target.x, sy: target.y, cx: target.x, cy: target.y };
         setDraggingId(target.id);

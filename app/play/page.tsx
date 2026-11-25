@@ -13,6 +13,8 @@ import {
   landStars, isLandComplete, isLandUnlocked, isBonusLandUnlocked, areRealmsOpen, currentLandIndex, isQuestFree,
 } from '@/lib/adventure';
 import { developmentalBand, BAND_INFO } from '@/lib/difficulty';
+import { bandForMonths, PLAY_TOGETHER_NOTE, shiftedMonths } from '@/lib/ageBands';
+import { useChildGamePrefs } from '@/hooks/useGameFit';
 import { todaysQuests, getTodayReports, todayKey, ParentActivity, DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { loadRewards, explorerLevel, COMPANIONS, RewardsState, pendingCompanionReveal, markCompanionCelebrated } from '@/lib/rewards';
 import { isPremium } from '@/lib/premium';
@@ -117,8 +119,10 @@ const DOMAIN_LAND: Record<string, string> = {
 };
 
 export default function AdventureMap() {
-  const { state, totalScore, devMonths } = useAssessment();
+  const { state, totalScore, devMonths, chronoMonths } = useAssessment();
   const band = developmentalBand(state.ageGroup, totalScore, devMonths);
+  const { gameLevel } = useChildGamePrefs();
+  const togetherBand = bandForMonths(shiftedMonths(devMonths ?? chronoMonths, gameLevel)) === 'together';
   const [progress, setProgress] = useState<AdventureProgress>({ played: {}, celebrated: [] });
   const [hydrated, setHydrated] = useState(false);
   const [openLand, setOpenLand] = useState<Land | null>(null);
@@ -549,6 +553,14 @@ export default function AdventureMap() {
               playing together with you helps most — the map games below are the fun extra.
             </p>
           </Link>
+        )}
+
+        {/* under 3 (age band "together", lib/ageBands.ts): the lands below are
+            extras to play WITH a grown-up (Grok's review 2026-11-25) */}
+        {togetherBand && (
+          <p data-play-together className={`text-sm font-bold px-1 mb-1 flex-shrink-0 ${theme.subtitle}`}>
+            <span className="font-extrabold">Play together:</span> {PLAY_TOGETHER_NOTE}
+          </p>
         )}
 
         {/* ── The map ──

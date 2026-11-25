@@ -156,7 +156,7 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
   const kw = Math.round(kailiaH * 0.82);
   const petH = Math.round(kailiaH * 0.56);
   return (
-    <div className="relative mx-auto" style={{ width: 340, maxWidth: '100%', height: kailiaH + 34, marginTop: 26 /* room for Noel's happy hop under the title */ }}>
+    <div className="gf-cast relative mx-auto" style={{ width: 340, maxWidth: '100%', height: kailiaH + 34, marginTop: 26 /* room for Noel's happy hop under the title */ }}>
       {/* the glowing stage they stand on */}
       <span aria-hidden="true" className="gf-stage absolute left-1/2 rounded-[50%]" style={{
         bottom: 0, width: 300, height: 46, marginLeft: -150,

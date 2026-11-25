@@ -16,6 +16,7 @@ import { chime, tones } from '@/components/friends/voice';
 import { shuffled } from '@/lib/shuffle';
 import { levelStories } from '@/lib/variety';
 import { logQuestMetric } from '@/lib/metrics';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { cargoPlan, type CargoPlan } from '@/lib/gameCurves';
 import { awardStarlight, levelStarlight, recordGameLevel } from '@/lib/rewards';
@@ -140,7 +141,11 @@ export default function CargoCountPage() {
   // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
   useEffect(() => { setLevel(openingLevel('cargo-count', fit.startLevel)); }, [fit.startLevel]);
-  const plan = useMemo(() => planFor(level, tier), [level, tier]);
+  // boxes never smaller than the age band's smallest tap, a little quicker from 9 (lib/ageBands.ts)
+  const plan = useMemo(() => {
+    const p = planFor(level, tier);
+    return { ...p, size: Math.max(p.size, fit.look.minTap), speed: p.speed * (fit.band === 'older' ? fit.look.speed : 1) };
+  }, [level, tier, fit.look.minTap, fit.look.speed, fit.band]);
   const [earned, setEarned] = useState(0);
 
   const [orderIdx, setOrderIdx] = useState(0);
@@ -321,7 +326,7 @@ export default function CargoCountPage() {
       const stars = levelStarlight(level, m.slips);
       awardStarlight(stars);
       setEarned(stars);
-      recordGameLevel('cargo-count', level);
+      recordGameLevel('cargo-count', level, roundEase(m.slips, 4));
       chime.fanfare();
       setPhase('done');
     }, 1900);

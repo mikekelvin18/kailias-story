@@ -3,6 +3,7 @@
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -204,7 +205,7 @@ export default function TrailWalkPage() {
       logQuestMetric('processing', 'trail-walk', { level, friends: STOPS, wrongAnswers: wrongsRef.current, totalMs });
       const stars = levelStarlight(level, wrongsRef.current);
       awardStarlight(stars);
-      recordGameLevel('trail-walk', level);
+      recordGameLevel('trail-walk', level, roundEase(wrongsRef.current, STOPS));
       setEarned(stars);
       setAtFlag(true);
       setNoelLine('We made it to the flag! Hooray!');

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -185,8 +186,10 @@ export default function WheresNoelPage() {
 
   const startLevel = useCallback(() => {
     // clutter grows with level; the littlest ones get fewer, bigger things
-    const base = tier === 'tiny' ? 30 : tier === 'small' ? 45 : 60;
-    const crowdCount = Math.min(base + (level - 1) * 12, 150);
+    // and a quieter scene for younger age bands (lib/ageBands.ts)
+    const BAND_CROWD = { together: 12, little: 24, early: 40, big: 60, older: 72 } as const;
+    const base = Math.min(tier === 'tiny' ? 30 : tier === 'small' ? 45 : 60, BAND_CROWD[fit.band]);
+    const crowdCount = Math.min(base + (level - 1) * (fit.band === 'together' ? 3 : fit.band === 'little' ? 6 : 12), 150);
     const sizeBase = (tier === 'tiny' ? 34 : 28) - Math.min(8, (level - 1) * 1.5);
     const u = sizeBase * 0.85;   // px → drawing units (the scene is ~1.2 px per unit on a phone)
 
@@ -224,7 +227,20 @@ export default function WheresNoelPage() {
     setKailiaX(22); setPetX(38);
     setNoelLine(`Find Noel and the ${scene.treasure.count} ${scene.treasure.label}!`);
     setPhase('playing');
-  }, [level, scene, tier]);
+  }, [level, scene, tier, fit.band]);
+
+  // a gentle glow on something still hiding after 10 quiet seconds
+  // (Grok's review 2026-11-25); the clock restarts with every find
+  const foundCount = items.filter(i => i.found).length;
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const t = setTimeout(() => {
+      const left = items.filter(i => i.kind !== 'crowd' && !i.found);
+      if (left.length) setHintId(h => h ?? left[0].id);
+    }, 10000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, foundCount, level]);
 
   function tapCrowd(it: Placed) {
     if (phase !== 'playing') return;
@@ -275,7 +291,7 @@ export default function WheresNoelPage() {
       });
       const stars = levelStarlight(level, s.wrongTaps);
       awardStarlight(stars);
-      recordGameLevel('hidden-friends', level);
+      recordGameLevel('hidden-friends', level, roundEase(s.wrongTaps, scene.treasure.count + 1));
       setEarned(stars);
       setNoelLine('Everyone is found! Hooray!');
       timersRef.current.push(setTimeout(() => { sfx.fanfare(); setPhase('levelDone'); }, 1300));
@@ -373,7 +389,7 @@ export default function WheresNoelPage() {
               {items.filter(it => it.kind !== 'crowd').map(it => {
                 const isNoel = it.kind === 'noel';
                 const w = ((isNoel ? it.size * 0.85 : it.size) / VW) * sceneW;  // drawing size, px
-                const hit = Math.max(48, w * 1.35);                                   // tap size, px
+                const hit = Math.max(fit.look.minTap, w * 1.35);                      // tap size, px (never under the age band's smallest tap)
                 return (
                   <button key={it.id} data-kind={it.kind} data-found={it.found} onClick={() => tapTarget(it)}
                     aria-label={isNoel ? 'Noel' : scene.treasure.label}

@@ -20,9 +20,15 @@ export interface RewardsState {
    *  unlocked, and each game opens on the level after the last one played
    *  (level 1 at first) instead of after the highest one unlocked */
   reviewNext?: Record<string, number>;
+  /** the level each game opens on next, after stepping up or quietly back
+   *  (lib/ageBands.ts: 3 easy wins → one extra level, 2 struggles → one back) */
+  nextUp?: Record<string, number>;
+  /** run of easy wins (+) or struggles (−) per game */
+  streak?: Record<string, number>;
 }
 
 import { scopedKey } from './family';
+import { STEP_DOWN_AFTER_STRUGGLES, STEP_UP_AFTER_EASY_WINS, type RoundEase } from './ageBands';
 import { recordQuestWin } from './adventure';
 
 const KEY = 'kailia_rewards_v1';
@@ -83,10 +89,19 @@ const GAME_HREF: Record<string, string> = {
   'sense-explorer': '/play/sensory',
 };
 
-export function recordGameLevel(gameId: string, level: number): RewardsState {
+export function recordGameLevel(gameId: string, level: number, ease: RoundEase = 'ok'): RewardsState {
   const r = loadRewards();
   r.gameLevels[gameId] = Math.max(r.gameLevels[gameId] ?? 0, level);
-  if (r.reviewNext) r.reviewNext[gameId] = level + 1;
+  // adapt inside the band: three easy wins in a row skip one level ahead,
+  // two struggles in a row quietly replay an easier level (never said aloud)
+  const was = r.streak?.[gameId] ?? 0;
+  let run = ease === 'easy' ? Math.max(0, was) + 1 : ease === 'struggle' ? Math.min(0, was) - 1 : 0;
+  let next = level + 1;
+  if (run >= STEP_UP_AFTER_EASY_WINS) { next = level + 2; run = 0; r.gameLevels[gameId] = Math.max(r.gameLevels[gameId], level + 1); }
+  else if (run <= -STEP_DOWN_AFTER_STRUGGLES) { next = Math.max(1, level - 1); run = 0; }
+  r.streak = { ...r.streak, [gameId]: run };
+  r.nextUp = { ...r.nextUp, [gameId]: next };
+  if (r.reviewNext) r.reviewNext[gameId] = next;
   save(r);
   // a finished level is what lights up the quest's star on the map
   recordQuestWin(GAME_HREF[gameId] ?? `/play/${gameId}`);
@@ -96,7 +111,7 @@ export function recordGameLevel(gameId: string, level: number): RewardsState {
 export function nextGameLevel(gameId: string): number {
   const r = loadRewards();
   if (r.reviewNext) return r.reviewNext[gameId] ?? 1;
-  return (r.gameLevels[gameId] ?? 0) + 1;
+  return r.nextUp?.[gameId] ?? (r.gameLevels[gameId] ?? 0) + 1;
 }
 
 // Explorer level 1, 2, 3… — early levels come fast, later ones slower.
