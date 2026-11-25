@@ -11,7 +11,7 @@ import type { DifficultyTier } from '@/lib/difficulty';
 import { usePlayCount } from '@/hooks/usePlayCount';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { characterArt } from '@/components/characters/characters.config';
-import { loadRewards, awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { loadRewards, awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { logQuestMetric } from '@/lib/metrics';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import LevelPath from '@/components/LevelPath';
@@ -834,7 +834,7 @@ export default function MazeRunnerPage() {
 
   // ── Navigation ─────────────────────────────────────────────────────────────────
 
-  const nextLevel  = () => { setLevel(l => l + 1); setPhase('playing'); };
+  const nextLevel  = () => { setLevel(levelAfter('fine-motor', level)); setPhase('playing'); };
   const retryLevel = () => setPhase('playing');
   const chapter    = chapterFor(level);
 
@@ -889,7 +889,7 @@ export default function MazeRunnerPage() {
         </>}
         earned={earnedLight}
         actions={<>
-          <PlayButton theme={GOLD} onClick={nextLevel}>Level {level+1} <GoArrow /></PlayButton>
+          <PlayButton theme={GOLD} onClick={nextLevel}>{nextLabel('fine-motor', level)} <GoArrow /></PlayButton>
           <SoftButton onClick={retryLevel}>Play again</SoftButton>
           <SoftButton href="/play">Back to the map</SoftButton>
         </>}

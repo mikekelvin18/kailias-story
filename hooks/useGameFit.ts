@@ -74,6 +74,6 @@ export function useGameFit(gameId: string): GameFit {
  *  game they have never played, their own starting level. */
 export function openingLevel(gameId: string, startLevel: number): number {
   const r = loadRewards();
-  const played = r.reviewNext ? gameId in r.reviewNext : gameId in r.gameLevels;
+  const played = r.steady || (r.reviewNext ? gameId in r.reviewNext : gameId in r.gameLevels);
   return played ? nextGameLevel(gameId) : Math.max(1, startLevel);
 }

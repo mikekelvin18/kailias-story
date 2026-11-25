@@ -25,6 +25,9 @@ export interface RewardsState {
   nextUp?: Record<string, number>;
   /** run of easy wins (+) or struggles (−) per game */
   streak?: Record<string, number>;
+  /** robot checks only (tests/e2e): levels go one at a time from level 1,
+   *  with no age start and no stepping up or back */
+  steady?: boolean;
 }
 
 import { scopedKey } from './family';
@@ -95,9 +98,10 @@ export function recordGameLevel(gameId: string, level: number, ease: RoundEase =
   // adapt inside the band: three easy wins in a row skip one level ahead,
   // two struggles in a row quietly replay an easier level (never said aloud)
   const was = r.streak?.[gameId] ?? 0;
+  if (r.steady) ease = 'ok';
   let run = ease === 'easy' ? Math.max(0, was) + 1 : ease === 'struggle' ? Math.min(0, was) - 1 : 0;
   let next = level + 1;
-  if (run >= STEP_UP_AFTER_EASY_WINS) { next = level + 2; run = 0; r.gameLevels[gameId] = Math.max(r.gameLevels[gameId], level + 1); }
+  if (run >= STEP_UP_AFTER_EASY_WINS) { next = level + 2; run = 0; }
   else if (run <= -STEP_DOWN_AFTER_STRUGGLES) { next = Math.max(1, level - 1); run = 0; }
   r.streak = { ...r.streak, [gameId]: run };
   r.nextUp = { ...r.nextUp, [gameId]: next };
@@ -106,6 +110,20 @@ export function recordGameLevel(gameId: string, level: number, ease: RoundEase =
   // a finished level is what lights up the quest's star on the map
   recordQuestWin(GAME_HREF[gameId] ?? `/play/${gameId}`);
   return r;
+}
+
+/** The level the "next level" button opens after finishing `level`: one up,
+ *  or where the game stepped (up after easy wins, quietly back after struggles). */
+export function levelAfter(gameId: string, level: number): number {
+  const n = loadRewards().nextUp?.[gameId];
+  return n != null && n !== level ? n : level + 1;
+}
+
+/** The next-level button's words: "Level N" going up; just "Next level" when
+ *  the game quietly steps back, so a child is never told they moved down. */
+export function nextLabel(gameId: string, level: number): string {
+  const n = levelAfter(gameId, level);
+  return n > level ? `Level ${n}` : 'Next level';
 }
 
 export function nextGameLevel(gameId: string): number {

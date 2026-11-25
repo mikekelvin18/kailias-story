@@ -11,7 +11,7 @@ import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoAr
 import LevelPath from '@/components/LevelPath';
 import { chapterLabel } from '@/lib/levels';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
 import { CritterSprite, type SpeciesKey } from '@/components/characters/CritterSprite';
 import { characterArt } from '@/components/characters/characters.config';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -449,7 +449,7 @@ export default function WheresNoelPage() {
             message={`You found Noel and every ${scene.treasure.label.replace(/s$/, '')} in ${scene.name}!`}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next level <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('hidden-friends', level)); setPhase('intro'); }}>Next level <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

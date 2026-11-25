@@ -10,7 +10,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
@@ -519,7 +519,7 @@ export default function FireflyTrailsPage() {
             message={`${shape.name} shines again! ${mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}`}
             earned={stars}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('firefly-trails', level); setLevel(nl); setPhase('intro'); }}>{nextLabel('firefly-trails', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

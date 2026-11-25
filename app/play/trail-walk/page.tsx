@@ -10,7 +10,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
@@ -467,7 +467,7 @@ export default function TrailWalkPage() {
             message={`You reached the flag!`}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('trail-walk', level); setLevel(nl); setPhase('intro'); }}>{nextLabel('trail-walk', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />
