@@ -70,6 +70,7 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
   { group: 'Games (add ?level=N for any level, or leave it off and add ?age=N to see where a child that age starts)', items: GAME_ROUTES.map(g => ({ href: `/go/game/${g}?level=1`, label: g.replace(/-/g, ' ') })) },
   { group: 'Grown-up pages', items: [
     { href: '/go/results', label: 'Check-up results' },
+    { href: '/go/challenge', label: 'Challenge round (harder questions)' },
     { href: '/go/progress', label: 'Progress' },
     { href: '/go/family', label: 'Parent Zone' },
     { href: '/go/activities', label: 'Parent & Baby quests' },
@@ -128,6 +129,8 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     map: '/play', home: '/', story: '/story', results: '/results', progress: '/progress',
     family: '/family', 'parent-zone': '/family', activities: '/activities', printables: '/printables',
     upgrade: '/upgrade', plus: '/upgrade', garden: '/play/garden',
+    // the harder-questions round a grown-up can start from the results page
+    challenge: '/assessment/games?challenge=1', 'challenge-round': '/assessment/games?challenge=1',
   };
   if (simple[what]) plan.path = simple[what];
   else if (what === 'pet-popup' || what === 'pet') {

@@ -448,8 +448,8 @@ export default function FireflyCatchPage() {
     for (const f of fireflies) {
       if (f.caught) continue;
       const d = Math.hypot(f.x - x, f.y - y);
-      // at least a 44px radius (an 88px circle) so fast, small ones are still fair for little fingers
-      if (d <= Math.max(44, cfg.r + 22) && d < bestDist) { best = f; bestDist = d; }
+      // at least a 52px radius (a 104px circle, Muse round 6: taps missed) so fast, small ones are still fair for little fingers
+      if (d <= Math.max(52, cfg.r + 26) && d < bestDist) { best = f; bestDist = d; }
     }
     if (best) {
       const now = performance.now();
