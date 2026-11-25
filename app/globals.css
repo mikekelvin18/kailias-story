@@ -1296,8 +1296,8 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 /* pages with the bottom tab bar (components/BottomNav.tsx): room under the
    last thing on the page for the whole bar (about 70px), the phone's home
    bar, and a little breathing space, so nothing ends up hidden behind it */
-.kp-nav-pad { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
-@media (min-width: 640px) { .kp-nav-pad { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); } }
+.kp-nav-pad { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); } /* nav height plus room to breathe (Grok round 6) */
+@media (min-width: 640px) { .kp-nav-pad { padding-bottom: calc(124px + env(safe-area-inset-bottom, 0px)); } }
 @media print { .kp-nav-pad { padding-bottom: 1rem; } }
 
 /* every game's "← Map" link: a whole fingertip (48px) and easy-to-read 16px */
