@@ -11,10 +11,13 @@ export default function ThemeToggle({ className }: { className?: string }) {
   const dark = name === 'dark';
 
   return (
+    // a 56x48 tap area (a whole fingertip) around the small switch
     <button onClick={toggle} title={dark ? 'Switch to day mode' : 'Switch to night mode'}
       aria-label={dark ? 'Switch to day mode' : 'Switch to night mode'}
-      className={`relative inline-flex items-center flex-shrink-0 rounded-full transition-colors duration-200 ${className ?? ''}`}
-      style={{ width: 50, height: 28, background: dark ? '#312e81' : '#7dd3fc', border: '1.5px solid rgba(0,0,0,0.08)' }}>
+      className={`inline-flex items-center justify-center flex-shrink-0 ${className ?? ''}`}
+      style={{ width: 56, height: 48 }}>
+      <span className="relative inline-flex items-center rounded-full transition-colors duration-200"
+        style={{ width: 50, height: 28, background: dark ? '#312e81' : '#7dd3fc', border: '1.5px solid rgba(0,0,0,0.08)' }}>
       <span className="absolute rounded-full flex items-center justify-center"
         style={{
           width: 22, height: 22, background: 'white', top: 2,
@@ -24,6 +27,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
           fontSize: 12,
         }}>
         {dark ? <Moon size={16} /> : <Sun size={16} />}
+      </span>
       </span>
     </button>
   );

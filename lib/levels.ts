@@ -129,7 +129,9 @@ export function firstLevelForTier(tier: DifficultyTier): number {
 // Highest level the child may pick on the level map: everything beaten,
 // the next one, and never below the game's starting level.
 export function unlockedUpTo(gameId: string, startLevel = 1): number {
-  return Math.max(nextGameLevel(gameId), startLevel);
+  // the level after the highest one beaten (the reviewers' profile has them
+  // all open while each game still starts low: see reviewNext in lib/rewards.ts)
+  return Math.max(nextGameLevel(gameId), highestBeaten(gameId) + 1, startLevel);
 }
 
 export function highestBeaten(gameId: string): number {

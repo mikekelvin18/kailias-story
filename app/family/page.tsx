@@ -9,7 +9,7 @@ import {
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
-import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
+import { AccessibilityPrefs, DEFAULT_A11Y, NARRATION_SPEEDS, loadA11y, saveA11y, applyA11y, deviceWantsLessMotion } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import LivingSky from '@/components/scenery/LivingSky';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
@@ -23,7 +23,6 @@ import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
-import VoicePicker from '@/components/VoicePicker';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -62,6 +61,9 @@ export default function ParentZonePage() {
   const [confirmingAll, setConfirmingAll] = useState(false);
   const [deletedMsg, setDeletedMsg] = useState('');
   const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
+  // the device's own reduce-motion setting (read after the page loads)
+  const [deviceStill, setDeviceStill] = useState(false);
+  useEffect(() => { setDeviceStill(deviceWantsLessMotion()); }, []);
   const [showAddChild, setShowAddChild] = useState(false);
   const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
@@ -142,7 +144,7 @@ export default function ParentZonePage() {
   const onboarding = assessmentLoaded && !assessment.assessmentCompleted;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+    <main className="min-h-screen kp-nav-pad" style={{ background: theme.background, isolation: 'isolate' }}>
       <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4">
 
@@ -424,13 +426,15 @@ export default function ParentZonePage() {
           </div>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
-            <span className={`text-sm font-semibold text-gray-700`}>🎬 Reduce motion &amp; animation</span>
-            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
+            <span className={`text-sm font-semibold text-gray-700`}>Reduce motion &amp; animation
+              {deviceStill && <span className="block text-xs font-normal text-gray-500">On, because this device is set to reduce motion.</span>}
+            </span>
+            <input type="checkbox" checked={a11y.reducedMotion || deviceStill} disabled={deviceStill} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
           </label>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
             <span className="text-sm font-semibold text-gray-700">Calm mode
-              <span className="block text-xs font-normal text-gray-500">Plain backgrounds in the games, for children who focus better with less to look at.</span>
+              <span className="block text-xs font-normal text-gray-500">Plain backgrounds, no pulsing or sparkles, and less movement in every game, for children who focus better with less to look at. The moon button on the map switches it too.</span>
             </span>
             <input type="checkbox" checked={a11y.calmMode} onChange={e => updateA11y({ calmMode: e.target.checked })} className="w-5 h-5 shrink-0" />
           </label>
@@ -445,10 +449,26 @@ export default function ParentZonePage() {
             <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
           </label>
 
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className="text-sm font-semibold text-gray-700">Read aloud
+              <span className="block text-xs font-normal text-gray-500">Kailia, Noel and the friends read every story, instruction and speech bubble out loud.</span>
+            </span>
+            <input type="checkbox" checked={a11y.narrationOn !== false} onChange={e => updateA11y({ narrationOn: e.target.checked })} className="w-5 h-5 shrink-0" />
+          </label>
+
           <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
-            <p className={`text-sm font-semibold text-gray-700 mb-0.5`}>🐼 Noel&apos;s read-aloud voice</p>
-            <p className="text-xs text-gray-500 mb-2">Automatic picks the warmest voice this device has. Tap Hear it to try one.</p>
-            <VoicePicker value={a11y.voiceName} onChange={name => updateA11y({ voiceName: name })} />
+            <p className="text-sm font-semibold text-gray-700 mb-0.5">Reading speed</p>
+            <p className="text-xs text-gray-500 mb-2">The same as the speed buttons under the stories.</p>
+            <div role="group" aria-label="Reading speed" className="flex gap-2">
+              {NARRATION_SPEEDS.map(sp => (
+                <button key={sp} type="button" onClick={() => updateA11y({ narrationSpeed: sp })}
+                  aria-pressed={(a11y.narrationSpeed ?? 1) === sp}
+                  className="flex-1 min-h-[48px] rounded-xl font-extrabold text-base"
+                  style={(a11y.narrationSpeed ?? 1) === sp ? { background: '#7C3AED', color: '#fff' } : { background: '#fff', color: '#4C1D95', border: '2px solid #DDD6FE' }}>
+                  {sp === 0.8 ? 'Slower' : sp === 1 ? 'Normal' : 'Quicker'}
+                </button>
+              ))}
+            </div>
           </div>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>

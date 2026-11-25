@@ -36,7 +36,7 @@ export default function PrintablesPage() {
   const doneCount = Object.keys(progress).length;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+    <main className="min-h-screen kp-nav-pad" style={{ background: theme.background, isolation: 'isolate' }}>
       <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4 pt-5">
         <div className="flex items-center justify-between mb-3">

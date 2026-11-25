@@ -879,10 +879,10 @@ export default function MazeRunnerPage() {
   return (
     <main className="min-h-screen px-3 py-4"
       style={{background:`linear-gradient(135deg,${lv.bg},${lv.wall})`}}>
-      <div className="max-w-2xl mx-auto">
+      <div data-play-col className="max-w-2xl mx-auto">
 
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
+          <Link href="/play" className="kp-back font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.85)'}}>
             Lv {level}
@@ -905,8 +905,8 @@ export default function MazeRunnerPage() {
         </div>
 
         {/* Canvas, with the friend and the sparkles laid over it */}
-        <div ref={wrapRef} className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
-          style={{border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}>
+        <div ref={wrapRef} data-play-field data-wide className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
+          style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}>
           <canvas ref={canvasRef} width={W} height={H}
             style={{width:'100%',height:'auto',display:'block',cursor:'crosshair'}}
             onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}

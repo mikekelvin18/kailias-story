@@ -318,10 +318,10 @@ export default function StorySparksPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #3b0764 0%, #6b21a8 60%, #9d174d 130%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
 
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Story Sparks <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -366,7 +366,7 @@ export default function StorySparksPage() {
             </div>
 
             {/* the Story Keepers' sky: two story bubbles, the page-stone path and the book */}
-            <Stage world="nova" className="mt-3" style={{ aspectRatio: '1 / 0.86' }}>
+            <Stage field world="nova" className="mt-3" style={{ aspectRatio: '1 / 0.86' }}>
               <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <g filter="url(#kp-brush)">
                   <path d="M0 86 Q20 80 42 85 T78 83 T100 84 V100 H0z" fill="#F3D9F7" stroke="#3b2416" strokeWidth="0.5" />

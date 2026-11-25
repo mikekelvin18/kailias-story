@@ -26,10 +26,11 @@ function useReducedMotion() {
   useEffect(() => {
     const root = document.documentElement;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const read = () => setReduced(root.dataset.reducedMotion === 'true' || mq.matches);
+    // calm mode stills the wobbling edges too
+    const read = () => setReduced(root.dataset.reducedMotion === 'true' || root.dataset.calm === 'true' || mq.matches);
     read();
     const obs = new MutationObserver(read);
-    obs.observe(root, { attributes: true, attributeFilter: ['data-reduced-motion'] });
+    obs.observe(root, { attributes: true, attributeFilter: ['data-reduced-motion', 'data-calm'] });
     mq.addEventListener('change', read);
     return () => { obs.disconnect(); mq.removeEventListener('change', read); };
   }, []);

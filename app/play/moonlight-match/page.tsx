@@ -83,6 +83,7 @@ const besideKailia = (petX: number, kailiaX: number) =>
   Math.abs(petX - kailiaX) >= 15 ? petX : clampPct(kailiaX + (kailiaX > 50 ? -17 : 17));
 
 const GROUND = 112; // px of glade below the board, where Kailia and the friend stand
+const SKY = 46;     // px of night sky above the board, so the moon is never hidden under a card
 
 function CardFace({ face, cols }: { face: string; cols: number }) {
   const big = cols <= 3 ? 1.35 : cols === 4 ? 1.1 : 0.9;
@@ -316,11 +317,11 @@ export default function MoonlightMatchPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
 
         {/* Header */}
-        <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+        <div className="flex items-center justify-between pb-2 px-1 relative z-10" style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
+          <Link href="/play" className="kp-back h-12 px-4 inline-flex items-center rounded-full text-base font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Moonlight Match <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -358,11 +359,11 @@ export default function MoonlightMatchPage() {
         {/* ── The board, in the moonlit glade ── */}
         {phase !== 'intro' && (
           <div className="relative z-10">
-            <div ref={stageRef} className="relative w-full rounded-[28px] overflow-hidden select-none mt-1"
-              style={{ boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+            <div ref={stageRef} data-play-field data-cards className="relative w-full rounded-[28px] overflow-hidden select-none mt-1"
+              style={{ ['--cols' as string]: cols, ['--rows' as string]: Math.ceil(cards.length / cols) || 1, ['--ground' as string]: `${GROUND}px`, ['--top-pad' as string]: `${SKY}px`, boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <NightForest glow={cards.length ? cards.filter(c => c.state === 'matched').length / cards.length : 0} />
 
-              <div className="relative grid gap-2.5 px-3 pt-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, paddingBottom: GROUND, zIndex: 8 }}>
+              <div className="relative grid gap-2.5 px-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, paddingTop: SKY, paddingBottom: GROUND, zIndex: 8 }}>
                 {cards.map(c => (
                   <button key={c.id} ref={el => { cardEls.current[c.id] = el; }}
                     data-mkey={c.matchKey} data-state={c.state} data-hint={hintId === c.id && c.state === 'down' ? '1' : undefined} onClick={() => flip(c.id)}

@@ -16,6 +16,10 @@ export interface RewardsState {
   focusCompanion?: string | null;      // the friend (= skill) a parent or
                                        // child picked to practice; shared by
                                        // friends' adventures and the care pet
+  /** reviewer test profile only (lib/jump.ts, /go/review): every level is
+   *  unlocked, and each game opens on the level after the last one played
+   *  (level 1 at first) instead of after the highest one unlocked */
+  reviewNext?: Record<string, number>;
 }
 
 import { scopedKey } from './family';
@@ -82,6 +86,7 @@ const GAME_HREF: Record<string, string> = {
 export function recordGameLevel(gameId: string, level: number): RewardsState {
   const r = loadRewards();
   r.gameLevels[gameId] = Math.max(r.gameLevels[gameId] ?? 0, level);
+  if (r.reviewNext) r.reviewNext[gameId] = level + 1;
   save(r);
   // a finished level is what lights up the quest's star on the map
   recordQuestWin(GAME_HREF[gameId] ?? `/play/${gameId}`);
@@ -89,7 +94,9 @@ export function recordGameLevel(gameId: string, level: number): RewardsState {
 }
 
 export function nextGameLevel(gameId: string): number {
-  return (loadRewards().gameLevels[gameId] ?? 0) + 1;
+  const r = loadRewards();
+  if (r.reviewNext) return r.reviewNext[gameId] ?? 1;
+  return (r.gameLevels[gameId] ?? 0) + 1;
 }
 
 // Explorer level 1, 2, 3… — early levels come fast, later ones slower.

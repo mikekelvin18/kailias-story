@@ -26,10 +26,17 @@ const wantsStart = (path: string) => SOUND_PAGES.includes(path) || path.startsWi
 // Decided once, on the first look in the browser: had this visit been
 // tapped already (a page reached by tapping a link) or not?
 let freshVisit: boolean | null = null;
+// Shown once per browser session (reviewer 2026-11-25): after the first
+// "Tap to start!" a full page reload (a jump link, the browser's reload)
+// doesn't show it again; the first tap anywhere then wakes sound by itself.
+const SEEN_KEY = 'kailia_tap_started_v1';
+function seenThisSession() {
+  try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch { return false; }
+}
 function isFresh() {
   if (freshVisit === null) {
     const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
-    freshVisit = !ua?.hasBeenActive;
+    freshVisit = !ua?.hasBeenActive && !seenThisSession();
   }
   return freshVisit;
 }
@@ -53,6 +60,7 @@ export default function TapToStart() {
   const start = () => {
     if (closing) return;
     freshVisit = false;
+    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* fine */ }
     setClosing(true);
     // On the front page, Noel says hi right away (this tap lets him talk).
     if (path === '/') say(HELLO);

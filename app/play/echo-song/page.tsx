@@ -256,9 +256,9 @@ export default function EchoSongPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 80%, #155e75 130%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Echo Song <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
@@ -298,7 +298,7 @@ export default function EchoSongPage() {
 
         {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && (
           <div className="relative z-10">
-            <div className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
+            <div data-play-field className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
               style={{ aspectRatio: '3 / 3.5', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)' }}>
               <EchoCave />
 

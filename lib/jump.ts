@@ -18,6 +18,11 @@ import { LANDS } from './adventure';
 import { COMPANIONS } from './rewards';
 
 export const JUMP_CHILD_ID = 'child-jump';
+/** The outside reviewers' test child (/go/review): made once, then reused by
+ *  every jump link that doesn't need a different made-up state, so a reviewer
+ *  never loses progress by following a link (reviewer 2026-11-25). */
+export const REVIEW_CHILD_ID = 'child-review';
+const REVIEW_MARK = 'kailia_review_profile_v1'; // on this device: a reviewer started at /go/review
 
 // Game route folder → the id the game saves its level under.
 const GAME_IDS: Record<string, string> = {
@@ -95,6 +100,11 @@ export interface JumpPlan {
   landDone: boolean;
   openLand: string | null;
   plus: boolean | null;    // null = leave as it is
+  calm: boolean | null;    // ?calm=1|0: calm mode on or off (null = leave as it is)
+  review: boolean;         // /go/review: the reviewers' profile, every level open
+  /** a link that needs its own made-up state (day one, a 2-year-old, a fresh
+   *  sign-up...): it always uses the scratch test child, never the reviewer's */
+  scratch: boolean;
 }
 
 /** Works out what to set up from the link. Returns null for an unknown link. */
@@ -109,6 +119,8 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     all: q.all === '1' || q.all === 'yes', levels: {}, pet: 'none', petTask: null,
     dailyPopup: false, newFriend: false, landDone: false, openLand: null,
     plus: q.plus === '1' ? true : q.plus === '0' ? false : null,
+    calm: q.calm === '1' ? true : q.calm === '0' ? false : null,
+    review: what === 'review', scratch: years > 0 || (what === 'map' && !(q.all === '1' || q.all === 'yes')),
   };
   const petQ = (q.pet ?? '').toLowerCase();
   const simple: Record<string, string> = {
@@ -124,10 +136,10 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     // the egg's first day is always Feed; another task needs a hatched pet
     if (plan.petTask && plan.petTask !== 'feed' && plan.pet === 'egg') plan.pet = 'baby';
   } else if (what === 'daily-quests') {
-    plan.dailyPopup = true;
+    plan.dailyPopup = true; plan.scratch = true;
     if (!(years > 0)) plan.ageMonths = 26;
-  } else if (what === 'new-friend') plan.newFriend = true;
-  else if (what === 'land-done') plan.landDone = true;
+  } else if (what === 'new-friend') { plan.newFriend = true; plan.scratch = true; }
+  else if (what === 'land-done') { plan.landDone = true; plan.scratch = true; }
   else if (what === 'land') {
     if (!arg || !LAND_IDS.includes(arg)) return null;
     plan.openLand = arg;
@@ -147,10 +159,10 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
   } else if (what === 'review') {
     // outside reviewers: a finished check-up, every land and friend open,
     // Plus on so no level is locked, and the map with nothing popping up
-    plan.all = true;
+    plan.all = true; plan.scratch = false;
     if (plan.plus === null) plan.plus = true;
-  } else if (what === 'setup') { plan.path = '/setup'; plan.noAssessment = true; }
-  else if (what === 'try') { plan.path = '/try'; plan.fresh = true; }
+  } else if (what === 'setup') { plan.path = '/setup'; plan.noAssessment = true; plan.scratch = true; }
+  else if (what === 'try') { plan.path = '/try'; plan.fresh = true; plan.scratch = true; }
   else return null;
   // a grown pet is past the free days: give it Plus so it still pops up
   if ((plan.pet === 'little' || plan.pet === 'grown') && plan.plus === null) plan.plus = true;
@@ -165,13 +177,21 @@ function dayKey(d = new Date()) {
 export function applyJump(plan: JumpPlan) {
   const ls = localStorage;
   const at = new Date().toISOString();
-  const key = (base: string) => `${base}::${JUMP_CHILD_ID}`;
   try { sessionStorage.removeItem('kailia_launch_land'); sessionStorage.removeItem('kailia_demo_session'); } catch { /* fine */ }
 
   let fam: { children?: { id: string }[]; consent?: unknown; activeChildId?: string | null } | null = null;
   try { fam = JSON.parse(ls.getItem('kailia_family_v1') ?? 'null'); } catch { fam = null; }
 
-  // the test child always starts clean
+  // A reviewer (started at /go/review) keeps one profile across every link
+  // that doesn't need a made-up state of its own: their progress stays.
+  if (plan.review) ls.setItem(REVIEW_MARK, '1');
+  const reviewing = !plan.scratch && (plan.review || ls.getItem(REVIEW_MARK) === '1');
+  const childId = reviewing ? REVIEW_CHILD_ID : JUMP_CHILD_ID;
+  const key = (base: string) => `${base}::${childId}`;
+  const hasProfile = (fam?.children ?? []).some(c => c.id === childId) && !!ls.getItem(key('kailia_assessment_v1'));
+  if (reviewing && hasProfile && fam) { reuseReviewProfile(plan, fam, key); return; }
+
+  // the test child starts clean
   CHILD_DATA_KEYS.forEach(b => ls.removeItem(key(b)));
 
   if (plan.fresh) {
@@ -182,14 +202,14 @@ export function applyJump(plan: JumpPlan) {
 
   const now = new Date();
   const born = new Date(now.getFullYear(), now.getMonth() - plan.ageMonths, 1);
-  const child = { id: JUMP_CHILD_ID, nickname: 'Robin', birthYear: born.getFullYear(), birthMonth: born.getMonth() + 1, avatar: plan.buddy, createdAt: at };
-  const others = (fam?.children ?? []).filter(c => c.id !== JUMP_CHILD_ID);
+  const child = { id: childId, nickname: 'Robin', birthYear: born.getFullYear(), birthMonth: born.getMonth() + 1, avatar: plan.buddy, createdAt: at };
+  const others = (fam?.children ?? []).filter(c => c.id !== childId);
   ls.setItem('kailia_family_v1', JSON.stringify({
     id: 'fam-preview', createdAt: at, photoConsent: null, migratedLegacyData: true,
     consent: { agreedAt: at, policyVersion: '2026-07-draft-1', method: 'checkbox' },
     ...(fam ?? {}),
     children: [...others, child],
-    activeChildId: JUMP_CHILD_ID,
+    activeChildId: childId,
   }));
 
   const m = plan.ageMonths;
@@ -218,9 +238,18 @@ export function applyJump(plan: JumpPlan) {
   // starlight, game levels, friends
   const gameLevels: Record<string, number> = {};
   for (const [g, l] of Object.entries(plan.levels)) gameLevels[g] = l - 1;
+  // the reviewers' profile: every level of every game (and friend trail) is
+  // open on the level map; each game still starts on level 1 (or the level a
+  // link asks for) and moves up as it is played (reviewNext, lib/rewards.ts)
+  let reviewNext: Record<string, number> | undefined;
+  if (reviewing) {
+    reviewNext = {};
+    for (const g of [...Object.values(GAME_IDS), ...FRIEND_SLUGS.map(f => `${f}-trail`)]) gameLevels[g] = REVIEW_LEVELS;
+    for (const [g, l] of Object.entries(plan.levels)) reviewNext[g] = l;
+  }
   const starlight = plan.all ? 600 : plan.newFriend ? COMPANIONS[0].at : 0;
   ls.setItem(key('kailia_rewards_v1'), JSON.stringify({
-    starlight, gameLevels,
+    starlight, gameLevels, ...(reviewNext ? { reviewNext } : {}),
     celebratedCompanions: plan.newFriend ? [] : COMPANIONS.filter(c => c.at <= starlight).map(c => c.name),
   }));
 
@@ -247,9 +276,60 @@ export function applyJump(plan: JumpPlan) {
   }));
 
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
+  setCalm(ls, plan.calm);
 
   try {
     if (plan.openLand) sessionStorage.setItem('kailia_jump_open_land', plan.openLand);
     else sessionStorage.removeItem('kailia_jump_open_land');
   } catch { /* fine */ }
+}
+
+/** Levels opened for the reviewers: all 30 of the ladder (lib/levels.ts). */
+const REVIEW_LEVELS = 30;
+
+/** A reviewer following another link: keep their profile and progress, and
+ *  only set up what this link is about (a game's level, the pet pop-up, a
+ *  land's quest sheet). */
+function reuseReviewProfile(plan: JumpPlan, fam: object, key: (b: string) => string) {
+  const ls = localStorage;
+  ls.setItem('kailia_family_v1', JSON.stringify({ ...fam, activeChildId: REVIEW_CHILD_ID }));
+  // a game link opens on the level it names (progress is kept)
+  if (Object.keys(plan.levels).length) {
+    let r: { reviewNext?: Record<string, number> } = {};
+    try { r = JSON.parse(ls.getItem(key('kailia_rewards_v1')) ?? '{}') ?? {}; } catch { r = {}; }
+    r.reviewNext = { ...(r.reviewNext ?? {}), ...plan.levels };
+    ls.setItem(key('kailia_rewards_v1'), JSON.stringify(r));
+  }
+  const today = dayKey();
+  if (!plan.dailyPopup) ls.setItem(key('kailia_daily_seen_v1'), today);
+  // the pet pop-up links set the pet up as asked; every other link leaves it alone
+  if (plan.pet !== 'none') {
+    const happyDays = { none: 0, egg: 0, baby: 1, little: 5, grown: 12 }[plan.pet];
+    const needs = ['feed', 'play', 'care'] as const;
+    const step = 4;
+    const wanted = needs.indexOf(plan.petTask ?? needs[happyDays % 3]);
+    const history = Array.from({ length: happyDays }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (happyDays - i));
+      return { day: dayKey(d), need: needs[(wanted - (happyDays - i) + 300) % 3], step, outcome: 'win' };
+    });
+    ls.setItem(key('kailia_pet_v1'), JSON.stringify({
+      v: 1, startedDay: history[0]?.day ?? today, lastVisitDay: history[history.length - 1]?.day ?? null,
+      lastAutoOpenDay: null, happyDays, today: null, steps: { feed: step, play: step, care: step }, winStreak: { feed: 0, play: 0, care: 0 }, history,
+    }));
+  }
+  if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
+  setCalm(ls, plan.calm);
+  try {
+    if (plan.openLand) sessionStorage.setItem('kailia_jump_open_land', plan.openLand);
+    else sessionStorage.removeItem('kailia_jump_open_land');
+  } catch { /* fine */ }
+}
+
+/** ?calm=1|0 on any jump link: calm mode (a display setting, not child data). */
+function setCalm(ls: Storage, calm: boolean | null) {
+  if (calm === null) return;
+  try {
+    const a = JSON.parse(ls.getItem('kailia_a11y_v1') ?? '{}');
+    ls.setItem('kailia_a11y_v1', JSON.stringify({ ...a, calmMode: calm }));
+  } catch { /* ignore */ }
 }
