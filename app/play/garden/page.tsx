@@ -11,10 +11,9 @@
 // the URL; everything is saved per child and only with parent consent.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useGameFit } from '@/hooks/useGameFit';
 import { useRouter } from 'next/navigation';
 import GardenGame from '@/components/world/garden/GardenGame';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier } from '@/lib/difficulty';
 import { applyA11y, loadA11y, saveA11y } from '@/lib/accessibility';
 import { awardStarlight, COMPANIONS, getFocusCompanion, loadRewards, unlockedCompanions } from '@/lib/rewards';
 import { demandsFor, type ChallengeChoice, type GrownUpSettings, type HintChoice } from '@/lib/world/demands';
@@ -40,8 +39,8 @@ interface Loaded { save: WorldSave; pet: PetInfo; soundOn: boolean }
 
 export default function GardenPage() {
   const router = useRouter();
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  // the garden follows the child's age band too (Family's Easier / Harder included)
+  const { tier } = useGameFit('garden');
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [paused, setPaused] = useState(false);
   const [run, setRun] = useState(0);

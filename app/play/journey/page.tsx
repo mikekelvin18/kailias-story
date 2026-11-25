@@ -3,6 +3,7 @@
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import OverworldSprite, { type Facing } from '@/components/characters/OverworldSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -335,7 +336,7 @@ export default function JourneyPage() {
       logQuestMetric('processing', 'journey', { level, friends: world.required, wrongAnswers: wrongRef.current, steps: stepsRef.current, totalMs });
       const stars = levelStarlight(level, wrongRef.current);
       awardStarlight(stars);
-      recordGameLevel('journey', level);
+      recordGameLevel('journey', level, roundEase(wrongRef.current, world.required));
       setEarned(stars);
       sfx.fanfare();
       setPetMood('cheer');

@@ -14,6 +14,7 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
 import { logQuestMetric } from '@/lib/metrics';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { reefPlan } from '@/lib/gameCurves';
 import { awardStarlight, levelStarlight, recordGameLevel } from '@/lib/rewards';
@@ -125,7 +126,12 @@ export default function ReefExplorerPage() {
   // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
   useEffect(() => { setLevel(openingLevel('reef-explorer', fit.startLevel)); }, [fit.startLevel]);
-  const plan = useMemo(() => planFor(level, tier), [level, tier]);
+  // fish swim at the age band's speed, never smaller than its smallest tap (lib/ageBands.ts)
+  const plan = useMemo(() => {
+    const p = planFor(level, tier);
+    const tierPace = tier === 'tiny' ? 0.5 : tier === 'small' ? 0.8 : 1;
+    return { ...p, speed: (p.speed / tierPace) * fit.look.speed, size: Math.max(p.size, fit.look.minTap) };
+  }, [level, tier, fit.look.speed, fit.look.minTap]);
   const [earned, setEarned] = useState(0);
 
   const [round, setRound] = useState(0);
@@ -297,7 +303,7 @@ export default function ReefExplorerPage() {
       const stars = levelStarlight(level, m.misses);
       awardStarlight(stars);
       setEarned(stars);
-      recordGameLevel('reef-explorer', level);
+      recordGameLevel('reef-explorer', level, roundEase(m.misses, plan.fish));
       chime.fanfare();
       setPhase('done');
     }, 1700);

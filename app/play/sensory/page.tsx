@@ -3,6 +3,7 @@
 import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -335,7 +336,7 @@ export default function SenseExplorerPage() {
     });
     const stars = levelStarlight(level, s.huntMisses + s.oddMisses);
     awardStarlight(stars);
-    recordGameLevel('sense-explorer', level);
+    recordGameLevel('sense-explorer', level, roundEase(s.huntMisses + s.oddMisses, 6));
     setEarned(stars);
     chime([523, 659, 784, 1047]);
     setPhase('levelDone');
