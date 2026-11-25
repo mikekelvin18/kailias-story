@@ -78,12 +78,12 @@ export async function seedFamily(page: Page, seed: Seed = {}) {
         fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null, evidence: {},
       }));
     }
-    if (levels && Object.keys(levels).length) {
-      // per-game highest level reached, so a game opens on the level asked for
-      const best: Record<string, number> = {};
-      for (const [g, l] of Object.entries(levels)) best[g] = l - 1;
-      localStorage.setItem(`kailia_rewards_v1::${childId}`, JSON.stringify({ starlight: 0, gameLevels: best, celebratedCompanions: [] }));
-    }
+    // per-game highest level reached, so a game opens on the level asked
+    // for; steady: no age start level and no quiet step up/down, so the
+    // robots play levels 1, 2, 3 in a row (lib/rewards.ts)
+    const best: Record<string, number> = {};
+    for (const [g, l] of Object.entries(levels ?? {})) best[g] = l - 1;
+    localStorage.setItem(`kailia_rewards_v1::${childId}`, JSON.stringify({ starlight: 0, gameLevels: best, celebratedCompanions: [], steady: true }));
     // quiet: no voices or music during the checks
     localStorage.setItem('kailia_a11y_v1', JSON.stringify({ musicOn: false, volume: 0, reducedMotion: !motion }));
   }, { ageMonths, born: { y: born.getFullYear(), m: born.getMonth() + 1 }, buddy: seed.buddy ?? 'fox',
