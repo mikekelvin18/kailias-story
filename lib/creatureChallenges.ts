@@ -64,8 +64,11 @@ export function makeChallenge(i: number, tier: string, level = 1, months?: numbe
     const castSize = sizes.castSize;
     const others = shuffle(ALL_CREATURES.filter(c => c !== creature)).slice(0, castSize - 1);
     const full = shuffle([creature, ...others]);
-    const hiddenIdx = Math.floor(Math.random() * full.length);
-    const hidden = full[hiddenIdx];
+    // The one who slips away is the friend met at this stop, so the friend
+    // the child names is the one who joins the journey (Muse round 6: the
+    // answer was the koala, then "The raccoon joins").
+    const hiddenIdx = full.indexOf(creature);
+    const hidden = creature;
     const remaining = full.filter((_, idx) => idx !== hiddenIdx);
     const decoys = shuffle(ALL_CREATURES.filter(c => !full.includes(c))).slice(0, 2);
     return { type, creature, ask: 'Look closely — one friend disappeared! Which one is missing?', display: '',
