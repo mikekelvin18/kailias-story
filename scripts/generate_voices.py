@@ -349,6 +349,14 @@ def chatterbox_wav(text: str, ref: Path, cfg: dict, excited: bool, path: Path) -
     ta.save(str(path), wav, model.sr)
     return model.sr
 
+# Kailia's cheers, picked by hand (2026-11-25, Kelvin: the cheers made the
+# careful way sounded "boring, not a lot of enthusiasm"). Each was made by
+# Chatterbox saying the cheer at the start of a longer excited sentence
+# ("Yay! That was so much fun!"), six takes each; the cheer was cut out at the
+# first pause and the clearest take kept (checked with a speech-sound
+# recognizer). A file here named after a line's slug is used as is.
+TAKES = REF_DIR / 'kailia-takes'
+
 _vc = None
 
 def named_line_wav(text: str, ref: Path, cfg: dict, path: Path) -> int:
@@ -383,6 +391,9 @@ def clip_name(who: str, line: dict, cfg: dict) -> str:
     settings = {k: v for k, v in cfg.items() if k != 'enabled'}
     h = hashlib.sha1(json.dumps([line['text'], line['excited'], SAY_AS, FILTERS, LOUDNESS, settings, KAILIA_SOUND, NOEL_SOUND, 'vc2' if (HAS_NAME.search(line['text']) or len(line['text'].split()) <= 4) else 'tts'],
                                 sort_keys=True).encode()).hexdigest()[:10]
+    take = TAKES / f'{slug(line["text"])}.wav'
+    if who == 'kailia' and take.exists():
+        h = hashlib.sha1(take.read_bytes() + h.encode()).hexdigest()[:10]
     return f'{who}/{slug(line["text"])}-{h}.mp3'
 
 
@@ -439,7 +450,13 @@ def main():
             # Chatterbox makes up sounds on very short lines ("Yay!" came out as
             # babble, checked 2026-11-25), and can't take the name sounds: those
             # lines are said by Kokoro and turned into Kailia's voice instead
-            if cfg['engine'] == 'chatterbox' and (HAS_NAME.search(line['text']) or len(line['text'].split()) <= 4):
+            take = TAKES / f"{slug(line['text'])}.wav"
+            if who == 'kailia' and take.exists():
+                # a picked take (see TAKES): straight into the clean-up chain
+                import soundfile as sf
+                rate = sf.info(str(take)).samplerate
+                shutil.copy(take, raw)
+            elif cfg['engine'] == 'chatterbox' and (HAS_NAME.search(line['text']) or len(line['text'].split()) <= 4):
                 rate = named_line_wav(line['text'], ref, cfg, raw)
             elif cfg['engine'] == 'chatterbox':
                 rate = chatterbox_wav(line['text'], ref, cfg, line['excited'], raw)
