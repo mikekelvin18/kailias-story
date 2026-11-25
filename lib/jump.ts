@@ -71,6 +71,8 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
     { href: '/go/upgrade', label: 'Plus plan page' },
   ]},
   { group: 'Start of the app', items: [
+    { href: '/review', label: 'Reviewer guide (no sign-up, for outside reviewers)' },
+    { href: '/go/review', label: 'Reviewer start: map with everything open' },
     { href: '/go/home', label: 'Front page' },
     { href: '/go/story', label: 'Story opening' },
     { href: '/go/setup', label: 'First check-up (fresh child)' },
@@ -142,6 +144,11 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     // some games start older children further up; a 4-year-old opens on the level asked for
     if (!(years > 0)) plan.ageMonths = 48;
     if (level >= 6 && plan.plus === null) plan.plus = true; // levels 6+ are Plus
+  } else if (what === 'review') {
+    // outside reviewers: a finished check-up, every land and friend open,
+    // Plus on so no level is locked, and the map with nothing popping up
+    plan.all = true;
+    if (plan.plus === null) plan.plus = true;
   } else if (what === 'setup') { plan.path = '/setup'; plan.noAssessment = true; }
   else if (what === 'try') { plan.path = '/try'; plan.fresh = true; }
   else return null;
