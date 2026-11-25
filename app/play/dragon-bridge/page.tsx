@@ -6,9 +6,8 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { awardStarlight, recordGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak } from '@/lib/speak';
 import { chapterFor } from '@/lib/levels';
@@ -95,12 +94,13 @@ type NoelMood = 'happy' | 'excited' | 'thinking' | 'celebrating';
 interface Flyer { id: number; nest: number; back: boolean; dx: number; dy: number }
 
 export default function DragonBridgePage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('dragon-bridge');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('dragon-bridge')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('dragon-bridge', fit.startLevel)); }, [fit.startLevel]);
 
   const [rounds, setRounds] = useState<Round[]>([]);
   const [ri, setRi] = useState(0);
@@ -407,7 +407,7 @@ export default function DragonBridgePage() {
           ))}
         </div>
       }
-      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} />}
+      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
       startLabel={<>Play level {level}</>}
       onStart={startGame}
       footer={<SkillIntro gameId="dragon-bridge" />}

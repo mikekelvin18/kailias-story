@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { moonPairs } from '@/lib/gameCurves';
 import { levelStory } from '@/lib/variety';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -10,8 +11,7 @@ import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoAr
 import LevelPath from '@/components/LevelPath';
 import { shuffled } from '@/lib/shuffle';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
@@ -41,9 +41,9 @@ interface CardT {
 }
 
 // the sleeping creatures, painted (components/art/things)
-const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel'];
+const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel', 'pic:penguin', 'pic:octopus'];
 const SHAPES = SHAPE_KINDS.map(k => `shape:${k}`);
-const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
+const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff', 'Hh', 'Nn'];
 
 import { soundEnabled } from '@/lib/accessibility';
 import { Thing } from '@/components/art/things';
@@ -111,8 +111,8 @@ const MOON_STORIES = [
 ];
 
 export default function MoonlightMatchPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('moonlight-match');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [cards, setCards] = useState<CardT[]>([]);
@@ -144,21 +144,21 @@ export default function MoonlightMatchPage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const cardEls = useRef<Record<number, HTMLButtonElement | null>>({});
 
-  useEffect(() => { setLevel(nextGameLevel('moonlight-match')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('moonlight-match', fit.startLevel)); }, [fit.startLevel]);
 
   // pairs grow with level; the starting size and cap follow the child's tier
-  const pairsForLevel = useCallback((lvl: number) => {
-    const base = tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4;
-    const cap = tier === 'tiny' ? 6 : tier === 'small' ? 8 : 10;
-    return Math.min(base + (lvl - 1), cap);
-  }, [tier]);
+  // (lib/gameCurves.ts: one more pair every three levels, capped by stage)
+  const pairsForLevel = useCallback((lvl: number) => moonPairs(lvl, tier), [tier]);
 
   const startLevel = useCallback((lvl: number) => {
     const story = levelStory(MOON_STORIES, 'moonlight-match', lvl);
     const pairs = pairsForLevel(lvl);
     // content rotates by level; readers sometimes get letter pairs (A ↔ a)
     const useLetters = tier === 'big' && lvl % 3 === 0;
-    const pool = useLetters ? LETTERS : lvl % 2 === 0 ? SHAPES : CREATURES;
+    // (there are 10 shapes, so the biggest boards use creatures)
+    const pool = useLetters ? LETTERS : lvl % 2 === 0 && pairs <= SHAPES.length ? SHAPES : CREATURES;
     const chosen = shuffled(pool).slice(0, pairs);
     const deck: CardT[] = shuffled(chosen.flatMap((key, i) => {
       const [a, b] = useLetters ? [key[0], key[1]] : [key, key];
@@ -348,7 +348,7 @@ export default function MoonlightMatchPage() {
               extras={<div className="flex items-end justify-center gap-3"><span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
                 <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
               </span></div>}
-              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Level {level} — flip!</>}
               onStart={() => startLevel(level)}
               footer={<SkillIntro gameId="moonlight-match" />}

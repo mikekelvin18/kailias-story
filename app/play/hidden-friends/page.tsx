@@ -3,15 +3,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { chapterLabel } from '@/lib/levels';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { CritterSprite, type SpeciesKey } from '@/components/characters/CritterSprite';
 import { characterArt } from '@/components/characters/characters.config';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -141,8 +140,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 }
 
 export default function WheresNoelPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('hidden-friends');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
@@ -166,8 +165,10 @@ export default function WheresNoelPage() {
   const [kailiaHop, setKailiaHop] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('hidden-friends')); const t = timersRef; return () => t.current.forEach(clearTimeout); }, []);
+  useEffect(() => { setLevel(openingLevel('hidden-friends', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { const t = timersRef; return () => t.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
     const el = sceneRef.current;
@@ -323,7 +324,7 @@ export default function WheresNoelPage() {
               <p>{sceneStory}</p></>}
               extras={<div className="flex items-end justify-center gap-3"><Magnifier size={70} />
               <PeekingNoel size={58} /></div>}
-              levels={<LevelPath gameId="hidden-friends" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="hidden-friends" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Start the search!</>}
               onStart={startLevel}
               footer={<SkillIntro gameId="hidden-friends" />}

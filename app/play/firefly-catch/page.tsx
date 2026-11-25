@@ -7,9 +7,9 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import NightForestArt from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import { levelStories, randInt, roundRandom } from '@/lib/variety';
@@ -148,13 +148,15 @@ const sfx = {
 };
 
 export default function FireflyCatchPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
+  const fit = useGameFit('firefly-catch');
+  const tuning = TIER_TUNING[fit.tier];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   // video-game levels: each one a touch faster and trickier; the game
   // remembers the highest level beaten and offers the next one
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('firefly-catch')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('firefly-catch', fit.startLevel)); }, [fit.startLevel]);
   const [roundIdx, setRoundIdx] = useState(0);
   const ROUNDS = useMemo(() => planFor(level), [level]);
   const [cfg, setCfg] = useState<RoundCfg>(BASE_ROUNDS[0]);
@@ -563,7 +565,7 @@ export default function FireflyCatchPage() {
                 Noel says the <strong>fireflies</strong> can light it again. Catch them with your finger, gently!
               </p></>}
               extras={<div className="flex items-end justify-center gap-3"><Lantern glow={0} size={58} /></div>}
-              levels={<LevelPath gameId="firefly-catch" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="firefly-catch" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Catch fireflies!</>}
               onStart={startGame}
               footer={<SkillIntro gameId="firefly-catch" />}

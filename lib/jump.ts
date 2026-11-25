@@ -66,7 +66,7 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
     { href: '/go/friends', label: "Friends' adventures" },
     { href: '/go/friend/sage', label: "Sage's trail" },
   ]},
-  { group: 'Games (add ?level=N for any level)', items: GAME_ROUTES.map(g => ({ href: `/go/game/${g}?level=1`, label: g.replace(/-/g, ' ') })) },
+  { group: 'Games (add ?level=N for any level, or leave it off and add ?age=N to see where a child that age starts)', items: GAME_ROUTES.map(g => ({ href: `/go/game/${g}?level=1`, label: g.replace(/-/g, ' ') })) },
   { group: 'Grown-up pages', items: [
     { href: '/go/results', label: 'Check-up results' },
     { href: '/go/progress', label: 'Progress' },
@@ -152,8 +152,9 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     const route = GAME_ALIASES[arg ?? ''] ?? arg ?? '';
     if (!GAME_IDS[route]) return null;
     plan.path = `/play/${route}`;
-    plan.levels[GAME_IDS[route]] = level;
-    // some games start older children further up; a 4-year-old opens on the level asked for
+    // ?level=N opens that level; without it the game opens where a new
+    // player of this age starts (lib/ageFit.ts), e.g. /go/game/echo-song?age=8
+    if (q.level != null) plan.levels[GAME_IDS[route]] = level;
     if (!(years > 0)) plan.ageMonths = 48;
     if (level >= 6 && plan.plus === null) plan.plus = true; // levels 6+ are Plus
   } else if (what === 'review') {

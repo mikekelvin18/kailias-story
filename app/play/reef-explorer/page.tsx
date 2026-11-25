@@ -14,9 +14,9 @@ import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime, tones } from '@/components/friends/voice';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, levelStarlight, nextGameLevel, recordGameLevel } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { reefPlan } from '@/lib/gameCurves';
+import { awardStarlight, levelStarlight, recordGameLevel } from '@/lib/rewards';
 
 // ─── Reef Explorer (Coral Reef) ───────────────────────────────────────────────
 // Its own game, not a re-skin (Muse round 5): the reef is dark, and
@@ -76,23 +76,8 @@ const other = <T,>(a: T[], not: T) => pick(a.filter(v => v !== not));
 const same = (a: Look, b: Look) => a.body === b.body && a.pattern === b.pattern && a.ink === b.ink && a.fin === b.fin
   && (a.pattern === 'plain' || a.pattern === 'zigzag' || a.count === b.count);
 
-interface Plan { fish: number; speed: number; light: number; dark: number; band: number; size: number }
-
-function planFor(level: number, tier: DifficultyTier): Plan {
-  const L = Math.max(1, level);
-  const band = L <= 5 ? 0 : L <= 10 ? 1 : L <= 15 ? 2 : 3;
-  const plan: Plan = {
-    fish: Math.min(9, 4 + Math.floor((L - 1) / 2)),
-    speed: Math.min(9, 2.5 + L * 0.25),
-    light: Math.max(14, 27 - L * 0.55),
-    dark: Math.min(0.93, 0.72 + L * 0.012),
-    band,
-    size: Math.max(52, 72 - L * 0.8),
-  };
-  if (tier === 'tiny') { plan.fish = Math.min(plan.fish, 4); plan.speed *= 0.5; plan.light += 8; plan.dark = Math.min(plan.dark, 0.62); plan.band = Math.min(band, 1); }
-  else if (tier === 'small') { plan.fish = Math.min(plan.fish, 6); plan.speed *= 0.8; plan.light += 4; plan.dark = Math.min(plan.dark, 0.82); plan.band = Math.min(band, 2); }
-  return plan;
-}
+// the level curve lives in lib/gameCurves.ts (checked against ages by scripts/age-fit.test.mjs)
+const planFor = reefPlan;
 
 function lookFor(band: number): Look {
   const pattern = band >= 3 ? pick(['stripes', 'spots'] as Pattern[]) : pick(PATTERNS);
@@ -133,12 +118,13 @@ const sfx = {
 const HAND = { x: 21, y: 119 };
 
 export default function ReefExplorerPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('reef-explorer');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'found' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('reef-explorer')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('reef-explorer', fit.startLevel)); }, [fit.startLevel]);
   const plan = useMemo(() => planFor(level, tier), [level, tier]);
   const [earned, setEarned] = useState(0);
 
@@ -351,7 +337,7 @@ export default function ReefExplorerPage() {
                 <strong>Move Kailia&apos;s flashlight</strong> to find the friend that looks just like the one on the card, then tap it!
               </p></>}
               extras={<div className="flex items-end justify-center gap-2"><FishArt look={{ body: '#FB7185', pattern: 'stripes', ink: '#FFFFFF', count: 3, fin: '#FDE68A' }} size={64} /><FishArt look={{ body: '#38BDF8', pattern: 'spots', ink: '#1E3A8A', count: 3, fin: '#F472B6' }} size={56} flip /></div>}
-              levels={<LevelPath gameId="reef-explorer" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="reef-explorer" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Dive in!</>}
               onStart={startGame}
               footer={<SkillIntro gameId="reef-explorer" />}

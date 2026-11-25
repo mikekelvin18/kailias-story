@@ -3,13 +3,15 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { SNACK_PLANS, SNACK_MORE_FROM_MONTHS, snackCap, snackGrowth, snackWobble } from '@/lib/gameCurves';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import LevelPath from '@/components/LevelPath';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import LiveArt from '@/components/characters/LiveArt';
@@ -212,10 +214,13 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore, devMonths, chronoMonths } = useAssessment();
+  const { chronoMonths } = useAssessment();
+  const fit = useGameFit('snack-quest');
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('snack-quest', fit.startLevel)); }, [fit.startLevel]);
   const [phase, setPhase] = useState<'select' | 'playing' | 'checking' | 'roundDone' | 'done'>('select');
   const [roundIdx, setRoundIdx] = useState(0);
   const [rounds, setRounds] = useState<RoundCfg[]>([]);
@@ -288,35 +293,33 @@ export default function SnackQuestPage() {
   // the field never overflows), and "how many more?" rounds start from a
   // bigger pile — counting, then adding, with ever-larger numbers.
   const buildRounds = useCallback((lvl: number): RoundCfg[] => {
-    const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+    const tier = fit.tier;
+    const fitMonths = fit.fitMonths;
     tierRef.current = tier;
     // Three wishes per feast (was four, ~22 one-snack trips; Muse review
     // 2026-11-18): count, then two "how many MORE?" wishes.
-    const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
-      tiny:  { w: [1, 2, 3], h: [0, 1, 1] },   // developmental level under ~2½ yrs
-      small: { w: [3, 4, 5], h: [0, 1, 2] },
-      big:   { w: [4, 7, 9], h: [0, 3, 4] },
-    };
+    const plans = SNACK_PLANS;   // lib/gameCurves.ts (checked against ages by scripts/age-fit.test.mjs)
     const { w } = plans[tier];
     // "How many MORE?" is taking away in disguise, too hard for 3 to 5 year
     // olds (reviewer 2026-11-25). Children working below about 6 years count
     // to a wish ("I wish for 3 cookies!"), with empty slots to fill; only 6+
     // gets the "I already have 2! How many more?" rounds.
-    const months = devMonths != null && chronoMonths != null ? Math.min(devMonths, chronoMonths)
-      : devMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
-    const h = months >= 72 ? plans[tier].h : plans[tier].h.map(() => 0);
-    const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
-    // the wishes grow every level (a step each two levels, plus a little
-    // surprise up or down), and a round never asks for the same as the
-    // same round of the level before
+    const months = fitMonths != null && chronoMonths != null ? Math.min(fitMonths, chronoMonths)
+      : fitMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
+    const h = months >= SNACK_MORE_FROM_MONTHS ? plans[tier].h : plans[tier].h.map(() => 0);
+    const cap = snackCap(tier);
+    const [wLo, wHi] = snackWobble(tier);
+    // the wishes grow with the level (plus a little surprise), and a round
+    // never asks for the same as the same round of the level before
     const wantAt = (L: number, i: number) => {
       const rand = roundRandom('snack-quest:want', L, i);
-      return Math.max(h[i] + 1, Math.min(cap, w[i] + Math.floor((L - 1) / 2) + randInt(rand, -1, 1)));
+      return Math.max(h[i] + 1, Math.min(cap, w[i] + snackGrowth(L, tier) + randInt(rand, wLo, wHi)));
     };
     const wishes = levelStories(WISHES, 'snack-quest', lvl, 3);
     return w.map((_, i) => {
       let want = wantAt(lvl, i);
-      if (lvl > 1 && want === wantAt(lvl - 1, i)) want = want < cap ? want + 1 : want - 1;
+      // little ones are nudged down (never past what their age can count)
+      if (lvl > 1 && want === wantAt(lvl - 1, i)) want = tier !== 'big' && want - 1 >= h[i] + 1 ? want - 1 : want < cap ? want + 1 : want - 1;
       const bump = Math.floor((lvl - 1) / 3);
       const have = h[i] > 0 ? Math.max(1, Math.min(want - 1, h[i] + Math.floor(bump / 2) + randInt(roundRandom('snack-quest:have', lvl, i), -1, 1))) : 0;
       // the very first round ever keeps the field's own snack
@@ -326,7 +329,7 @@ export default function SnackQuestPage() {
         : 'Walk to a snack to pick it up, then bring it to her!'}`;
       return { want, have, intro, thing: wish.thing, walls: wallsFor(lvl, i) };
     });
-  }, [state.ageGroup, totalScore, devMonths, chronoMonths]);
+  }, [fit.tier, fit.fitMonths, chronoMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
@@ -672,7 +675,7 @@ export default function SnackQuestPage() {
                   </button>
                 </div>
               </>}
-              levels={<LevelPath gameId="snack-quest" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="snack-quest" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               footer={<SkillIntro gameId="snack-quest" />}
             />
           </div>

@@ -3,14 +3,13 @@
 import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
@@ -188,8 +187,8 @@ const besideKailia = (petX: number, kx: number) => {
 };
 
 export default function SenseExplorerPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tiny = difficultyTier(state.ageGroup, totalScore, devMonths) === 'tiny';
+  const fit = useGameFit('sense-explorer');
+  const tiny = fit.tier === 'tiny';
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
@@ -216,8 +215,10 @@ export default function SenseExplorerPage() {
   const statsRef = useRef({ huntMisses: 0, oddMisses: 0, oddFirstTry: 0, startedAt: 0, smallestDelta: 999 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('sense-explorer', fit.startLevel)); }, [fit.startLevel]);
   useEffect(() => {
-    setLevel(nextGameLevel('sense-explorer'));
     const timers = timersRef.current;
     return () => { timers.forEach(clearTimeout); stopSpeaking(); };
   }, []);
@@ -393,7 +394,7 @@ export default function SenseExplorerPage() {
                 Little things are floating in glowing bubbles in the caves! Catch the ones Noel asks for, and spot the
                 crystal that&apos;s <strong>a tiny bit different</strong>.
               </p></>}
-              levels={<LevelPath gameId="sense-explorer" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="sense-explorer" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<><span className="whitespace-nowrap">Play level {level}</span></>}
               onStart={begin}
               footer={<SkillIntro gameId="sense-explorer" />}

@@ -7,9 +7,9 @@ import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
@@ -136,11 +136,13 @@ const sfx = {
 };
 
 export default function PotionSortPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
+  const fit = useGameFit('potion-sort');
+  const tuning = TIER_TUNING[fit.tier];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('potion-sort')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('potion-sort', fit.startLevel)); }, [fit.startLevel]);
 
   const [roundIdx, setRoundIdx] = useState(0);
   const [ROUNDS, setRounds] = useState<RoundCfg[]>(() => planRounds(1));
@@ -433,7 +435,7 @@ export default function PotionSortPage() {
           ))}
         </div>
       }
-      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} />}
+      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
       startLabel={<>Play level {level}</>}
       onStart={() => { setPhase('playing'); startGame(); }}
       footer={<SkillIntro gameId="potion-sort" />}
