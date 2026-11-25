@@ -236,6 +236,11 @@ export async function deleteEverything() {
   f?.children.forEach(c => CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(`${base}::${c.id}`)));
   CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(base));
   localStorage.removeItem(FAMILY_KEY);
+  // and every other app setting on this device (sound, theme, plan status,
+  // grown-up check pass…), so "delete everything" really leaves nothing
+  for (const store of [localStorage, sessionStorage]) {
+    for (const k of Object.keys(store)) if (k.startsWith('kailia_')) store.removeItem(k);
+  }
   await deleteAllPhotos();
 }
 

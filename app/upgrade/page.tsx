@@ -32,7 +32,7 @@ export default function UpgradePage() {
 }
 
 function PriceLines({ plan }: { plan: Plan }) {
-  if (!plan.prices) return <p className="text-2xl font-extrabold text-white">Free</p>;
+  if (!plan.prices) return <p className="text-lg font-extrabold text-emerald-200">Always free</p>;
   const { monthly, yearly, trialDays } = plan.prices;
   if (!monthly && !yearly) {
     return (

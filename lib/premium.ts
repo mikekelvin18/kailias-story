@@ -22,11 +22,19 @@ const PAYWALL_ENABLED = false;
 
 /** True once real charging is switched on (PAYWALL_ENABLED). */
 export function isPaywallOn(): boolean {
-  return PAYWALL_ENABLED;
+  return PAYWALL_ENABLED || paywallPreview();
+}
+
+// Preview builds only: a /go link with ?plus=0 sets this so a reviewer can
+// see the free part with the paywall "on" (lib/jump.ts). Jump links don't
+// exist on the real site, and the flag can only ever lock MORE, never less.
+function paywallPreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  try { return localStorage.getItem('kailia_paywall_preview_v1') === 'on'; } catch { return false; }
 }
 
 export function isPremium(): boolean {
-  if (!PAYWALL_ENABLED) return true;
+  if (!isPaywallOn()) return true;
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(KEY) === 'true';
 }
@@ -68,6 +76,6 @@ export function lastFreeLevel(startLevel = 1): number {
 
 /** Whether one more child profile fits this family's plan. */
 export function canAddChild(currentCount: number): boolean {
-  if (!PAYWALL_ENABLED) return true;
+  if (!isPaywallOn()) return true;
   return currentCount < childLimit(isPremium());
 }

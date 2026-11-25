@@ -22,6 +22,8 @@ import Section from '@/components/ui/Section';
 import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
+import { canAddChild } from '@/lib/premium';
+import WeeklySummary from '@/components/WeeklySummary';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
@@ -244,14 +246,25 @@ export default function ParentZonePage() {
                   <ChildAvatar avatar={c.avatar} size={26} /> {c.nickname}
                 </button>
               ))}
-              <button onClick={() => setShowAddChild(true)}
-                className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
-                style={{ border: '1.5px dashed #CBD5E1' }}>
-                + Add a child
-              </button>
+              {canAddChild(family.children.length) ? (
+                <button onClick={() => setShowAddChild(true)}
+                  className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
+                  style={{ border: '1.5px dashed #CBD5E1' }}>
+                  + Add a child
+                </button>
+              ) : (
+                <Link href="/upgrade"
+                  className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-violet-700"
+                  style={{ border: '1.5px dashed #C4B5FD' }}>
+                  More children with Family Premium
+                </Link>
+              )}
             </div>
           </div>
         )}
+
+        {/* This week, in plain words (on-device only, components/WeeklySummary.tsx) */}
+        {consented && child && <WeeklySummary childName={child.nickname} />}
 
         {/* ── STEP 2: Add child profile (always for the first child; a
             toggled form for adding a sibling afterward) ── */}

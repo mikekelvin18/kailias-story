@@ -43,13 +43,17 @@ export function voiceScore(v: SpeechSynthesisVoice): number {
   if (NEVER.some(n => name.includes(n))) return -100;
   const lang = v.lang.toLowerCase().replace('_', '-');
   if (!lang.startsWith('en')) return -50;
+  // Privacy (COPPA): online voices (Edge "Online (Natural)", Chrome's
+  // "Google …" voices) send the spoken text to a cloud service, and some
+  // lines say the child's nickname. Only voices that run on the device
+  // itself may speak (2026-11-25, kids'-store rules check).
+  if (!v.localService) return -60;
   let s = 0;
   const fav = FAVOURITES.findIndex(f => name.includes(f));
   if (fav >= 0) s += 200 - fav * 3;
   if (NATURAL.test(v.name)) s += 60;
   if (lang === 'en-us') s += 15;
   else if (lang === 'en-gb' || lang === 'en-au' || lang === 'en-ca') s += 8;
-  if (v.localService) s += 2; // works offline, starts instantly
   return s;
 }
 
@@ -71,7 +75,7 @@ export function chosenVoice(): SpeechSynthesisVoice | null {
   const picked = loadA11y().voiceName;
   if (picked) {
     const v = voices.find(x => x.name === picked);
-    if (v) return v;
+    if (v && v.localService) return v;
   }
   const best = [...voices].sort((a, b) => voiceScore(b) - voiceScore(a))[0];
   return best && voiceScore(best) > -50 ? best : null;
@@ -384,6 +388,8 @@ export function say(text: string, opts: SayOptions = {}) {
       // over the next game (Muse retest #3, Sense Explorer), so don't.
       if (synth.getVoices().length === 0) return;
       const voice = chosenVoice();
+      // no on-device voice: stay quiet rather than fall back to an online one
+      if (!voice) { if (gen === generation) { setTalking(false); opts.onDone?.(); } return; }
       const natural = isNaturalVoice(voice);
       const wantPitch = opts.pitch ?? 1.08;
       // Lifelike voices already sound warm; pushing their pitch far makes

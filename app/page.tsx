@@ -116,6 +116,7 @@ export default function LandingPage() {
           <Link href="/family" className="underline underline-offset-4 py-1">Parent Zone</Link>
           <Link href="/privacy" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Privacy Policy</Link>
           <Link href="/retention" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Data Retention</Link>
+          <Link href="/about" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>About</Link>
         </p>
       </div>
     </main>

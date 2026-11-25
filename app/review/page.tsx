@@ -45,7 +45,8 @@ const GROWN_UPS: Item[] = [
   { href: '/go/family', label: 'Parent Zone', note: 'Child profiles, privacy, see and delete all data.' },
   { href: '/go/activities', label: 'Parent & Baby quests' },
   { href: '/go/printables', label: 'Printable worksheets' },
-  { href: '/go/upgrade', label: 'Plus plan page' },
+  { href: '/go/upgrade', label: 'Plans page', note: 'Free, Family Premium and Pro side by side, behind the grown-up check (hold 3 seconds, then a times-table sum).' },
+  { href: '/go/about', label: 'About page', note: 'Who it is built with, what each game practises, not-a-diagnosis note.' },
   { href: '/go/map?age=2', label: 'The map for a 2-year-old (starts fresh)' },
   { href: '/go/daily-quests', label: "Today's grown-up quests, 2-year-old (starts fresh)" },
 ];

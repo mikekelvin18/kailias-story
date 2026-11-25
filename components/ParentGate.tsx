@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import PopupClose from '@/components/PopupClose';
@@ -50,18 +50,22 @@ export function GrownUpCheck({ onPass, title = 'Grown-ups only', note }: { onPas
   useEffect(() => { setQ(newQuestion()); }, []);
   useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
 
-  const tick = useCallback(() => {
-    const p = Math.min(1, (performance.now() - started.current) / HOLD_MS);
-    setProgress(p);
-    if (p >= 1) { raf.current = null; setStep('sum'); return; }
-    raf.current = requestAnimationFrame(tick);
-  }, []);
+  // one animation-frame loop while the button is held
+  function loop() {
+    const step = () => {
+      const p = Math.min(1, (performance.now() - started.current) / HOLD_MS);
+      setProgress(p);
+      if (p >= 1) { raf.current = null; setStep('sum'); return; }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  }
 
   function startHold(e: React.PointerEvent) {
     e.preventDefault();
     started.current = performance.now();
     if (raf.current) cancelAnimationFrame(raf.current);
-    raf.current = requestAnimationFrame(tick);
+    loop();
   }
   function stopHold() {
     if (raf.current) cancelAnimationFrame(raf.current);
