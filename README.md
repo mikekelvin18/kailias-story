@@ -20,6 +20,31 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Regenerating the voices (free, offline)
+
+Every voice the app plays is a ready-made MP3 in `public/`. The app never calls a voice service; the device's own voice only fills in for a sentence that has no clip yet.
+
+**Kailia** (Chatterbox copying a Kokoro-made reference clip) is made by `scripts/generate_voices.py` into `public/audio/` with `public/audio/manifest.json`. Voices and settings are in the `VOICES` map at the top of that script; how names are pronounced is in `SAY_AS`. Chatterbox needs a GPU to be quick, so the easy way is Google Colab:
+
+1. Open `scripts/generate_voices.ipynb` in Google Colab (File → Upload notebook).
+2. Runtime → Change runtime type → **T4 GPU**, then Runtime → **Run all** (about 10 minutes).
+3. Unzip the `kailia-voice.zip` it downloads into `public/` (it holds `audio/`), then commit.
+
+On your own computer instead (needs Python 3.10+ and ffmpeg):
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install kokoro-onnx soundfile numpy chatterbox-tts torchaudio
+python3 scripts/generate_voices.py --dry-run      # what would be made
+python3 scripts/generate_voices.py                # make every new or changed line
+python3 scripts/generate_voices.py --ref-only     # only Kailia's reference clip (Kokoro, no GPU)
+python3 scripts/build_voice_notebook.py           # refresh the Colab notebook after changing lines
+```
+
+Unchanged lines are skipped (each file name carries a hash of its text and settings). Kailia's lines come from `app/story/page.tsx` (`who: 'kailia'`) and `voice/kailia-lines.json`; add more in `voice/extra-lines.json`.
+
+**Noel and the pet friends** keep their own recorded voices from `scripts/record-voice.py` (see the comments at its top). After changing game text, run `node scripts/voice-lines.mjs` and then that script.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

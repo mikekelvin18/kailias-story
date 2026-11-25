@@ -9,7 +9,7 @@ import {
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
-import { AccessibilityPrefs, DEFAULT_A11Y, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
+import { AccessibilityPrefs, DEFAULT_A11Y, NARRATION_SPEEDS, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import LivingSky from '@/components/scenery/LivingSky';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
@@ -23,7 +23,6 @@ import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
-import VoicePicker from '@/components/VoicePicker';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
 const DEV_TOOLS = process.env.NODE_ENV === 'development';
@@ -445,10 +444,26 @@ export default function ParentZonePage() {
             <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
           </label>
 
+          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+            <span className="text-sm font-semibold text-gray-700">Read aloud
+              <span className="block text-xs font-normal text-gray-500">Kailia, Noel and the friends read every story, instruction and speech bubble out loud.</span>
+            </span>
+            <input type="checkbox" checked={a11y.narrationOn !== false} onChange={e => updateA11y({ narrationOn: e.target.checked })} className="w-5 h-5 shrink-0" />
+          </label>
+
           <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
-            <p className={`text-sm font-semibold text-gray-700 mb-0.5`}>🐼 Noel&apos;s read-aloud voice</p>
-            <p className="text-xs text-gray-500 mb-2">Automatic picks the warmest voice this device has. Tap Hear it to try one.</p>
-            <VoicePicker value={a11y.voiceName} onChange={name => updateA11y({ voiceName: name })} />
+            <p className="text-sm font-semibold text-gray-700 mb-0.5">Reading speed</p>
+            <p className="text-xs text-gray-500 mb-2">The same as the speed buttons under the stories.</p>
+            <div role="group" aria-label="Reading speed" className="flex gap-2">
+              {NARRATION_SPEEDS.map(sp => (
+                <button key={sp} type="button" onClick={() => updateA11y({ narrationSpeed: sp })}
+                  aria-pressed={(a11y.narrationSpeed ?? 1) === sp}
+                  className="flex-1 min-h-[48px] rounded-xl font-extrabold text-base"
+                  style={(a11y.narrationSpeed ?? 1) === sp ? { background: '#7C3AED', color: '#fff' } : { background: '#fff', color: '#4C1D95', border: '2px solid #DDD6FE' }}>
+                  {sp === 0.8 ? 'Slower' : sp === 1 ? 'Normal' : 'Quicker'}
+                </button>
+              ))}
+            </div>
           </div>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
