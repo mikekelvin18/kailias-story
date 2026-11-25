@@ -77,6 +77,30 @@ export function chosenVoice(): SpeechSynthesisVoice | null {
   return best && voiceScore(best) > -50 ? best : null;
 }
 
+/* Men's voices, best first, for the rare Noel sentence that has no
+   recording yet: Noel is a big gentle panda and must never come out as a
+   girl's voice (Kelvin, 2026-11-25: "sounds like a girl robot"). */
+const MAN_FAVOURITES = [
+  'andrew online', 'guy online', 'brian online', 'christopher online', 'eric online', 'davis online', 'roger online',
+  'steffan online', 'ryan online', 'thomas online', 'google uk english male',
+  'aaron (enhanced)', 'aaron (premium)', 'evan (enhanced)', 'nathan (enhanced)', 'tom (enhanced)', 'alex',
+  'daniel (enhanced)', 'arthur (enhanced)', 'oliver (enhanced)', 'gordon (enhanced)', 'rishi (enhanced)',
+  'aaron', 'evan', 'nathan', 'tom', 'daniel', 'arthur', 'oliver', 'gordon', 'rishi', 'lee', 'mark', 'david', 'james', 'george', 'male',
+];
+/** The best man's voice on this device (else the usual voice). */
+export function manVoice(): SpeechSynthesisVoice | null {
+  const voices = allVoices().filter(v => voiceScore(v) > -50);
+  let best: SpeechSynthesisVoice | null = null, bestScore = -1;
+  for (const v of voices) {
+    const name = lowered(v);
+    const at = MAN_FAVOURITES.findIndex(f => new RegExp(`(^|[^a-z])${f.replace(/[()]/g, '\\$&')}([^a-z]|$)`).test(name));
+    if (at < 0) continue;
+    const score = 1000 - at * 10 + voiceScore(v) * 0.1;
+    if (score > bestScore) { best = v; bestScore = score; }
+  }
+  return best ?? chosenVoice();
+}
+
 /** True when the chosen voice is one of the lifelike ones. */
 export function isNaturalVoice(v: SpeechSynthesisVoice | null) {
   return !!v && NATURAL.test(v.name);
@@ -136,9 +160,9 @@ export function voicePaused() { return pausedNow; }
 /** Pause whatever is being read, mid-sentence. */
 export function pauseVoice() {
   if (!talkingNow) return;
+  setPaused(true); // first, so the clip's "paused" signal isn't taken for the phone cutting it off
   try { if (player && !player.paused) player.pause(); } catch { /* ignore */ }
   try { window.speechSynthesis?.pause(); } catch { /* ignore */ }
-  setPaused(true);
 }
 /** Carry on from where it was paused. */
 export function resumeVoice() {
@@ -220,12 +244,14 @@ export function voiceKey(sentence: string): string {
 }
 
 let clips: Map<string, string> | null = null;
-if (typeof window !== 'undefined') {
-  fetch('/voice/manifest.json')
+/** Noel's list of recordings, once loaded (a line asked for sooner waits for it
+    instead of going to the device voice). */
+const clipsReady: Promise<Map<string, string>> = typeof window === 'undefined'
+  ? Promise.resolve(new Map())
+  : fetch('/voice/manifest.json')
     .then(r => (r.ok ? r.json() : {}))
-    .then((m: Record<string, string>) => { clips = new Map(Object.entries(m ?? {})); })
-    .catch(() => { clips = new Map(); });
-}
+    .then((m: Record<string, string>) => (clips = new Map(Object.entries(m ?? {}))))
+    .catch(() => (clips = new Map()));
 
 // ── Voices made by scripts/generate_voices.py ──
 // public/audio/manifest.json lists every pre-made clip by speaker:
@@ -310,35 +336,9 @@ export function unlockVoice() {
 
 function stopClip() {
   if (!player) return;
-  player.onended = null; player.onerror = null;
+  player.onended = null; player.onerror = null; player.onpause = null;
   if (player.src === SILENCE) return; // the wake-up clip is silent; let it finish waking the player
   try { player.pause(); } catch { /* ignore */ }
-}
-
-/** Play recorded sentences one after another. Returns false if it couldn't start. */
-function playClips(files: string[], gen: number, fallback: () => void, base = '/voice', hooks: SayOptions = {}) {
-  player = player ?? new Audio();
-  const audio = player;
-  let i = 0;
-  const next = () => {
-    if (gen !== generation) return;
-    if (i >= files.length) { setTalking(false); hooks.onDone?.(); return; }
-    hooks.onSentence?.(i);
-    audio.src = `${base}/${files[i++]}`;
-    audio.playbackRate = narrationSpeed();
-    audio.dataset.owner = lineOwner ?? ''; // whose line this is (scripts/voice-check.mjs reads it)
-    audio.volume = masterVolume();
-    audio.onended = () => setTimeout(next, 140); // a small breath between sentences
-    audio.onerror = () => { if (gen === generation) fallback(); };
-    audio.play().then(() => { primed = true; if (gen === generation) setTalking(true); })
-      .catch((e: unknown) => {
-        if (gen !== generation) return;
-        // sound not allowed yet: keep the line for the first tap instead of losing it
-        if (!primed && (e as { name?: string })?.name === 'NotAllowedError' && lastLine) { waiting = { ...lastLine, at: Date.now() }; return; }
-        fallback(); // anything else: use the device voice
-      });
-  };
-  next();
 }
 
 /**
@@ -366,7 +366,8 @@ export function say(text: string, opts: SayOptions = {}) {
     // engine or no voices at all (Muse's test browser said "This device
     // has no read-aloud voices" and Noel stayed silent).
     const synth: SpeechSynthesis | undefined = window.speechSynthesis;
-    const clean = text.replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').replace(/[*_~]/g, '')
+    const clean = text.replace(/\p{Extended_Pictographic}|️|‍/gu, '').replace(/[*_~]/g, '')
+      .replace(/([a-z][.!?…])(?=[A-Z])/g, '$1 ') // "balloons!Listen": two sentences glued together on screen
       .replace(/\s+/g, ' ').trim();
     const gen = ++generation;
     const busy = !!synth && (synth.speaking || synth.pending);
@@ -378,89 +379,172 @@ export function say(text: string, opts: SayOptions = {}) {
     if (!soundAllowed()) { waiting = { text, opts, at: Date.now() }; return; }
     waiting = null;
 
-    const start = () => {
-      if (gen !== generation || !synth) return;
-      // No voices at all: queuing lines there can pile up and play late
-      // over the next game (Muse retest #3, Sense Explorer), so don't.
-      if (synth.getVoices().length === 0) return;
-      const voice = chosenVoice();
+    const parts = sentences(clean);
+    const who = opts.voice ? opts.voice.toLowerCase() : null;
+
+    // Kailia: her own made-ahead clips (public/audio), else the device voice in a kid pitch.
+    if (who === 'kailia') {
+      const mine = audioClips?.kailia ?? {};
+      speakParts(parts, parts.map(p => mine[voiceKey(p)] ?? null), '/audio', gen, busy,
+        { ...opts, pitch: opts.pitch ?? KAILIA_PITCH, rate: opts.rate ?? 1 }, 'girl');
+      return;
+    }
+    // A pet friend talking: its own recordings, never Noel's.
+    if (who && PET_VOICES[who]) {
+      const pet = who;
+      const go = (m: Map<string, string>) => {
+        if (gen !== generation) return;
+        speakParts(parts, parts.map(p => m.get(voiceKey(p)) ?? null), `/voice/pets/${pet}`, gen, busy,
+          { ...opts, pitch: opts.pitch ?? PET_VOICES[pet].pitch }, PET_VOICES[pet].girl ? 'girl' : 'boy');
+      };
+      const m = petManifest(pet);
+      if (m instanceof Map) go(m); else void m.then(go);
+      return;
+    }
+    // Noel. A raised pitch means someone other than Noel is talking (an
+    // older caller's way of saying "a friend"), and they shouldn't borrow
+    // Noel's recorded voice.
+    if ((opts.pitch ?? 1) >= 1.25) {
+      speakParts(parts, parts.map(() => null), '/voice', gen, busy, opts, 'girl');
+      return;
+    }
+    const noel = (m: Map<string, string>) => {
+      if (gen !== generation) return;
+      const files = parts.map(p => m.get(voiceKey(p)) ?? null);
+      // Kelvin 2026-11-25: Noel suddenly sounded "like a girl robot". New
+      // story lines had no recording, and one missing sentence sent the WHOLE
+      // bubble to the phone's own (female) voice. Now every recorded sentence
+      // plays in Noel's voice; only a sentence with no recording yet is read
+      // by the device, in a man's voice. scripts/voice-miss-check.mjs lists
+      // those so they get recorded.
+      parts.forEach((p, i) => { if (!files[i]) noteMiss(p); });
+      speakParts(parts, files, '/voice', gen, busy, opts, 'noel');
+    };
+    if (clips) noel(clips); else void clipsReady.then(noel);
+  } catch { /* reading aloud is a bonus, never an error */ }
+}
+
+// ── Sentences with no recording (for the robot check) ──
+const misses: string[] = [];
+function noteMiss(sentence: string) {
+  if (misses.length < 400 && !misses.includes(sentence)) misses.push(sentence);
+  try { (window as unknown as { __noelMisses?: string[] }).__noelMisses = misses; } catch { /* ignore */ }
+}
+
+/** Device-voice character for a sentence with no recording. */
+type Kind = 'noel' | 'girl' | 'boy';
+
+/**
+ * Read a line one sentence at a time: a sentence with a recording plays
+ * that file, one without is read by the device voice. One sentence at a
+ * time (never a queue of device utterances) so:
+ *  - the reading highlight always moves on (iPhone Safari drops the
+ *    "started" signal of queued utterances, and the highlight stuck on the
+ *    first sentence, Kelvin 2026-11-25);
+ *  - a sentence the phone cut off by itself (iPhone stops its speech voice
+ *    when the page scrolls) is simply said again, and the rest follows.
+ */
+function speakParts(parts: string[], files: (string | null)[], base: string, gen: number, busy: boolean, opts: SayOptions, kind: Kind) {
+  const synth: SpeechSynthesis | undefined = window.speechSynthesis;
+  let i = 0;
+  const finish = () => { if (gen === generation) { setTalking(false); opts.onDone?.(); } };
+  const next = () => {
+    if (gen !== generation) return;
+    if (i >= parts.length) { finish(); return; }
+    const k = i++;
+    const file = files[k];
+    if (file) playOne(k, file);
+    else deviceOne(k, 0);
+  };
+  const breath = () => setTimeout(next, 140); // a small breath between sentences
+
+  const playOne = (k: number, file: string) => {
+    player = player ?? new Audio();
+    const audio = player;
+    opts.onSentence?.(k);
+    let retried = false;
+    audio.onpause = null;
+    audio.src = `${base}/${file}`;
+    audio.playbackRate = narrationSpeed();
+    audio.dataset.owner = lineOwner ?? ''; // whose line this is (scripts/voice-check.mjs reads it)
+    audio.volume = masterVolume();
+    audio.onended = () => { audio.onpause = null; if (gen === generation) breath(); };
+    audio.onerror = () => { audio.onpause = null; if (gen === generation) deviceOne(k, 0, true); };
+    // The phone paused the clip by itself (not our pause button, not a newer
+    // line): carry on from where it stopped instead of going quiet.
+    audio.onpause = () => {
+      if (gen !== generation || pausedNow || audio.ended || retried) return;
+      retried = true;
+      setTimeout(() => { if (gen === generation && !pausedNow && audio.paused && !audio.ended) void audio.play().catch(() => {}); }, 120);
+    };
+    audio.play().then(() => { primed = true; if (gen === generation) setTalking(true); })
+      .catch((e: unknown) => {
+        if (gen !== generation) return;
+        audio.onpause = null;
+        // sound not allowed yet: keep the line for the first tap instead of losing it
+        if (!primed && (e as { name?: string })?.name === 'NotAllowedError' && lastLine) { waiting = { ...lastLine, at: Date.now() }; return; }
+        deviceOne(k, 0, true); // anything else: the device voice reads this sentence
+      });
+  };
+
+  const deviceOne = (k: number, tries: number, already = false) => {
+    if (gen !== generation) return;
+    if (!already) opts.onSentence?.(k);
+    const words = parts[k].split(/\s+/).length;
+    // no speech engine or no voices at all: keep the highlight moving at
+    // reading pace instead of saying nothing and stopping
+    if (!synth || allVoices().length === 0) {
+      setTimeout(() => { if (gen === generation && !pausedNow) next(); }, 500 + words * 300 / narrationSpeed());
+      return;
+    }
+    whenVoicesReady(() => {
+      if (gen !== generation) return;
+      const voice = kind === 'noel' || kind === 'boy' ? manVoice() : chosenVoice();
       const natural = isNaturalVoice(voice);
-      const wantPitch = opts.pitch ?? 1.08;
+      const wantPitch = kind === 'noel' ? (opts.pitch ?? 0.95) : (opts.pitch ?? 1.08);
       // Lifelike voices already sound warm; pushing their pitch far makes
       // them sound squeaky, so they get half the lift the plain ones get.
       const pitch = natural ? 1 + (wantPitch - 1) * 0.5 : wantPitch;
       const rate = (opts.rate ?? 0.92) * narrationSpeed();
       // SHOUTED words ("the SAME color", uppercase headings) get spelled out
       // letter by letter on some voices, so read them as normal words
-      const parts = sentences(clean).map(p => deviceNames(p.replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase()))));
-      parts.forEach((part, i) => {
-        const u = new SpeechSynthesisUtterance(part);
-        u.volume = masterVolume();
-        if (voice) { u.voice = voice; u.lang = voice.lang; }
-        u.rate = rate;
-        u.pitch = Math.max(0.5, Math.min(2, pitch));
-        u.onstart = () => { if (gen === generation) { setTalking(true); opts.onSentence?.(i); } };
-        if (i === parts.length - 1) {
-          const end = () => { if (gen === generation) { setTalking(false); opts.onDone?.(); } };
-          u.onend = end; u.onerror = end;
+      const said = deviceNames(parts[k].replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase())));
+      const u = new SpeechSynthesisUtterance(said);
+      u.volume = masterVolume();
+      if (voice) { u.voice = voice; u.lang = voice.lang; }
+      u.rate = rate;
+      u.pitch = Math.max(0.5, Math.min(2, pitch));
+      let over = false;
+      const done = () => { if (over) return; over = true; clearTimeout(guard); if (gen === generation) breath(); };
+      u.onstart = () => { if (gen === generation) setTalking(true); };
+      u.onend = done;
+      u.onerror = (ev: SpeechSynthesisErrorEvent) => {
+        if (over || gen !== generation) return;
+        // cut off by the phone, not by us: say this sentence again (once or twice)
+        if ((ev.error === 'interrupted' || ev.error === 'canceled') && tries < 2 && !pausedNow) {
+          over = true; clearTimeout(guard);
+          setTimeout(() => deviceOne(k, tries + 1, true), 160);
+          return;
         }
-        synth.speak(u);
-      });
-      // Safari sometimes starts out paused after a cancel
-      if (synth.paused) synth.resume();
-    };
-    // Kailia: her own made-ahead clips, else the device voice in a higher, kid pitch.
-    const who = opts.voice ? opts.voice.toLowerCase() : null;
-    if (who === 'kailia') {
-      const mine = audioClips?.kailia ?? {};
-      const files = sentences(clean).map(p => mine[voiceKey(p)]);
-      opts = { ...opts, pitch: opts.pitch ?? KAILIA_PITCH, rate: opts.rate ?? 1 };
-      if (files.length && files.every(Boolean)) {
-        playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); }, '/audio', opts);
-      } else {
-        whenVoicesReady(busy ? () => setTimeout(start, 80) : start);
-      }
-      return;
-    }
-    // A pet friend talking: its own recordings, never Noel's.
-    const pet = who;
-    if (pet && PET_VOICES[pet]) {
-      const devicePitch = () => { opts = { ...opts, pitch: opts.pitch ?? PET_VOICES[pet].pitch }; };
-      const tryClips = (m: Map<string, string>) => {
-        if (gen !== generation) return;
-        const files = sentences(clean).map(p => m.get(voiceKey(p)));
-        if (files.length && files.every(Boolean)) {
-          playClips(files as string[], gen, () => { stopClip(); devicePitch(); whenVoicesReady(start); }, `/voice/pets/${pet}`, opts);
-        } else { devicePitch(); whenVoicesReady(busy ? () => setTimeout(start, 80) : start); }
+        done();
       };
-      const m = petManifest(pet);
-      if (m instanceof Map) tryClips(m); else void m.then(tryClips);
-      return;
-    }
+      // Some phones never say "finished": move on once the sentence must be over.
+      const guardMs = 2500 + words * 650 / Math.max(0.5, rate);
+      const check = () => {
+        if (over || gen !== generation) return;
+        if (pausedNow || synth.speaking) { guard = setTimeout(check, 700); return; }
+        done();
+      };
+      let guard = setTimeout(check, guardMs);
+      synth.speak(u);
+      // Safari sometimes starts out paused after a cancel
+      if (synth.paused && !pausedNow) synth.resume();
+    });
+  };
 
-    // Recorded lines first. A raised pitch means someone other than Noel is
-    // talking, and they shouldn't borrow Noel's recorded voice.
-    if (clips && (opts.pitch ?? 1) < 1.25) {
-      const files = sentences(clean).map(p => clips!.get(voiceKey(p)));
-      if (files.length && files.every(Boolean)) {
-        playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); }, '/voice', opts);
-        return;
-      }
-      // No device voice to fill the gaps: play the sentences that are
-      // recorded rather than say nothing at all.
-      const recorded = files.filter(Boolean) as string[];
-      if (recorded.length && (!synth || allVoices().length === 0)) {
-        playClips(recorded, gen, () => stopClip());
-        return;
-      }
-    }
-    if (!synth) return;
-
-    // Safari drops a line spoken in the same instant as a cancel, so give
-    // it a breath when something was still playing.
-    const go = () => (busy ? setTimeout(start, 80) : start());
-    whenVoicesReady(go);
-  } catch { /* reading aloud is a bonus, never an error */ }
+  // Safari drops a line spoken in the same instant as a cancel, so give
+  // it a breath when something was still playing.
+  if (busy && !files[0]) setTimeout(next, 80); else next();
 }
 
 /**
