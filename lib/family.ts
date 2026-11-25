@@ -24,6 +24,10 @@ export interface ChildProfile {
   birthMonth: number;             // 1–12
   avatar: string;                 // buddy id chosen by the parent (older profiles: an emoji)
   createdAt: string;
+  /** Grown-up's "Game level" choice (lib/ageBands.ts): let the app adjust, or a year easier/harder. */
+  gameLevel?: 'auto' | 'easier' | 'harder';
+  /** Grown-up's "Big Kid look": fewer sparkles, smaller characters (unset = the age band decides). */
+  bigKidLook?: boolean;
 }
 
 // A separate, narrower consent from the general child-data consent
@@ -197,6 +201,19 @@ export function setActiveChild(childId: string): FamilyAccount | null {
   // root layout) cache per-child state in React rather than re-reading
   // localStorage on every render — they need a signal to reload.
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(ACTIVE_CHILD_CHANGED_EVENT));
+  return f;
+}
+
+// Grown-up game settings for one child (Family page). Not personal info:
+// just how the games behave for this child.
+export const CHILD_PREFS_CHANGED_EVENT = 'kailia-child-prefs-changed';
+export function setChildGamePrefs(childId: string, patch: Pick<Partial<ChildProfile>, 'gameLevel' | 'bigKidLook'>): FamilyAccount | null {
+  const f = loadFamily();
+  const c = f?.children.find(k => k.id === childId);
+  if (!f || !c) return null;
+  Object.assign(c, patch);
+  save(f);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHILD_PREFS_CHANGED_EVENT));
   return f;
 }
 

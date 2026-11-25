@@ -6,9 +6,9 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { awardStarlight, recordGameLevel, COMPANIONS, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak } from '@/lib/speak';
 import { chapterFor } from '@/lib/levels';
@@ -95,12 +95,13 @@ type NoelMood = 'happy' | 'excited' | 'thinking' | 'celebrating';
 interface Flyer { id: number; nest: number; back: boolean; dx: number; dy: number }
 
 export default function DragonBridgePage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('dragon-bridge');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('dragon-bridge')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('dragon-bridge', fit.startLevel)); }, [fit.startLevel]);
 
   const [rounds, setRounds] = useState<Round[]>([]);
   const [ri, setRi] = useState(0);
@@ -223,7 +224,7 @@ export default function DragonBridgePage() {
     const light = levelStarlight(level, x.misses);
     awardStarlight(light);
     setEarned(light);
-    recordGameLevel('dragon-bridge', level);
+    recordGameLevel('dragon-bridge', level, roundEase(x.misses, x.shares + x.blanks));
     later(() => setPhase('done'), 600);
   }
 
@@ -407,7 +408,7 @@ export default function DragonBridgePage() {
           ))}
         </div>
       }
-      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} />}
+      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
       startLabel={<>Play level {level}</>}
       onStart={startGame}
       footer={<SkillIntro gameId="dragon-bridge" />}
@@ -423,7 +424,7 @@ export default function DragonBridgePage() {
       message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('dragon-bridge', level)); setPhase('intro'); }}>{nextLabel('dragon-bridge', level)} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

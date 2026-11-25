@@ -23,6 +23,7 @@ const START: Item[] = [
   { href: '/go/story', label: 'Story opening', note: 'The short animated story before the map.' },
   { href: '/go/map', label: 'The map on day one (starts fresh)', note: 'Only the first land open, like a brand new player.' },
   { href: '/go/try', label: 'Try one game with no account (starts fresh)', note: 'The try-before-sign-up path.' },
+  { href: '/review/ages', label: 'Games by age band', note: 'Every game’s settings and starting level for under 3s, 3–4, 5–6, 7–8 and 9–12, side by side.' },
   { href: '/go/setup', label: 'First check-up (starts fresh)', note: 'The placement games a new child plays (signup already done).' },
 ];
 
