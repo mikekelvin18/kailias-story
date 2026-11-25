@@ -4,13 +4,15 @@ import { buzzGood } from '@/lib/haptics';
 import { dealIndex, levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase, type ReadingMode } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { WORD_PRE_READER_BELOW_MONTHS } from '@/lib/ageFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { chapterFor, LEVELS_PER_CHAPTER } from '@/lib/levels';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak, stopSpeaking } from '@/lib/speak';
@@ -42,7 +44,57 @@ interface ReadingQ {
   pic?: string;       // a painted picture (components/art/things) shown above it
   choices: string[];
   answer: string;
+  /** pre-readers: the balloons carry pictures (components/art/things ids) with their word underneath */
+  picChoices?: boolean;
 }
+
+// ── Pre-readers' first chapter: find the picture ──
+// Telling printed words apart (the picture → word bank below) is a
+// 5½-year-old skill, so children whose reading is below about 5 get
+// listening words instead (age-fit check 2026-11-25): Noel says "Find the
+// cat!" (about 2½ years: points to named pictures) on a chapter's first two
+// levels, then little riddles like "Who says moo?" (about 3½). Each picture
+// balloon shows its word underneath, so print is always in sight.
+const pq = (prompt: string, answer: string, others: string[]): ReadingQ =>
+  ({ prompt, visual: '', choices: [answer, ...others], answer, picChoices: true });
+const PRE_FIND: ReadingQ[] = [
+  pq('Find the cat!', 'cat', ['dog', 'fish', 'cow']),
+  pq('Find the apple!', 'apple', ['banana', 'pear', 'carrot']),
+  pq('Find the moon!', 'moon', ['sun', 'star', 'cloud']),
+  pq('Find the car!', 'car', ['rocket', 'kite', 'ball']),
+  pq('Find the ball!', 'ball', ['cake', 'book', 'hat']),
+  pq('Find the flower!', 'flower', ['tree', 'leaf', 'sun']),
+  pq('Find the dog!', 'dog', ['cat', 'pig', 'bird']),
+  pq('Find the house!', 'house', ['car', 'tree', 'bed']),
+];
+const PRE_RIDDLE: ReadingQ[] = [
+  pq('Who says moo?', 'cow', ['pig', 'dog', 'cat']),
+  pq('Who says woof?', 'dog', ['cat', 'cow', 'fish']),
+  pq('Which one can fly in the sky?', 'bird', ['fish', 'snail', 'cow']),
+  pq('Which one lives in the water?', 'fish', ['cow', 'bird', 'dog']),
+  pq('Where do we sleep?', 'bed', ['car', 'cake', 'tree']),
+  pq('What do we wear on our head?', 'hat', ['spoon', 'ball', 'apple']),
+  pq('Which one do we read?', 'book', ['ball', 'cake', 'car']),
+  pq('Which one shines at night?', 'moon', ['sun', 'flower', 'apple']),
+];
+
+// 5–6 year olds (age band "early", lib/ageBands.ts): the first chapter is
+// simple three-letter words that sound alike at the end, so the child
+// looks at the first letter: cat / hat / bat (Grok's review, 2026-11-25).
+const cvc = (pic: string, choices: string[]): ReadingQ =>
+  ({ pic, visual: '', prompt: 'Which word says this?', choices, answer: choices[0] });
+const CVC_BANK: ReadingQ[] = [
+  cvc('cat', ['cat', 'hat', 'bat', 'mat']),
+  cvc('dog', ['dog', 'log', 'fog', 'dig']),
+  cvc('sun', ['sun', 'bun', 'run', 'fun']),
+  cvc('pig', ['pig', 'big', 'dig', 'wig']),
+  cvc('bat', ['bat', 'cat', 'hat', 'rat']),
+  cvc('hat', ['hat', 'cat', 'mat', 'sat']),
+  cvc('bed', ['bed', 'red', 'fed', 'bad']),
+  cvc('log', ['log', 'dog', 'leg', 'lot']),
+  cvc('map', ['map', 'cap', 'tap', 'mop']),
+  cvc('box', ['box', 'fox', 'bus', 'six']),
+];
 
 const BANKS: ReadingQ[][] = [
   // Chapter 1: picture → word (about 3–4 years)
@@ -154,22 +206,25 @@ function bankFor(level: number) { return Math.min(BANKS.length - 1, Math.floor((
 // 0–4: how far into its chapter this level is
 function stepFor(level: number) { return (level - 1) % LEVELS_PER_CHAPTER; }
 
-// Older children start further up the ladder (but can always step back down on the level map)
-function startLevelForAge(age: number | null): number {
-  const a = age ?? 5;
-  const bank = a <= 4 ? 0 : a <= 5 ? 1 : a <= 6 ? 2 : a <= 8 ? 3 : 4;
-  return bank * LEVELS_PER_CHAPTER + 1;
-}
+// Older readers start further up the ladder (but can always step back down
+// on the level map): where is worked out from the check-up's reading
+// estimate in lib/ageFit.ts, like every other game.
 
-function buildRound(level: number): ReadingQ[] {
-  const bank = BANKS[bankFor(level)];
+function buildRound(level: number, preReader = false, reading: ReadingMode = 'sentences', maxChoices = 4): ReadingQ[] {
   const step = stepFor(level);
+  const pre = preReader && bankFor(level) === 0;
+  // under 3: always "find the …" with two pictures (riddles come at about 3½)
+  const findOnly = pre && maxChoices <= 2;
+  const cvcFirst = !pre && reading === 'cvc' && bankFor(level) === 0;
+  const bank = pre ? (step <= 1 || findOnly ? PRE_FIND : PRE_RIDDLE) : cvcFirst ? CVC_BANK : BANKS[bankFor(level)];
   // early steps of a chapter offer fewer balloons, later ones all of them
-  const nChoices = step <= 1 ? 3 : 4;
+  // (pre-readers: two pictures, then three), never more than the age band's
+  const nChoices = Math.min(maxChoices, pre ? (step <= 1 ? 2 : 3) : step <= 1 ? 3 : 4);
   // the bank is dealt like cards, level after level: every word comes up
   // before any word comes back, so neighbouring levels ask new words
   const n = Math.min(QUESTIONS_PER_LEVEL, bank.length);
-  const picked = Array.from({ length: n }, (_, k) => bank[dealIndex(bank.length, `word-wizard:${bankFor(level)}`, (level - 1) * n + k)]);
+  const deck = pre ? `word-wizard:pre${step <= 1 || findOnly ? 'find' : 'riddle'}` : cvcFirst ? 'word-wizard:cvc' : `word-wizard:${bankFor(level)}`;
+  const picked = Array.from({ length: n }, (_, k) => bank[dealIndex(bank.length, deck, (level - 1) * n + k)]);
   return picked.map(q => {
     const wrong = shuffle(q.choices.filter(c => c !== q.answer)).slice(0, Math.max(1, nChoices - 1));
     return { ...q, choices: shuffle([q.answer, ...wrong]) };
@@ -194,8 +249,10 @@ function chime(freqs: number[]) {
 }
 
 export default function WordWizardPage() {
-  const { state } = useAssessment();
-  const startLevel = startLevelForAge(state.childAge);
+  const fit = useGameFit('word-wizard');
+  const startLevel = fit.startLevel;
+  // reading below about 5: the first chapter is "find the picture"
+  const preReader = fit.fitMonths != null && fit.fitMonths < WORD_PRE_READER_BELOW_MONTHS;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
@@ -217,11 +274,13 @@ export default function WordWizardPage() {
   const statsRef = useRef({ firstTry: 0, misses: 0, startedAt: 0, qStartedAt: 0, readMs: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('word-wizard', startLevel)); }, [startLevel]);
   useEffect(() => {
-    setLevel(Math.max(nextGameLevel('word-wizard'), startLevel));
     const timers = timersRef.current;
     return () => { timers.forEach(clearTimeout); stopSpeaking(); };
-  }, [startLevel]);
+  }, []);
 
   const q = round[qIdx];
   const chapter = chapterFor(level);
@@ -234,17 +293,17 @@ export default function WordWizardPage() {
   }, []);
 
   const begin = useCallback(() => {
-    const r = buildRound(level);
+    const r = buildRound(level, preReader, fit.look.reading, fit.look.maxChoices);
     setRound(r);
     setQIdx(0);
     setPopped(null); setWobble(null); setTriesThisQ(0);
     const now = Date.now();
     statsRef.current = { firstTry: 0, misses: 0, startedAt: now, qStartedAt: now, readMs: 0 };
-    setNoelLine(`${levelStory(PATHS, 'word-wizard', level)} Tap the balloon with the right word!`);
+    setNoelLine(`${levelStory(PATHS, 'word-wizard', level)} ${preReader && bankFor(level) === 0 ? 'Tap the right picture balloon!' : 'Tap the balloon with the right word!'}`);
     setNoelMood('happy');
     setPhase('playing');
     readSign(r[0]);
-  }, [level, readSign]);
+  }, [level, readSign, preReader, fit.look.reading, fit.look.maxChoices]);
 
   function tapBalloon(choice: string, spot: [number, number]) {
     if (!q || popped) return;
@@ -297,7 +356,7 @@ export default function WordWizardPage() {
     });
     const stars = levelStarlight(level, s.misses);
     awardStarlight(stars);
-    recordGameLevel('word-wizard', level);
+    recordGameLevel('word-wizard', level, roundEase(s.misses, round.length));
     setEarned(stars);
     chime([523, 659, 784, 1047]);
     setPhase('levelDone');
@@ -337,12 +396,12 @@ export default function WordWizardPage() {
               pet={pet}
               story={<><p>
                 {levelStory(PATHS, 'word-wizard', level)} Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons!
-                Tap the balloon with the right word to bring it home.
+                {preReader && bankFor(level) === 0 ? 'Listen to Noel and tap the right picture balloon to bring it home.' : 'Tap the balloon with the right word to bring it home.'}
               </p></>}
               levels={<LevelPath gameId="word-wizard" level={level} onPick={setLevel} startLevel={startLevel} />}
               startLabel={<>Play level {level}</>}
               onStart={begin}
-              footer={<><p data-question-total={Math.min(QUESTIONS_PER_LEVEL, BANKS[bankFor(level)].length)} className="text-sm font-bold text-white/85 mb-2">{Math.min(QUESTIONS_PER_LEVEL, BANKS[bankFor(level)].length)} words to bring home in this level</p><SkillIntro gameId="word-wizard" /></>}
+              footer={<><p data-question-total={Math.min(QUESTIONS_PER_LEVEL, BANKS[bankFor(level)].length)} className="text-sm font-bold text-white/85 mb-2">{Math.min(QUESTIONS_PER_LEVEL, BANKS[bankFor(level)].length)} {preReader && bankFor(level) === 0 ? 'pictures' : 'words'} to bring home in this level</p><SkillIntro gameId="word-wizard" /></>}
             />
           </div>
         )}
@@ -399,6 +458,7 @@ export default function WordWizardPage() {
                 const isPopped = popped === c;
                 const glow = hintOn && c === q.answer && !popped;
                 const long = c.length > 9;
+                const picture = !!q.picChoices;
                 return (
                   <div key={`${qIdx}-${c}`} className="absolute" style={{ left: `${spot[0]}%`, top: `${spot[1]}%`, width: 112, marginLeft: -56, marginTop: -50, zIndex: 8 }}>
                     <div className="float-up-in" style={{ animationDelay: `${i * 120}ms` }}>
@@ -418,7 +478,12 @@ export default function WordWizardPage() {
                               textShadow: '0 2px 0 rgba(59,36,22,0.55)',
                               boxShadow: '0 6px 0 rgba(0,0,0,0.12)',
                             }}>
-                            {c}
+                            {picture ? (
+                              <span className="flex flex-col items-center gap-0.5">
+                                <Thing id={c} size={48} />
+                                <span style={{ fontSize: 16 }}>{c}</span>
+                              </span>
+                            ) : c}
                           </span>
                           <svg width="20" height="34" viewBox="0 0 20 34" aria-hidden="true" style={{ marginTop: -3 }}>
                             <path d="M6 0 L14 0 L10 6z" fill={BALLOON_COLORS[i % 4]} stroke="#3b2416" strokeWidth="1.6" strokeLinejoin="round" />
@@ -471,7 +536,7 @@ export default function WordWizardPage() {
             message={<>{chapter.name} reader! Every signpost is glowing again.</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('word-wizard', level)); setPhase('intro'); }}>{nextLabel('word-wizard', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

@@ -8,9 +8,10 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import NightForestArt from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import { levelStories, randInt, roundRandom } from '@/lib/variety';
@@ -149,13 +150,15 @@ const sfx = {
 };
 
 export default function FireflyCatchPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore, devMonths)];
+  const fit = useGameFit('firefly-catch');
+  const tuning = TIER_TUNING[fit.tier];
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   // video-game levels: each one a touch faster and trickier; the game
   // remembers the highest level beaten and offers the next one
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('firefly-catch')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('firefly-catch', fit.startLevel)); }, [fit.startLevel]);
   const [roundIdx, setRoundIdx] = useState(0);
   const ROUNDS = useMemo(() => planFor(level), [level]);
   const [cfg, setCfg] = useState<RoundCfg>(BASE_ROUNDS[0]);
@@ -224,8 +227,10 @@ export default function FireflyCatchPage() {
     const lvlSize = Math.max(0.72, 1 - (level - 1) * 0.035);
     const round: RoundCfg = {
       ...base,
-      r: Math.round(base.r * tuning.r * lvlSize * (struggled ? 1.3 : 1)),
-      speed: base.speed * tuning.speed * lvlSpeed * (struggled ? 0.75 : 1),
+      // never smaller than the age band's smallest tap (lib/ageBands.ts),
+      // and as fast as the band's speed (under 3: 0.4×, 3–4: 0.6× … 9–12: 1.2×)
+      r: Math.max(Math.round(fit.look.minTap / 2), Math.round(base.r * tuning.r * lvlSize * (struggled ? 1.3 : 1))),
+      speed: base.speed * fit.look.speed * lvlSpeed * (struggled ? 0.75 : 1),
     };
 
     roundMissesRef.current = 0;
@@ -252,10 +257,11 @@ export default function FireflyCatchPage() {
     setRoundIdx(idx);
     setFireflies(flies);
     setCarried(0);
-    setNoelLine(round.noel);
+    // little ones send a sleepy firefly home with one tap (no dragging needed)
+    setNoelLine(round.mode === 'drag' && fit.look.tapToMove ? round.noel.replace('Drag each firefly to the lamp!', 'Tap each sleepy firefly to send it home to the lamp!') : round.noel);
     setNoelMood('excited');
     setPhase('playing');
-  }, [tuning, level, ROUNDS]);
+  }, [tuning, level, ROUNDS, fit.look]);
 
   function startGame() {
     metricsRef.current = { tapOffsets: [], catchMs: [], misses: 0, dragRatios: [], dropOffsets: [], startedAt: Date.now() };
@@ -352,7 +358,7 @@ export default function FireflyCatchPage() {
     });
     // ✨ higher levels shine brighter
     awardStarlight(levelStarlight(level, m.misses));
-    recordGameLevel('firefly-catch', level);
+    recordGameLevel('firefly-catch', level, roundEase(m.misses, totalNeeded));
     const t = setTimeout(() => setPhase('done'), 1500);
     return () => clearTimeout(t);
   }, [phase, roundIdx, startRound, level, ROUNDS.length]);
@@ -432,6 +438,14 @@ export default function FireflyCatchPage() {
 
     if (cfg.mode === 'drag') {
       const target = fireflies.find(f => !f.caught && Math.hypot(f.x - x, f.y - y) <= cfg.r + 18);
+      if (target && fit.look.tapToMove) {
+        // tap to move: the firefly floats straight home to the lamp
+        const home = lanternPos();
+        dragRef.current = { id: target.id, path: Math.hypot(home.x - target.x, home.y - target.y), lx: home.x, ly: home.y, sx: target.x, sy: target.y, cx: home.x, cy: home.y };
+        chime.tap();
+        onPointerUp();
+        return;
+      }
       if (target) {
         dragRef.current = { id: target.id, path: 0, lx: x, ly: y, sx: target.x, sy: target.y, cx: target.x, cy: target.y };
         setDraggingId(target.id);
@@ -564,7 +578,7 @@ export default function FireflyCatchPage() {
                 Noel says the <strong>fireflies</strong> can light it again. Catch them with your finger, gently!
               </p></>}
               extras={<div className="flex items-end justify-center gap-3"><Lantern glow={0} size={58} /></div>}
-              levels={<LevelPath gameId="firefly-catch" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="firefly-catch" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Catch fireflies!</>}
               onStart={startGame}
               footer={<SkillIntro gameId="firefly-catch" />}
@@ -714,7 +728,7 @@ export default function FireflyCatchPage() {
             message={<>Every firefly made it home. {pet.name} is doing a happy dance!</>}
             earned={levelStarlight(level, metricsRef.current.misses)}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('firefly-catch', level)); setPhase('intro'); }}>{nextLabel('firefly-catch', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

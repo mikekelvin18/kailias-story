@@ -4,15 +4,15 @@ import { buzzGood } from '@/lib/haptics';
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import OverworldSprite, { type Facing } from '@/components/characters/OverworldSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
 import { makeChallenge, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
 import { Critter } from '@/components/characters/CritterSprite';
 import { COMPANIONS } from '@/lib/rewards';
@@ -135,7 +135,7 @@ function buildPath(): Pt[] {
   return pts;
 }
 
-function buildWorld(tier: string, level: number) {
+function buildWorld(tier: string, level: number, months?: number | null) {
   const biome = BIOMES[(level - 1) % BIOMES.length];
   const path = buildPath();
   const key = (p: Pt) => `${p.x},${p.y}`;
@@ -153,7 +153,7 @@ function buildWorld(tier: string, level: number) {
   encounterIdx.forEach((idx, i) => {
     const p = path[idx];
     grid[p.y][p.x] = 'tallgrass';
-    encounters[key(p)] = { challenge: makeChallenge(i + level, tier, level), solved: false };
+    encounters[key(p)] = { challenge: makeChallenge(i + level, tier, level, months), solved: false };
   });
 
   const goal = path[path.length - 1];
@@ -244,8 +244,8 @@ const JOURNEYS = [
 ];
 
 export default function JourneyPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('journey');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');
@@ -304,10 +304,12 @@ export default function JourneyPage() {
     return () => ro.disconnect();
   }, [phase]);
 
-  useEffect(() => { setLevel(nextGameLevel('journey')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('journey', fit.startLevel)); }, [fit.startLevel]);
 
   const beginWorld = useCallback((starter?: (typeof STARTERS)[number]) => {
-    const w = buildWorld(tier, level);
+    const w = buildWorld(tier, level, fit.fitMonths);
     worldRef.current = w;
     playerRef.current = w.start;
     pathQueueRef.current = [];
@@ -322,7 +324,7 @@ export default function JourneyPage() {
     wrongRef.current = 0; stepsRef.current = 0; startedRef.current = Date.now();
     setDialog(`Welcome to the ${w.biome.name}! Walk into the tall grass to meet a wild friend!`);
     setPhase('walking');
-  }, [tier, level]);
+  }, [tier, level, fit.fitMonths]);
 
   const startLevel = useCallback(() => {
     if (level === 1) setPhase('starter');
@@ -336,7 +338,7 @@ export default function JourneyPage() {
       logQuestMetric('processing', 'journey', { level, friends: world.required, wrongAnswers: wrongRef.current, steps: stepsRef.current, totalMs });
       const stars = levelStarlight(level, wrongRef.current);
       awardStarlight(stars);
-      recordGameLevel('journey', level);
+      recordGameLevel('journey', level, roundEase(wrongRef.current, world.required));
       setEarned(stars);
       sfx.fanfare();
       setPetMood('cheer');
@@ -549,7 +551,7 @@ export default function JourneyPage() {
                       ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
                     </span>
                   </div>}
-                  levels={<LevelPath gameId="journey" level={level} onPick={setLevel} />}
+                  levels={<LevelPath gameId="journey" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
                   startLabel={<>Enter the world!</>}
                   onStart={startLevel}
                   footer={<SkillIntro gameId="journey" />}
@@ -825,7 +827,7 @@ export default function JourneyPage() {
             message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('journey', level); setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />
@@ -857,7 +859,7 @@ function ChallengeDisplay({ ch }: { ch: Challenge }) {
     const n = ch.display.split(ch.creature).length - 1;
     return (
       <div className="flex flex-wrap justify-center gap-1" style={{ maxWidth: 280 }}>
-        {Array.from({ length: n }, (_, i) => <Critter key={i} emoji={ch.creature} size={n > 6 ? 36 : 44} animate={false} />)}
+        {Array.from({ length: n }, (_, i) => <Critter key={i} emoji={ch.creature} size={n > 12 ? 30 : n > 6 ? 36 : 44} animate={false} />)}
       </div>
     );
   }

@@ -16,6 +16,7 @@ import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/
 import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { LANDS, recordQuestPlay } from '@/lib/adventure';
 import { useAssessment } from '@/context/AssessmentContext';
+import GameLevelSettings from '@/components/GameLevelSettings';
 import BackButton from '@/components/ui/BackButton';
 import StepGuide from '@/components/ui/StepGuide';
 import Section from '@/components/ui/Section';
@@ -71,7 +72,7 @@ export default function ParentZonePage() {
   const [newTaskDomain, setNewTaskDomain] = useState<ActivityDomain>('communication');
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
-  const { state: assessment, loaded: assessmentLoaded } = useAssessment();
+  const { state: assessment, loaded: assessmentLoaded, chronoMonths } = useAssessment();
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
 
@@ -407,6 +408,12 @@ export default function ParentZonePage() {
               <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
                 <h2 className="text-lg font-extrabold text-gray-800">Practice focus</h2>
                 <FocusPicker childName={child.nickname} />
+              </div>
+            )}
+
+            {!onboarding && (
+              <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
+                <GameLevelSettings key={child.id} child={child} ageMonths={chronoMonths} />
               </div>
             )}
 

@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import { LockIcon, StarIcon } from '@/components/scenery/SkyDecor';
 import { Thing } from '@/components/art/things';
-import { LEVELS_PER_CHAPTER, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
+import { useGameFit } from '@/hooks/useGameFit';
+import { PLAY_TOGETHER_NOTE } from '@/lib/ageBands';
+import { LEVELS_PER_CHAPTER, MAX_LADDER_LEVEL, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
 
 // ── Level map ──
 // A small winding path of 5 level stones (one chapter) on every leveled
@@ -35,6 +37,15 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   const [unlocked, setUnlocked] = useState(startLevel);
   const [beaten, setBeaten] = useState(0);
   const [page, setPage] = useState(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
+  const fit = useGameFit(gameId);
+  // grown-ups can open any level (Grok's review 2026-11-25): a sum first, so a child can't
+  const [gate, setGate] = useState<null | { a: number; b: number; options: number[]; passed: boolean }>(null);
+  const [pick, setPick] = useState(level);
+  function openGate() {
+    const a = 4 + Math.floor(Math.random() * 5), b = 5 + Math.floor(Math.random() * 4);
+    setGate({ a, b, options: [a + b, a + b + 2, a + b - 3].sort(() => Math.random() - 0.5), passed: false });
+    setPick(level);
+  }
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -123,6 +134,9 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           );
         })}
       </div>
+      {fit.look.playTogether && (
+        <p className="text-center text-sm font-bold text-white/90 pb-1" data-play-together>{PLAY_TOGETHER_NOTE}</p>
+      )}
       {newestPage !== page && unlocked > LEVELS_PER_CHAPTER && (
         <div className="text-center pb-1">
           <button onClick={() => { setPage(newestPage); onPick(unlocked); }}
@@ -132,6 +146,37 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           </button>
         </div>
       )}
+      <div className="text-center pb-1 pt-1">
+        {!gate ? (
+          <button onClick={openGate} className="text-xs font-bold text-white/60 underline underline-offset-2 px-3 py-2">
+            Grown-ups: choose a level
+          </button>
+        ) : !gate.passed ? (
+          <div className="inline-flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.92)', color: '#1E293B' }}>
+            <p className="text-sm font-extrabold">Grown-ups: what is {gate.a} + {gate.b}?</p>
+            <div className="flex gap-2">
+              {gate.options.map(o => (
+                <button key={o} className="min-w-12 h-12 px-3 rounded-xl font-extrabold text-lg" style={{ background: '#E0E7FF' }}
+                  onClick={() => (o === gate.a + gate.b ? setGate({ ...gate, passed: true }) : setGate(null))}>{o}</button>
+              ))}
+              <button aria-label="Close" className="w-12 h-12 rounded-xl font-extrabold" style={{ background: '#F1F5F9' }} onClick={() => setGate(null)}>✕</button>
+            </div>
+          </div>
+        ) : (
+          <div className="inline-flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.92)', color: '#1E293B' }}>
+            <p className="text-sm font-extrabold">Pick any level for this game</p>
+            <div className="flex items-center gap-2">
+              <button aria-label="Easier level" className="w-12 h-12 rounded-xl font-extrabold text-xl" style={{ background: '#E0E7FF' }}
+                onClick={() => setPick(p => Math.max(1, p - 1))}>−</button>
+              <span className="w-14 text-center text-2xl font-extrabold" data-override-level>{pick}</span>
+              <button aria-label="Harder level" className="w-12 h-12 rounded-xl font-extrabold text-xl" style={{ background: '#E0E7FF' }}
+                onClick={() => setPick(p => Math.min(MAX_LADDER_LEVEL + 20, p + 1))}>+</button>
+              <button className="h-12 px-4 rounded-xl font-extrabold text-white" style={{ background: '#4F46E5' }}
+                onClick={() => { setPage(Math.floor((pick - 1) / LEVELS_PER_CHAPTER)); setUnlocked(u => Math.max(u, pick)); onPick(pick); setGate(null); }}>Use it</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
