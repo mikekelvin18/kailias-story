@@ -52,7 +52,7 @@ turns the preview off again. Jump links don't exist on the real site.
 `components/ParentGate.tsx`: hold a button for 3 seconds, then answer a
 times-table question. It guards:
 
-- the whole `/upgrade` page (`ParentGatePage`), so every link to it is covered
+- the whole `/upgrade` page and the Family page (`ParentGatePage`), so every link to them is covered
 - the gold-key level stones and locked printables (`ParentGateModal`, which then opens `/upgrade`)
 - any future link that leaves the app: use `<ParentGateModal href="https://…">`; it opens outside pages only after the check
 

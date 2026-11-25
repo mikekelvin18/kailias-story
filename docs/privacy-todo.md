@@ -27,7 +27,7 @@ call in `app/`, `components/`, `lib/`, and every child-reachable input.
 ### Still open (would break a rule, or might)
 
 1. **Wallet lab is in the build.** `@erc8426/*`, `viem` and `@upstash/redis` plus `/api/wallet-lab`, `/wallet-pass`, `/wallet-apple` ship in every build, though switched off (`WALLET_LAB_ENABLED`). Apple reviews Kids-category apps for anything crypto-related. **Kelvin decided 2026-11-25: no crypto wallet** — leave the wallet lab out of the phone-app build entirely.
-2. **The Family page (Parent Zone) has no grown-up check.** A child can tap "Family" in the bottom bar and reach add-child, delete and settings. Not strictly required by the store rules (they cover purchases and outside links), but recommended. Decide: put `ParentGatePage` in front of `/family`?
+2. **Family page grown-up check:** done 2026-11-25 (Kelvin said yes). `/family` is wrapped in `ParentGatePage`.
 3. **The care pet's grown-up check is a simple addition sum** (`components/carepet/CarePet.tsx`), easy for a 6-year-old. Swap for the shared check.
 4. **No contact email** in `/privacy` or `SECURITY.md`. COPPA requires the operator's name and contact details in the policy.
 5. **Vercel Hobby is for non-commercial use.** Move to a paid or commercial host before charging.
