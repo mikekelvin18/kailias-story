@@ -626,9 +626,12 @@ export default function SkyMailPage() {
               title="Sky Mail"
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #38BDF8 0%, #0369a1 55%, #1e3a8a 100%)', accent: '#38BDF8', accent2: '#4F46E5' }}
               pet={pet}
-              story={<p>The wind stole Noel&apos;s letters over Owl&apos;s Tower! Swipe each one into the right mailbox.</p>}
+              story={<p>{`The wind stole Noel's letters over Owl's Tower! Pick a mailbag below. Each bag is a different sorting game. Then swipe each letter into the right mailbox.`}</p>}
               extras={<>
-                <div className="flex justify-center mb-3"><Mailbox size={52} flagUp={doneDecks.length > 0} /></div>
+                <div className="flex justify-center mb-2"><Mailbox size={52} flagUp={doneDecks.length > 0} /></div>
+                {/* Muse round 6: this list read like a pause screen; it is the game's menu */}
+                <h2 data-mailbag-heading className="text-lg font-extrabold text-white drop-shadow mb-0.5">Choose a mailbag to sort</h2>
+                <p className="text-sm font-bold text-white/85 mb-3">{`${availableDecks.length} sorting games · ${doneDecks.length} done`}</p>
                 <div className="space-y-3">
                   {availableDecks.map((d, i) => (
                     <button key={d} onClick={() => startDeck(d)} className="gf-choice w-full flex items-center gap-3 text-left"
