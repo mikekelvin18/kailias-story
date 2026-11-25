@@ -271,15 +271,21 @@ export default function PotionSortPage() {
           fire((landed.x / w) * 100, LAND_Y * 100, [hex, '#FFFFFF'], 6, 26);
           slip(bottleId);
         }
-        setBottles(prev => {
-          const still = prev.find(b => b.id === bottleId);
-          if (!still || still.dragging) return prev;
-          // missed — gentle, resets combo, no punishment language
-          metricsRef.current.missed += 1;
-          roundMissesRef.current += 1;
-          setCombo(0);
-          return prev.filter(b => b.id !== bottleId);
-        });
+        // A potion that lands floats back up to the shelf and falls again
+        // (slower), so a round only ends once the child has sorted every
+        // potion (Grok round 6: round 1 finished with no taps at all).
+        const still = bottlesRef.current.find(b => b.id === bottleId);
+        if (!still || still.dragging) return;
+        metricsRef.current.missed += 1;
+        roundMissesRef.current += 1;
+        setCombo(0);
+        const { h } = sizeRef.current;
+        const again = Math.round(ms * 1.25);
+        setBottles(prev => prev.map(b => b.id === bottleId ? { ...b, y: 56, ms: 0 } : b));
+        setTimeout(() => {
+          setBottles(prev => prev.map(b => (b.id === bottleId && !b.dragging) ? { ...b, y: h * LAND_Y, ms: again } : b));
+          scheduleLanding(bottleId, again);
+        }, 420);
       }, ms);
   }
 
@@ -330,6 +336,9 @@ export default function PotionSortPage() {
 
   function onDragStart(e: React.PointerEvent, id: number) {
     e.preventDefault();
+    // the play area keeps the finger or mouse until it lets go, so the potion
+    // stays in the hand even past the edge (Muse round 6: potions fell while dragged)
+    try { areaRef.current?.setPointerCapture(e.pointerId); } catch { /* fine */ }
     dragRef.current = { id, startedAt: Date.now() };
     // hold it where it is right now (it was mid-fall)
     const el = e.currentTarget as HTMLElement;
@@ -477,7 +486,7 @@ export default function PotionSortPage() {
           </span>
         </div>
 
-        <div ref={areaRef} data-play-field onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerLeave={onDragEnd}
+        <div ref={areaRef} data-play-field onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}
           className="relative w-full rounded-[28px] overflow-hidden select-none"
           style={{ aspectRatio: '3 / 4.2', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
 
