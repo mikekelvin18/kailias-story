@@ -3,6 +3,7 @@
 import { dealIndex, levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { roundEase, type ReadingMode } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { WORD_PRE_READER_BELOW_MONTHS } from '@/lib/ageFit';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -74,6 +75,24 @@ const PRE_RIDDLE: ReadingQ[] = [
   pq('What do we wear on our head?', 'hat', ['spoon', 'ball', 'apple']),
   pq('Which one do we read?', 'book', ['ball', 'cake', 'car']),
   pq('Which one shines at night?', 'moon', ['sun', 'flower', 'apple']),
+];
+
+// 5–6 year olds (age band "early", lib/ageBands.ts): the first chapter is
+// simple three-letter words that sound alike at the end, so the child
+// looks at the first letter: cat / hat / bat (Grok's review, 2026-11-25).
+const cvc = (pic: string, choices: string[]): ReadingQ =>
+  ({ pic, visual: '', prompt: 'Which word says this?', choices, answer: choices[0] });
+const CVC_BANK: ReadingQ[] = [
+  cvc('cat', ['cat', 'hat', 'bat', 'mat']),
+  cvc('dog', ['dog', 'log', 'fog', 'dig']),
+  cvc('sun', ['sun', 'bun', 'run', 'fun']),
+  cvc('pig', ['pig', 'big', 'dig', 'wig']),
+  cvc('bat', ['bat', 'cat', 'hat', 'rat']),
+  cvc('hat', ['hat', 'cat', 'mat', 'sat']),
+  cvc('bed', ['bed', 'red', 'fed', 'bad']),
+  cvc('log', ['log', 'dog', 'leg', 'lot']),
+  cvc('map', ['map', 'cap', 'tap', 'mop']),
+  cvc('box', ['box', 'fox', 'bus', 'six']),
 ];
 
 const BANKS: ReadingQ[][] = [
@@ -190,17 +209,20 @@ function stepFor(level: number) { return (level - 1) % LEVELS_PER_CHAPTER; }
 // on the level map): where is worked out from the check-up's reading
 // estimate in lib/ageFit.ts, like every other game.
 
-function buildRound(level: number, preReader = false): ReadingQ[] {
+function buildRound(level: number, preReader = false, reading: ReadingMode = 'sentences', maxChoices = 4): ReadingQ[] {
   const step = stepFor(level);
   const pre = preReader && bankFor(level) === 0;
-  const bank = pre ? (step <= 1 ? PRE_FIND : PRE_RIDDLE) : BANKS[bankFor(level)];
+  // under 3: always "find the …" with two pictures (riddles come at about 3½)
+  const findOnly = pre && maxChoices <= 2;
+  const cvcFirst = !pre && reading === 'cvc' && bankFor(level) === 0;
+  const bank = pre ? (step <= 1 || findOnly ? PRE_FIND : PRE_RIDDLE) : cvcFirst ? CVC_BANK : BANKS[bankFor(level)];
   // early steps of a chapter offer fewer balloons, later ones all of them
-  // (pre-readers: two pictures, then three)
-  const nChoices = pre ? (step <= 1 ? 2 : 3) : step <= 1 ? 3 : 4;
+  // (pre-readers: two pictures, then three), never more than the age band's
+  const nChoices = Math.min(maxChoices, pre ? (step <= 1 ? 2 : 3) : step <= 1 ? 3 : 4);
   // the bank is dealt like cards, level after level: every word comes up
   // before any word comes back, so neighbouring levels ask new words
   const n = Math.min(QUESTIONS_PER_LEVEL, bank.length);
-  const deck = pre ? `word-wizard:pre${step <= 1 ? 'find' : 'riddle'}` : `word-wizard:${bankFor(level)}`;
+  const deck = pre ? `word-wizard:pre${step <= 1 || findOnly ? 'find' : 'riddle'}` : cvcFirst ? 'word-wizard:cvc' : `word-wizard:${bankFor(level)}`;
   const picked = Array.from({ length: n }, (_, k) => bank[dealIndex(bank.length, deck, (level - 1) * n + k)]);
   return picked.map(q => {
     const wrong = shuffle(q.choices.filter(c => c !== q.answer)).slice(0, Math.max(1, nChoices - 1));
@@ -270,7 +292,7 @@ export default function WordWizardPage() {
   }, []);
 
   const begin = useCallback(() => {
-    const r = buildRound(level, preReader);
+    const r = buildRound(level, preReader, fit.look.reading, fit.look.maxChoices);
     setRound(r);
     setQIdx(0);
     setPopped(null); setWobble(null); setTriesThisQ(0);
@@ -280,7 +302,7 @@ export default function WordWizardPage() {
     setNoelMood('happy');
     setPhase('playing');
     readSign(r[0]);
-  }, [level, readSign, preReader]);
+  }, [level, readSign, preReader, fit.look.reading, fit.look.maxChoices]);
 
   function tapBalloon(choice: string, spot: [number, number]) {
     if (!q || popped) return;
@@ -332,7 +354,7 @@ export default function WordWizardPage() {
     });
     const stars = levelStarlight(level, s.misses);
     awardStarlight(stars);
-    recordGameLevel('word-wizard', level);
+    recordGameLevel('word-wizard', level, roundEase(s.misses, round.length));
     setEarned(stars);
     chime([523, 659, 784, 1047]);
     setPhase('levelDone');

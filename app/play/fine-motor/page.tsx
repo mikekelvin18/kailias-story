@@ -4,6 +4,7 @@ import { levelStory } from '@/lib/variety';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { mazeCorridor } from '@/lib/gameCurves';
 import type { DifficultyTier } from '@/lib/difficulty';
@@ -312,11 +313,11 @@ const MAZE_STORIES = [
 // corridor gets a little narrower (steadier hands needed) and the maze
 // is mirrored so it never feels like the same walk twice.
 // The littlest hands get a wider path (lib/gameCurves.ts mazeCorridor).
-function mazeFor(level: number, tier: DifficultyTier) {
+function mazeFor(level: number, tier: DifficultyTier, months?: number | null) {
   const lap = Math.floor((level - 1) / LEVELS.length);
   return {
     maze: LEVELS[(level - 1) % LEVELS.length],
-    corridor: mazeCorridor(level, tier),
+    corridor: mazeCorridor(level, tier, months),
     mirror: lap % 2 === 1,
   };
 }
@@ -407,7 +408,7 @@ export default function MazeRunnerPage() {
   }, []);
 
   // Sync levelRef in effect (not during render)
-  const { maze: lv, corridor, mirror } = mazeFor(level, fit.tier);
+  const { maze: lv, corridor, mirror } = mazeFor(level, fit.tier, fit.fitMonths);
   useEffect(() => { levelRef.current = lv; corridorRef.current = corridor; levelNumRef.current = level; }, [lv, corridor, level]);
 
   // ── Draw — reads everything from refs, empty deps = stable reference ──────────
@@ -791,7 +792,7 @@ export default function MazeRunnerPage() {
       // ✨ effort floor: wall touches reduce the glow, never to zero
       const light=levelStarlight(lvl, touchesRef.current);
       awardStarlight(light); setEarnedLight(light);
-      recordGameLevel('fine-motor',lvl);
+      recordGameLevel('fine-motor',lvl, roundEase(touchesRef.current, 6));
       if (lvl%LEVELS_PER_CHAPTER===0 && increment()%10===0) setShowReassess(true);
       hopAtRef.current=performance.now();
       setPetMood('cheer');

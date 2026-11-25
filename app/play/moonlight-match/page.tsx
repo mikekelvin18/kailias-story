@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { moonPairs } from '@/lib/gameCurves';
 import { levelStory } from '@/lib/variety';
@@ -113,6 +114,8 @@ const MOON_STORIES = [
 export default function MoonlightMatchPage() {
   const fit = useGameFit('moonlight-match');
   const tier = fit.tier;
+  // two wrong cards stay open longer for little ones (Muse: they flipped back too fast)
+  const flipBackMs = Math.min(1800, Math.round(750 / fit.look.speed));
 
   const [level, setLevel] = useState(1);
   const [cards, setCards] = useState<CardT[]>([]);
@@ -150,7 +153,7 @@ export default function MoonlightMatchPage() {
 
   // pairs grow with level; the starting size and cap follow the child's tier
   // (lib/gameCurves.ts: one more pair every three levels, capped by stage)
-  const pairsForLevel = useCallback((lvl: number) => moonPairs(lvl, tier), [tier]);
+  const pairsForLevel = useCallback((lvl: number) => moonPairs(lvl, tier, fit.fitMonths), [tier, fit.fitMonths]);
 
   const startLevel = useCallback((lvl: number) => {
     const story = levelStory(MOON_STORIES, 'moonlight-match', lvl);
@@ -268,7 +271,7 @@ export default function MoonlightMatchPage() {
         // wait for the two feathers to finish turning back over before the
         // next tap counts, so a quick tap never lands on a half-turned card
         setTimeout(() => { busyRef.current = false; }, 450);
-      }, 750);
+      }, flipBackMs);
     }
   }
 
@@ -288,7 +291,7 @@ export default function MoonlightMatchPage() {
       totalMs: Date.now() - s.startedAt,
     });
     awardStarlight(levelStarlight(level, s.mismatches));
-    recordGameLevel('moonlight-match', level);
+    recordGameLevel('moonlight-match', level, roundEase(Math.max(0, s.mismatches - pairs), pairs));
     sfx.fanfare();
     setNoelMood('celebrating');
     setPhase('levelDone');
@@ -312,7 +315,7 @@ export default function MoonlightMatchPage() {
   }, [cards, phase]);
 
   const pairs = pairsForLevel(level);
-  const cols = pairs <= 3 ? 3 : pairs <= 6 ? 4 : pairs <= 8 ? 4 : 5;
+  const cols = pairs <= 2 ? 2 : pairs <= 3 ? 3 : pairs <= 8 ? 4 : 5;
 
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)', isolation: 'isolate' }}>

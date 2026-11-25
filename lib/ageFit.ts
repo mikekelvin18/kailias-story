@@ -100,6 +100,9 @@ export interface FitGame {
   /** youngest working age the game is built for (months); younger children
    *  can still play it with a grown-up, it just isn't their game yet */
   fromMonths?: number;
+  /** true: level 1 is already set by the child's age band (lib/ageBands.ts),
+   *  so every child starts on level 1 and climbs from their band's start */
+  bandStart?: boolean;
   demand: (level: number, tier: DifficultyTier, months: number) => number;
 }
 
@@ -108,13 +111,13 @@ const paced = (level: number, tier: DifficultyTier) => ladderAge(level) * TIER_E
 export const FIT_GAMES: FitGame[] = [
   // Firefly Forest — hands
   { id: 'fine-motor', title: 'Maze Runner', area: 'writing', skill: 'steady tracing inside a path', leveled: true,
-    demand: (L, t) => interp([[13, 120], [16, 96], [19, 78], [22, 66], [25, 54], [28, 44], [30, 38], [33, 33], [38, 30]], mazeCorridor(L, t)) },
+    demand: (L, t, m) => interp([[13, 120], [16, 96], [19, 78], [22, 66], [25, 54], [28, 44], [30, 38], [33, 33], [38, 30], [44, 26], [56, 22]], mazeCorridor(L, t, m)) },
   { id: 'firefly-catch', title: 'Firefly Catch', area: 'writing', skill: 'tapping moving targets', leveled: true, paced: true, demand: paced },
   { id: 'firefly-trails', title: 'Firefly Trails', area: 'writing', skill: 'tracing, then drawing from memory', leveled: true, paced: true, demand: paced },
   // Dragon's Cave — math
   { id: 'snack-quest', title: 'Snack Quest', area: 'math', skill: 'counting, then "how many more?"', leveled: true,
     demand: (L, t, m) => {
-      const n = snackBiggestWish(L, t);
+      const n = snackBiggestWish(L, t, m);
       return Math.max(countAge(n), m >= SNACK_MORE_FROM_MONTHS && t === 'big' ? moreAge(n) : 0);
     } },
   { id: 'dragon-bridge', title: 'Dragon Bridge', area: 'math', skill: 'fair sharing and patterns', leveled: true, fromMonths: 48,
@@ -147,8 +150,8 @@ export const FIT_GAMES: FitGame[] = [
     demand: (L, t) => spanAge(echoSeqLen(L, t)) },
   // Owl's Tower — thinking
   { id: 'hidden-friends', title: "Where's Noel?", area: 'processing', skill: 'searching a busy picture', leveled: true, paced: true, demand: paced },
-  { id: 'moonlight-match', title: 'Moonlight Match', area: 'processing', skill: 'remembering pairs', leveled: true,
-    demand: (L, t) => pairsAge(moonPairs(L, t)) },
+  { id: 'moonlight-match', title: 'Moonlight Match', area: 'processing', skill: 'remembering pairs', leveled: true, bandStart: true,
+    demand: (L, t, m) => pairsAge(moonPairs(L, t, m)) },
   { id: 'potion-sort', title: 'Potion Sort', area: 'processing', skill: 'quick sorting by color', leveled: true, paced: true, demand: paced },
   { id: 'sky-mail', title: 'Sky Mail (math bag)', area: 'math', skill: 'counting and sums', leveled: false,
     demand: (_L, _t, m) => SKY_MATH_AGE[skyMathKind(m)] },
@@ -183,7 +186,7 @@ export function judge(demand: number, age: number): FitVerdict {
  */
 export function fitStartLevel(id: string, months: number | null | undefined): number {
   const g = fitGame(id);
-  if (!g || !g.leveled || months == null) return 1;
+  if (!g || !g.leveled || g.bandStart || months == null) return 1;
   const tier = tierForMonths(months);
   const target = months - Math.max(6, months * 0.1);
   let best = 1, bestD = -Infinity;

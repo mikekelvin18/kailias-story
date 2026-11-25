@@ -6,6 +6,7 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import { awardStarlight, recordGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
@@ -223,7 +224,7 @@ export default function DragonBridgePage() {
     const light = levelStarlight(level, x.misses);
     awardStarlight(light);
     setEarned(light);
-    recordGameLevel('dragon-bridge', level);
+    recordGameLevel('dragon-bridge', level, roundEase(x.misses, x.shares + x.blanks));
     later(() => setPhase('done'), 600);
   }
 

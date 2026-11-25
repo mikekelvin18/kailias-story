@@ -95,6 +95,9 @@ const OUTGROWN = new Set(['Story Sparks', "Kailia's Journey", "Kailia's Trail", 
 rows.forEach((r, i) => r.cells.forEach(c => {
   if (c.m < 36 || c.m > 96 || c.m < (F.FIT_GAMES[i].fromMonths ?? 0)) return;
   if (OUTGROWN.has(r.game) && c.m > (r.game === 'Story Sparks' ? 48 : 72)) return; // listed in the report
+  // band-start games begin gently at the band's own setting (Grok's numbers)
+  // and step up after easy wins, so an easy start is fine there
+  if (F.FIT_GAMES[i].bandStart && c.after === 'easy') return;
   assert.equal(c.after, 'good', `${r.game} for a ${label(c.m)}-year-old: start L${c.aL} asks ~${Math.round(c.aD)} months`);
 }));
 // 4. A child working below their age starts lower than one on track.

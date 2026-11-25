@@ -72,7 +72,7 @@ export interface BandSettings {
   talk: TalkMode;
   /** Games are optional extras played WITH a grown-up; real-world quests come first. */
   playTogether: boolean;
-  /** Fewer sparkles and smaller characters suit this band (Big Kid look, switchable in Family). */
+  /** Family suggests the Big Kid look (fewer sparkles, smaller characters) for this band; a grown-up switches it on. */
   bigKidLook: boolean;
 }
 
@@ -142,11 +142,13 @@ export function shiftedMonths(months: number | null | undefined, choice: GameLev
 export const STEP_UP_AFTER_EASY_WINS = 3;
 export const STEP_DOWN_AFTER_STRUGGLES = 2;
 
-/** How a finished level went: easy = no slips, struggle = needed lots of tries. */
+/** How a finished level went, from its slips (misses, wrong taps) out of
+ *  how many things it asked: easy = barely a slip, struggle = slips on about
+ *  half of them (at least 3). */
 export type RoundEase = 'easy' | 'ok' | 'struggle';
-export function roundEase(slips: number, tries = 1): RoundEase {
-  if (slips <= 0) return 'easy';
-  if (slips >= Math.max(3, Math.ceil(tries / 2))) return 'struggle';
+export function roundEase(slips: number, items = 4): RoundEase {
+  if (slips <= Math.floor(items * 0.1)) return 'easy';
+  if (slips >= Math.max(3, Math.ceil(items / 2))) return 'struggle';
   return 'ok';
 }
 

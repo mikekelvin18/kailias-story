@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { BAND_SETTINGS } from '@/lib/ageBands';
 import { useGameFit } from '@/hooks/useGameFit';
 import { skyMathKind, SKY_SENTENCE_FROM_MONTHS } from '@/lib/gameCurves';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -41,6 +42,7 @@ import {
 // pieces are drawn (shapes, berries, treats, arrows, wind riders,
 // faces); only the Feeling Finder's little moments are still emoji.
 
+const TRICKY_WIND_FROM_MONTHS = BAND_SETTINGS.big.fromMonths;
 type DeckId = 'math' | 'sentence' | 'wind' | 'tricky' | 'shapes' | 'feelings' | 'rhyme' | 'berries';
 type Dir = 'left' | 'right' | 'up' | 'down';
 
@@ -405,7 +407,9 @@ export default function SkyMailPage() {
     if (tier === 'tiny') return ['berries', 'shapes', 'feelings', 'math', 'wind'];
     // silly sentences are heard and judged from about 4
     if (tier === 'small') return ['berries', 'shapes', 'feelings', 'math', ...(months >= SKY_SENTENCE_FROM_MONTHS ? ['sentence' as DeckId] : []), 'wind'];
-    return ['math', 'berries', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', 'tricky'];
+    // Tricky Wind (follow the arrow, ignore the word) only from 7 (age band
+    // "big", lib/ageBands.ts; Grok's review 2026-11-25)
+    return ['math', 'berries', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', ...(months >= TRICKY_WIND_FROM_MONTHS ? ['tricky' as DeckId] : [])];
   }, [tier, months]);
 
   const startDeck = useCallback((d: DeckId) => {

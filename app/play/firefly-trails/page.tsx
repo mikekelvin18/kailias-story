@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -170,7 +171,8 @@ export default function FireflyTrailsPage() {
   // generous enough for small fingers on a phone (22px at the top tier made
   // a slow, careful trace miss dots and never finish; Muse review 2026-11-18)
   // and it narrows a little every few levels for steadier hands
-  const tolerance = (tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30) - Math.min(tier === 'tiny' ? 4 : 8, Math.floor((level - 1) / 4));
+  // (never under 24px, and wider for younger age bands: lib/ageBands.ts)
+  const tolerance = Math.max(24, Math.max(tier === 'tiny' ? 40 : tier === 'small' ? 34 : 30, fit.look.pathTolerance) - Math.min(tier === 'tiny' ? 4 : 8, Math.floor((level - 1) / 4)));
 
   const startLevel = useCallback(() => {
     const pts = skyPoints(shape);
@@ -341,7 +343,7 @@ export default function FireflyTrailsPage() {
         peeks, totalMs: Date.now() - s.startedAt,
       });
       awardStarlight(levelStarlight(level, peeks));
-      recordGameLevel('firefly-trails', level);
+      recordGameLevel('firefly-trails', level, roundEase(peeks, 3));
       sfx.fanfare();
       // the whole picture lights up and everyone celebrates before the finale
       /* eslint-disable react-hooks/set-state-in-effect -- the finished picture shines for a moment */
