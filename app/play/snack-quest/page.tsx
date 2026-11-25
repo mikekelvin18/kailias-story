@@ -212,7 +212,7 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore, devMonths } = useAssessment();
+  const { state, totalScore, devMonths, chronoMonths } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
@@ -297,7 +297,14 @@ export default function SnackQuestPage() {
       small: { w: [3, 4, 5], h: [0, 1, 2] },
       big:   { w: [4, 7, 9], h: [0, 3, 4] },
     };
-    const { w, h } = plans[tier];
+    const { w } = plans[tier];
+    // "How many MORE?" is taking away in disguise, too hard for 3 to 5 year
+    // olds (reviewer 2026-11-25). Children working below about 6 years count
+    // to a wish ("I wish for 3 cookies!"), with empty slots to fill; only 6+
+    // gets the "I already have 2! How many more?" rounds.
+    const months = devMonths != null && chronoMonths != null ? Math.min(devMonths, chronoMonths)
+      : devMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
+    const h = months >= 72 ? plans[tier].h : plans[tier].h.map(() => 0);
     const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
     // the wishes grow every level (a step each two levels, plus a little
     // surprise up or down), and a round never asks for the same as the
@@ -319,7 +326,7 @@ export default function SnackQuestPage() {
         : 'Walk to a snack to pick it up, then bring it to her!'}`;
       return { want, have, intro, thing: wish.thing, walls: wallsFor(lvl, i) };
     });
-  }, [state.ageGroup, totalScore, devMonths]);
+  }, [state.ageGroup, totalScore, devMonths, chronoMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
@@ -386,7 +393,7 @@ export default function SnackQuestPage() {
   }
 
   // ── Walking ──
-  function walkTo(target: Tile) {
+  function walkTo(target: Tile, stepMs = 70) {
     // Already on the way to a snack? Finish picking it up first, then go
     // (a quick tap on the dragon used to cancel the pickup).
     const dest = destRef.current;
@@ -458,7 +465,7 @@ export default function SnackQuestPage() {
         queuedRef.current = null;
         if (q) setTimeout(() => walkTo(q), 0);
       }
-    }, 135); // a brisker walk, so fewer taps land mid-walk (Muse round 4)
+    }, stepMs); // twice as quick as before (reviewer 2026-11-25: walking took too long)
   }
 
   function onFieldTap(e: React.PointerEvent) {
@@ -473,7 +480,8 @@ export default function SnackQuestPage() {
     // nest tiles) means "go to the dragon": aim for the nest.
     if (r <= 2 && c >= 4 && !inDragonZone({ r, c })) {
       const nest = [{ r: 1, c: 5 }, { r: 1, c: 6 }, { r: 0, c: 5 }, { r: 0, c: 6 }].find(t => !walls.some(w => w.r === t.r && w.c === t.c));
-      if (nest) { if (phase === 'checking') countTapRef.current = nest; else walkTo(nest); return; }
+      // carrying snacks: tapping the dragon sends Kailia running straight there
+      if (nest) { if (phase === 'checking') countTapRef.current = nest; else walkTo(nest, carriedRef.current > 0 ? 38 : 70); return; }
     }
     // while the dragon counts, the tap is kept and done right after
     if (phase === 'checking') { countTapRef.current = { r, c }; return; }
@@ -484,9 +492,13 @@ export default function SnackQuestPage() {
   useEffect(() => {
     if (phase !== 'checking') return;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    for (let i = 1; i <= delivered; i++) {
-      timers.push(setTimeout(() => { setRevealed(i); sfx.count(); }, i * 380));
-    }
+    // the snacks land in the wish bar right away (reviewer 2026-11-25: the
+    // carry badge said x2 while the wish bar still showed none delivered),
+    // with a quick count chime for each one
+    setRevealed(delivered);
+    setCarried(0);
+    carriedRef.current = 0;
+    for (let i = 1; i <= delivered; i++) timers.push(setTimeout(() => sfx.count(), i * 160));
     timers.push(setTimeout(() => {
       const total = cfg.have + kept + delivered;
       tripsRef.current += 1;
@@ -562,7 +574,7 @@ export default function SnackQuestPage() {
         setKept(0);
         setPhase('playing');
       }
-    }, delivered * 380 + 700));
+    }, delivered * 160 + 450));
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -571,7 +583,9 @@ export default function SnackQuestPage() {
   useEffect(() => {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < rounds.length) {
-      const t = setTimeout(() => startRound(roundIdx + 1, rounds), 1700);
+      // a short party, then the next wish: when the child taps Next, or by
+      // itself 2 seconds after everything was delivered
+      const t = setTimeout(() => startRound(roundIdx + 1, rounds), 2000);
       return () => clearTimeout(t);
     }
     sfx.fanfare();
@@ -796,6 +810,14 @@ export default function SnackQuestPage() {
                         ))}
                       </span>
                     </p>
+                    <div className="mt-3">
+                      <button type="button" onPointerDown={e => e.stopPropagation()}
+                        onClick={() => startRound(roundIdx + 1, rounds)}
+                        className="inline-flex items-center gap-2 min-h-[52px] px-7 rounded-full text-xl font-extrabold shadow-lg active:scale-95 transition-transform"
+                        style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', color: '#3b2416', border: '3px solid #fff' }}>
+                        Next <GoArrow />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
