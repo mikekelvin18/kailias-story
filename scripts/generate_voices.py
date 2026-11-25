@@ -252,9 +252,36 @@ def kokoro_style(voice):
     return sum(k.get_voice_style(name) * w for name, w in voice.items())
 
 
+# The two names as sounds, the same ones Noel's recordings use
+# (scripts/record-voice.py KAILIA_SOUND / NOEL_SOUND, approved by Kelvin
+# 2026-11-20; scripts/name-sounds.test.mjs guards them). Kokoro is given these
+# exact sounds. Chatterbox can't take sounds, so a Kailia line with a name in
+# it is said by Kokoro with these sounds and then turned into Kailia's voice
+# (Chatterbox voice conversion): the name comes out exactly right.
+KAILIA_SOUND = 'kˌaɪlˈiːjɐ'
+NOEL_SOUND = 'noʊˈɛl'
+NAME_SOUNDS = [
+    (re.compile(r'k[ˈˌ]?aɪl[ˈˌ]?i[ː]?ə'), KAILIA_SOUND),
+    (re.compile(r'k[ˈˌ]?eɪl[ˈˌ]?i[ː]?ə'), KAILIA_SOUND),
+    (re.compile(r'n[ˈˌ]?oʊl'), NOEL_SOUND),
+]
+HAS_NAME = re.compile(r'\b(kailia|noel)', re.I)
+
+
+def name_phonemes(text: str) -> str:
+    p = kokoro().tokenizer.phonemize(text, 'en-us')
+    for wrong, right in NAME_SOUNDS:
+        p = wrong.sub(right, p)
+    if re.search(r'\bkailia', text, re.I):
+        assert KAILIA_SOUND in p, f'Kailia sound not set: {p}'
+    if re.search(r'\bnoel', text, re.I):
+        assert NOEL_SOUND in p, f'Noel sound not set: {p}'
+    return p
+
+
 def kokoro_wav(text: str, voice, speed: float, path: Path) -> int:
     import soundfile as sf
-    samples, rate = kokoro().create(tts_text(text), voice=kokoro_style(voice), speed=speed, lang='en-us')
+    samples, rate = kokoro().create(name_phonemes(text), voice=kokoro_style(voice), speed=speed, is_phonemes=True)
     sf.write(str(path), samples, rate)
     return rate
 
@@ -312,19 +339,49 @@ def chatterbox_wav(text: str, ref: Path, cfg: dict, excited: bool, path: Path) -
             exaggeration=cfg['excited_exaggeration'] if excited else cfg['exaggeration'],
             cfg_weight=cfg['cfg_weight'], temperature=cfg['temperature'] + 0.05 * attempt,
         )
-        if wav.numel() > model.sr * 0.25 and float(wav.abs().max()) > 0.02:
+        secs = wav.numel() / model.sr
+        longest = 1.6 + 0.55 * len(text.split())   # a take that rambles on is a bad take
+        if secs > 0.25 and secs < longest and float(wav.abs().max()) > 0.02:
             break
-        print(f'  (silent take, trying again)')
+        print(f'  (silent or rambling take, trying again)')
     else:
         raise RuntimeError(f'Chatterbox gave only silence for: {text}')
     ta.save(str(path), wav, model.sr)
     return model.sr
 
+_vc = None
+
+def named_line_wav(text: str, ref: Path, cfg: dict, path: Path) -> int:
+    """A short cheer, or a line with Kailia's or Noel's name: Kokoro says it
+    (with the approved name sounds, in the reference clip's voice), then
+    Chatterbox turns it into Kailia's voice."""
+    global _vc
+    import torchaudio as ta
+    r = cfg['reference']
+    with tempfile.TemporaryDirectory() as tmp:
+        t = Path(tmp)
+        rate = kokoro_wav(text, r['blend'], r['speed'] * 0.95, t / 'k.wav')
+        # no pitch change before converting (it blurred the words), and a
+        # little silence each side so the first word isn't swallowed
+        ffmpeg('-i', str(t / 'k.wav'), '-af', 'adelay=300|300,apad=pad_dur=0.3,aresample=24000', str(t / 'k2.wav'))
+        if _vc is None:
+            from chatterbox.vc import ChatterboxVC
+            _vc = ChatterboxVC.from_pretrained(chatterbox().device)
+        import torch
+        torch.manual_seed(0)  # the same take every run (seed 0 checked: "kai-LEE-ya", "no-EL")
+        wav = _vc.generate(str(t / 'k2.wav'), target_voice_path=str(ref))
+        ta.save(str(t / 'vc.wav'), wav, _vc.sr)
+        # trim the padding back off
+        ffmpeg('-i', str(t / 'vc.wav'), '-af',
+               'silenceremove=start_periods=1:start_threshold=-45dB,areverse,'
+               'silenceremove=start_periods=1:start_threshold=-45dB,areverse,adelay=60,apad=pad_dur=0.12', str(path))
+    return _vc.sr
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def clip_name(who: str, line: dict, cfg: dict) -> str:
     settings = {k: v for k, v in cfg.items() if k != 'enabled'}
-    h = hashlib.sha1(json.dumps([line['text'], line['excited'], SAY_AS, FILTERS, LOUDNESS, settings],
+    h = hashlib.sha1(json.dumps([line['text'], line['excited'], SAY_AS, FILTERS, LOUDNESS, settings, KAILIA_SOUND, NOEL_SOUND, 'vc2' if (HAS_NAME.search(line['text']) or len(line['text'].split()) <= 4) else 'tts'],
                                 sort_keys=True).encode()).hexdigest()[:10]
     return f'{who}/{slug(line["text"])}-{h}.mp3'
 
@@ -379,7 +436,12 @@ def main():
         print(f'[{i}/{len(todo)}] {who}: {line["text"]}')
         with tempfile.TemporaryDirectory() as tmp:
             raw = Path(tmp) / 'raw.wav'
-            if cfg['engine'] == 'chatterbox':
+            # Chatterbox makes up sounds on very short lines ("Yay!" came out as
+            # babble, checked 2026-11-25), and can't take the name sounds: those
+            # lines are said by Kokoro and turned into Kailia's voice instead
+            if cfg['engine'] == 'chatterbox' and (HAS_NAME.search(line['text']) or len(line['text'].split()) <= 4):
+                rate = named_line_wav(line['text'], ref, cfg, raw)
+            elif cfg['engine'] == 'chatterbox':
                 rate = chatterbox_wav(line['text'], ref, cfg, line['excited'], raw)
             else:
                 rate = kokoro_wav(line['text'], cfg['voice'], cfg.get('speed', 1.0), raw)
