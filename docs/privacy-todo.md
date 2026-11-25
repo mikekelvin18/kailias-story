@@ -38,7 +38,7 @@ call in `app/`, `components/`, `lib/`, and every child-reachable input.
 
 1. **Who is the "operator"?** (Kelvin 2026-11-25: business name and contact email come when he registers the company; placeholders stay until then.) COPPA policies must name the company or person running the app, with a postal address, email and phone. Will you form a company (an LLC) before launch?
 2. **Consent method.** Today a parent ticks a box. Because child data never leaves the device, the lawyer may say this is enough. When accounts or sync arrive, consent needs a stronger check (for example a card check at purchase). Confirm with the lawyer.
-3. **Pro session notes** are free text about a child, which our own rules forbid. Should Pro notes be pick-from-a-list only, or allowed with a lawyer's sign-off?
+3. **Pro session notes:** decided 2026-11-25 (Kelvin): pick-from-a-list only, never free text about a child.
 4. **Pro for therapists** means children's data on a server, possibly health information (HIPAA if clinics use it). Budget for the lawyer before building Pro.
 5. **App store privacy labels.** Apple's "nutrition label" and Google's Data safety form: with no data leaving the device, both can say "No data collected". Confirm once the phone-app wrapper is chosen.
 6. **Privacy policy link in the stores.** Both stores need a public privacy-policy URL; `/privacy` will be it once reviewed.

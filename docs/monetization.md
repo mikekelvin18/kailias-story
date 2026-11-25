@@ -63,7 +63,7 @@ A pass lasts 10 minutes in that browser tab only (sessionStorage).
 - Games with a "Next level" button on the finish screen (Moonlight Match, Echo Song) jump straight to the next level without the level map, so a child could play one level past the free part before the map's check catches it on the next visit. Fix when the paywall goes on: those buttons should call `isLevelFree` first.
 - The care pet's own grown-up check (`components/carepet/CarePet.tsx`) is a simple addition sum; the plans page then asks for the full check again. Swap it for `ParentGateModal` once the pet thread is quiet.
 - Plus status lives on the device only (`kailia_premium_v1`). Real purchases need the store's receipt check and a restore button in the phone app.
-- Pro (unlimited children, goals, session notes, PDF report, classroom mode) is listed as "coming soon". It needs sign-in accounts, so it waits for the privacy review. Session notes are free text about a child, which the privacy rules forbid today: decide with the lawyer first.
+- Pro (unlimited children, goals, session notes, PDF report, classroom mode) is listed as "coming soon". It needs sign-in accounts, so it waits for the privacy review. Session notes are pick-from-a-list only, never free text about a child (Kelvin, 2026-11-25).
 
 ## Seasonal content slots
 

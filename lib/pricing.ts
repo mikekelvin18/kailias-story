@@ -94,7 +94,7 @@ export const PLANS: Plan[] = [
     ],
     comingSoon: [
       'Goals for each child, by skill friend: Flick (hands), Kiko (talking and listening), Shelly (senses and calm), Sage (memory and thinking), Ember (counting), Nova (letters and sounds)',
-      'Session notes',
+      'Session notes picked from a list (no typing about a child)',
       "Save a child's progress report as a PDF",
       'Classroom mode: switch children in one tap',
     ],
