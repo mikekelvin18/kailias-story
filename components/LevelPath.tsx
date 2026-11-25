@@ -57,7 +57,11 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   // a world the child has only just reached (its first stone is the next one to play)
   const freshWorld = page > 0 && first === unlocked && beaten === first - 1;
   // far up the path, a quick way back to the newest level
-  const newestPage = Math.floor((unlocked - 1) / LEVELS_PER_CHAPTER);
+  // This game's own newest level: the one after the highest it has beaten
+  // (Muse round 6: with every level open for reviewers it said "31" on
+  // every game).
+  const newest = Math.max(startLevel, Math.min(unlocked, beaten + 1));
+  const newestPage = Math.floor((newest - 1) / LEVELS_PER_CHAPTER);
 
   return (
     <div className="mx-2 mt-4 rounded-3xl px-3 pt-3 pb-2 select-none"
@@ -123,12 +127,12 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           );
         })}
       </div>
-      {newestPage !== page && unlocked > LEVELS_PER_CHAPTER && (
-        <div className="text-center pb-1">
-          <button onClick={() => { setPage(newestPage); onPick(unlocked); }}
-            className="px-4 py-1.5 rounded-full text-sm font-extrabold"
+      {newestPage !== page && newest > LEVELS_PER_CHAPTER && (
+        <div className="text-center pt-1 pb-1">
+          <button data-newest-level={newest} onClick={() => { setPage(newestPage); onPick(newest); }}
+            className="min-h-[44px] px-4 py-2 rounded-full text-base font-extrabold"
             style={{ background: 'rgba(255,255,255,0.9)', color: '#1E293B' }}>
-            Go to my newest level ({unlocked})
+            Back to my newest level ({newest})
           </button>
         </div>
       )}
