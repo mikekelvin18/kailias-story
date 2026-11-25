@@ -101,8 +101,9 @@ export interface FitGame {
    *  can still play it with a grown-up, it just isn't their game yet */
   fromMonths?: number;
   /** true: level 1 is already set by the child's age band (lib/ageBands.ts),
-   *  so every child starts on level 1 and climbs from their band's start */
-  bandStart?: boolean;
+   *  so every child starts on level 1 and climbs from their band's start.
+   *  A number: the same, for children younger than that many months. */
+  bandStart?: boolean | number;
   demand: (level: number, tier: DifficultyTier, months: number) => number;
 }
 
@@ -110,7 +111,8 @@ const paced = (level: number, tier: DifficultyTier) => ladderAge(level) * TIER_E
 
 export const FIT_GAMES: FitGame[] = [
   // Firefly Forest — hands
-  { id: 'fine-motor', title: 'Maze Runner', area: 'writing', skill: 'steady tracing inside a path', leveled: true,
+  // under 7 the band widens the path, so little ones start on level 1 (wide) and climb
+  { id: 'fine-motor', title: 'Maze Runner', area: 'writing', skill: 'steady tracing inside a path', leveled: true, bandStart: 84,
     demand: (L, t, m) => interp([[13, 120], [16, 96], [19, 78], [22, 66], [25, 54], [28, 44], [30, 38], [33, 33], [38, 30], [44, 26], [56, 22]], mazeCorridor(L, t, m)) },
   { id: 'firefly-catch', title: 'Firefly Catch', area: 'writing', skill: 'tapping moving targets', leveled: true, paced: true, demand: paced },
   { id: 'firefly-trails', title: 'Firefly Trails', area: 'writing', skill: 'tracing, then drawing from memory', leveled: true, paced: true, demand: paced },
@@ -186,7 +188,8 @@ export function judge(demand: number, age: number): FitVerdict {
  */
 export function fitStartLevel(id: string, months: number | null | undefined): number {
   const g = fitGame(id);
-  if (!g || !g.leveled || g.bandStart || months == null) return 1;
+  if (!g || !g.leveled || months == null) return 1;
+  if (g.bandStart === true || (typeof g.bandStart === 'number' && months < g.bandStart)) return 1;
   const tier = tierForMonths(months);
   const target = months - Math.max(6, months * 0.1);
   let best = 1, bestD = -Infinity;
