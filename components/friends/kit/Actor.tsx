@@ -46,13 +46,15 @@ interface Props {
   /** face left instead of right (the pictures face the viewer, so this only tilts the turn) */
   flip?: boolean;
   onTap?: () => void;
+  /** what tapping the friend does, read by screen readers (default "Tickle <name>") */
+  tapLabel?: string;
   shadow?: boolean;
   z?: number;
   /** a soft light behind the friend, so it stands out from a busy or same-colored scene */
   halo?: string;
 }
 
-export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, moveMs = 600, flip, onTap, shadow = true, z = 5, halo }: Props) {
+export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, moveMs = 600, flip, onTap, tapLabel, shadow = true, z = 5, halo }: Props) {
   const w = petWidth(art, h);
   const cls = mood === 'idle' ? '' : `fg-${mood}`;
   // the friend answers with its own call when it cheers or dances (not on
@@ -75,7 +77,7 @@ export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, 
       )}
       <div style={{ transform: `scaleX(${flip ? -1 : 1})`, transition: 'transform 0.25s', transformOrigin: '50% 100%' }}>
         <div key={moodKey} className={cls} style={{ transformOrigin: '50% 100%' }}
-          onClick={tap} role={onTap ? 'button' : undefined} aria-label={onTap ? `Tickle ${name}` : undefined}>
+          onClick={tap} role={onTap ? 'button' : undefined} aria-label={onTap ? (tapLabel ?? `Tickle ${name}`) : undefined}>
           <LiveArt src={art} alt={name} size={w} kind="pet" pokeable={false} />
         </div>
       </div>
