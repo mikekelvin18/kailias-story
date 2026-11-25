@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { roundEase } from '@/lib/ageBands';
@@ -176,6 +177,7 @@ export default function FireflyTrailsPage() {
 
   const startLevel = useCallback(() => {
     const pts = skyPoints(shape);
+    testHook('trail', { pts });
     ptsRef.current = pts;
     setPts(pts);
     litRef.current = pts.map(() => false);
@@ -514,7 +516,7 @@ export default function FireflyTrailsPage() {
             title={`Level ${level} complete!`}
             theme={{ bg: 'linear-gradient(135deg, #0b2440, #14532d)', accent: '#A3E635', accent2: '#16A34A' }}
             pet={pet}
-            message={<>{shape.name} shines again! {mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}</>}
+            message={`${shape.name} shines again! ${mode === 'memory' ? 'Traced from memory, incredible!' : 'What a steady, glowing trail!'}`}
             earned={stars}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('firefly-trails', level); setLevel(nl); setPhase('intro'); }}>{nextLabel('firefly-trails', level)} <GoArrow /></PlayButton>

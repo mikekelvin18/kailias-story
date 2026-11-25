@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { roundEase } from '@/lib/ageBands';
@@ -41,6 +42,8 @@ const CRYSTALS = [
   { tone: 392, color: '#C084FC', light: '#E2C6FE', name: 'purple' },
   { tone: 523, color: '#FB923C', light: '#FEC79C', name: 'orange' },
 ];
+/** How high each crystal sings, for the note captions (lowest to highest). */
+const PITCH = ['low', 'middle', 'high', 'highest'];
 // where each crystal stands in the cave (centre x and base y, % of the scene):
 // two on ledges up high, two on rock pillars below
 const SPOTS: [number, number][] = [[27, 40], [73, 40], [27, 72], [73, 72]];
@@ -119,6 +122,8 @@ export default function EchoSongPage() {
   const { layer: burstLayer, fire } = useBursts();
 
   const posRef = useRef(0);
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => { testHook('echo', { phase, level, seq, progress }); });
   const statsRef = useRef({ attempts: 0, replays: 0, startedAt: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -240,6 +245,14 @@ export default function EchoSongPage() {
     }
   }
 
+  // the song once more, before the child starts echoing (no slip counted)
+  function replaySong() {
+    if (phase !== 'echo' || posRef.current > 0) return;
+    statsRef.current.replays += 1;
+    setNoelLine('Listen again… then echo it!');
+    playSeq(seq);
+  }
+
   function tickle() {
     setPetMood('dance');
     timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300));
@@ -306,9 +319,15 @@ export default function EchoSongPage() {
               <div className="absolute left-0 right-0 top-2 flex justify-center pointer-events-none" style={{ zIndex: 12 }}>
                 <span className="px-4 py-1 rounded-full text-sm font-extrabold"
                   style={{ background: 'rgba(7,20,40,0.72)', border: '1.5px solid rgba(255,255,255,0.35)', color: phase === 'echo' ? '#A5F3FC' : '#FDE047' }}>
-                  {phase === 'showing' ? 'The crystals are singing…' : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
+                  {/* a caption for every note (Muse round 6, for children who hear
+                      differently): which crystal and how high it sings */}
+                  {phase === 'showing'
+                    ? (lit !== null ? <span data-note-caption>{`♪ ${CRYSTALS[lit].name}, ${PITCH[lit]} note`}</span> : 'The crystals are singing…')
+                    : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
                 </span>
               </div>
+              {/* hear it again any time, no slip counted (Muse round 6) */}
+
 
               {CRYSTALS.map((c, i) => {
                 const [x, y] = SPOTS[i];
@@ -355,12 +374,22 @@ export default function EchoSongPage() {
               {burstLayer}
             </div>
 
+            {/* hear it again any time before echoing, no slip counted (Muse round 6) */}
+            <div className="flex justify-center mt-3" style={{ minHeight: 48 }}>
+              {phase === 'echo' && progress === 0 && (
+                <button data-replay-song onClick={replaySong}
+                  className="min-h-[48px] px-5 rounded-full text-base font-extrabold"
+                  style={{ background: 'rgba(255,255,255,0.92)', color: '#0c4a6e', boxShadow: '0 3px 0 rgba(0,0,0,0.25)' }}>
+                  ♪ Hear the song again
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
               <div
                 // Noel stays quiet while the crystals sing, so the song is easy to hear
-                data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+                data-guide data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
@@ -383,7 +412,7 @@ export default function EchoSongPage() {
                 </svg>
               ))}
             </span>}
-            message={<>A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</>}
+            message={`A ${seq.length}-note song, echoed back! The caves are ringing and ${pet.name} is dancing!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('echo-song', level); setLevel(nl); startLevel(nl); }}>{nextLabel('echo-song', level)} <GoArrow /></PlayButton>

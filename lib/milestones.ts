@@ -512,3 +512,17 @@ export function ageInMonths(birthYear: number, birthMonth: number, now = new Dat
   const m = (now.getFullYear() - birthYear) * 12 + (now.getMonth() + 1 - birthMonth) + (now.getDate() - 15) / 30;
   return Math.max(0, Math.round(m * 10) / 10);
 }
+
+/**
+ * A check-up saved before the milestone ladders kept only a 0–10 score per
+ * area, no answers. That score was out of a handful of questions at the
+ * child's own age, so it can say "about their age" or "a little below",
+ * never "years ahead": full marks sit just at their age (pass it through
+ * screenView for the parent wording). Muse/Grok round 6: a 6-year-old with
+ * full old scores read "about 10–12 yrs".
+ */
+export function legacyEstimate(score: number, ageMonths: number): AgeEstimate {
+  const frac = Math.max(0, Math.min(1, score / 10));
+  const mid = ageMonths * (0.62 + 0.4 * frac);
+  return { low: mid * 0.86, mid, high: mid * 1.14, items: 0, openTop: frac >= 0.9 };
+}

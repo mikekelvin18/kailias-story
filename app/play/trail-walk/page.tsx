@@ -195,7 +195,7 @@ export default function TrailWalkPage() {
       attemptsRef.current = 0;
       if (ch.type === 'memory') {
         setPhase('memoryShow');
-        setTimeout(() => setPhase('challenge'), 2400);
+        setTimeout(() => setPhase(ph => ph === 'memoryShow' ? 'challenge' : ph), 3600);
       } else {
         setPhase('challenge');
       }
@@ -265,7 +265,10 @@ export default function TrailWalkPage() {
   return (
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 45%, #86efac 100%)' }}>
       <div data-play-col className="max-w-md mx-auto px-3">
-        <div className="flex items-center justify-between pt-4 pb-2 px-1">
+        {/* a light bar behind the dark words, so they read on any sky,
+            the navy evening one too (Grok round 6: 4.5:1 contrast) */}
+        <div data-trail-bar className="flex items-center justify-between mt-3 mb-2 px-2 py-1 rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.88)', boxShadow: '0 2px 8px rgba(15,23,42,0.18)' }}>
           <Link href="/play" className="kp-back text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
           <h1 className="text-xl font-extrabold text-sky-950 drop-shadow-sm whitespace-nowrap">
             Kailia&apos;s Trail <span className="text-xs font-bold text-amber-800 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.4)' }}>Lv {level}</span>
@@ -388,7 +391,7 @@ export default function TrailWalkPage() {
 
             {phase === 'walking' && !isWalking && !atFlag && (
               <div className="flex justify-center mt-3">
-                <button onClick={walk}
+                <button onClick={walk} data-walk
                   className="px-10 py-3 rounded-full text-lg font-extrabold text-white shadow-xl pulse whitespace-nowrap"
                   style={{ background: '#0E7490' }}>
                   Walk! <GoArrow />
@@ -407,7 +410,8 @@ export default function TrailWalkPage() {
 
             {phase === 'challenge' && challenge && (
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
-                <div className="flex justify-center mb-1"><Critter emoji={challenge.creature} size={64} /></div>
+                {/* in the "who is missing?" puzzle the missing friend is not drawn here (it would give the answer away) */}
+                {challenge.type !== 'memory' && <div className="flex justify-center mb-1"><Critter emoji={challenge.creature} size={64} /></div>}
                 <p className="text-base font-extrabold text-sky-950 mb-2">{askText(challenge)}</p>
                 {challenge.memoryCast && (
                   <>
@@ -415,6 +419,11 @@ export default function TrailWalkPage() {
                     <div className="flex gap-2 justify-center flex-wrap mb-2">
                       {challenge.memoryCast.map((c, i) => <Critter key={i} emoji={c} size={40} />)}
                     </div>
+                    <button data-show-again onClick={() => { setPhase('memoryShow'); setTimeout(() => setPhase(ph => ph === 'memoryShow' ? 'challenge' : ph), 3600); }}
+                      className="mb-2 min-h-[44px] px-4 rounded-full text-sm font-extrabold text-sky-900"
+                      style={{ background: '#E0F2FE', border: '2px solid #7DD3FC' }}>
+                      Show me everyone again
+                    </button>
                   </>
                 )}
                 {challenge.display && (
@@ -455,7 +464,7 @@ export default function TrailWalkPage() {
             theme={{ bg: 'linear-gradient(135deg, #0e7490, #15803d)', accent: '#4ADE80', accent2: '#15803D' }}
             pet={pet}
             trophy={<span className="inline-block mb-2"><TrailFlag size={80} raised /></span>}
-            message={<>You reached the flag!</>}
+            message={`You reached the flag!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('trail-walk', level); setLevel(nl); setPhase('intro'); }}>{nextLabel('trail-walk', level)} <GoArrow /></PlayButton>

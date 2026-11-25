@@ -339,7 +339,7 @@ export default function FireflyCatchPage() {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < ROUNDS.length) {
       sfx.round();
-      const t = setTimeout(() => startRound(roundIdx + 1), 1700);
+      const t = setTimeout(() => startRound(roundIdx + 1), 2400);
       return () => clearTimeout(t);
     }
     // game finished — log the quiet metrics
@@ -460,8 +460,8 @@ export default function FireflyCatchPage() {
     for (const f of fireflies) {
       if (f.caught) continue;
       const d = Math.hypot(f.x - x, f.y - y);
-      // at least a 44px radius (an 88px circle) so fast, small ones are still fair for little fingers
-      if (d <= Math.max(44, cfg.r + 22) && d < bestDist) { best = f; bestDist = d; }
+      // at least a 52px radius (a 104px circle, Muse round 6: taps missed) so fast, small ones are still fair for little fingers
+      if (d <= Math.max(52, cfg.r + 26) && d < bestDist) { best = f; bestDist = d; }
     }
     if (best) {
       const now = performance.now();
@@ -556,7 +556,8 @@ export default function FireflyCatchPage() {
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Firefly Catch <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="flex justify-end gap-1 w-16">
+          <span className="flex items-center justify-end gap-1 min-w-16" role="img" aria-label={`Round ${Math.min(roundIdx + 1, ROUNDS.length)} of ${ROUNDS.length}`}>
+            {phase !== 'intro' && <span className="text-xs font-bold text-yellow-200 mr-1">{`Round ${Math.min(roundIdx + 1, ROUNDS.length)}/${ROUNDS.length}`}</span>}
             {Array.from({ length: ROUNDS.length }).map((_, i) => (
               <span key={i} className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: '#FDE047', boxShadow: '0 0 8px #FDE047', opacity: i <= roundIdx && phase !== 'intro' ? 1 : 0.25 }} />
             ))}
@@ -604,7 +605,7 @@ export default function FireflyCatchPage() {
               </div>
             </div>
 
-            <div ref={areaRef} data-play-field
+            <div ref={areaRef} data-play-field data-mode={cfg.mode}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
               onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
               className="relative w-full rounded-[28px] overflow-hidden select-none"
@@ -614,7 +615,7 @@ export default function FireflyCatchPage() {
               <NightForest glow={glow} />
 
               {/* the lantern: fills with light as fireflies arrive */}
-              <div className="absolute" style={{ left: lanternX, top: lanternY, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 4 }}>
+              <div data-lantern className="absolute" style={{ left: lanternX, top: lanternY, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 4 }}>
                 {cfg.mode === 'drag' && phase === 'playing' && (
                   <span className="absolute rounded-full pulse" style={{
                     left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
@@ -697,6 +698,11 @@ export default function FireflyCatchPage() {
                       ? <span className="inline-block kp-hop"><CritterSprite species={cfg.who} size={96} /></span>
                       : <PandaSprite size={90} expression="celebrating" />}
                     <p className="text-xl font-extrabold text-white drop-shadow mt-1">{praise}</p>
+                    {/* Muse round 6: a full round then "0/6" looked like nothing counted */}
+                    <p data-round-done className="mt-2 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-base font-extrabold"
+                      style={{ background: 'rgba(253,224,71,0.92)', color: '#3b2416' }}>
+                      {`Round ${roundIdx + 1} of ${ROUNDS.length} done! Next round coming…`}
+                    </p>
                   </div>
                 </div>
               )}
@@ -724,7 +730,7 @@ export default function FireflyCatchPage() {
             theme={{ bg: 'linear-gradient(135deg, #065f46, #0f766e)', accent: '#34D399', accent2: '#059669' }}
             pet={pet}
             trophy={<span className="inline-block"><Lantern glow={1} size={96} /></span>}
-            message={<>Every firefly made it home. {pet.name} is doing a happy dance!</>}
+            message={`Every firefly made it home. ${pet.name} is doing a happy dance!`}
             earned={levelStarlight(level, metricsRef.current.misses)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('firefly-catch', level)); setPhase('intro'); }}>{nextLabel('firefly-catch', level)} <GoArrow /></PlayButton>

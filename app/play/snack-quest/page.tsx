@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -288,6 +289,8 @@ export default function SnackQuestPage() {
   useEffect(() => () => { if (walkTimer.current) clearInterval(walkTimer.current); }, []);
 
   const cfg: RoundCfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '', thing: null, walls: WALLS[0] };
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => { testHook('snack', { phase, round: roundIdx, want: cfg.want, have: cfg.have, kept, carried, items, cols: COLS, rows: ROWS }); });
 
   // ── Round plans, scaled to the child's developmental level ──
   // Every 3 levels the dragon's wishes grow by one (capped per tier so
@@ -409,7 +412,7 @@ export default function SnackQuestPage() {
   }
 
   // ── Walking ──
-  function walkTo(target: Tile, stepMs = 70) {
+  function walkTo(target: Tile, stepMs = 55) {
     // Already on the way to a snack? Finish picking it up first, then go
     // (a quick tap on the dragon used to cancel the pickup).
     const dest = destRef.current;
@@ -486,12 +489,15 @@ export default function SnackQuestPage() {
 
   function onFieldTap(e: React.PointerEvent) {
     if ((phase !== 'playing' && phase !== 'checking') || !fieldRef.current) return;
-    // tickling the friend is play, not a walk
-    if ((e.target as HTMLElement).closest?.('[data-pet]')) return;
     const rect = fieldRef.current.getBoundingClientRect();
     const c = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
     const r = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+    // tickling the friend is play, not a walk; but its picture is taller
+    // than its tile, so a tap on a snack or the dragon it overlaps still
+    // walks there (the robot check caught taps on a cookie being swallowed)
+    const wanted = itemsRef.current.some(i => i.r === r && i.c === c) || (r <= 2 && c >= 4);
+    if (!wanted && (e.target as HTMLElement).closest?.('[data-pet]')) return;
     // A tap anywhere on the dragon's picture (it hangs a little below her
     // nest tiles) means "go to the dragon": aim for the nest.
     if (r <= 2 && c >= 4 && !inDragonZone({ r, c })) {
@@ -722,7 +728,7 @@ export default function SnackQuestPage() {
             </div>
 
             {/* Field: a painted little place, seen from above */}
-            <div ref={fieldRef} data-play-field onPointerDown={onFieldTap}
+            <div ref={fieldRef} data-play-field data-field onPointerDown={onFieldTap}
               className="relative w-full rounded-3xl overflow-hidden select-none"
               style={{ aspectRatio: `${COLS} / ${ROWS}`, touchAction: 'none', cursor: 'pointer',
                 border: `3px solid ${skin.border}`, boxShadow: '0 8px 0 rgba(0,0,0,0.25)' }}>
@@ -850,7 +856,9 @@ export default function SnackQuestPage() {
               </div>
             </div>
             <p className="text-center text-sm font-semibold mt-2" style={{ color: skin.accent }}>
-              Tap anywhere to walk. Pick up {cfg.thing ? PLURAL[cfg.thing] : skin.itemName}, then bring them to the dragon!
+              {/* one piece of text, always this round's wish (Muse round 6), and
+                  it says Kailia can carry them all in one trip */}
+              <span data-snack-help>{`Tap anywhere to walk. Kailia can carry lots of ${cfg.thing ? PLURAL[cfg.thing] : skin.itemName} at once: pick them up, then bring them all to the dragon!`}</span>
             </p>
           </>
         )}
@@ -866,7 +874,7 @@ export default function SnackQuestPage() {
             trophy={<span className="inline-block mb-2">
               <LiveArt src={DRAGON.art} alt="the baby dragon" size={petWidth(DRAGON.art, 104)} kind="pet" />
             </span>}
-            message={<>The dragon is full and happy! {pet.name} is doing a happy dance!</>}
+            message={`The dragon is full and happy! ${pet.name} is doing a happy dance!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('snack-quest', level); setLevel(nl); choose(skin.id, nl); }}>{nextLabel('snack-quest', level)} <GoArrow /></PlayButton>

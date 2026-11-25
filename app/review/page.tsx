@@ -42,6 +42,7 @@ const PET: Item[] = [
 
 const GROWN_UPS: Item[] = [
   { href: '/go/results', label: 'Check-up results', note: 'Developmental age shown as a range, with the not-a-diagnosis note.' },
+  { href: '/go/challenge', label: 'Challenge round', note: 'Harder questions a grown-up can offer when results read "at or above their age".' },
   { href: '/go/progress', label: 'Progress over time' },
   { href: '/go/family', label: 'Parent Zone', note: 'Child profiles, privacy, see and delete all data.' },
   { href: '/go/activities', label: 'Parent & Baby quests' },

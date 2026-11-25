@@ -184,10 +184,14 @@ export function GrownUpReport({ title, steps, tip, onDone }: { title?: string; s
 
 function GrownUpRow({ onDone }: { onDone: (o: Outcome) => void }) {
   return (
-    <div className="flex flex-wrap justify-center gap-2 mt-4 text-base font-bold" style={{ color: '#6B5E99' }}>
-      <button className="min-h-[48px] px-4 rounded-full" onClick={() => onDone('help')}>We needed help</button>
-      <span aria-hidden="true" className="self-center opacity-50">·</span>
-      <button className="min-h-[48px] px-4 rounded-full" onClick={() => onDone('miss')}>Not today</button>
+    // real buttons that look like buttons (Grok round 6: they read as plain text)
+    <div className="flex flex-wrap justify-center gap-3 mt-4 text-base font-bold" style={{ color: '#4C3D85' }}>
+      <button type="button" data-grownup="help" className="min-h-[48px] px-5 rounded-full text-base"
+        style={{ background: '#FFFFFF', border: '2px solid #B9AEE6', boxShadow: '0 2px 0 #B9AEE6' }}
+        onClick={() => onDone('help')}>We needed help</button>
+      <button type="button" data-grownup="miss" className="min-h-[48px] px-5 rounded-full text-base"
+        style={{ background: '#FFFFFF', border: '2px solid #B9AEE6', boxShadow: '0 2px 0 #B9AEE6' }}
+        onClick={() => onDone('miss')}>Not today</button>
     </div>
   );
 }

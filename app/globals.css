@@ -860,9 +860,10 @@ button:active {
    Entrances overshoot and settle; the Play button breathes and shines;
    confetti flutters down. "Reduce motion" shows it all still. */
 .gf-screen { position: relative; min-height: 100vh; overflow: hidden; overflow: clip; isolation: isolate; }
-/* the intro's Play button stays in view on a short phone (overflow: clip, not
-   hidden, so position: sticky still follows the page) */
-.gf-cta-dock { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; }
+/* the intro's Play button sits under the level picker in the page's own
+   flow: floating it over the page hid the picker, "Go to my newest level"
+   and the sound button on phones (Muse and Grok, round 6) */
+.gf-cta-dock { position: relative; z-index: 5; margin-bottom: env(safe-area-inset-bottom); }
 /* Calm mode (grown-ups' Display settings): no painted scenery behind games */
 :root[data-calm="true"] .gf-backdrop { display: none; }
 .gf-back {
@@ -1295,8 +1296,8 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 /* pages with the bottom tab bar (components/BottomNav.tsx): room under the
    last thing on the page for the whole bar (about 70px), the phone's home
    bar, and a little breathing space, so nothing ends up hidden behind it */
-.kp-nav-pad { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
-@media (min-width: 640px) { .kp-nav-pad { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); } }
+.kp-nav-pad { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); } /* nav height plus room to breathe (Grok round 6) */
+@media (min-width: 640px) { .kp-nav-pad { padding-bottom: calc(124px + env(safe-area-inset-bottom, 0px)); } }
 @media print { .kp-nav-pad { padding-bottom: 1rem; } }
 
 /* every game's "← Map" link: a whole fingertip (48px) and easy-to-read 16px */

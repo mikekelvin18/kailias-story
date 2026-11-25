@@ -118,7 +118,7 @@ const SENTENCE_PAIRS: [string, string][] = [
   ['Birds fly in the sky', 'Sky the in fly birds'],
   ['The fish can swim', 'Swim can fish the'],
   ['Mom bakes yummy bread', 'Bread yummy mom bakes'],
-  ['The sun is bright', 'Bright is the sun'],
+  ['The sun is bright', 'Sun the bright is'],  // (was 'Bright is the sun', which is a real, poetic sentence)
   ['I hug my teddy', 'Teddy my hug I'],
   ['Frogs hop on rocks', 'Rocks on hop frogs'],
   ['We read a book', 'Book a read we'],
@@ -630,9 +630,12 @@ export default function SkyMailPage() {
               title="Sky Mail"
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #38BDF8 0%, #0369a1 55%, #1e3a8a 100%)', accent: '#38BDF8', accent2: '#4F46E5' }}
               pet={pet}
-              story={<p>The wind stole Noel&apos;s letters over Owl&apos;s Tower! Swipe each one into the right mailbox.</p>}
+              story={<p>{`The wind stole Noel's letters over Owl's Tower! Pick a mailbag below. Each bag is a different sorting game. Then swipe each letter into the right mailbox.`}</p>}
               extras={<>
-                <div className="flex justify-center mb-3"><Mailbox size={52} flagUp={doneDecks.length > 0} /></div>
+                <div className="flex justify-center mb-2"><Mailbox size={52} flagUp={doneDecks.length > 0} /></div>
+                {/* Muse round 6: this list read like a pause screen; it is the game's menu */}
+                <h2 data-mailbag-heading className="text-lg font-extrabold text-white drop-shadow mb-0.5">Choose a mailbag to sort</h2>
+                <p className="text-sm font-bold text-white/85 mb-3">{`${availableDecks.length} sorting games · ${doneDecks.length} done`}</p>
                 <div className="space-y-3">
                   {availableDecks.map((d, i) => (
                     <button key={d} onClick={() => startDeck(d)} className="gf-choice w-full flex items-center gap-3 text-left"
@@ -699,7 +702,7 @@ export default function SkyMailPage() {
                       style={{ transform: 'translateY(8px) scale(0.93)', opacity: 0.6, border: '2.5px solid #3b2416' }} />
                   )}
                   {/* the flying letter */}
-                  <div ref={cardRef} data-card data-correct={card.correct}
+                  <div ref={cardRef} data-card data-index={idx} data-correct={card.correct}
                     onPointerDown={onPointerDown} onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
                     className={`absolute inset-0 rounded-3xl select-none flex flex-col items-center justify-center px-3 ${wobble ? 'shake' : ''}`}
@@ -770,7 +773,7 @@ export default function SkyMailPage() {
             pet={pet}
             earned={earned}
             trophy={<Mailbox size={96} flagUp />}
-            message={<>Every letter in this bag found its mailbox. {availableDecks.length - doneDecks.length} more {availableDecks.length - doneDecks.length === 1 ? 'bag is' : 'bags are'} waiting!</>}
+            message={`Every letter in this bag found its mailbox. ${availableDecks.length - doneDecks.length} more ${availableDecks.length - doneDecks.length === 1 ? 'bag is' : 'bags are'} waiting!`}
             actions={<>
               <PlayButton theme={GOLD} onClick={backToShelf}>Next mailbag <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
@@ -788,7 +791,7 @@ export default function SkyMailPage() {
             pet={pet}
             earned={earned}
             trophy={<Mailbox size={96} flagUp />}
-            message={<>The wise owl hoots with joy — what a wind-fast sorter! {pet.name} is doing a happy dance!</>}
+            message={`The wise owl hoots with joy — what a wind-fast sorter! ${pet.name} is doing a happy dance!`}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setDoneDecks([]); setPhase('select'); }}>Play again!</PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>

@@ -229,7 +229,7 @@ interface IntroProps {
 
 export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play', readAloud = true }: IntroProps) {
   return (
-    <main className="gf-screen" style={{ background: theme.bg }}>
+    <main data-testid="game-intro" className="gf-screen" style={{ background: theme.bg }}>
       <GameBackdrop />
       <StarDust />
       <div className="relative max-w-sm w-full mx-auto px-4 pt-3 pb-8 text-center">
@@ -303,7 +303,8 @@ function StarCounter({ earned, accent }: { earned: number; accent: string }) {
       {!reduced && Array.from({ length: 6 }, (_, i) => (
         <span key={i} className="gf-fly-star absolute" style={{
           animationDelay: `${0.15 + i * 0.1}s`,
-          ['--from-x' as string]: `${(seeded(i, 61) - 0.5) * 260}px`, ['--from-y' as string]: `${-110 - seeded(i, 62) * 80}px`,
+          // they fly in from the sides, never down across the words above (Grok round 6)
+          ['--from-x' as string]: `${(i % 2 ? 1 : -1) * (110 + seeded(i, 61) * 60)}px`, ['--from-y' as string]: `${(seeded(i, 62) - 0.5) * 40}px`,
         } as CSSProperties}>
           <StarIcon size={26} />
         </span>
@@ -332,7 +333,7 @@ interface FinishProps {
 export function GameFinish({ title, theme, pet, message, earned, trophy, actions }: FinishProps) {
   const reduced = useReducedMotion();
   return (
-    <main className="gf-screen flex items-center" style={{ background: theme.bg }}>
+    <main data-testid="game-finish" className="gf-screen flex items-center" style={{ background: theme.bg }}>
       <GameBackdrop />
       {!reduced && <Confetti colors={['#FDE047', '#F472B6', '#60A5FA', '#4ADE80', '#FFFFFF', '#FB923C', theme.accent]} />}
       <div className="relative max-w-sm w-full mx-auto px-4 py-8 text-center" style={{ zIndex: 2 }}>
@@ -345,7 +346,7 @@ export function GameFinish({ title, theme, pet, message, earned, trophy, actions
           <div className="relative mt-2"><Gang pet={pet} accent={theme.accent} party kailiaH={140} /></div>
         </div>
         {/* a soft dark card under the words: the confetti falls behind it, never across the letters */}
-        {message && <div className="gf-rise-in mt-3 text-white font-bold text-lg leading-snug drop-shadow rounded-2xl px-4 py-3" style={{ animationDelay: '0.6s', background: 'rgba(15,10,40,0.55)', backdropFilter: 'blur(3px)' }}>{message}</div>}
+        {message && <div className="gf-rise-in mt-3 text-white font-bold text-lg leading-snug drop-shadow rounded-2xl px-4 py-3 relative" style={{ zIndex: 3, animationDelay: '0.6s', background: 'rgba(15,10,40,0.55)', backdropFilter: 'blur(3px)' }}>{message}</div>}
         {earned != null && earned > 0 && <StarCounter earned={earned} accent={theme.accent} />}
         <div className="gf-rise-in mt-5 flex gap-3 justify-center flex-wrap" style={{ animationDelay: '1.1s' }}>{actions}</div>
       </div>

@@ -154,6 +154,8 @@ export default function ReefExplorerPage() {
   const { layer: burstLayer, fire } = useBursts();
 
   const areaRef = useRef<HTMLDivElement>(null);
+  const sizeRef = useRef(plan.size);
+  useEffect(() => { sizeRef.current = plan.size; }, [plan.size]);
   const draggingRef = useRef(false);
   const nextId = useRef(1);
   const roundStart = useRef(0);
@@ -209,14 +211,29 @@ export default function ReefExplorerPage() {
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      setFish(prev => prev.map(f => {
-        if (f.id === foundIdRef.current) return f;
-        let { x, vx } = f;
-        x += vx * dt;
-        if (x > 90) { x = 90; vx = -Math.abs(vx); }
-        if (x < 10) { x = 10; vx = Math.abs(vx); }
-        return { ...f, x, vx };
-      }));
+      // how wide a fish is, in % of the reef
+      const w = areaRef.current?.clientWidth || 360;
+      const gap = (sizeRef.current / w) * 100 * 0.85;
+      setFish(prev => {
+        const next = prev.map(f => {
+          if (f.id === foundIdRef.current) return f;
+          let { x, vx } = f;
+          x += vx * dt;
+          if (x > 90) { x = 90; vx = -Math.abs(vx); }
+          if (x < 10) { x = 10; vx = Math.abs(vx); }
+          return { ...f, x, vx };
+        });
+        // friends in the same lane bump gently and swim apart, so one fish
+        // never hides behind another for long (the one you need stays findable)
+        for (let i = 0; i < next.length; i++) for (let j = i + 1; j < next.length; j++) {
+          const a = next[i], b = next[j];
+          if (Math.abs(a.y - b.y) > 8 || Math.abs(a.x - b.x) > gap) continue;
+          const [l, r] = a.x <= b.x ? [i, j] : [j, i];
+          if (next[l].id !== foundIdRef.current) next[l] = { ...next[l], vx: -Math.abs(next[l].vx) };
+          if (next[r].id !== foundIdRef.current) next[r] = { ...next[r], vx: Math.abs(next[r].vx) };
+        }
+        return next;
+      });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -451,7 +468,7 @@ export default function ReefExplorerPage() {
             theme={{ bg: 'linear-gradient(135deg, #0B4F6C, #0E7490)', accent: '#67E8F9', accent2: '#0891B2' }}
             pet={pet}
             trophy={<span className="inline-flex gap-1">{found.slice(0, 3).map((l, i) => <FishArt key={i} look={l} size={56} flip={i === 1} />)}</span>}
-            message={<>You found every hiding friend. They want to swim with {pet.name}!</>}
+            message={`You found every hiding friend. They want to swim with ${pet.name}!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('reef-explorer', level)); setPhase('intro'); }}>{nextLabel('reef-explorer', level)} <GoArrow /></PlayButton>

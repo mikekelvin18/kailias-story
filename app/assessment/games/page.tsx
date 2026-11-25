@@ -7,30 +7,9 @@ import { useAssessment } from '@/context/AssessmentContext';
 import type { InputMethod, FineMotorSubScores } from '@/context/AssessmentContext';
 import StepGuide from '@/components/ui/StepGuide';
 import type { Evidence, MilestoneDomain } from '@/lib/milestones';
-import { screenCeiling, aheadCeiling, challengeCeiling } from '@/lib/milestones';
 import { fineMotorStage, TRACE_MEASURES, traceNextStep } from '@/lib/fineMotor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Question {
-  text: string;
-  type: 'choice' | 'input';
-  options?: { label: string; correct: boolean }[];
-  correctAnswer?: string;
-  /** Age (months) by which most children answer this correctly — see lib/milestones.ts. */
-  months: number;
-  points: { correct: number; partial?: number; wrong: number };
-}
-
-interface DomainGame {
-  key: 'reading' | 'writing' | 'communication' | 'math';
-  label: string;
-  emoji: string;
-  scenario: string;
-  color: string;
-  light: string;
-  questions: Question[];
-}
 
 interface PathPoint { x: number; y: number; }
 interface HeatmapPoint { x: number; y: number; inside: boolean; far: boolean; }
@@ -55,130 +34,8 @@ interface RunningState {
   prevTimeMs: number;
 }
 
-// ─── Regular games (Reading, Communication, Math) ─────────────────────────────
-
-const GAMES: DomainGame[] = [
-  {
-    key: 'reading', label: "Kailia's Treasure Hunt", emoji: '📖',
-    scenario: 'Kailia is packing her backpack for a treasure hunt. Help her find the right things!',
-    color: '#2563EB', light: '#EFF6FF',
-    questions: [
-      { text: 'Kailia found three things: an 🍎 apple, a ⚽ ball, and a 🐱 cat. Can you tap the BALL?', type: 'choice', months: 30,
-        options: [{ label: '🍎 Apple', correct: false }, { label: '⚽ Ball', correct: true }, { label: '🐱 Cat', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Which word starts with the same sound as "ball"?', type: 'choice', months: 60,
-        options: [{ label: '🦁 Lion', correct: false }, { label: '🦋 Butterfly', correct: true }, { label: '🐠 Fish', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Read this sentence: "The dog runs fast." What is the dog doing?', type: 'choice', months: 78,
-        options: [{ label: 'Sleeping 😴', correct: false }, { label: 'Running 🏃', correct: true }, { label: 'Eating 🍖', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia sees a sign that says STOP. What does it mean?', type: 'choice', months: 60,
-        options: [{ label: 'Go fast!', correct: false }, { label: "Don't move forward", correct: true }, { label: 'Turn around', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia reads: "The sky is blue. The grass is green." What color is the sky?', type: 'choice', months: 72,
-        options: [{ label: '🟢 Green', correct: false }, { label: '🔵 Blue', correct: true }, { label: '🟡 Yellow', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-    ],
-  },
-  {
-    key: 'communication', label: "Kailia's Talking Friend", emoji: '🗣️',
-    scenario: "Kailia loves to chat! She has some questions for you. Help her understand the world.",
-    color: '#7C3AED', light: '#F5F3FF',
-    questions: [
-      { text: 'Kailia shows you a picture of someone with tears on their face. How is this person feeling?', type: 'choice', months: 42,
-        options: [{ label: '😄 Happy', correct: false }, { label: '😢 Sad', correct: true }, { label: '😠 Angry', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia lost her backpack. What would you say to help her?', type: 'choice', months: 60,
-        options: [{ label: '"That\'s funny!"', correct: false }, { label: '"Where did you last see it? I can help you look!"', correct: true }, { label: '"I don\'t know."', correct: false }],
-        points: { correct: 2, partial: 1, wrong: 0 } },
-      { text: 'Put these in order: Kailia woke up. She ate breakfast. She went to school. What did she do SECOND?', type: 'choice', months: 66,
-        options: [{ label: 'Went to school 🏫', correct: false }, { label: 'Woke up 😴', correct: false }, { label: 'Ate breakfast 🥣', correct: true }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia says "I went to the park and I saw a..." Which ending makes the most sense?', type: 'choice', months: 54,
-        options: [{ label: 'flying car going to the moon', correct: false }, { label: 'puppy playing with a ball', correct: true }, { label: 'sandwich jumping', correct: false }],
-        points: { correct: 2, partial: 1, wrong: 0 } },
-      { text: "Kailia's friend says \"I feel scared.\" What's the kindest thing to do?", type: 'choice', months: 60,
-        options: [{ label: 'Laugh at them', correct: false }, { label: 'Walk away', correct: false }, { label: '"I\'m here for you. Do you want to talk?"', correct: true }],
-        points: { correct: 2, wrong: 0 } },
-    ],
-  },
-  {
-    key: 'math', label: "Kailia's Cookie Quest", emoji: '🍪',
-    scenario: "Kailia is sharing snacks with her friends! Help her count, add, and share fairly.",
-    color: '#D97706', light: '#FFFBEB',
-    questions: [
-      { text: 'Kailia has these cookies: 🍪🍪🍪. How many cookies does she have?', type: 'choice', months: 42,
-        options: [{ label: '2', correct: false }, { label: '3', correct: true }, { label: '4', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia has 2 cookies 🍪🍪. She gets 3 more 🍪🍪🍪. How many does she have now?', type: 'choice', months: 66,
-        options: [{ label: '4', correct: false }, { label: '5', correct: true }, { label: '6', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia has 10 cookies. She eats 4. How many are left?', type: 'choice', months: 84,
-        options: [{ label: '5', correct: false }, { label: '6', correct: true }, { label: '7', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia shares 12 cookies equally among 3 friends (including herself). How many each?', type: 'choice', months: 108,
-        options: [{ label: '3', correct: false }, { label: '4', correct: true }, { label: '6', correct: false }],
-        points: { correct: 2, wrong: 0 } },
-      { text: 'Kailia baked 2 trays of cookies. Each tray has 8 cookies. How many total?', type: 'choice', months: 102,
-        options: [{ label: '10', correct: false }, { label: '14', correct: false }, { label: '16', correct: true }],
-        points: { correct: 2, wrong: 0 } },
-    ],
-  },
-];
-
-// Harder rungs so older or advanced children don't top out (ages are the
-// end of the U.S. grade where the skill is expected: Grade 1 ≈ 7 yrs …
-// Grade 6 ≈ 12). With these, each game is a ladder from about 3 to 12.
-const right = (label: string) => ({ label, correct: true });
-const other = (label: string) => ({ label, correct: false });
-const EXTRA_QUESTIONS: Record<'reading' | 'communication' | 'math', Question[]> = {
-  reading: [
-    { text: 'Which word says "ship"?', type: 'choice', months: 84,
-      options: [other('chip'), right('ship'), other('shop')], points: { correct: 2, wrong: 0 } },
-    { text: 'Read: "Mia was so unhappy when the rain started." How did Mia feel?', type: 'choice', months: 96,
-      options: [other('Very glad'), right('Not happy'), other('Sleepy')], points: { correct: 2, wrong: 0 } },
-    { text: 'Read: "Max grabbed his umbrella and his rain boots before he went outside." What was the weather probably like?', type: 'choice', months: 108,
-      options: [other('Hot and sunny'), right('Rainy'), other('Snowy and windy')], points: { correct: 2, wrong: 0 } },
-    { text: 'Read: "Bees carry pollen from flower to flower. This helps new plants grow. Without bees, many fruits could not grow." What is this mostly about?', type: 'choice', months: 114,
-      options: [other('How bees make honey'), right('How bees help plants grow'), other('Why flowers are pretty')], points: { correct: 2, wrong: 0 } },
-    { text: 'Read: "During the race, Leo\'s heart was a drum." What does the writer mean?', type: 'choice', months: 126,
-      options: [other('Leo played music'), right('Leo\'s heart was beating hard'), other('Leo was carrying a drum')], points: { correct: 2, wrong: 0 } },
-    { text: 'Read: "Although Ana practiced every day, she still felt nervous before the show." Which is true?', type: 'choice', months: 138,
-      options: [right('Ana practiced and was still nervous'), other('Ana never practiced'), other('Ana was not nervous because she practiced')], points: { correct: 2, wrong: 0 } },
-  ],
-  communication: [
-    { text: 'Your friend says, "I went to the beach!" Which question helps you learn the most about the trip?', type: 'choice', months: 84,
-      options: [other('"Was it a beach?"'), right('"What was your favorite part?"'), other('"Okay."')], points: { correct: 2, wrong: 0 } },
-    { text: 'Why is this joke funny? "What do you call a sleeping dinosaur? A dino-snore!"', type: 'choice', months: 96,
-      options: [right('"Snore" sounds like "saur"'), other('Dinosaurs are big'), other('It isn\'t a question')], points: { correct: 2, wrong: 0 } },
-    { text: 'Kailia wants to explain to a little 3-year-old how to wash hands. Which is best?', type: 'choice', months: 108,
-      options: [other('"Apply surfactant to the epidermis."'), right('"Soap, scrub, scrub, then rinse!"'), other('Say nothing and walk away')], points: { correct: 2, wrong: 0 } },
-    { text: 'Noel says, "It\'s raining cats and dogs!" What does he mean?', type: 'choice', months: 120,
-      options: [other('Pets are falling from the sky'), right('It\'s raining really hard'), other('The animals want to come inside')], points: { correct: 2, wrong: 0 } },
-    { text: 'Kailia drops her ice cream and groans, "Oh, GREAT. Just perfect." How does she really feel?', type: 'choice', months: 132,
-      options: [other('Happy and excited'), right('Upset'), other('Hungry for more')], points: { correct: 2, wrong: 0 } },
-    { text: 'Kailia wants the class to plant a garden. Which reason would convince the most people?', type: 'choice', months: 144,
-      options: [other('"Because I said so."'), right('"We could grow food to share and learn how plants grow."'), other('"Gardens are green."')], points: { correct: 2, wrong: 0 } },
-  ],
-  math: [
-    { text: 'Which plate has MORE cookies? Plate A: 🍪🍪🍪🍪🍪  Plate B: 🍪🍪', type: 'choice', months: 48,
-      options: [right('Plate A'), other('Plate B'), other('They are the same')], points: { correct: 2, wrong: 0 } },
-    { text: 'Kailia has 8 cookies and gets 6 more. How many now?', type: 'choice', months: 84,
-      options: [other('12'), right('14'), other('16')], points: { correct: 2, wrong: 0 } },
-    { text: 'Kailia baked 45 cookies on Monday and 28 on Tuesday. How many altogether?', type: 'choice', months: 96,
-      options: [other('63'), right('73'), other('83')], points: { correct: 2, wrong: 0 } },
-    { text: 'There are 7 bags with 8 cookies in each bag. How many cookies?', type: 'choice', months: 108,
-      options: [other('54'), right('56'), other('63')], points: { correct: 2, wrong: 0 } },
-    { text: 'Which is the same amount as ½ of a pizza?', type: 'choice', months: 120,
-      options: [right('2/4 of the pizza'), other('1/4 of the pizza'), other('2/3 of the pizza')], points: { correct: 2, wrong: 0 } },
-    { text: 'Kailia makes 24 cookies a day for 6 days. How many cookies?', type: 'choice', months: 120,
-      options: [other('124'), right('144'), other('148')], points: { correct: 2, wrong: 0 } },
-    { text: 'What is 0.5 + 0.25?', type: 'choice', months: 132,
-      options: [other('0.30'), right('0.75'), other('0.525')], points: { correct: 2, wrong: 0 } },
-    { text: 'For every 2 chocolate cookies there are 3 sugar cookies. If there are 10 chocolate cookies, how many sugar cookies?', type: 'choice', months: 144,
-      options: [other('12'), right('15'), other('13')], points: { correct: 2, wrong: 0 } },
-  ],
-};
+import { testing } from '@/lib/testHooks';
+import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, maxChallengeLen, nextPlacementQuestion, placementLenRange } from '@/lib/placementBank';
 
 // Noel's one-line "why" after a miss (Muse round 4), matched by how the
 // question starts. Plain words a child can follow.
@@ -220,68 +77,6 @@ const WHY: [string, string][] = [
   ["For every 2 chocolate cookies", "10 chocolate is 5 groups of 2, so 5 groups of 3 sugar make 15."],
 ];
 const whyFor = (text: string) => WHY.find(([k]) => text.startsWith(k))?.[1] ?? '';
-
-// Each game's full ladder, easiest first.
-const BANK: Record<string, Question[]> = Object.fromEntries(
-  GAMES.map(g => [g.key, [...g.questions, ...EXTRA_QUESTIONS[g.key as keyof typeof EXTRA_QUESTIONS]].sort((a, b) => a.months - b.months)]),
-);
-
-// Adaptive like a hearing test or an eye chart: start a little below the
-// child's age, step up after a right answer, step down after a miss.
-const QUESTIONS_PER_GAME = 6;
-function firstQuestion(bank: Question[], ageMonths: number): number {
-  const target = ageMonths * 0.85;
-  let best = 0;
-  bank.forEach((q, i) => { if (Math.abs(q.months - target) < Math.abs(bank[best].months - target)) best = i; });
-  return best;
-}
-function nextQuestion(bank: Question[], asked: number[], lastIdx: number, lastRight: boolean, ageMonths: number, rightIdx: number[] = []): number | null {
-  // Normally never past the screen's ceiling (lib/milestones.ts), so a
-  // proud or lucky run can't invent a 10-year-old level. But a child who
-  // has got EVERY question at or above their age right may be really
-  // ahead (Kelvin: "state facts with range"), so the ladder keeps climbing
-  // (up to 1.6× their age) until it finds where their skills stop. Only a
-  // range with that ceiling found is shown as "ahead".
-  const aboveAge = asked.filter(i => bank[i].months >= ageMonths);
-  const acedAboveAge = aboveAge.length >= 2 && aboveAge.every(i => rightIdx.includes(i));
-  const roof = acedAboveAge ? aheadCeiling(ageMonths) : screenCeiling(ageMonths);
-  const open = bank.map((_, i) => i).filter(i => !asked.includes(i) && bank[i].months <= roof);
-  if (!open.length) return null;
-  const up = open.filter(i => i > lastIdx), down = open.filter(i => i < lastIdx);
-  if (lastRight && up.length) return up[0];
-  if (!lastRight && down.length) return down[down.length - 1];
-  return (lastRight ? down[down.length - 1] : up[0]) ?? null;
-}
-
-// Challenge round (results page, a grown-up's choice for a child they think
-// is ahead): only questions above the child's age, up to challengeCeiling,
-// a few per area, skipping any already answered in the placement. Same
-// step-up / step-down rule, so it finds where the child's skills stop.
-const CHALLENGE_QS = 4;
-const CHALLENGE_STEPS = [0, 2, 3]; // reading, communication, math (no tracing)
-function challengeOpen(bank: Question[], ageMonths: number, skip: number[], asked: number[]): number[] {
-  const roof = challengeCeiling(ageMonths);
-  return bank.map((_, i) => i).filter(i => bank[i].months > ageMonths && bank[i].months <= roof && !skip.includes(i) && !asked.includes(i));
-}
-function nextChallenge(bank: Question[], ageMonths: number, skip: number[], asked: number[], lastIdx: number, lastRight: boolean): number | null {
-  const open = challengeOpen(bank, ageMonths, skip, asked);
-  if (!open.length) return null;
-  if (lastIdx < 0) return open[0];
-  const up = open.filter(i => i > lastIdx), down = open.filter(i => i < lastIdx);
-  if (lastRight) return up[0] ?? null;
-  // A miss with nothing easier left to try is the ceiling: stop here, so a
-  // lucky guess on a harder question can't stretch the range.
-  return down[down.length - 1] ?? null;
-}
-/** The most questions this challenge area could still reach (right or
- *  wrong on each), so the counter never promises more than can happen. */
-function maxChallengeLen(bank: Question[], ageMonths: number, skip: number[], asked: number[]): number {
-  if (asked.length >= CHALLENGE_QS) return asked.length;
-  const last = asked[asked.length - 1];
-  const nexts = [true, false].map(r => nextChallenge(bank, ageMonths, skip, asked, last, r)).filter((n): n is number => n != null);
-  if (!nexts.length) return asked.length;
-  return Math.max(...[...new Set(nexts)].map(n => maxChallengeLen(bank, ageMonths, skip, [...asked, n])));
-}
 
 // ─── Grasp Patterns ───────────────────────────────────────────────────────────
 
@@ -904,7 +699,7 @@ function gripEvidence(grip: string | null): Evidence[] {
 }
 
 export default function GamesPage() {
-  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
+  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setPlacementRound, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
   const router = useRouter();
   const age = chronoMonths ?? (state.childAge ?? 8) * 12;
 
@@ -928,6 +723,8 @@ export default function GamesPage() {
   const [resumeAt, setResumeAt] = useState<number | null>(null);
   /** A challenge round left part way, offered to carry on (Muse round 5). */
   const [challengeResume, setChallengeResume] = useState<{ step: number; asked: number[]; evidence: Evidence[] } | null>(null);
+  /** The first check-up's game left part way, restored by "Keep going" (Muse round 6). */
+  const [placementResume, setPlacementResume] = useState<{ step: number; asked: number[]; evidence: Evidence[] } | null>(null);
   const challenge = mode === 'challenge';
   /** Placement items already answered in this area (never asked again in the challenge). */
   const placedIdx = (key: string) => (state.evidence?.[key as MilestoneDomain] ?? [])
@@ -989,7 +786,9 @@ export default function GamesPage() {
     const entry: Evidence = { id: `${challenge ? 'challenge-' : ''}${game.key}-${cur}`, months: question.months, r, kind: 'choice3' };
     setEvidence(ev => [...ev, entry]);
     // the challenge saves every answer, so leaving part way can carry on
+    // every answer is saved, so leaving part way can carry on at this question
     if (challenge) setChallengeRound({ step: gameStep, asked, evidence: [...evidence, entry] });
+    else setPlacementRound({ step: gameStep, asked, evidence: [...evidence, entry] });
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
     let line = pool[Math.floor(Math.random() * pool.length)];
     // A miss gets a gentle "here's the one Kailia picked" so the child
@@ -1044,24 +843,30 @@ export default function GamesPage() {
       if (!state.assessmentCompleted) {
         const order: MilestoneDomain[] = ['reading', 'writing', 'communication', 'math'];
         const done = order.map(d => (state.evidence?.[d]?.length ?? 0) > 0);
-        if (done.some(Boolean)) setResumeAt(done.every(Boolean) ? 4 : done.indexOf(false));
+        // a game left part way (Muse round 6: one answer in, then away)
+        const part = state.placementRound;
+        if (part && part.evidence.length > 0 && !done[part.step]) { setPlacementResume(part); setResumeAt(part.step); }
+        else if (done.some(Boolean)) setResumeAt(done.every(Boolean) ? 4 : done.indexOf(false));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
-  // A child acing everything above their age gets up to 2 extra rungs to find their ceiling.
-  const aceExtra = evidence.length >= QUESTIONS_PER_GAME && evidence.filter(e => e.months >= age).every(e => e.r === 1)
-    && evidence.some(e => e.months >= age) && asked.length < QUESTIONS_PER_GAME + 2;
   /** The question that comes next in this (normal) placement game, or null when it ends. */
   const plannedNext = (): number | null => {
     if (!game) return null;
-    const last = evidence[evidence.length - 1];
-    const rightIdx = evidence.filter(e => e.r === 1).map(e => Number(e.id.split('-').pop()));
-    return (isLastQ && !aceExtra) ? null : nextQuestion(bank, asked, cur, last?.r === 1, age, rightIdx);
+    // the same rule the automatic checks use (lib/placementBank.ts): six
+    // questions, plus up to two extra rungs for a child who aced everything
+    // above their age
+    return nextPlacementQuestion(bank, evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months })), age);
   };
   // The real number of questions (Muse round 4: never "7/7", "8/8").
-  const shownTotal = Math.min(bank.length, asked.length > QUESTIONS_PER_GAME || aceExtra ? QUESTIONS_PER_GAME + 2 : QUESTIONS_PER_GAME);
+  // Muse round 6: "1/6 … 5/6" then "6/8". The count is the fewest and most
+  // questions still possible from here: exact when they agree, else "of up to".
+  const placedSoFar = evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months }));
+  const [fewest, shownTotal] = !game || challenge ? [0, 0]
+    : submitted ? (() => { const n = plannedNext(); return n == null ? [asked.length, asked.length] : placementLenRange(bank, placedSoFar, age, n); })()
+    : placementLenRange(bank, placedSoFar, age, cur);
 
   const handleNext = () => {
     if (!game) return;
@@ -1083,6 +888,7 @@ export default function GamesPage() {
     const next = plannedNext();
     if (next == null) {
       setDomainEvidence(domainKey, evidence);
+      setPlacementRound(null); // this game is saved whole now
       // Legacy 0–10 score (share right) — still drives the stage name and the bars.
       setDomainScore(domainKey, Math.round((evidence.reduce((t, e) => t + e.r, 0) / Math.max(1, evidence.length)) * 10));
       // Then a few attention / memory questions for the grown-up (checklist page, processing only).
@@ -1090,6 +896,7 @@ export default function GamesPage() {
       else startGame(gameStep + 1);
     } else {
       setAsked(a => [...a, next]);
+      setPlacementRound({ step: gameStep, asked: [...asked, next], evidence });
       resetQuestion();
     }
   };
@@ -1155,17 +962,24 @@ export default function GamesPage() {
           <p className="text-gray-600 mb-6">
             Noel saved your spot. {resumeAt >= 4
               ? 'All four games are done, just the grown-up questions are left.'
-              : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
+              : placementResume
+                ? `We were in ${names[resumeAt]}, ${placementResume.evidence.length} ${placementResume.evidence.length === 1 ? 'question' : 'questions'} answered so far.`
+                : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
           </p>
-          <button onClick={() => {
+          <button data-placement-carry-on onClick={() => {
               const at = resumeAt; setResumeAt(null);
-              if (at >= 4) router.push('/assessment/checklist'); else startGame(at);
+              const r = placementResume; setPlacementResume(null);
+              if (r && r.step === at) {
+                setGameStep(r.step); setAsked(r.asked); setEvidence(r.evidence); resetQuestion();
+                // the last question was answered already: show it answered, ready for Next
+                if (r.evidence.length >= r.asked.length && r.asked.length) { setSubmitted(true); setEncourage('Welcome back! Tap below to keep going. ⭐'); }
+              } else if (at >= 4) router.push('/assessment/checklist'); else startGame(at);
             }}
             className="w-full px-8 py-4 rounded-full font-extrabold text-xl text-white shadow-lg mb-3"
             style={{ background: 'linear-gradient(135deg, #059669, #7C3AED)' }}>
             Keep going →
           </button>
-          <button onClick={() => setResumeAt(null)} className="text-sm font-bold text-gray-500 underline">
+          <button onClick={() => { setResumeAt(null); setPlacementResume(null); setPlacementRound(null); }} className="text-sm font-bold text-gray-500 underline">
             Start the games over
           </button>
         </div>
@@ -1247,6 +1061,7 @@ export default function GamesPage() {
                 if (showRight) { bg = '#ECFDF5'; border = '#10B981'; textCol = '#047857'; }
                 return (
                   <button key={i} onClick={() => !submitted && setSelected(opt.label)} disabled={submitted}
+                    {...(testing() ? { 'data-correct': String(opt.correct), 'data-picked': String(sel), 'data-shown-right': String(showRight) } : {})}
                     className="w-full text-left px-5 py-4 rounded-2xl font-semibold text-base transition-all hover:scale-[1.02]"
                     style={{ background: bg, border: `2px solid ${border}`, color: textCol }}>
                     {opt.label}
@@ -1270,7 +1085,7 @@ export default function GamesPage() {
         </div>
 
         {submitted && encourage && (
-          <div className="rounded-2xl p-4 text-center mb-4 font-bold text-lg bounce-in"
+          <div data-feedback className="rounded-2xl p-4 text-center mb-4 font-bold text-lg bounce-in"
             style={{ background: game.light, color: game.color }}>
             {encourage}
           </div>
@@ -1305,7 +1120,7 @@ export default function GamesPage() {
           {challenge
             ? <span data-challenge-counter>{`Game ${liveChallengeSteps.indexOf(gameStep) + 1} of ${liveChallengeSteps.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}${challengeTotal > questionIdx + 1 ? ' of up to ' : '/'}${challengeTotal}`}</span>
             : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
-              {!isTracingStep && ` • Question ${questionIdx + 1}/${shownTotal}`}</>}
+              {!isTracingStep && <span data-placement-counter>{` • Question ${questionIdx + 1}${fewest < shownTotal ? ' of up to ' : '/'}${shownTotal}`}</span>}</>}
         </p>
       </div>
     </main>

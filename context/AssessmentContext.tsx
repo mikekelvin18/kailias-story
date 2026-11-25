@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { scopedKey, ACTIVE_CHILD_CHANGED_EVENT } from '@/lib/family';
 import {
-  estimateAge, formatAgeRange, aheadCeiling, challengeCeiling, isChallengeEvidence, screenView, compareToAge, MILESTONE_DOMAINS,
+  estimateAge, legacyEstimate, formatAgeRange, aheadCeiling, challengeCeiling, isChallengeEvidence, screenView, compareToAge, MILESTONE_DOMAINS,
   type AgeEstimate, type AgeComparison, type Evidence, type MilestoneDomain,
 } from '@/lib/milestones';
 
@@ -46,6 +46,8 @@ export interface AssessmentState {
    *  the questions asked there and their answers, so it can carry on.
    *  Lives in the same saved assessment (already a child-data key). */
   challengeRound?: ChallengeRound | null;
+  /** The first check-up left part way (Muse round 6): the game, the questions asked and the answers so far. */
+  placementRound?: ChallengeRound | null;
 }
 
 export interface ChallengeRound { step: number; asked: number[]; evidence: Evidence[] }
@@ -56,6 +58,7 @@ interface AssessmentContextType {
   setChildInfo: (name: string, age: number, ageMonths?: number) => void;
   setDomainEvidence: (domain: MilestoneDomain, evidence: Evidence[]) => void;
   setChallengeRound: (round: ChallengeRound | null) => void;
+  setPlacementRound: (round: ChallengeRound | null) => void;
   setAssessmentType: (type: 'checklist' | 'games') => void;
   setDomainScore: (domain: keyof AssessmentState['scores'], score: number) => void;
   setSensoryScore: (pattern: keyof SensoryScores, score: number) => void;
@@ -100,12 +103,15 @@ const defaultState: AssessmentState = {
   assessmentCompleted: false,
   evidence: {},
   challengeRound: null,
+  placementRound: null,
 };
 
-function deriveAgeGroup(age: number): AgeGroup {
-  if (age === 0.5) return 'infant';
-  if (age === 1)   return 'toddler';
-  if (age <= 4)    return 'preschool';
+// Under 12 months, 12–23 months, 2–4 years, 5+ (from months when known).
+function deriveAgeGroup(age: number, months?: number | null): AgeGroup {
+  const m = months ?? (age === 0.5 ? 6 : age * 12);
+  if (m < 12) return 'infant';
+  if (m < 24) return 'toddler';
+  if (m < 60) return 'preschool';
   return 'schoolAge';
 }
 
@@ -267,12 +273,14 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   }, [state, loaded]);
 
   const setChildInfo = (name: string, age: number, ageMonths?: number) =>
-    setState(s => ({ ...s, childName: name, childAge: age, childAgeMonths: ageMonths ?? null, ageGroup: deriveAgeGroup(age) }));
+    setState(s => ({ ...s, childName: name, childAge: age, childAgeMonths: ageMonths ?? null, ageGroup: deriveAgeGroup(age, ageMonths) }));
 
   const setDomainEvidence = (domain: MilestoneDomain, evidence: Evidence[]) =>
     setState(s => ({ ...s, evidence: { ...s.evidence, [domain]: evidence } }));
   const setChallengeRound = (round: ChallengeRound | null) =>
     setState(s => ({ ...s, challengeRound: round }));
+  const setPlacementRound = (round: ChallengeRound | null) =>
+    setState(s => ({ ...s, placementRound: round }));
 
   const setAssessmentType = (type: 'checklist' | 'games') =>
     setState(s => ({ ...s, assessmentType: type }));
@@ -331,10 +339,17 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   // read uses the screen view, held near the real age at the top.
   const devMonths = rawOverall ? rawOverall.mid : null;
   const overall = rawOverall ? screenView(rawOverall, chronoMonths, pooled.some(isChallengeEvidence), topPassed(pooled)) : null;
+  // A check-up saved before the milestone ladders (scores only, no answers)
+  // reads relative to the child's real age, never past it: a 6-year-old
+  // with every old point used to read "about 10–12 yrs" everywhere (Muse
+  // and Grok, round 6). The old score alone can't show a child is ahead.
+  const legacy = (score: number) => chronoMonths != null ? screenView(legacyEstimate(score, chronoMonths), chronoMonths) : null;
   const domainRange = (d: MilestoneDomain) => {
     const est = estimates[d];
     if (est) return formatAgeRange(est);
-    return d === 'processing' ? 'not checked yet' : getDomainAge(state.scores[d], state.ageGroup);
+    if (d === 'processing') return 'not checked yet';
+    const old = legacy(state.scores[d]);
+    return old ? formatAgeRange(old) : getDomainAge(state.scores[d], state.ageGroup);
   };
   const domainComparison = (d: MilestoneDomain) => {
     const est = estimates[d];
@@ -345,11 +360,14 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   // activities, not chapter books and long division (Muse review,
   // 2026-11-18). A child working below their age still gets activities
   // at their working level.
+  const legacyOverall = legacy(totalScore / 4);
   const { stage, emoji, description } = devMonths != null
     ? stageForMonths(chronoMonths != null ? Math.min(devMonths, chronoMonths) : devMonths)
+    : legacyOverall && chronoMonths != null ? stageForMonths(Math.min(legacyOverall.mid, chronoMonths))
     : getLearningStage(totalScore, state.ageGroup);
   const developmentalAge = overall
     ? formatAgeRange(overall).replace(/^about/, 'About')
+    : legacyOverall ? formatAgeRange(legacyOverall).replace(/^about/, 'About')
     : `About ${getDevAge(totalScore, state.ageGroup)}`;
 
   return (
@@ -359,6 +377,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       setChildInfo,
       setDomainEvidence,
       setChallengeRound,
+      setPlacementRound,
       setAssessmentType,
       setDomainScore,
       setSensoryScore,

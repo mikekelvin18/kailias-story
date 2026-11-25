@@ -23,6 +23,7 @@ import { chime } from '@/components/friends/voice';
 import StarIcon from '@/components/games/StarIcon';
 import { usePlayPet } from '@/components/games/playPet';
 import { activeChild } from '@/lib/family';
+import { testHook } from '@/lib/testHooks';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -209,7 +210,7 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=30;
 // The trace has to really follow the path: it starts on GO, picks up near
 // where Kailia stands after a lift, and only counts progress that moves
 // along the path a little at a time (no tapping the flag, no shortcuts
@@ -393,6 +394,10 @@ export default function MazeRunnerPage() {
   const pet = usePlayPet();
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const [petPos, setPetPos] = useState({ x: 8, y: 50, flip: false });
+  // the friend starts (still invisible) right on GO; until it has walked to
+  // its first free spot it can't be tickled, so a quick press on GO always
+  // starts the trace (the robot check caught the hidden friend eating it)
+  const [petPlaced, setPetPlaced] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [noelLine, setNoelLine] = useState('');
   const [canvasW, setCanvasW] = useState(366);
@@ -574,6 +579,7 @@ export default function MazeRunnerPage() {
     hintRef.current      = null;
     wallStreakRef.current = 0;
     hopAtRef.current     = -1e9;
+    testHook('maze', { path, w: W, h: H, corridor: corridorRef.current });
     setTimeout(drawCanvas, 30);
   }, [drawCanvas, mirror]);
 
@@ -647,6 +653,7 @@ export default function MazeRunnerPage() {
       if (!spot) return;
       const nx = (spot.x / W) * 100, ny = (spot.y / H) * 100;
       setPetPos(p => (Math.abs(p.x - nx) < 0.6 && Math.abs(p.y - ny) < 0.6 ? p : { x: nx, y: ny, flip: nx < p.x }));
+      setPetPlaced(true);
     }, 220);
     return () => clearInterval(id);
   }, [phase, spotIsFree]);
@@ -688,13 +695,17 @@ export default function MazeRunnerPage() {
     return{x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)};
   };
 
+  // Listens on the whole maze box, not just the canvas: a press on GO
+  // starts the trace even when the friend or a sparkle is drawn over it
+  // (the robot check caught the friend swallowing the first press).
   const onStart = (e: React.MouseEvent|React.TouchEvent) => {
-    e.preventDefault();
     const p=getPos(e); if(!p || doneRef.current) return;
     const path=pathRef.current; if(!path.length) return;
+    const onFriend=!!(e.target as HTMLElement).closest?.('[data-pet] *');
     if (!charRef.current) {
       // the very first touch has to land on GO
       if (Math.hypot(p.x-path[0].x,p.y-path[0].y)>START_R) {
+        if (onFriend) return; // just tickling the friend
         setNoelLine('Start on the green GO circle, where Kailia is standing!');
         return;
       }
@@ -704,10 +715,12 @@ export default function MazeRunnerPage() {
       const arc=arcAlong(p,path);
       const nearKailia=Math.hypot(p.x-charRef.current.x,p.y-charRef.current.y)<=START_R+10;
       if (!nearKailia && !(onPath && arc<=progressRef.current+LEAP)) {
+        if (onFriend) return;
         setNoelLine('Put your finger back on Kailia and keep going!');
         return;
       }
     }
+    e.preventDefault();
     if (!started) setNoelLine('Nice and steady! Grab the stars on the way.');
     setStarted(true); setDrawing(true);
     charRef.current=p; drawCanvas();
@@ -720,13 +733,15 @@ export default function MazeRunnerPage() {
 
     const dist=closestOnPath(p,pathRef.current);
     const ok=dist<=corridorRef.current;
-    if (ok) {
+    if (dist <= corridorRef.current * 1.7) { // on the path, or just cutting a corner
       // a quick swipe may cover a lot of path between two events; a jump
       // across a wall covers lots of path with very little finger movement
       const prev=charRef.current;
       const moved=prev?Math.hypot(p.x-prev.x,p.y-prev.y):0;
       const arc=arcAlong(p,pathRef.current);
-      if (arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
+      // progress only counts from inside the glow (a corner cut is forgiven,
+      // never a shortcut across a wall)
+      if (ok && arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
       // mark the path points along this stroke (both ends inside the path)
       const from = prev && closestOnPath(prev, pathRef.current) <= corridorRef.current ? prev : p;
       const n = Math.max(1, Math.ceil(Math.hypot(p.x - from.x, p.y - from.y) / 8));
@@ -746,8 +761,10 @@ export default function MazeRunnerPage() {
     trailRef.current=[...trailRef.current,{x:p.x,y:p.y,ok}];
     charRef.current=p;
 
-    // Wall hit
-    if (!ok) {
+    // Wall hit. Cutting a corner a little (within most of a path width of
+    // the glow) is not a wall touch (Grok/Muse round 6: straight drags
+    // between corners kept hearing "Back to the glowing ring!").
+    if (!ok && dist > corridorRef.current * 1.7) {
       const now=Date.now();
       if (now-lastHitRef.current>HIT_CD) {
         lastHitRef.current=now;
@@ -779,8 +796,10 @@ export default function MazeRunnerPage() {
     // Reached end?
     const end=pathRef.current[pathRef.current.length-1];
     const coverage = coveredRef.current.size / Math.max(1, pathRef.current.length);
+    // Most of the path followed is a win: a cut corner never blocks the flag.
     if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
-        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.85)) {
+        && (progressRef.current>=lengthRef.current-FINISH_SLACK
+            || (coverage>=0.6 && progressRef.current>=lengthRef.current*0.6))) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);
@@ -831,7 +850,7 @@ export default function MazeRunnerPage() {
       theme={{ bg: 'radial-gradient(120% 80% at 50% 0%, #14532d 0%, #052e16 50%, #020510 100%)', accent: '#4ADE80', accent2: '#059669' }}
       pet={pet}
       story={<p>{levelStory(MAZE_STORIES, 'fine-motor', level)} Trace the glowing trail with your finger to the flag.
-        Stay off the walls, and grab every star! {pet.name} will run along with Kailia.</p>}
+        {` Stay off the walls, and grab every star! ${pet.name} will run along with Kailia.`}</p>}
       levels={<>
         <LevelPath gameId="fine-motor" level={level} onPick={setLevel} startLevel={fit.startLevel} />
         <p className="mt-3 text-sm font-bold text-green-200">
@@ -867,7 +886,7 @@ export default function MazeRunnerPage() {
           </div>}
         message={<>
           {bigWin ? `Level ${level} complete! Your very first quest: ${lv.name} conquered!` : `${lv.name} conquered! ${pet.name} is doing a happy dance.`}
-          <span className="block text-sm text-white/80 mt-1">{snapStars === 3 ? 'Every star! ' : ''}{chapter.name} path-finder!</span>
+          <span className="block text-sm text-white/80 mt-1">{`${snapStars === 3 ? 'Every star! ' : ''}${chapter.name} path-finder!`}</span>
           {showReassess && <div className="mt-3"><ReassessBanner onGo={()=>router.push('/assessment/games')} /></div>}
         </>}
         earned={earnedLight}
@@ -912,11 +931,11 @@ export default function MazeRunnerPage() {
 
         {/* Canvas, with the friend and the sparkles laid over it */}
         <div ref={wrapRef} data-play-field data-wide className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
-          style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}>
+          style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
+          onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
+          onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}>
           <canvas ref={canvasRef} width={W} height={H}
-            style={{width:'100%',height:'auto',display:'block',cursor:'crosshair'}}
-            onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
-            onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}/>
+            style={{width:'100%',height:'auto',display:'block',cursor:'crosshair'}}/>
           {/* a warm light rim keeps the friend visible on the dark mazes; it
               can only be tickled while no one is tracing, so a passing
               finger or mouse never gets caught on it */}
@@ -924,7 +943,7 @@ export default function MazeRunnerPage() {
             style={{ filter: 'drop-shadow(0 0 1.5px #FFF8E1) drop-shadow(0 0 5px rgba(255,240,200,0.55))' }}>
             <Actor art={pet.art} name={pet.name} x={petPos.x} y={petPos.y} h={petH}
               mood={hinting ? 'talk' : petMood} moodKey={petMoodKey} moveMs={hinting ? 700 : 420}
-              flip={petPos.flip} onTap={drawing ? undefined : tickle} z={7} />
+              flip={petPos.flip} onTap={drawing || !petPlaced ? undefined : tickle} z={7} />
           </div>
           {burstLayer}
         </div>

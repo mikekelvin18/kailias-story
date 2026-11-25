@@ -451,16 +451,25 @@ export default function ParentZonePage() {
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
-            <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games</span>
-            <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
+          {/* With Sound off on, music and reading aloud are paused too: their
+              rows go grey and say so (Grok round 6), and every sound plays at
+              volume 0 (lib/accessibility.ts masterVolume / musicEnabled). */}
+          <label data-sound-row="music" aria-disabled={a11y.reducedSound || undefined}
+            className={`flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 ${a11y.reducedSound ? 'opacity-50' : 'cursor-pointer'}`} style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games
+              {a11y.reducedSound && <span className="block text-xs font-normal text-gray-500">Paused while Sound off is on.</span>}
+            </span>
+            <input type="checkbox" checked={a11y.musicOn && !a11y.reducedSound} disabled={a11y.reducedSound} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+          <label data-sound-row="read-aloud" aria-disabled={a11y.reducedSound || undefined}
+            className={`flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 ${a11y.reducedSound ? 'opacity-50' : 'cursor-pointer'}`} style={{ background: '#F1F5F9' }}>
             <span className="text-sm font-semibold text-gray-700">Read aloud
-              <span className="block text-xs font-normal text-gray-500">Kailia, Noel and the friends read every story, instruction and speech bubble out loud.</span>
+              <span className="block text-xs font-normal text-gray-500">{a11y.reducedSound
+                ? 'Paused while Sound off is on.'
+                : 'Kailia, Noel and the friends read every story, instruction and speech bubble out loud.'}</span>
             </span>
-            <input type="checkbox" checked={a11y.narrationOn !== false} onChange={e => updateA11y({ narrationOn: e.target.checked })} className="w-5 h-5 shrink-0" />
+            <input type="checkbox" checked={a11y.narrationOn !== false && !a11y.reducedSound} disabled={a11y.reducedSound} onChange={e => updateA11y({ narrationOn: e.target.checked })} className="w-5 h-5 shrink-0" />
           </label>
 
           <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>

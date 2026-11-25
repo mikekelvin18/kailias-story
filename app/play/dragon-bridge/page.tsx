@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -142,6 +143,13 @@ export default function DragonBridgePage() {
   const roundClean = useRef(true);
 
   const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => {
+    testHook('bridge', {
+      phase, round: ri, kind: round?.kind, counts, basket, unfair, crossing,
+      right: round?.kind === 'pattern' ? round.options[bi]?.findIndex(t => same(t, round.seq[round.blanks[bi]])) : -1,
+    });
+  });
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   function say(line: string, mood: NoelMood = 'happy', aloud = false) {
@@ -421,7 +429,7 @@ export default function DragonBridgePage() {
       theme={theme}
       pet={pet}
       trophy={<div style={{ width: 120 }} className="mx-auto"><Chest gems={rounds.length} open /></div>}
-      message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
+      message={`The treasure chest is sparkling, ${chapter.name} bridge-builder!`}
       earned={earned}
       actions={<>
         <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('dragon-bridge', level)); setPhase('intro'); }}>{nextLabel('dragon-bridge', level)} <GoArrow /></PlayButton>
@@ -590,7 +598,7 @@ export default function DragonBridgePage() {
           <button aria-label="Hear it again" onClick={() => speak(noelLine)} style={{ flexShrink: 0 }}>
             <PandaSprite size={46} expression={noelMood} />
           </button>
-            <div className="rounded-2xl px-3 py-2 mr-12 text-lg font-bold text-gray-900 bg-white leading-snug">{noelLine}</div>
+            <div data-guide className="rounded-2xl px-3 py-2 mr-12 text-lg font-bold text-gray-900 bg-white leading-snug">{noelLine}</div>
         </div>
       </div>
     </main>

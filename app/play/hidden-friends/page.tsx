@@ -446,7 +446,7 @@ export default function WheresNoelPage() {
             trophy={<span className="inline-flex items-end gap-1" aria-hidden="true">
               {Array.from({ length: scene.treasure.count }, (_, i) => <PieceIcon key={i} kind={scene.treasure.piece} size={i === 1 ? 64 : 48} />)}
             </span>}
-            message={<>You found Noel and every {scene.treasure.label.replace(/s$/, '')} in {scene.name}!</>}
+            message={`You found Noel and every ${scene.treasure.label.replace(/s$/, '')} in ${scene.name}!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('hidden-friends', level)); setPhase('intro'); }}>Next level <GoArrow /></PlayButton>

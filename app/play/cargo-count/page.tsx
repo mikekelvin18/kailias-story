@@ -486,7 +486,7 @@ export default function CargoCountPage() {
             theme={{ bg: 'linear-gradient(135deg, #2E1F78, #4338CA)', accent: '#A5B4FC', accent2: '#6366F1' }}
             pet={pet}
             trophy={<span className="inline-block"><Rocket size={96} fill={1} /></span>}
-            message={<>Every rocket flew with just the right cargo. The crew is waving to {pet.name}!</>}
+            message={`Every rocket flew with just the right cargo. The crew is waving to ${pet.name}!`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('cargo-count', level)); setPhase('intro'); }}>{nextLabel('cargo-count', level)} <GoArrow /></PlayButton>

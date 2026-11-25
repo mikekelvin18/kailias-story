@@ -495,7 +495,7 @@ export default function SenseExplorerPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
+              <div data-guide className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">{noelLine}</div>
             </div>
           </div>
         )}
@@ -511,7 +511,7 @@ export default function SenseExplorerPage() {
             trophy={<span className="inline-flex items-end gap-1" style={{ filter: 'drop-shadow(0 0 16px rgba(165,243,252,0.9))' }}>
               <Crystal hue={190} size={40} /><Crystal hue={290} size={56} /><Crystal hue={330} size={40} />
             </span>}
-            message={<>Super-sharp {chapter.name} eyes! The caves are sparkling, and {pet.name} is dancing.</>}
+            message={`Super-sharp ${chapter.name} eyes! The caves are sparkling, and ${pet.name} is dancing.`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('sense-explorer', level)); setPhase('intro'); }}>{nextLabel('sense-explorer', level)} <GoArrow /></PlayButton>

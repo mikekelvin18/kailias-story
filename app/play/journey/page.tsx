@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
@@ -289,6 +290,11 @@ export default function JourneyPage() {
   const [screenSize, setScreenSize] = useState({ w: 360, h: 640 });
 
   useEffect(() => { playerRef.current = player; }, [player]);
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => {
+    testHook('journey', { phase, level, player, path: world?.path, required: world?.required,
+      met: party.filter(p => !p.startsWith(PET_TAG)).length, unsolved: world ? Object.values(world.encounters).filter(e => !e.solved).length : 0 });
+  });
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { worldRef.current = world; }, [world]);
 
@@ -331,7 +337,11 @@ export default function JourneyPage() {
 
   const tryFinish = useCallback(() => {
     if (!world) return;
-    if (party.length >= world.required) {
+    // only the wild friends met count (the partner picked on the first
+    // journey travels along but was never "met"; the robot check caught
+    // the flag opening one friend early on level 1)
+    const met = party.filter(p => !p.startsWith(PET_TAG)).length;
+    if (met >= world.required) {
       const totalMs = Date.now() - startedRef.current;
       logQuestMetric('processing', 'journey', { level, friends: world.required, wrongAnswers: wrongRef.current, steps: stepsRef.current, totalMs });
       const stars = levelStarlight(level, wrongRef.current);
@@ -343,9 +353,9 @@ export default function JourneyPage() {
       setKailiaHop(n => n + 1);
       setPhase('done');
     } else {
-      setDialog(`The flag needs more friends! ${world.required - party.length} still hiding in the tall grass…`);
+      setDialog(`The flag needs more friends! ${world.required - met} still hiding in the tall grass…`);
     }
-  }, [world, party.length, level, setPetMood]);
+  }, [world, party, level, setPetMood]);
 
   const tryFinishRef = useRef(tryFinish);
   useEffect(() => { tryFinishRef.current = tryFinish; }, [tryFinish]);
@@ -432,7 +442,7 @@ export default function JourneyPage() {
     const rect = viewportRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left + offsetX;
     const clickY = e.clientY - rect.top + offsetY;
-    walkTo(Math.floor(clickX / TILE), Math.floor(clickY / TILE));
+    walkTo(Math.floor(clickX / T), Math.floor(clickY / T));
   }
 
   useEffect(() => {
@@ -468,7 +478,7 @@ export default function JourneyPage() {
         })) });
         setActiveTile(null);
         setCaughtCreature(null);
-        setDialog(party.length + 1 >= world.required ? 'That was the last friend — head for the flag!' : 'Onward! More friends may be hiding in the grass…');
+        setDialog(party.filter(p => !p.startsWith(PET_TAG)).length + 1 >= world.required ? 'That was the last friend — head for the flag!' : 'Onward! More friends may be hiding in the grass…');
         setPetMood('cheer');
         setPhase('walking');
       }, 1500);
@@ -493,12 +503,20 @@ export default function JourneyPage() {
   // bottom of the screen — bias the camera so Kailia stays visible above
   // that reserved strip instead of centered dead-in-the-middle.
   const BOTTOM_UI_RESERVE = 190;
-  const maxOffX = Math.max(0, W * TILE - screenSize.w);
-  const maxOffY = Math.max(0, H * TILE - screenSize.h + BOTTOM_UI_RESERVE);
-  const offsetX = Math.max(0, Math.min(maxOffX, player.x * TILE - screenSize.w / 2 + TILE / 2));
   // …and past the top row too, so the flag up there never hides under the header
   const TOP_UI_RESERVE = 72;
-  const offsetY = Math.max(-TOP_UI_RESERVE, Math.min(maxOffY, player.y * TILE - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + TILE / 2));
+  // On a big screen the map grows to fill it (same shape) and sits in the
+  // middle; it used to keep its phone size in the top-left third (Muse and
+  // Grok, round 6). On a phone it stays tile-sized and the camera follows.
+  const zoom = Math.max(1, Math.min(screenSize.w / (W * TILE), (screenSize.h - BOTTOM_UI_RESERVE - TOP_UI_RESERVE) / (H * TILE)));
+  const T = TILE * zoom;
+  const mapW = W * T, mapH = H * T;
+  const maxOffX = Math.max(0, mapW - screenSize.w);
+  const maxOffY = Math.max(0, mapH - screenSize.h + BOTTOM_UI_RESERVE);
+  const offsetX = mapW <= screenSize.w ? -(screenSize.w - mapW) / 2
+    : Math.max(0, Math.min(maxOffX, player.x * T - screenSize.w / 2 + T / 2));
+  const offsetY = mapH <= screenSize.h - BOTTOM_UI_RESERVE - TOP_UI_RESERVE ? -(TOP_UI_RESERVE + (screenSize.h - BOTTOM_UI_RESERVE - TOP_UI_RESERVE - mapH) / 2)
+    : Math.max(-TOP_UI_RESERVE, Math.min(maxOffY, player.y * T - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + T / 2));
 
   // the still drawing of the map only changes when the world does
   const mapArt = useMemo(() => {
@@ -589,7 +607,7 @@ export default function JourneyPage() {
           <div ref={viewportRef} onClick={phase === 'walking' ? onViewportClick : undefined}
             className="absolute inset-0 select-none"
             style={{ background: world.biome.ground, cursor: phase === 'walking' ? 'pointer' : 'default' }}>
-            <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px)`, transition: 'transform 150ms linear' }}>
+            <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px) scale(${zoom})`, transformOrigin: '0 0', transition: 'transform 150ms linear' }}>
               {mapArt}
               {/* the moving bits: pond ripples, swaying tall grass, the flag */}
               {world.grid.map((row, y) => row.map((t, x) => {
@@ -646,7 +664,7 @@ export default function JourneyPage() {
 
           {/* ── Floating mini D-pad, inside the screen (tap-to-walk still works everywhere else) ── */}
           {phase === 'walking' && (
-            <div className="absolute z-[60]" style={{ right: 10, bottom: 196 }}>
+            <div className="absolute z-[60]" style={{ right: Math.max(10, (screenSize.w - mapW) / 2 + 10), bottom: 196 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 42px)', gridTemplateRows: 'repeat(3, 42px)', gap: 3 }}>
                 {([[null], [0, -1, 0], [null], [-1, 0, 270], [null], [1, 0, 90], [null], [0, 1, 180], [null]] as (number | null)[][]).map((d, i) => (
                   d[0] === null ? <div key={i} /> : (
@@ -822,7 +840,7 @@ export default function JourneyPage() {
                 {party.filter(p => !p.startsWith(PET_TAG)).map((p, i) => <Critter key={i} emoji={p} size={40} />)}
               </div>
             </div>}
-            message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
+            message={`You crossed ${world.biome.name}! ${party.length - partyPets} new friends joined your journey.`}
             earned={earned}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('journey', level); setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>

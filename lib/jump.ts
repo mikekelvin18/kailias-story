@@ -16,6 +16,7 @@
 import { CHILD_DATA_KEYS } from './family';
 import { LANDS } from './adventure';
 import { COMPANIONS } from './rewards';
+import { LADDERS, MILESTONE_DOMAINS, type Evidence } from './milestones';
 
 export const JUMP_CHILD_ID = 'child-jump';
 /** The outside reviewers' test child (/go/review): made once, then reused by
@@ -69,6 +70,7 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
   { group: 'Games (add ?level=N for any level, or leave it off and add ?age=N to see where a child that age starts)', items: GAME_ROUTES.map(g => ({ href: `/go/game/${g}?level=1`, label: g.replace(/-/g, ' ') })) },
   { group: 'Grown-up pages', items: [
     { href: '/go/results', label: 'Check-up results' },
+    { href: '/go/challenge', label: 'Challenge round (harder questions)' },
     { href: '/go/progress', label: 'Progress' },
     { href: '/go/family', label: 'Parent Zone' },
     { href: '/go/activities', label: 'Parent & Baby quests' },
@@ -127,6 +129,8 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     map: '/play', home: '/', story: '/story', results: '/results', progress: '/progress',
     family: '/family', 'parent-zone': '/family', activities: '/activities', printables: '/printables',
     upgrade: '/upgrade', plus: '/upgrade', garden: '/play/garden',
+    // the harder-questions round a grown-up can start from the results page
+    challenge: '/assessment/games?challenge=1', 'challenge-round': '/assessment/games?challenge=1',
   };
   if (simple[what]) plan.path = simple[what];
   else if (what === 'pet-popup' || what === 'pet') {
@@ -203,7 +207,11 @@ export function applyJump(plan: JumpPlan) {
 
   const now = new Date();
   const born = new Date(now.getFullYear(), now.getMonth() - plan.ageMonths, 1);
-  const child = { id: childId, nickname: 'Robin', birthYear: born.getFullYear(), birthMonth: born.getMonth() + 1, avatar: plan.buddy, createdAt: at };
+  // A reviewer's own profile is "Robin"; a link that needs a made-up state
+  // of its own (another age, the sign-up steps) uses "Sam", so the Parent
+  // Zone never shows two Robins (Muse and Grok, round 6).
+  const nickname = childId === JUMP_CHILD_ID && ls.getItem(REVIEW_MARK) === '1' ? 'Sam' : 'Robin';
+  const child = { id: childId, nickname, birthYear: born.getFullYear(), birthMonth: born.getMonth() + 1, avatar: plan.buddy, createdAt: at };
   const others = (fam?.children ?? []).filter(c => c.id !== childId);
   ls.setItem('kailia_family_v1', JSON.stringify({
     id: 'fam-preview', createdAt: at, photoConsent: null, migratedLegacyData: true,
@@ -219,12 +227,13 @@ export function applyJump(plan: JumpPlan) {
     // no game bumps its start level up from the check-up
     const s = Object.keys(plan.levels).length ? 0 : plan.all ? 10 : 4;
     ls.setItem(key('kailia_assessment_v1'), JSON.stringify({
-      childName: 'Robin', childAge: Math.floor(m / 12), childAgeMonths: m,
+      childName: nickname, childAge: Math.floor(m / 12), childAgeMonths: m,
       ageGroup: m < 12 ? 'infant' : m < 24 ? 'toddler' : m <= 59 ? 'preschool' : 'schoolAge',
       assessmentType: 'checklist', assessmentCompleted: true, sensoryCompleted: true,
       scores: { reading: s, writing: s, communication: s, math: s },
       sensoryScores: { lowRegistration: 0, seeking: 0, sensitive: 0, avoiding: 0 },
-      fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null, evidence: {},
+      fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null,
+      evidence: Object.keys(plan.levels).length ? {} : onTrackAnswers(m),
     }));
   }
 
@@ -333,4 +342,21 @@ function setCalm(ls: Storage, calm: boolean | null) {
     const a = JSON.parse(ls.getItem('kailia_a11y_v1') ?? '{}');
     ls.setItem('kailia_a11y_v1', JSON.stringify({ ...a, calmMode: calm }));
   } catch { /* ignore */ }
+}
+
+/** A believable check-up for the made-up child: the questions up to their
+ *  age answered yes, the year above it a mix, so the results and progress
+ *  pages read like a real on-track child ("about 6 to 6½ years, at or
+ *  above their age"), not "10–12 years" (Muse and Grok, round 6). */
+function onTrackAnswers(ageMonths: number): Partial<Record<string, Evidence[]>> {
+  const out: Partial<Record<string, Evidence[]>> = {};
+  for (const d of MILESTONE_DOMAINS) {
+    if (d === 'processing') continue;
+    const near = LADDERS[d].filter(it => it.months >= ageMonths - 24 && it.months <= ageMonths + 12);
+    out[d] = near.map((it, i) => ({
+      id: it.id, months: it.months, kind: 'parent' as const,
+      r: it.months <= ageMonths ? 1 : it.months <= ageMonths + 6 ? (i % 2 ? 1 : 0.5) : 0,
+    }));
+  }
+  return out;
 }

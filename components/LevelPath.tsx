@@ -5,6 +5,7 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 import { LockIcon, StarIcon } from '@/components/scenery/SkyDecor';
 import { Thing } from '@/components/art/things';
 import { useGameFit } from '@/hooks/useGameFit';
+import { nextGameLevel } from '@/lib/rewards';
 import { PLAY_TOGETHER_NOTE } from '@/lib/ageBands';
 import { LEVELS_PER_CHAPTER, MAX_LADDER_LEVEL, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
 
@@ -36,6 +37,7 @@ const SPOTS = [
 export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Props) {
   const [unlocked, setUnlocked] = useState(startLevel);
   const [beaten, setBeaten] = useState(0);
+  const [next, setNext] = useState(1); // this game's own next level (a reviewer's open levels aren't "beaten")
   const [page, setPage] = useState(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
   const fit = useGameFit(gameId);
   // grown-ups can open any level (Grok's review 2026-11-25): a sum first, so a child can't
@@ -51,6 +53,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
     /* eslint-disable react-hooks/set-state-in-effect */
     setUnlocked(unlockedUpTo(gameId, startLevel));
     setBeaten(highestBeaten(gameId));
+    setNext(nextGameLevel(gameId));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [gameId, startLevel]);
 
@@ -68,7 +71,11 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   // a world the child has only just reached (its first stone is the next one to play)
   const freshWorld = page > 0 && first === unlocked && beaten === first - 1;
   // far up the path, a quick way back to the newest level
-  const newestPage = Math.floor((unlocked - 1) / LEVELS_PER_CHAPTER);
+  // This game's own newest level: the one after the highest it has beaten
+  // (Muse round 6: with every level open for reviewers it said "31" on
+  // every game).
+  const newest = Math.max(startLevel, Math.min(unlocked, next));
+  const newestPage = Math.floor((newest - 1) / LEVELS_PER_CHAPTER);
 
   return (
     <div className="mx-2 mt-4 rounded-3xl px-3 pt-3 pb-2 select-none"
@@ -137,12 +144,12 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
       {fit.look.playTogether && (
         <p className="text-center text-sm font-bold text-white/90 pb-1" data-play-together>{PLAY_TOGETHER_NOTE}</p>
       )}
-      {newestPage !== page && unlocked > LEVELS_PER_CHAPTER && (
-        <div className="text-center pb-1">
-          <button onClick={() => { setPage(newestPage); onPick(unlocked); }}
-            className="px-4 py-1.5 rounded-full text-sm font-extrabold"
+      {newestPage !== page && newest > LEVELS_PER_CHAPTER && (
+        <div className="text-center pt-1 pb-1">
+          <button data-newest-level={newest} onClick={() => { setPage(newestPage); onPick(newest); }}
+            className="min-h-[44px] px-4 py-2 rounded-full text-base font-extrabold"
             style={{ background: 'rgba(255,255,255,0.9)', color: '#1E293B' }}>
-            Go to my newest level ({unlocked})
+            Back to my newest level ({newest})
           </button>
         </div>
       )}

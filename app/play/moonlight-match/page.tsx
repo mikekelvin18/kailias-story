@@ -143,6 +143,7 @@ export default function MoonlightMatchPage() {
   // card; Muse round 4).
   const upRef = useRef<Set<number>>(new Set());
   const missRunRef = useRef(0); // mismatches in a row (for the friend's hint)
+  const helpRef = useRef(false); // the child tapped the friend for help: show the next card's twin
   const statsRef = useRef({ flips: 0, mismatches: 0, startedAt: 0, bestStreak: 0 });
   const stageRef = useRef<HTMLDivElement>(null);
   const cardEls = useRef<Record<number, HTMLButtonElement | null>>({});
@@ -217,7 +218,8 @@ export default function MoonlightMatchPage() {
     if (openRef.current === null) {
       openRef.current = cardId;
       // two misses in a row: the friend runs under this one's twin and bounces
-      if (missRunRef.current >= 2) {
+      if (missRunRef.current >= 2 || helpRef.current) {
+        helpRef.current = false;
         const twin = cards.find(c => c.matchKey === card.matchKey && c.id !== cardId);
         if (twin) {
           setHintId(twin.id);
@@ -275,10 +277,26 @@ export default function MoonlightMatchPage() {
     }
   }
 
+  // Tapping the friend asks for help, every time (Muse round 6: it only
+  // helped after two misses in a row, so a tap often did nothing visible).
+  // A card is up: its twin glows. No card up: one card glows to start
+  // with, and once it is flipped, its twin glows.
   function tickle() {
-    setPetMood('dance');
     chime.tap();
-    setTimeout(() => setPetMood('idle'), 1300);
+    if (phase !== 'playing') { setPetMood('dance'); setTimeout(() => setPetMood('idle'), 1300); return; }
+    const open = openRef.current != null ? cards.find(c => c.id === openRef.current) : null;
+    const target = open
+      ? cards.find(c => c.matchKey === open.matchKey && c.id !== open.id && c.state === 'down')
+      : cards.find(c => c.state === 'down');
+    if (!target) return;
+    if (!open) helpRef.current = true;
+    setHintId(target.id);
+    setPetMood('talk');
+    const kx = kailiaX;
+    const tx = clampPct(spotOf(target.id).x);
+    setPetX(Math.abs(tx - kx) < 15 ? clampPct(tx + (tx > 50 ? -15 : 15)) : tx);
+    setNoelLine(open ? `${pet.name} found its twin: flip the glowing card!` : `${pet.name} says: flip the glowing card, then I'll show you its twin!`);
+    setNoelMood('excited');
   }
 
   function completeLevel() {
@@ -347,7 +365,8 @@ export default function MoonlightMatchPage() {
               <p>
                 Flip two at a time and remember where everyone sleeps. Match pairs in a row for
                 <strong> combo magic</strong>!
-              </p></>}
+              </p>
+              <p data-hint-help>{`Stuck? Tap ${pet.name} and a card will glow to help you.`}</p></>}
               extras={<div className="flex items-end justify-center gap-3"><span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
                 <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
               </span></div>}
@@ -408,7 +427,7 @@ export default function MoonlightMatchPage() {
               <KailiaActor x={kailiaX} y={96} h={80} hop={kailiaHop} z={9} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={95} h={58}
-                  mood={petMood} moodKey={petMoodKey} moveMs={900} onTap={tickle} z={9} />
+                  mood={petMood} moodKey={petMoodKey} moveMs={900} onTap={tickle} tapLabel={`Ask ${pet.name} for a hint`} z={9} />
               </div>
 
               {burstLayer}
@@ -444,7 +463,7 @@ export default function MoonlightMatchPage() {
             theme={{ bg: 'linear-gradient(135deg, #1e1b4b, #5b21b6)', accent: '#A78BFA', accent2: '#7C3AED' }}
             pet={pet}
             trophy={<span className="inline-block" style={{ filter: 'drop-shadow(0 0 18px rgba(255,241,184,0.7))' }}><Shape kind="moon" size={84} /></span>}
-            message={<>Every friend found their twin under the moon. {pet.name} is doing a happy dance!{statsRef.current.bestStreak >= 2 && <><br />Best combo ×{statsRef.current.bestStreak}!</>}</>}
+            message={<>{`Every friend found their twin under the moon. ${pet.name} is doing a happy dance!`}{statsRef.current.bestStreak >= 2 && <><br />{`Best combo ×${statsRef.current.bestStreak}!`}</>}</>}
             earned={levelStarlight(level, statsRef.current.mismatches)}
             actions={<>
               <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('moonlight-match', level); setLevel(nl); startLevel(nl); }}>{nextLabel('moonlight-match', level)} <GoArrow /></PlayButton>
