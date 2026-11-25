@@ -3,6 +3,7 @@
 // speaks, it never listens). tones(): small sine-wave chimes. Both stay
 // silent when the device has no voice or sound is switched off in the app.
 
+import { buzzGood } from '@/lib/haptics';
 import { soundEnabled } from '@/lib/accessibility';
 import { say, canSpeak as canSay } from '@/lib/voice';
 import { sfxOut } from '@/lib/sfx';
@@ -41,7 +42,7 @@ export function tones(notes: { f: number; t: number; d: number }[], type: Oscill
 
 export const chime = {
   tap: () => tones([{ f: 620, t: 0, d: 0.08 }]),
-  good: () => tones([{ f: 660, t: 0, d: 0.12 }, { f: 880, t: 0.09, d: 0.2 }]),
+  good: () => { buzzGood(); tones([{ f: 660, t: 0, d: 0.12 }, { f: 880, t: 0.09, d: 0.2 }]); },
   soft: () => tones([{ f: 330, t: 0, d: 0.18 }]),
   fanfare: () => tones([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };

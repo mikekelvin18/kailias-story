@@ -23,6 +23,9 @@ import BottomNav from '@/components/BottomNav';
 import CarePet from '@/components/carepet/CarePet';
 import PopupClose, { OnTop } from '@/components/PopupClose';
 import CalmToggle from '@/components/CalmToggle';
+import FeelingsCheck from '@/components/FeelingsCheck';
+import { LAND_FEELING } from '@/lib/wellbeing';
+import { JUMP_FEELINGS_KEY } from '@/lib/jump';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -64,7 +67,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 
 const sfx = {
   open:   () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.08, d: 0.2 }]),
-  locked: () => playNotes([{ f: 196, t: 0, d: 0.25 }]),
+  locked: () => playNotes([{ f: 392, t: 0, d: 0.1 }, { f: 440, t: 0.09, d: 0.14 }]), // a soft "not yet", never a low buzz
   play:   () => playNotes([{ f: 523, t: 0, d: 0.1 }, { f: 659, t: 0.07, d: 0.1 }, { f: 784, t: 0.14, d: 0.25 }]),
   fanfare:() => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.4 }]),
 };
@@ -123,6 +126,7 @@ export default function AdventureMap() {
   const [hydrated, setHydrated] = useState(false);
   const [openLand, setOpenLand] = useState<Land | null>(null);
   const [celebrating, setCelebrating] = useState<Land | null>(null);
+  const [feelingLand, setFeelingLand] = useState<string | null>(null);
   const [shakeId, setShakeId] = useState<string | null>(null);
   const [noelLine, setNoelLine] = useState(IDLE_LINES[0]);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
@@ -186,6 +190,11 @@ export default function AdventureMap() {
       setCelebrating(done);
       sfx.fanfare();
     }
+    // a preview jump link (/go/feelings) opens the feelings check-in
+    try {
+      const f = sessionStorage.getItem(JUMP_FEELINGS_KEY);
+      if (f && LAND_FEELING[f]) setFeelingLand(f);
+    } catch { /* fine without */ }
     // a preview jump link (/go/land/<id>, lib/jump.ts) opens one land's sheet
     try {
       const jump = sessionStorage.getItem('kailia_jump_open_land');
@@ -285,6 +294,8 @@ export default function AdventureMap() {
   function closeCelebration(land: Land) {
     setProgress(markCelebrated(land.id));
     setCelebrating(null);
+    // then Kailia shares how she felt there and asks how the child feels
+    if (LAND_FEELING[land.id]) setFeelingLand(land.id);
   }
 
   // Renders the map at either the phone (portrait, land.x/land.y) or
@@ -630,7 +641,7 @@ export default function AdventureMap() {
             {noelLine}
           </div>
           {/* the daily care pet (components/carepet) — pops up once a day */}
-          <CarePet holdAutoOpen={dailyPopped || showGuide || !!openLand || !!celebrating || !!newCompanion} />
+          <CarePet holdAutoOpen={dailyPopped || showGuide || !!openLand || !!celebrating || !!newCompanion || !!feelingLand} />
         </div>
 
         {/* Companions no longer sit in a permanent row here — unlocking one
@@ -898,6 +909,8 @@ export default function AdventureMap() {
           </div>
         </div>
       )}
+      {/* ── Feelings check-in after each land (components/FeelingsCheck) ── */}
+      {feelingLand && <FeelingsCheck land={feelingLand} onDone={() => { try { sessionStorage.removeItem(JUMP_FEELINGS_KEY); } catch { /* fine */ } setFeelingLand(null); }} />}
       <BottomNav />
     </main>
   );

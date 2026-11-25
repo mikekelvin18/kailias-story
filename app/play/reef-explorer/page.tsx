@@ -1,5 +1,7 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
+import { lowVisual } from '@/lib/accessibility';
 import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -125,7 +127,7 @@ function lookAlike(t: Look, band: number): { look: Look; diff: Trait } {
 }
 
 const sfx = {
-  find: () => tones([{ f: 660, t: 0, d: 0.1 }, { f: 880, t: 0.08, d: 0.1 }, { f: 1175, t: 0.16, d: 0.22 }]),
+  find: () => { buzzGood(); tones([{ f: 660, t: 0, d: 0.1 }, { f: 880, t: 0.08, d: 0.1 }, { f: 1175, t: 0.16, d: 0.22 }]); },
   bloop: () => tones([{ f: 300, t: 0, d: 0.12 }, { f: 420, t: 0.08, d: 0.14 }], 'triangle'),
 };
 
@@ -173,7 +175,8 @@ export default function ReefExplorerPage() {
   const startRound = useCallback((idx: number) => {
     const t = lookFor(plan.band);
     const list: Fish[] = [];
-    const n = plan.fish;
+    // Low visual (grown-ups' setting): fewer swimmers, so the scene is calmer
+    const n = lowVisual() ? Math.max(3, Math.round(plan.fish * 0.6)) : plan.fish;
     const targetAt = Math.floor(Math.random() * n);
     for (let i = 0; i < n; i++) {
       const isT = i === targetAt;

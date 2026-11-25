@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
@@ -79,14 +80,14 @@ const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 import { soundEnabled } from '@/lib/accessibility';
 import { audioCtx, sfxOut } from '@/lib/sfx';
-function playNotes(notes: { f: number; t: number; d: number }[]) {
+function playNotes(notes: { f: number; t: number; d: number }[], wave: OscillatorType = 'square') {
   if (!soundEnabled()) return;
   try {
     const ctx = audioCtx();
     if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type = 'square'; o.frequency.value = f;
+      o.type = wave; o.frequency.value = f;
       g.gain.setValueAtTime(0.06, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
       o.connect(g).connect(sfxOut(ctx)); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
@@ -96,8 +97,9 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 const sfx = {
   step: () => playNotes([{ f: 220, t: 0, d: 0.03 }]),
   encounter: () => playNotes([{ f: 220, t: 0, d: 0.1 }, { f: 175, t: 0.1, d: 0.1 }, { f: 220, t: 0.2, d: 0.1 }, { f: 330, t: 0.3, d: 0.2 }]),
-  wrong: () => playNotes([{ f: 220, t: 0, d: 0.12 }, { f: 196, t: 0.1, d: 0.16 }]),
-  catch_: () => playNotes([{ f: 392, t: 0, d: 0.08 }, { f: 392, t: 0.15, d: 0.08 }, { f: 392, t: 0.3, d: 0.08 }, { f: 659, t: 0.5, d: 0.15 }, { f: 880, t: 0.62, d: 0.3 }]),
+  // soft and rising (sine, not the retro square): a miss is "let's try again", never a buzzer
+  wrong: () => playNotes([{ f: 392, t: 0, d: 0.1 }, { f: 440, t: 0.09, d: 0.14 }], 'sine'),
+  catch_: () => { buzzGood(); playNotes([{ f: 392, t: 0, d: 0.08 }, { f: 392, t: 0.15, d: 0.08 }, { f: 392, t: 0.3, d: 0.08 }, { f: 659, t: 0.5, d: 0.15 }, { f: 880, t: 0.62, d: 0.3 }]); },
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 

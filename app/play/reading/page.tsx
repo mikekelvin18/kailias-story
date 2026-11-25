@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import { dealIndex, levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -255,6 +256,7 @@ export default function WordWizardPage() {
       s.readMs += Date.now() - s.qStartedAt;
       if (triesThisQ === 0) s.firstTry += 1;
       setPopped(choice);
+      buzzGood();
       chime([659, 784, 1047]);
       setNoelLine(HAPPY_LINES[qIdx % HAPPY_LINES.length]);
       setNoelMood('excited');

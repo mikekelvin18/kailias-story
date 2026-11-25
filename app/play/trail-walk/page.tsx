@@ -1,5 +1,7 @@
 'use client';
 
+import { useTalkMoment } from '@/components/TalkMoment';
+import { buzzGood } from '@/lib/haptics';
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
@@ -71,8 +73,8 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
   } catch { /* optional */ }
 }
 const sfx = {
-  join: () => playNotes([{ f: 659, t: 0, d: 0.1 }, { f: 880, t: 0.08, d: 0.2 }]),
-  hmm: () => playNotes([{ f: 294, t: 0, d: 0.15 }, { f: 262, t: 0.13, d: 0.2 }]),
+  join: () => { buzzGood(); playNotes([{ f: 659, t: 0, d: 0.1 }, { f: 880, t: 0.08, d: 0.2 }]); },
+  hmm: () => playNotes([{ f: 330, t: 0, d: 0.12 }, { f: 392, t: 0.12, d: 0.16 }]), // a curious rising "hmm?", never a falling "uh-oh"
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 
@@ -120,6 +122,7 @@ export default function TrailWalkPage() {
   const pet = usePlayPet();
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const { layer: burstLayer, fire } = useBursts();
+  const talk = useTalkMoment('trail-walk');
 
   // the scene's width, so everyone stands in proportion on any phone
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -229,6 +232,8 @@ export default function TrailWalkPage() {
       setTries(0);
       setStop(s => s + 1);
       setPhase('walking');
+      // after the first friend joins, Kailia pauses: "Your turn!" (once a level)
+      if (stop === 0) setTimeout(() => talk.maybe(() => {}, `level-${level}`), 900);
     } else {
       wrongsRef.current += 1;
       sfx.hmm();

@@ -65,6 +65,9 @@ export const CHILD_DATA_KEYS = [
   'kailia_pet_v1',             // daily care pet: growth, today's task, difficulty steps
   'kailia_walletpet_v1',       // wallet lab (experiment): the pet card's device key + card number
   'kailia_world_v1',           // adventure world: quest steps, discoveries, grown-up task settings
+  'kailia_talk_v1',            // "Your turn to talk": a grown-up's Said it / Tried / Not yet taps (no audio, no text)
+  'kailia_feelings_v1',        // feelings check-in after each land: which face was tapped
+  'kailia_playtime_v1',        // minutes played today, for break reminders and "Done for today"
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -326,6 +329,28 @@ export function childDataInventory(): DataSection[] {
       ...((pet.history ?? []) as { day: string; need: string; step: number; outcome: string }[]).slice(-14)
         .map(h => `${h.day} — ${h.need} at step ${h.step}: ${h.outcome === 'win' ? 'easy win' : h.outcome === 'help' ? 'with help' : 'not yet'}`),
     ]});
+  }
+
+  const talk = read('kailia_talk_v1');
+  if (Array.isArray(talk) && talk.length) {
+    const word: Record<string, string> = { said: 'said it', tried: 'tried', notyet: 'not yet' };
+    sections.push({ label: '🗣️ Your turn to talk (grown-up taps)', items:
+      (talk as { ts: number; place: string; prompt: string; rating: string }[]).slice(-25)
+        .map(t => `${new Date(t.ts).toLocaleDateString()} — ${t.place}, ${t.prompt}: ${word[t.rating] ?? t.rating}`),
+    });
+  }
+
+  const feelings = read('kailia_feelings_v1');
+  if (Array.isArray(feelings) && feelings.length) {
+    sections.push({ label: '💛 Feelings check-ins', items:
+      (feelings as { ts: number; land: string; feeling: string; breathed: boolean }[]).slice(-25)
+        .map(f => `${new Date(f.ts).toLocaleDateString()} — after ${f.land}: ${f.feeling}${f.breathed ? ' (breathing bubble)' : ''}`),
+    });
+  }
+
+  const playtime = read('kailia_playtime_v1');
+  if (playtime?.day) {
+    sections.push({ label: '⏱️ Play time', items: [`${playtime.day}: about ${Math.round((playtime.ms ?? 0) / 60000)} minutes`] });
   }
 
   const daily = read('kailia_daily_v1');

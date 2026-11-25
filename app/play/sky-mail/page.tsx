@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -167,7 +168,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 }
 
 const sfx = {
-  whoosh: () => playNotes([{ f: 880, t: 0, d: 0.09 }, { f: 1245, t: 0.05, d: 0.14 }]),
+  whoosh: () => { buzzGood(); playNotes([{ f: 880, t: 0, d: 0.09 }, { f: 1245, t: 0.05, d: 0.14 }]); },
   back:   () => playNotes([{ f: 262, t: 0, d: 0.18 }]),
   deck:   () => playNotes([{ f: 659, t: 0, d: 0.12 }, { f: 784, t: 0.1, d: 0.12 }, { f: 988, t: 0.2, d: 0.25 }]),
   fanfare:() => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),

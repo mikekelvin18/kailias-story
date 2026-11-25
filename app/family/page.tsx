@@ -19,6 +19,7 @@ import { useAssessment } from '@/context/AssessmentContext';
 import BackButton from '@/components/ui/BackButton';
 import StepGuide from '@/components/ui/StepGuide';
 import Section from '@/components/ui/Section';
+import PlaySettings from '@/components/family/PlaySettings';
 import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
@@ -85,7 +86,9 @@ export default function ParentZonePage() {
   }
 
   function updateA11y(patch: Partial<AccessibilityPrefs>) {
-    const next = { ...a11y, ...patch };
+    // start from what's saved now, so settings changed in another section
+    // (Senses, talking & breaks) are never overwritten by an older copy
+    const next = { ...loadA11y(), ...patch };
     saveA11y(next);
     applyA11y(next);
     setA11y(next);
@@ -484,6 +487,9 @@ export default function ParentZonePage() {
             These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
           </p>
         </Section>
+
+        {/* volume per sound, Gentle sounds, Low visual, buzz, talking pauses, breaks */}
+        <PlaySettings />
 
         {/* Privacy & data — parental rights (COPPA rule 7): view everything
             stored, delete the child, delete the account. Always reachable

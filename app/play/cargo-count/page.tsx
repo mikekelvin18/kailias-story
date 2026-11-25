@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -141,9 +142,9 @@ function rejoin(pods: Pod[], p: Pod, speed: number): Pod {
 
 const sfx = {
   beam:   () => tones([{ f: 520, t: 0, d: 0.1 }, { f: 780, t: 0.06, d: 0.1 }, { f: 1040, t: 0.12, d: 0.16 }], 'triangle'),
-  back:   () => tones([{ f: 700, t: 0, d: 0.1 }, { f: 470, t: 0.07, d: 0.16 }], 'triangle'),
+  back:   () => tones([{ f: 440, t: 0, d: 0.1 }, { f: 494, t: 0.08, d: 0.14 }]), // soft and rising, never a falling buzz
   rumble: () => tones([{ f: 140, t: 0, d: 0.25 }, { f: 120, t: 0.15, d: 0.3 }], 'triangle'),
-  launch: () => tones([{ f: 392, t: 0, d: 0.14 }, { f: 523, t: 0.12, d: 0.14 }, { f: 659, t: 0.24, d: 0.14 }, { f: 784, t: 0.36, d: 0.4 }]),
+  launch: () => { buzzGood(); tones([{ f: 392, t: 0, d: 0.14 }, { f: 523, t: 0.12, d: 0.14 }, { f: 659, t: 0.24, d: 0.14 }, { f: 784, t: 0.36, d: 0.4 }]); },
 };
 
 const CHEERS = ['Lift off! Perfect count!', 'Whoosh! The crew loves it!', 'Right on the number! Off it goes!'];

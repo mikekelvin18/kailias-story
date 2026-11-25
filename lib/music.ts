@@ -25,7 +25,7 @@
 // beat and the bounce and plays it softer, the old dreamy way.
 
 import { onTalking } from './voice';
-import { sfxOut } from './sfx';
+import { musicOut } from './sfx';
 import { loadA11y } from './accessibility';
 
 type Song = {
@@ -170,7 +170,7 @@ class ChillPlayer {
     this.wet = ctx.createGain(); this.wet.gain.value = 0.35;
     this.dry.connect(tone);
     this.wet.connect(verb).connect(tone);
-    tone.connect(this.duck).connect(this.master).connect(sfxOut(ctx)); // grown-ups' volume
+    tone.connect(this.duck).connect(this.master).connect(musicOut(ctx)); // grown-ups' music slider
 
     // one second of noise for the shaker
     this.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);

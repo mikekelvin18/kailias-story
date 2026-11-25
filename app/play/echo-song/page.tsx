@@ -1,5 +1,6 @@
 'use client';
 
+import { useTalkMoment } from '@/components/TalkMoment';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
@@ -93,6 +94,7 @@ const SONGS: { line: string; done: string; who: StoryWho | null }[] = [
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
+  const talk = useTalkMoment('echo-song');
   const { state, totalScore, devMonths } = useAssessment();
   const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
 
@@ -216,7 +218,11 @@ export default function EchoSongPage() {
           fanfare();
           SPOTS.forEach(([x, y], i) => fire(x, y - 14, ['#FFE066', '#FFFFFF', CRYSTALS[i].color], 10, 60));
         }, 280));
-        timersRef.current.push(setTimeout(() => setPhase('levelDone'), 1800));
+        // every other song, Kailia pauses before the party: "Your turn!"
+        timersRef.current.push(setTimeout(() => {
+          if (level % 2 === 1) talk.maybe(() => setPhase('levelDone'), `level-${level}`);
+          else setPhase('levelDone');
+        }, 1800));
       }
     } else {
       statsRef.current.attempts += 1;

@@ -24,6 +24,28 @@ export interface AccessibilityPrefs {
   narrationOn: boolean;
   /** How fast the voices read: 0.8 (slower), 1 or 1.2 (quicker). */
   narrationSpeed: number;
+  // ── Grown-ups' sensory and play settings (Parent Zone > "Senses, talking & breaks") ──
+  /** Loudness of Noel's, Kailia's and the friends' voices, 0–1. */
+  voiceVolume: number;
+  /** Loudness of the little game sounds (taps, chimes, cheers), 0–1. */
+  effectsVolume: number;
+  /** Loudness of the soft background music, 0–1. */
+  musicVolume: number;
+  /** Gentle sounds: sharp sound effects are rounded off and celebrations play quieter. */
+  gentleSounds: boolean;
+  /** Low visual: everything Calm mode does, plus no confetti (one still star
+   *  instead) and fewer things hiding in busy scenes. */
+  lowVisual: boolean;
+  /** A tiny buzz on a right tap, on phones that can vibrate. */
+  haptics: boolean;
+  /** "Your turn to talk" pauses in the story and talking games. */
+  talkPauses: boolean;
+  /** How long Kailia waits for the child to talk, in seconds (3, 5 or 8). */
+  talkWait: number;
+  /** Break reminder after this many minutes of play: 'auto' (15 under 5, else 20), or 0 = off. */
+  breakMinutes: 'auto' | 0 | 10 | 15 | 20;
+  /** "Done for today" after this many minutes of play in a day (0 = off). */
+  dailyMinutes: number;
 }
 
 export const DEFAULT_A11Y: AccessibilityPrefs = {
@@ -38,7 +60,22 @@ export const DEFAULT_A11Y: AccessibilityPrefs = {
   volume: 1,
   narrationOn: true,
   narrationSpeed: 1,
+  voiceVolume: 1,
+  effectsVolume: 1,
+  musicVolume: 1,
+  gentleSounds: false,
+  lowVisual: false,
+  haptics: true,
+  talkPauses: true,
+  talkWait: 5,
+  breakMinutes: 'auto',
+  dailyMinutes: 0,
 };
+
+export const TALK_WAITS = [3, 5, 8] as const;
+export const BREAK_CHOICES = [0, 10, 15, 20] as const;
+export const DAILY_CHOICES = [0, 20, 30, 45, 60] as const;
+const unit = (v: unknown, fallback = 1) => { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback; };
 
 export const NARRATION_SPEEDS = [0.8, 1, 1.2] as const;
 /** Read-aloud speed, always one of NARRATION_SPEEDS. */
@@ -86,16 +123,25 @@ export function deviceWantsLessMotion(): boolean {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
 }
 
+/** The phone or computer itself asks for more contrast. */
+export function deviceWantsMoreContrast(): boolean {
+  try { return window.matchMedia('(prefers-contrast: more)').matches; } catch { return false; }
+}
+
 export function applyA11y(prefs: AccessibilityPrefs) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
+  // Low visual includes every Calm mode rule (one stiller look, not two
+  // competing ones), and adds its own on top (data-low-visual).
+  root.dataset.lowVisual = String(!!prefs.lowVisual);
+  root.dataset.contrast = deviceWantsMoreContrast() ? 'more' : 'normal';
   // the device's own "reduce motion" counts too, without anyone having to
   // find the switch in the Parent Zone
   root.dataset.reducedMotion = String(prefs.reducedMotion || deviceWantsLessMotion());
   root.dataset.textSize = prefs.textSize;
   root.dataset.dyslexiaFriendly = String(prefs.dyslexiaFriendly);
   root.dataset.colorblindSafe = String(prefs.colorblindSafe);
-  root.dataset.calm = String(prefs.calmMode);
+  root.dataset.calm = String(prefs.calmMode || !!prefs.lowVisual);
 }
 
 // Games check this before playing any sound effect.
@@ -123,10 +169,26 @@ export function masterVolume(): number {
   return mutedNow || loadA11y().reducedSound ? 0 : 1;
 }
 
+// ── One slider each for voices, sound effects and music ──
+// Each is the grown-ups' slider times the on/off above, so "Sound off" and
+// the sound button still silence everything.
+export function voiceVolume(): number { return masterVolume() * unit(loadA11y().voiceVolume); }
+export function effectsVolume(): number {
+  const a = loadA11y();
+  return masterVolume() * unit(a.effectsVolume) * (a.gentleSounds ? 0.6 : 1);
+}
+export function musicVolume(): number {
+  const a = loadA11y();
+  return masterVolume() * unit(a.musicVolume) * (a.gentleSounds ? 0.8 : 1);
+}
+export function gentleSounds(): boolean { return !!loadA11y().gentleSounds; }
+/** Low visual (grown-ups' setting): no confetti, fewer moving things. */
+export function lowVisual(): boolean { return !!loadA11y().lowVisual; }
+
 // Background music plays only when music is on AND sound isn't turned down.
 export function musicEnabled(): boolean {
   const a = loadA11y();
-  return !mutedNow && a.musicOn && !a.reducedSound;
+  return !mutedNow && a.musicOn && !a.reducedSound && unit(a.musicVolume) > 0;
 }
 
 // Other parts of the app (the music player) listen for changes made anywhere.
