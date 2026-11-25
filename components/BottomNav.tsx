@@ -49,7 +49,7 @@ export default function BottomNav() {
                   filter: active ? 'none' : 'saturate(0.75)' }}>
                 <Thing id={tab.pic} size={28} />
               </span>
-              <span className={`text-xs sm:text-sm ${active ? 'font-extrabold' : 'font-bold'}`}>{tab.label}</span>
+              <span className={`text-base leading-tight ${active ? 'font-extrabold' : 'font-bold'}`}>{tab.label}</span>
             </Link>
           );
         })}

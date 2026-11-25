@@ -130,7 +130,7 @@ export default function StoryPage() {
         </button>
         {!isLast && (
           <button onClick={() => setPanel(PANELS.length - 1)}
-            className="block mx-auto mt-4 text-sm font-bold text-white underline underline-offset-4" style={{ opacity: 0.85 }}>
+            className="block mx-auto mt-3 min-h-[48px] px-4 text-base font-bold text-white underline underline-offset-4" style={{ opacity: 0.9 }}>
             Skip the story
           </button>
         )}

@@ -882,7 +882,7 @@ export default function MazeRunnerPage() {
       <div data-play-col className="max-w-2xl mx-auto">
 
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
+          <Link href="/play" className="kp-back font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.85)'}}>
             Lv {level}

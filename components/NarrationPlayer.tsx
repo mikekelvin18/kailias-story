@@ -68,7 +68,7 @@ export function NarrationControls({ playing, onPlay, onPause, onReplay, tone = '
           <button key={s} type="button" onClick={() => updateA11yPrefs({ narrationSpeed: s })}
             aria-pressed={speed === s} aria-label={`${SPEED_LABEL[s]} reading, ${s} times`}
             className="rounded-full font-extrabold"
-            style={{ minWidth: 48, minHeight: 40, padding: '0 8px', fontSize: 16,
+            style={{ minWidth: 48, minHeight: 48, padding: '0 8px', fontSize: 16,
               background: speed === s ? '#7C3AED' : 'transparent', color: speed === s ? '#fff' : ink }}>
             {s === 1 ? '1×' : `${s}×`}
           </button>

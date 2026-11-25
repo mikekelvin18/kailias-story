@@ -368,7 +368,7 @@ export default function SenseExplorerPage() {
       <GameBackdrop mode="play" />
       <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Sense Explorer <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"

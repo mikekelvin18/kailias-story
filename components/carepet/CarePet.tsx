@@ -364,8 +364,8 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
               border: '4px solid #FFFFFF',
               boxShadow: '0 28px 80px rgba(20,10,50,0.55), 0 0 0 1px rgba(59,47,99,0.08)',
             }}>
-            {/* top bar: read again · growth path (the X sits on the corner) */}
-            <div className="relative z-10 flex items-center gap-3 pl-3 pr-12 pt-3">
+            {/* top bar: read again · growth path (room on the right for the X, which sits inside the corner) */}
+            <div className="relative z-10 flex items-center gap-3 pl-3 pr-[68px] pt-3">
               <RoundButton label="Read it again" onClick={() => speak(line)}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
                   <path d="M4 9v6h4l5 4V5L8 9z" fill={ACCENT} /><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />

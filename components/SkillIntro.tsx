@@ -17,9 +17,9 @@ export default function SkillIntro({ gameId }: { gameId: string }) {
     <div className="mt-4 mx-2 text-left rounded-2xl overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.12)', border: '1.5px solid rgba(255,255,255,0.25)' }}>
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between pl-4 pr-16 py-2 text-xs font-bold"
+        className="w-full flex items-center justify-between pl-4 pr-16 py-2 min-h-[48px] text-sm font-bold"
         style={{ color: 'rgba(255,255,255,0.85)' }}>
-        <span>👨‍👩‍👧 For grown-ups: what this game builds</span>
+        <span>For grown-ups: what this game builds</span>
         <span>{open ? '▴' : '▾'}</span>
       </button>
       {open && (

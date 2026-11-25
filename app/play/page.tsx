@@ -399,13 +399,15 @@ export default function AdventureMap() {
                   )}
                   {/* Done / not-done corner badge, so it's clear at a glance
                       which lands are finished even though the next land
-                      opens after just one quest. */}
+                      opens after just one quest. Bottom corner: at the top
+                      it sat under the name of the land above (Story Keepers
+                      over Dragon's Cave on a phone). */}
                   {unlocked && !isBonus && complete && (
-                    <span className="absolute top-0 right-0 flex items-center justify-center rounded-full w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm font-extrabold text-white"
+                    <span className="absolute bottom-1 right-0 flex items-center justify-center rounded-full w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm font-extrabold text-white"
                       style={{ background: '#16A34A', border: '2px solid white' }} aria-label="Finished">✓</span>
                   )}
                   {unlocked && !isBonus && !complete && landStars(progress, land) > 0 && (
-                    <span className="absolute top-0 -right-3 rounded-full px-1.5 py-0.5 text-[11px] sm:text-sm font-extrabold whitespace-nowrap wiggle"
+                    <span className="absolute bottom-1 -right-3 rounded-full px-1.5 py-0.5 text-[11px] sm:text-sm font-extrabold whitespace-nowrap wiggle"
                       style={{ background: '#F59E0B', color: '#3B1F00', border: '2px solid white' }}
                       aria-label={`${landStars(progress, land)} of ${land.quests.length} quests done`}>
                       {landStars(progress, land)}/{land.quests.length}
@@ -440,7 +442,7 @@ export default function AdventureMap() {
               {/* mapLabel (a shorter name where needed) + whitespace-nowrap
                   keep this to one line — a long full name wrapping to 2-3
                   lines was tall enough to overlap the land below it. */}
-              <span className="relative block mt-1 text-[11px] sm:text-sm lg:text-base font-extrabold whitespace-nowrap px-1 py-0.5 rounded-lg mx-auto w-fit"
+              <span className="relative block mt-1 text-sm lg:text-base font-extrabold whitespace-nowrap px-1.5 py-0.5 rounded-lg mx-auto w-fit"
                 style={{ color: unlocked ? 'white' : 'rgba(255,255,255,0.85)', background: unlocked ? 'rgba(15,23,42,0.62)' : 'rgba(51,65,85,0.55)' }}>
                 {unlocked ? (land.mapLabel ?? land.name) : (isBonus ? 'A new realm…' : (land.mapLabel ?? land.name))}
               </span>
@@ -497,34 +499,42 @@ export default function AdventureMap() {
             </h1>
             {child && (
               <Link href="/family" title={`Playing as ${child.nickname} — tap to switch`}
-                className="rounded-full flex-shrink-0 flex"
+                className="kp-tap-pad kp-tap-pad-lg rounded-full flex-shrink-0 flex"
                 style={{ border: `1.5px solid ${theme.badgeBorder}` }}>
                 <ChildAvatar avatar={child.avatar} size={28} />
               </Link>
             )}
           </div>
-          <div className="flex gap-1.5 flex-shrink-0 ml-auto">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0 ml-auto">
             <button onClick={() => setShowGuide(true)}
-              className={`px-2.5 py-1.5 rounded-full font-bold text-xs ${theme.badgeText} transition-transform hover:scale-105`}
+              className={`kp-tap-pad inline-flex items-center gap-1 min-h-[40px] px-3 rounded-full font-bold text-base ${theme.badgeText} transition-transform hover:scale-105`}
               style={{ background: theme.badgeBg, border: `1.5px solid ${theme.badgeBorder}` }}>
-              <StarIcon size={14} /> {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span style={{ opacity: 0.7 }}>ⓘ</span>
+              <StarIcon size={14} /> {rewards.starlight} · Lv {explorerLevel(rewards.starlight)} <span className="hidden sm:inline" style={{ opacity: 0.7 }}>ⓘ</span>
             </button>
-            <ThemeToggle />
           </div>
         </div>
-        <p data-map-sub className={`text-xs px-1 mb-1 sm:mb-3 font-semibold flex-shrink-0 ${theme.subtitle}`}>
-          {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
-        </p>
+        {/* second row: the greeting, then the day/night, calm and sound
+            switches (the sound button docks here from components/GameMusic.tsx,
+            so it never covers the pet egg or the tab bar) */}
+        <div className="flex items-center gap-2 px-1 mb-1 sm:mb-3 flex-shrink-0">
+          <p data-map-sub className={`flex-1 min-w-0 text-base leading-tight font-semibold ${theme.subtitle}`}>
+            {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
+          </p>
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            <ThemeToggle />
+            <span data-sound-slot className="flex" />
+          </div>
+        </div>
 
         {/* For young explorers, today's together-quests are the MAIN course —
             so they come before the map, with a why note */}
         {band !== null && (
-          <Link href="/activities" className="block mb-1.5 sm:mb-3 rounded-xl sm:rounded-2xl p-1.5 sm:p-4 transition-transform hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
+          <Link href="/activities" className="block min-h-[48px] mb-1.5 sm:mb-3 rounded-xl sm:rounded-2xl p-1.5 sm:p-4 transition-transform hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', boxShadow: '0 4px 18px rgba(251,191,36,0.35)' }}>
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="text-xl sm:text-4xl">{BAND_INFO[band].emoji}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-base font-extrabold text-amber-950 leading-tight truncate">
+                <p className="text-base font-extrabold text-amber-950 leading-tight truncate">
                   Play Today&apos;s Quests →
                 </p>
                 <p className="hidden sm:block text-xs font-semibold text-amber-900 mt-0.5">
@@ -561,7 +571,7 @@ export default function AdventureMap() {
             The adventure world's home base (app/play/garden): walk around,
             help a friend, find things. Always open. */}
         <Link href="/play/garden" onClick={() => sfx.open()}
-          className="flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-sm sm:text-base flex-shrink-0 transition-transform active:scale-[0.98]"
+          className="flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-base flex-shrink-0 transition-transform active:scale-[0.98]"
           style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={characterArt('kailia', 'portrait-front')} alt="" width={30} height={30} aria-hidden="true"
@@ -588,7 +598,7 @@ export default function AdventureMap() {
               ))}
             </span>
           );
-          const cls = 'flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-sm sm:text-base flex-shrink-0 transition-transform active:scale-[0.98]';
+          const cls = 'flex items-center gap-3 mt-2 sm:mt-3 min-h-[48px] px-3 py-2 rounded-2xl text-left font-extrabold text-base flex-shrink-0 transition-transform active:scale-[0.98]';
           const style = { background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` };
           return open ? (
             <Link href="/play/friends" className={cls} style={style} onClick={() => sfx.open()}>
@@ -611,7 +621,7 @@ export default function AdventureMap() {
         <div className="flex items-center gap-3 mt-2 sm:mt-4 rounded-2xl p-2.5 sm:p-3 flex-shrink-0"
           style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-          <div className="rounded-2xl px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-800 relative"
+          <div className="rounded-2xl px-4 py-2 sm:py-2.5 text-base leading-snug font-semibold text-gray-800 relative"
             style={{ background: 'white' }}>
             <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
@@ -629,7 +639,7 @@ export default function AdventureMap() {
             needs a footer link here since it isn't one of the four tabs. */}
         <div data-map-grownups className="text-center mt-2 sm:mt-4 flex-shrink-0">
           <Link href="/results"
-            className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-full text-xs sm:text-sm font-extrabold shadow-sm"
+            className="inline-flex items-center gap-1.5 min-h-[48px] px-4 rounded-full text-sm font-extrabold shadow-sm"
             style={{ background: theme.backBg, color: theme.backText, border: `1px solid ${theme.navBorder}` }}>
             For grown-ups: progress &amp; results
           </Link>
@@ -729,7 +739,7 @@ export default function AdventureMap() {
               style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
               Let&apos;s play together! →
             </Link>
-            <button onClick={dismissDaily} className="mt-3 text-sm font-semibold text-amber-700">
+            <button onClick={dismissDaily} className="mt-2 min-h-[48px] px-4 text-base font-semibold text-amber-800">
               Maybe later
             </button>
           </div>
@@ -752,11 +762,11 @@ export default function AdventureMap() {
                 : openLand.icon ? <Thing id={openLand.icon} size={64} /> : <span className="text-5xl">{openLand.emoji}</span>}
               <div>
                 <h2 className="text-xl font-extrabold leading-tight" style={{ color: openLand.color }}>{openLand.name}</h2>
-                <p className="text-xs font-semibold text-gray-500">{openLand.tagline}</p>
+                <p className="text-sm font-semibold text-gray-600">{openLand.tagline}</p>
                 {/* The same skill name the Parent Zone and Quest Library use,
                     so grown-ups can match each land to a skill. */}
                 {DOMAIN_META[openLand.domain as ActivityDomain] && (
-                  <p className="inline-block mt-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold"
+                  <p className="inline-block mt-1 rounded-full px-2 py-0.5 text-sm font-extrabold"
                     style={{ background: 'rgba(255,255,255,0.8)', color: '#334155' }}>
                     Skill: {DOMAIN_META[openLand.domain as ActivityDomain].label}
                   </p>
@@ -766,7 +776,7 @@ export default function AdventureMap() {
 
             <div className="flex items-start gap-2 my-3 rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.7)' }}>
               <PandaSprite size={42} expression="excited" style={{ flexShrink: 0 }} />
-              <p className="text-sm text-gray-700 font-medium pt-1">{openLand.noelIntro}</p>
+              <p className="text-base text-gray-700 font-medium pt-1">{openLand.noelIntro}</p>
             </div>
 
             {/* Lands open early (one quest is enough), so a child can wander
@@ -785,10 +795,10 @@ export default function AdventureMap() {
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={unfinished.art} alt="" width={44} height={44} style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
                     : <span className="text-3xl">{unfinished.emoji}</span>}
-                  <span className="flex-1 text-sm font-bold text-amber-900">
+                  <span className="flex-1 text-base font-bold text-amber-900">
                     {unfinished.name} isn&apos;t finished yet! {left} {left === 1 ? 'quest is' : 'quests are'} still waiting there.
                   </span>
-                  <span className="px-3 py-1.5 rounded-full font-extrabold text-white text-xs whitespace-nowrap" style={{ background: '#D97706' }}>
+                  <span className="px-3 py-1.5 rounded-full font-extrabold text-white text-sm whitespace-nowrap" style={{ background: '#D97706' }}>
                     Finish it →
                   </span>
                 </button>
@@ -810,12 +820,12 @@ export default function AdventureMap() {
                       {q.icon ? <Thing id={q.icon} size={44} /> : <span className="text-4xl">{q.emoji}</span>}
                     </span>
                     <span className="flex-1">
-                      <span className="block font-extrabold text-sm" style={{ color: openLand.color }}>
+                      <span className="block font-extrabold text-base" style={{ color: openLand.color }}>
                         {q.title} {done && <StarIcon size={15} />}
                       </span>
-                      <span className="block text-xs text-gray-600">{q.desc}</span>
+                      <span className="block text-sm text-gray-600">{q.desc}</span>
                     </span>
-                    <span className="px-4 py-2 rounded-full font-extrabold text-white text-sm shadow whitespace-nowrap"
+                    <span className="px-4 py-2 rounded-full font-extrabold text-white text-base shadow whitespace-nowrap"
                       style={{ background: locked ? '#9CA3AF' : openLand.color }}>
                       {locked ? <><LockIcon size={15} className="inline-block align-[-2px] mr-1" />Premium</> : done ? 'Again!' : 'Play!'}
                     </span>

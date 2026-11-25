@@ -462,7 +462,7 @@ export default function PotionSortPage() {
       <GameBackdrop mode="play" />
       <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="font-bold text-sm text-purple-200">← Map</Link>
+          <Link href="/play" className="kp-back font-bold text-sm text-purple-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Potion Sort <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>

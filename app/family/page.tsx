@@ -141,7 +141,7 @@ export default function ParentZonePage() {
   const onboarding = assessmentLoaded && !assessment.assessmentCompleted;
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: theme.background, isolation: 'isolate' }}>
+    <main className="min-h-screen kp-nav-pad" style={{ background: theme.background, isolation: 'isolate' }}>
       <LivingSky mood={bright ? 'day' : 'night'} />
       <div className="max-w-md sm:max-w-xl lg:max-w-3xl mx-auto px-4">
 

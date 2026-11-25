@@ -587,7 +587,7 @@ export default function SkyMailPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-sky-950 shrink-0"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-sky-950 shrink-0"
             style={{ background: 'rgba(255,255,255,0.6)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-sky-950" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.6)' }}>Sky Mail</h1>
           <span className="flex justify-end shrink-0" style={{ width: 104 }} aria-label={`${doneDecks.length} mailbags sorted`}>

@@ -859,11 +859,14 @@ button:active {
    The opening title card and the end-of-level party every game shares.
    Entrances overshoot and settle; the Play button breathes and shines;
    confetti flutters down. "Reduce motion" shows it all still. */
-.gf-screen { position: relative; min-height: 100vh; overflow: hidden; isolation: isolate; }
+.gf-screen { position: relative; min-height: 100vh; overflow: hidden; overflow: clip; isolation: isolate; }
+/* the intro's Play button stays in view on a short phone (overflow: clip, not
+   hidden, so position: sticky still follows the page) */
+.gf-cta-dock { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; }
 /* Calm mode (grown-ups' Display settings): no painted scenery behind games */
 :root[data-calm="true"] .gf-backdrop { display: none; }
 .gf-back {
-  display: inline-block; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px;
+  display: inline-flex; align-items: center; min-height: 48px; padding: 8px 18px; border-radius: 999px; font-weight: 800; font-size: 16px;
   color: #fff; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.35);
   backdrop-filter: blur(4px);
 }
@@ -1216,10 +1219,10 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
   [data-play-col] > [data-play-field][data-fixed] { height: var(--kp-h) !important; width: min(54vw, 460px) !important; align-self: center; }
   /* the memory cards: as wide as the cards need to fit the screen height */
   [data-play-col] > :has([data-play-field]) > [data-play-field][data-cards] {
-    width: calc(((100dvh - 16px - var(--kp-safe-y) - 12px - var(--ground) - (var(--rows) - 1) * 10px) / var(--rows)) * 0.75 * var(--cols) + (var(--cols) - 1) * 10px + 24px) !important;
+    width: calc(((100dvh - 16px - var(--kp-safe-y) - var(--top-pad, 12px) - var(--ground) - (var(--rows) - 1) * 10px) / var(--rows)) * 0.75 * var(--cols) + (var(--cols) - 1) * 10px + 24px) !important;
   }
   /* the header sits tighter so the left column fits the short screen */
-  [data-play-col]:has([data-play-field]) > :first-child { padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important; }
+  [data-play-col]:has([data-play-field]) > :first-child { padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 2px !important; }
 }
 
 /* ── The map on a phone turned sideways ──
@@ -1234,12 +1237,17 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
   }
   [data-map-col] > * { grid-column: 2; margin-top: 6px !important; margin-bottom: 0 !important; min-width: 0; }
   [data-map-col] > :first-child { grid-column: 1 / -1; margin-top: 0 !important; padding-top: 6px !important; }
-  [data-map-col] > [data-map-sub] { display: none; }
+  [data-map-col] [data-map-sub] { display: none; }
   /* the grown-ups' link is one tap away under Family on a short screen */
   [data-map-col] > [data-map-grownups] { display: none; }
   /* smaller islands, so the first and last land stay inside the frame */
   [data-map-main] { --kp-map-s: 0.9; --kp-map-sy: 0.78; --kp-map-dy: 6px; }
   [data-map-main] [data-island] { width: 17% !important; }
+  /* the island picture follows that width (its phone/tablet sizes are for the tall map) */
+  [data-map-main] [data-island] > span.relative.inline-block { width: 92% !important; }
+  [data-map-main] [data-island] > span.relative.block { font-size: 10px; }
+  [data-map-main] [data-island] > span.inline-flex { width: 46px !important; height: 46px !important; }
+  [data-map-main] [data-island] > span.inline-flex svg { width: 26px; height: 26px; }
   [data-map-col] > [data-map-main] { grid-column: 1; grid-row: 2 / -1; min-height: 0; height: 100%; margin-top: 4px !important; justify-content: center; align-items: center; container-type: size; }
   /* the wide map keeps the shape it was drawn for, so no land is cut off */
   [data-map-col] > [data-map-main] > div { flex: 0 0 auto !important; width: min(100cqw, 100cqh * 1180 / 460); height: min(100cqh, 100cqw * 460 / 1180); }
@@ -1270,4 +1278,26 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
   content: ""; position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 9999px;
   background: #EDE9FE url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9.5h3.5L12 5.5v13l-4.5-4H4z' fill='%235B21B6'/%3E%3Cpath d='M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12' fill='none' stroke='%235B21B6' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / 20px no-repeat;
   box-shadow: 0 0 0 2px #fff; pointer-events: none;
+}
+
+/* a small round button that still takes a 48px finger: the tap area
+   reaches 4px past its edge on every side */
+.kp-tap-pad { position: relative; }
+.kp-tap-pad::before { content: ''; position: absolute; inset: -4px; border-radius: 999px; }
+.kp-tap-pad-lg::before { inset: -9px; }
+
+/* pages with the bottom tab bar (components/BottomNav.tsx): room under the
+   last thing on the page for the whole bar (about 70px), the phone's home
+   bar, and a little breathing space, so nothing ends up hidden behind it */
+.kp-nav-pad { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .kp-nav-pad { padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)); } }
+@media print { .kp-nav-pad { padding-bottom: 1rem; } }
+
+/* every game's "← Map" link: a whole fingertip (48px) and easy-to-read 16px */
+.kp-back { display: inline-flex !important; align-items: center; min-height: 48px; min-width: 48px; padding-inline: 12px; font-size: 16px !important; border-radius: 999px; }
+@media (orientation: landscape) and (max-height: 600px) {
+  /* a sideways phone has little height: the link is drawn 40px tall and its
+     tap area still reaches 48px */
+  .kp-back { min-height: 40px; position: relative; }
+  .kp-back::before { content: ''; position: absolute; inset: -4px; border-radius: 999px; }
 }

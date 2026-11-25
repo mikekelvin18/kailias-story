@@ -624,7 +624,7 @@ export default function JourneyPage() {
           {/* ── Floating header, on top of the world ── */}
           <div className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-between px-3 pt-3 pb-6 pointer-events-none"
             style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.55), transparent)' }}>
-            <Link href="/play" className="h-10 px-3 inline-flex items-center rounded-full text-sm font-bold text-white pointer-events-auto"
+            <Link href="/play" className="kp-back h-10 px-3 inline-flex items-center rounded-full text-sm font-bold text-white pointer-events-auto"
               style={{ background: 'rgba(15,23,42,0.45)' }}>← Map</Link>
             <h1 className="text-lg font-extrabold text-white drop-shadow">
               Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.2)', border: '1px solid rgba(253,224,71,0.5)' }}>Lv {level}</span>

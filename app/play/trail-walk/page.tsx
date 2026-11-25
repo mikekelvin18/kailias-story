@@ -264,7 +264,7 @@ export default function TrailWalkPage() {
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 45%, #86efac 100%)' }}>
       <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
           <h1 className="text-xl font-extrabold text-sky-950 drop-shadow-sm whitespace-nowrap">
             Kailia&apos;s Trail <span className="text-xs font-bold text-amber-800 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.4)' }}>Lv {level}</span>
           </h1>

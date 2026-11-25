@@ -54,7 +54,7 @@ export default function FriendsPage() {
                     style={{ marginBottom: 10 }} />
                 </span>
                 <span className="mt-2 text-xl font-extrabold leading-none" style={{ color: '#1F2A44' }}>{t.pet}</span>
-                <span className="mt-1 text-sm font-bold leading-tight" style={{ color: '#4A5578' }}>{t.skillLabel}</span>
+                <span className="mt-1 text-base font-bold leading-tight" style={{ color: "#4A5578" }}>{t.skillLabel}</span>
                 {/* how far along: a thin line, no numbers or scores */}
                 <span className="mt-2 w-3/4 h-1.5 rounded-full overflow-hidden" style={{ background: '#E2E8F0' }} aria-hidden="true">
                   <span className="block h-full rounded-full" style={{ width: `${(steps / TRAIL_LENGTH) * 100}%`, background: t.sky }} />
@@ -76,7 +76,7 @@ export default function FriendsPage() {
 
         <div className="mt-6 flex items-center gap-3 rounded-2xl bg-white p-3">
           <PandaSprite size={52} expression={open ? 'excited' : 'thinking'} style={{ flexShrink: 0 }} />
-          <p data-read-aloud className="text-[15px] font-bold leading-snug" style={{ color: '#1F2A44' }}>{noelLine}</p>
+          <p data-read-aloud className="text-base font-bold leading-snug" style={{ color: '#1F2A44' }}>{noelLine}</p>
         </div>
       </div>
     </div>
