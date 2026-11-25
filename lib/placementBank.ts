@@ -230,3 +230,18 @@ export function maxChallengeLen(bank: Question[], ageMonths: number, skip: numbe
   if (!nexts.length) return asked.length;
   return Math.max(...[...new Set(nexts)].map(n => maxChallengeLen(bank, ageMonths, skip, [...asked, n])));
 }
+
+/** The fewest and most questions this placement area can still ask, with
+ *  `pending` the question on screen (right or wrong on each answer from
+ *  here). Equal = the count is exact; otherwise the counter reads "of up
+ *  to" (Muse round 6: it said "1/6" and then "6/8"). */
+export function placementLenRange(bank: Question[], answers: PlacementAnswer[], ageMonths: number, pending: number | null): [number, number] {
+  if (pending == null) return [answers.length, answers.length];
+  let lo = Infinity, hi = 0;
+  for (const right of [true, false]) {
+    const next = [...answers, { idx: pending, right, months: bank[pending].months }];
+    const [a, b] = placementLenRange(bank, next, ageMonths, nextPlacementQuestion(bank, next, ageMonths));
+    lo = Math.min(lo, a); hi = Math.max(hi, b);
+  }
+  return [lo, hi];
+}

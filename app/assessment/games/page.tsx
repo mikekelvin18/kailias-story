@@ -35,7 +35,7 @@ interface RunningState {
 }
 
 import { testing } from '@/lib/testHooks';
-import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, maxChallengeLen, nextPlacementQuestion } from '@/lib/placementBank';
+import { GAMES, BANK, QUESTIONS_PER_GAME, CHALLENGE_QS, CHALLENGE_STEPS, firstQuestion, nextChallenge, maxChallengeLen, nextPlacementQuestion, placementLenRange } from '@/lib/placementBank';
 
 // Noel's one-line "why" after a miss (Muse round 4), matched by how the
 // question starts. Plain words a child can follow.
@@ -852,9 +852,6 @@ export default function GamesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 
-  // A child acing everything above their age gets up to 2 extra rungs to find their ceiling.
-  const aceExtra = evidence.length >= QUESTIONS_PER_GAME && evidence.filter(e => e.months >= age).every(e => e.r === 1)
-    && evidence.some(e => e.months >= age) && asked.length < QUESTIONS_PER_GAME + 2;
   /** The question that comes next in this (normal) placement game, or null when it ends. */
   const plannedNext = (): number | null => {
     if (!game) return null;
@@ -864,7 +861,12 @@ export default function GamesPage() {
     return nextPlacementQuestion(bank, evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months })), age);
   };
   // The real number of questions (Muse round 4: never "7/7", "8/8").
-  const shownTotal = Math.min(bank.length, asked.length > QUESTIONS_PER_GAME || aceExtra ? QUESTIONS_PER_GAME + 2 : QUESTIONS_PER_GAME);
+  // Muse round 6: "1/6 … 5/6" then "6/8". The count is the fewest and most
+  // questions still possible from here: exact when they agree, else "of up to".
+  const placedSoFar = evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months }));
+  const [fewest, shownTotal] = !game || challenge ? [0, 0]
+    : submitted ? (() => { const n = plannedNext(); return n == null ? [asked.length, asked.length] : placementLenRange(bank, placedSoFar, age, n); })()
+    : placementLenRange(bank, placedSoFar, age, cur);
 
   const handleNext = () => {
     if (!game) return;
@@ -1118,7 +1120,7 @@ export default function GamesPage() {
           {challenge
             ? <span data-challenge-counter>{`Game ${liveChallengeSteps.indexOf(gameStep) + 1} of ${liveChallengeSteps.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}${challengeTotal > questionIdx + 1 ? ' of up to ' : '/'}${challengeTotal}`}</span>
             : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
-              {!isTracingStep && ` • Question ${questionIdx + 1}/${shownTotal}`}</>}
+              {!isTracingStep && <span data-placement-counter>{` • Question ${questionIdx + 1}${fewest < shownTotal ? ' of up to ' : '/'}${shownTotal}`}</span>}</>}
         </p>
       </div>
     </main>
