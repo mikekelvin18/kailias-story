@@ -1258,3 +1258,16 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
     width: min(100%, calc((100dvh - var(--kp-chrome) - var(--kp-safe-y)) * (var(--kp-ar)))) !important; margin-inline: auto;
   }
 }
+
+/* ── Read-aloud: the sentence being read, and the replay speaker ──
+   components/NoelVoice.tsx marks the sentence it is reading as the
+   "kp-reading" highlight. Every bubble it reads (data-read-aloud) shows a
+   small speaker in its top corner; tapping there reads the whole bubble
+   again, tapping a sentence reads that sentence again. */
+::highlight(kp-reading) { background-color: #FEF08A; color: #1f2937; }
+[data-read-aloud] { position: relative; padding-right: 2.6rem !important; cursor: pointer; }
+[data-read-aloud]::after {
+  content: ""; position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 9999px;
+  background: #EDE9FE url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 9.5h3.5L12 5.5v13l-4.5-4H4z' fill='%235B21B6'/%3E%3Cpath d='M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12' fill='none' stroke='%235B21B6' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / 20px no-repeat;
+  box-shadow: 0 0 0 2px #fff; pointer-events: none;
+}

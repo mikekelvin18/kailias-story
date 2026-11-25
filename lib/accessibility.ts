@@ -18,6 +18,10 @@ export interface AccessibilityPrefs {
   voiceName: string;
   /** Overall volume for voices, music and sound effects, 0–1 (Parent Zone slider). */
   volume: number;
+  /** Read stories, instructions and speech bubbles aloud (Parent Zone on/off). */
+  narrationOn: boolean;
+  /** How fast the voices read: 0.8 (slower), 1 or 1.2 (quicker). */
+  narrationSpeed: number;
 }
 
 export const DEFAULT_A11Y: AccessibilityPrefs = {
@@ -30,7 +34,17 @@ export const DEFAULT_A11Y: AccessibilityPrefs = {
   musicOn: true,
   voiceName: '',
   volume: 1,
+  narrationOn: true,
+  narrationSpeed: 1,
 };
+
+export const NARRATION_SPEEDS = [0.8, 1, 1.2] as const;
+/** Read-aloud speed, always one of NARRATION_SPEEDS. */
+export function narrationSpeed(): number {
+  const s = Number(loadA11y().narrationSpeed);
+  return (NARRATION_SPEEDS as readonly number[]).includes(s) ? s : 1;
+}
+export function narrationOn(): boolean { return loadA11y().narrationOn !== false; }
 
 const KEY = 'kailia_a11y_v1';
 

@@ -6,35 +6,42 @@ import StepGuide from '@/components/ui/StepGuide';
 import { activeChild } from '@/lib/family';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
-import NoelVoice from '@/components/NoelVoice';
+import NarrationPlayer, { type NarrationLine } from '@/components/NarrationPlayer';
 
-// Four short story pages, read aloud by Noel (tap the card to hear it again).
-// Each page shows Kailia and Noel themselves (no emoji art), and the
-// story names the six real lands the child will visit on the map.
-const PANELS: { art: 'meet' | 'noel' | 'map' | 'you'; bg: string; title: string; text: string }[] = [
+// Four short story pages, told by Kailia herself in her own voice (first
+// person, short excited lines; the reviewer 2026-11-25), with Noel saying
+// his own line in his voice. The narration player reads each page aloud,
+// highlights the sentence being read, and has play/pause, replay and speed.
+// Each page shows Kailia and Noel themselves (no emoji art), and the story
+// names the six real lands the child will visit on the map.
+const PANELS: { art: 'meet' | 'noel' | 'map' | 'you'; bg: string; title: string; lines: NarrationLine[] }[] = [
   {
     art: 'meet',
     bg: 'linear-gradient(135deg, #667EEA, #764BA2)',
-    title: 'Meet Kailia!',
-    text: 'Kailia is a brave, curious girl. She lives in a world where letters sing and numbers dance.',
+    title: "Hi! I'm Kailia!",
+    lines: [{ who: 'kailia', text: "Hi!! I'm Kailia! I love to explore! In my world, letters sing and numbers dance!" }],
   },
   {
     art: 'noel',
     bg: 'linear-gradient(135deg, #F093FB, #F5576C)',
     title: 'And this is Noel!',
-    text: 'Noel is a big, gentle panda. He is Kailia\'s best friend. He always says: "Let\'s try together!"',
+    lines: [
+      { who: 'kailia', text: "And this is my best friend Noel! He's a big, gentle panda." },
+      { who: 'noel', text: "Let's try together!" },
+      { who: 'kailia', text: 'He always says that!' },
+    ],
   },
   {
     art: 'map',
     bg: 'linear-gradient(135deg, #4ECDC4, #44A08D)',
-    title: 'A Magic Map',
-    text: 'One day they found a magic map with six lands: a firefly forest, a dragon\'s cave, talking signposts, a story village, echo caves and a wise owl\'s tower.',
+    title: 'A Magic Map!',
+    lines: [{ who: 'kailia', text: "Look! We found a magic map! It has six lands: a firefly forest, a dragon's cave, talking signposts, a story village, echo caves and a wise owl's tower!" }],
   },
   {
     art: 'you',
     bg: 'linear-gradient(135deg, #F6D365, #FDA085)',
-    title: 'They Need YOU!',
-    text: '"Will you come with us?" asks Kailia. "There\'s no wrong way to explore. Let\'s go!"',
+    title: 'We need YOU!',
+    lines: [{ who: 'kailia', text: "Will you come with us? There's no wrong way to explore. Let's go!!" }],
   },
 ];
 
@@ -104,16 +111,12 @@ export default function StoryPage() {
           <PanelArt art={current.art} />
         </div>
 
-        {/* Story card */}
-        {/* Noel reads each page aloud (components/NoelVoice.tsx); tap the card to hear it again */}
-        <div
-          data-read-aloud
-          className="rounded-3xl p-6 sm:p-8 mb-6 shadow-2xl bounce-in cursor-pointer"
-          key={panel}
-          style={{ background: 'rgba(255,255,255,0.95)' }}
-        >
+        {/* Story card: Kailia tells it (the player reads it aloud, highlights
+            the sentence being read; tap a sentence to hear it again) */}
+        <div className="rounded-3xl p-6 sm:p-8 mb-6 shadow-2xl bounce-in" key={panel}
+          style={{ background: 'rgba(255,255,255,0.95)' }}>
           <h2 className="text-3xl font-extrabold text-gray-800 mb-4">{current.title}</h2>
-          <p className="text-gray-700 text-xl leading-relaxed">{current.text}</p>
+          <NarrationPlayer lines={current.lines} textClassName="text-gray-700 text-xl leading-relaxed" />
         </div>
 
         <button
@@ -137,7 +140,6 @@ export default function StoryPage() {
           </p>
         )}
       </div>
-      <NoelVoice />
     </main>
   );
 }

@@ -25,6 +25,7 @@ import StarIcon from '@/components/games/StarIcon';
 import { seeded } from '@/components/friends/kit/Stage';
 import { useReducedMotion } from '@/components/world/useReducedMotion';
 import { petWidth } from '@/lib/companionTrails';
+import { ReadAloudControls } from '@/components/NarrationPlayer';
 
 interface Pet { art: string; name: string }
 
@@ -241,6 +242,8 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
           <span className="gf-bubble-tail" aria-hidden="true" />
           <div className="text-gray-900 text-[17px] font-bold leading-snug space-y-2">{story}</div>
         </div>
+        {/* play/pause, replay and speed for Noel reading the story above */}
+        {readAloud && <div className="gf-rise-in mt-3" style={{ animationDelay: '0.11s' }}><ReadAloudControls tone="dark" /></div>}
         {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.12s' }}>{extras}</div>}
         {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.14s' }}>{levels}</div>}
         {onStart && (
