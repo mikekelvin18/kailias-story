@@ -369,7 +369,7 @@ export default function FireflyTrailsPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #071527 0%, #0b2440 60%, #0f3d2e 130%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="text-sm font-bold text-emerald-200 whitespace-nowrap">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow whitespace-nowrap">
@@ -416,7 +416,7 @@ export default function FireflyTrailsPage() {
             </p>
 
             {/* the scene: night sky to trace in, a glade below for Kailia and the friend */}
-            <div className="relative w-full rounded-[28px] overflow-hidden select-none"
+            <div data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
               style={{ aspectRatio: `1 / ${SCENE_H}`, boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <NightForest glow={litCount / Math.max(1, lit.length)} />
 

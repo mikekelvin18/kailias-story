@@ -329,7 +329,7 @@ export default function ReefExplorerPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #06263f 0%, #0a3557 60%, #0b3d63 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="text-sm font-bold text-cyan-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
@@ -379,7 +379,7 @@ export default function ReefExplorerPage() {
               </div>
             </div>
 
-            <div ref={areaRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+            <div ref={areaRef} data-play-field onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
               data-reef data-light-x={Math.round(light.x)} data-light-y={Math.round(light.y)}
               className="relative w-full rounded-[28px] overflow-hidden select-none"
               style={{ aspectRatio: '3 / 4', touchAction: 'none', cursor: 'crosshair', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>

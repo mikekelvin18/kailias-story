@@ -141,6 +141,16 @@ export default function AdventureMap() {
   // (no badge) mismatch the client's first paint (badge present).
   // Loading it into state after mount keeps server and client in sync.
   useEffect(() => { setChild(activeChild()); }, []);
+  // The map always opens at the top, where the lands start (reviewer
+  // 2026-11-25: a phone turned sideways opened it scrolled down past the
+  // lands, because the browser brought back the last page's scroll).
+  useEffect(() => {
+    const before = history.scrollRestoration;
+    try { history.scrollRestoration = 'manual'; } catch { /* fine */ }
+    window.scrollTo(0, 0);
+    const again = requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => { cancelAnimationFrame(again); try { history.scrollRestoration = before; } catch { /* fine */ } };
+  }, []);
 
   // A game started from a friend's trail sends its "back to the map" tap
   // here; go straight on to that trail instead (see lib/returnTo.ts).
@@ -301,7 +311,7 @@ export default function AdventureMap() {
 
         {/* Trail — only the main 6 lands connect; bonus lands are
             standalone portals, not stops on this path. */}
-        <svg viewBox={`0 0 ${VBW} ${VBH}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox={`0 0 ${VBW} ${VBH}`} className="absolute inset-0 w-full h-full" style={{ scale: 'var(--kp-map-s, 1) var(--kp-map-sy, 1)', translate: '0 var(--kp-map-dy, 0px)' }} xmlns="http://www.w3.org/2000/svg">
           {LANDS.slice(0, -1).map((a, i) => {
             const b = LANDS[i + 1];
             const ax = gx(a), ay = gy(a), bx = gx(b), by = gy(b);
@@ -353,9 +363,9 @@ export default function AdventureMap() {
           }
 
           return (
-            <button key={land.id} onClick={handleClick}
+            <button key={land.id} onClick={handleClick} data-island
               className={`absolute text-center ${shakeId === land.id ? 'shake' : ''}`}
-              style={{ left: `${(gx(land) / VBW) * 100}%`, top: `${(gy(land) / VBH) * 100}%`, transform: 'translate(-50%, -50%)', width: '25%' }}>
+              style={{ left: `calc(50% + (${(gx(land) / VBW) * 100}% - 50%) * var(--kp-map-s, 1))`, top: `calc(50% + (${(gy(land) / VBH) * 100}% - 50%) * var(--kp-map-sy, 1) + var(--kp-map-dy, 0px))`, transform: 'translate(-50%, -50%)', width: '25%' }}>
               {/* Bonus lands get a spinning portal ring — dim while
                   forming, vivid once unlocked — instead of the plain
                   circle every main land uses, so finishing the adventure
@@ -476,7 +486,7 @@ export default function AdventureMap() {
           around it needs more, on any phone/tablet/desktop height. Bottom
           padding reserves room for the fixed BottomNav so nothing sits
           behind it. */}
-      <div className="w-full h-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3 flex flex-col pb-[76px] sm:pb-[112px]">
+      <div data-map-col className="w-full h-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3 flex flex-col pb-[76px] sm:pb-[112px]">
 
         {/* Header — wraps to a second row on narrow phones instead of
             squeezing the title or badges into each other */}
@@ -502,7 +512,7 @@ export default function AdventureMap() {
             <ThemeToggle />
           </div>
         </div>
-        <p className={`text-xs px-1 mb-1 sm:mb-3 font-semibold flex-shrink-0 ${theme.subtitle}`}>
+        <p data-map-sub className={`text-xs px-1 mb-1 sm:mb-3 font-semibold flex-shrink-0 ${theme.subtitle}`}>
           {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
         </p>
 
@@ -542,8 +552,8 @@ export default function AdventureMap() {
             held upright) keeps the portrait map, which fills that shape
             properly instead of leaving a short wide map stranded in a sea
             of empty space above and below it. */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="sm:landscape:hidden flex-1 min-h-0">{renderMap('portrait')}</div>
+        <div data-map-main className="flex-1 min-h-0 flex flex-col">
+          <div className="sm:landscape:hidden flex-1 min-h-0"><div data-map-portrait className="contents">{renderMap('portrait')}</div></div>
           <div className="hidden sm:landscape:flex flex-1 min-h-0">{renderMap('landscape')}</div>
         </div>
 
@@ -617,7 +627,7 @@ export default function AdventureMap() {
 
         {/* Quests and Printables now live in the bottom nav — only Results
             needs a footer link here since it isn't one of the four tabs. */}
-        <div className="text-center mt-2 sm:mt-4 flex-shrink-0">
+        <div data-map-grownups className="text-center mt-2 sm:mt-4 flex-shrink-0">
           <Link href="/results"
             className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-full text-xs sm:text-sm font-extrabold shadow-sm"
             style={{ background: theme.backBg, color: theme.backText, border: `1px solid ${theme.navBorder}` }}>

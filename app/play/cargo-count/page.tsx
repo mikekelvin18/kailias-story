@@ -351,7 +351,7 @@ export default function CargoCountPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0d0826 0%, #1b1450 60%, #241a5e 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="text-sm font-bold text-indigo-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
@@ -401,8 +401,8 @@ export default function CargoCountPage() {
               </div>
             </div>
 
-            <div className="relative w-full rounded-[28px] overflow-hidden select-none"
-              style={{ aspectRatio: '3 / 4', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+            <div data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
+              style={{ aspectRatio: '3 / 4', ['--kp-ar' as string]: '3 / 4', ['--kp-chrome' as string]: '430px', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <SpaceScene />
 
               {/* the rocket on its launch pad */}

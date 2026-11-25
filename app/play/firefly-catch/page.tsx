@@ -263,6 +263,28 @@ export default function FireflyCatchPage() {
     startRound(0);
   }
 
+  // The play area is sized to fit the screen (a phone turned sideways makes
+  // it shorter), and the first round starts before it is on screen. Keep the
+  // fireflies' world the same size as the play area: when it changes, every
+  // firefly moves with it, so none is ever left outside the frame.
+  useEffect(() => {
+    if (phase === 'intro') return;
+    const el = areaRef.current;
+    if (!el) return;
+    const fit = () => {
+      const r = el.getBoundingClientRect();
+      const { w, h } = sizeRef.current;
+      if (!r.width || !r.height || (Math.abs(r.width - w) < 1 && Math.abs(r.height - h) < 1)) return;
+      const sx = r.width / w, sy = r.height / h;
+      sizeRef.current = { w: r.width, h: r.height };
+      setFireflies(prev => prev.map(f => ({ ...f, x: f.x * sx, y: f.y * sy })));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phase]);
+
   // ── Drift physics ──
   useEffect(() => {
     if (phase !== 'playing' || cfg.mode !== 'tap' || cfg.speed === 0) return;
@@ -512,7 +534,7 @@ export default function FireflyCatchPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #04100a 0%, #07271a 55%, #0a3323 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
@@ -568,7 +590,7 @@ export default function FireflyCatchPage() {
               </div>
             </div>
 
-            <div ref={areaRef}
+            <div ref={areaRef} data-play-field
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
               onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
               className="relative w-full rounded-[28px] overflow-hidden select-none"

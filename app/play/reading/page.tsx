@@ -310,7 +310,7 @@ export default function WordWizardPage() {
     <main className="relative min-h-screen pb-8 overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 55%, #93c5fd 120%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
           <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
@@ -375,7 +375,7 @@ export default function WordWizardPage() {
             </div>
 
             {/* the meadow: balloons in the sky, Kailia and the friend on the stepping stones */}
-            <Stage world="flick" className="mt-2" style={{ aspectRatio: '3 / 3.4' }}>
+            <Stage field world="flick" className="mt-2" style={{ aspectRatio: '3 / 3.4', ['--kp-ar' as string]: '3 / 3.4', ['--kp-chrome' as string]: '450px' }}>
               {/* stepping stones and the finish flag */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 {Array.from({ length: round.length }, (_, i) => (

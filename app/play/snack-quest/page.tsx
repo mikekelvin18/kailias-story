@@ -608,7 +608,7 @@ export default function SnackQuestPage() {
     <main className="relative overflow-hidden min-h-screen pb-4" style={{ background: skin?.bg ?? 'linear-gradient(180deg, #1c1006 0%, #2b1a08 60%, #3a2410 100%)', isolation: 'isolate' }}>
       {cave && <GameBackdrop mode="play" />}
       {/* the column is sized so the field fills the screen height with little waste */}
-      <div className="mx-auto px-3" style={{ width: 'min(100%, calc((100dvh - 330px) * 0.875 + 24px), 44rem)' }}>
+      <div data-play-col className="mx-auto px-3" style={{ width: 'min(100%, calc((100dvh - 330px) * 0.875 + 24px), 44rem)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
@@ -692,7 +692,7 @@ export default function SnackQuestPage() {
             </div>
 
             {/* Field: a painted little place, seen from above */}
-            <div ref={fieldRef} onPointerDown={onFieldTap}
+            <div ref={fieldRef} data-play-field onPointerDown={onFieldTap}
               className="relative w-full rounded-3xl overflow-hidden select-none"
               style={{ aspectRatio: `${COLS} / ${ROWS}`, touchAction: 'none', cursor: 'pointer',
                 border: `3px solid ${skin.border}`, boxShadow: '0 8px 0 rgba(0,0,0,0.25)' }}>

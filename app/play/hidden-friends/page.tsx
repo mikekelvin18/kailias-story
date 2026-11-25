@@ -300,7 +300,7 @@ export default function WheresNoelPage() {
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: '#0f172a', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
           <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
@@ -348,7 +348,7 @@ export default function WheresNoelPage() {
             </div>
 
             {/* the busy scene */}
-            <div ref={sceneRef} className="relative w-full rounded-[28px] overflow-hidden select-none"
+            <div ref={sceneRef} data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
               style={{ aspectRatio: '3 / 3.8', touchAction: 'manipulation', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)' }}>
               <Backdrop world={scene.world} />
 
