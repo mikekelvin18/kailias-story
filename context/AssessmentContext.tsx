@@ -46,6 +46,8 @@ export interface AssessmentState {
    *  the questions asked there and their answers, so it can carry on.
    *  Lives in the same saved assessment (already a child-data key). */
   challengeRound?: ChallengeRound | null;
+  /** The first check-up left part way (Muse round 6): the game, the questions asked and the answers so far. */
+  placementRound?: ChallengeRound | null;
 }
 
 export interface ChallengeRound { step: number; asked: number[]; evidence: Evidence[] }
@@ -56,6 +58,7 @@ interface AssessmentContextType {
   setChildInfo: (name: string, age: number, ageMonths?: number) => void;
   setDomainEvidence: (domain: MilestoneDomain, evidence: Evidence[]) => void;
   setChallengeRound: (round: ChallengeRound | null) => void;
+  setPlacementRound: (round: ChallengeRound | null) => void;
   setAssessmentType: (type: 'checklist' | 'games') => void;
   setDomainScore: (domain: keyof AssessmentState['scores'], score: number) => void;
   setSensoryScore: (pattern: keyof SensoryScores, score: number) => void;
@@ -100,6 +103,7 @@ const defaultState: AssessmentState = {
   assessmentCompleted: false,
   evidence: {},
   challengeRound: null,
+  placementRound: null,
 };
 
 function deriveAgeGroup(age: number): AgeGroup {
@@ -273,6 +277,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     setState(s => ({ ...s, evidence: { ...s.evidence, [domain]: evidence } }));
   const setChallengeRound = (round: ChallengeRound | null) =>
     setState(s => ({ ...s, challengeRound: round }));
+  const setPlacementRound = (round: ChallengeRound | null) =>
+    setState(s => ({ ...s, placementRound: round }));
 
   const setAssessmentType = (type: 'checklist' | 'games') =>
     setState(s => ({ ...s, assessmentType: type }));
@@ -369,6 +375,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       setChildInfo,
       setDomainEvidence,
       setChallengeRound,
+      setPlacementRound,
       setAssessmentType,
       setDomainScore,
       setSensoryScore,

@@ -204,7 +204,11 @@ export function applyJump(plan: JumpPlan) {
 
   const now = new Date();
   const born = new Date(now.getFullYear(), now.getMonth() - plan.ageMonths, 1);
-  const child = { id: childId, nickname: 'Robin', birthYear: born.getFullYear(), birthMonth: born.getMonth() + 1, avatar: plan.buddy, createdAt: at };
+  // A reviewer's own profile is "Robin"; a link that needs a made-up state
+  // of its own (another age, the sign-up steps) uses "Sam", so the Parent
+  // Zone never shows two Robins (Muse and Grok, round 6).
+  const nickname = childId === JUMP_CHILD_ID && ls.getItem(REVIEW_MARK) === '1' ? 'Sam' : 'Robin';
+  const child = { id: childId, nickname, birthYear: born.getFullYear(), birthMonth: born.getMonth() + 1, avatar: plan.buddy, createdAt: at };
   const others = (fam?.children ?? []).filter(c => c.id !== childId);
   ls.setItem('kailia_family_v1', JSON.stringify({
     id: 'fam-preview', createdAt: at, photoConsent: null, migratedLegacyData: true,
@@ -220,7 +224,7 @@ export function applyJump(plan: JumpPlan) {
     // no game bumps its start level up from the check-up
     const s = Object.keys(plan.levels).length ? 0 : plan.all ? 10 : 4;
     ls.setItem(key('kailia_assessment_v1'), JSON.stringify({
-      childName: 'Robin', childAge: Math.floor(m / 12), childAgeMonths: m,
+      childName: nickname, childAge: Math.floor(m / 12), childAgeMonths: m,
       ageGroup: m < 12 ? 'infant' : m < 24 ? 'toddler' : m <= 59 ? 'preschool' : 'schoolAge',
       assessmentType: 'checklist', assessmentCompleted: true, sensoryCompleted: true,
       scores: { reading: s, writing: s, communication: s, math: s },

@@ -699,7 +699,7 @@ function gripEvidence(grip: string | null): Evidence[] {
 }
 
 export default function GamesPage() {
-  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
+  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setPlacementRound, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
   const router = useRouter();
   const age = chronoMonths ?? (state.childAge ?? 8) * 12;
 
@@ -723,6 +723,8 @@ export default function GamesPage() {
   const [resumeAt, setResumeAt] = useState<number | null>(null);
   /** A challenge round left part way, offered to carry on (Muse round 5). */
   const [challengeResume, setChallengeResume] = useState<{ step: number; asked: number[]; evidence: Evidence[] } | null>(null);
+  /** The first check-up's game left part way, restored by "Keep going" (Muse round 6). */
+  const [placementResume, setPlacementResume] = useState<{ step: number; asked: number[]; evidence: Evidence[] } | null>(null);
   const challenge = mode === 'challenge';
   /** Placement items already answered in this area (never asked again in the challenge). */
   const placedIdx = (key: string) => (state.evidence?.[key as MilestoneDomain] ?? [])
@@ -784,7 +786,9 @@ export default function GamesPage() {
     const entry: Evidence = { id: `${challenge ? 'challenge-' : ''}${game.key}-${cur}`, months: question.months, r, kind: 'choice3' };
     setEvidence(ev => [...ev, entry]);
     // the challenge saves every answer, so leaving part way can carry on
+    // every answer is saved, so leaving part way can carry on at this question
     if (challenge) setChallengeRound({ step: gameStep, asked, evidence: [...evidence, entry] });
+    else setPlacementRound({ step: gameStep, asked, evidence: [...evidence, entry] });
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
     let line = pool[Math.floor(Math.random() * pool.length)];
     // A miss gets a gentle "here's the one Kailia picked" so the child
@@ -839,7 +843,10 @@ export default function GamesPage() {
       if (!state.assessmentCompleted) {
         const order: MilestoneDomain[] = ['reading', 'writing', 'communication', 'math'];
         const done = order.map(d => (state.evidence?.[d]?.length ?? 0) > 0);
-        if (done.some(Boolean)) setResumeAt(done.every(Boolean) ? 4 : done.indexOf(false));
+        // a game left part way (Muse round 6: one answer in, then away)
+        const part = state.placementRound;
+        if (part && part.evidence.length > 0 && !done[part.step]) { setPlacementResume(part); setResumeAt(part.step); }
+        else if (done.some(Boolean)) setResumeAt(done.every(Boolean) ? 4 : done.indexOf(false));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -879,6 +886,7 @@ export default function GamesPage() {
     const next = plannedNext();
     if (next == null) {
       setDomainEvidence(domainKey, evidence);
+      setPlacementRound(null); // this game is saved whole now
       // Legacy 0–10 score (share right) — still drives the stage name and the bars.
       setDomainScore(domainKey, Math.round((evidence.reduce((t, e) => t + e.r, 0) / Math.max(1, evidence.length)) * 10));
       // Then a few attention / memory questions for the grown-up (checklist page, processing only).
@@ -886,6 +894,7 @@ export default function GamesPage() {
       else startGame(gameStep + 1);
     } else {
       setAsked(a => [...a, next]);
+      setPlacementRound({ step: gameStep, asked: [...asked, next], evidence });
       resetQuestion();
     }
   };
@@ -951,17 +960,24 @@ export default function GamesPage() {
           <p className="text-gray-600 mb-6">
             Noel saved your spot. {resumeAt >= 4
               ? 'All four games are done, just the grown-up questions are left.'
-              : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
+              : placementResume
+                ? `We were in ${names[resumeAt]}, ${placementResume.evidence.length} ${placementResume.evidence.length === 1 ? 'question' : 'questions'} answered so far.`
+                : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
           </p>
-          <button onClick={() => {
+          <button data-placement-carry-on onClick={() => {
               const at = resumeAt; setResumeAt(null);
-              if (at >= 4) router.push('/assessment/checklist'); else startGame(at);
+              const r = placementResume; setPlacementResume(null);
+              if (r && r.step === at) {
+                setGameStep(r.step); setAsked(r.asked); setEvidence(r.evidence); resetQuestion();
+                // the last question was answered already: show it answered, ready for Next
+                if (r.evidence.length >= r.asked.length && r.asked.length) { setSubmitted(true); setEncourage('Welcome back! Tap below to keep going. ⭐'); }
+              } else if (at >= 4) router.push('/assessment/checklist'); else startGame(at);
             }}
             className="w-full px-8 py-4 rounded-full font-extrabold text-xl text-white shadow-lg mb-3"
             style={{ background: 'linear-gradient(135deg, #059669, #7C3AED)' }}>
             Keep going →
           </button>
-          <button onClick={() => setResumeAt(null)} className="text-sm font-bold text-gray-500 underline">
+          <button onClick={() => { setResumeAt(null); setPlacementResume(null); setPlacementRound(null); }} className="text-sm font-bold text-gray-500 underline">
             Start the games over
           </button>
         </div>
