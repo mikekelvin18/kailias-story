@@ -52,6 +52,9 @@ export async function seedFamily(page: Page, seed: Seed = {}) {
   const born = new Date(now.getFullYear(), now.getMonth() - ageMonths, 1);
   await page.addInitScript(({ ageMonths, born, buddy, noAssessment, levels, childId, motion, strong }) => {
     (window as unknown as { __KAILIA_TEST__: boolean }).__KAILIA_TEST__ = true;
+    // "Tap to start!" shows once per browser session for people; the robot
+    // wants it on every opened page, since tapping it proves the page is live.
+    try { sessionStorage.removeItem('kailia_tap_started_v1'); } catch { /* fine */ }
     // seed once per test; later page loads keep what the games saved
     if (sessionStorage.getItem('robot-seeded')) return;
     sessionStorage.setItem('robot-seeded', '1');
