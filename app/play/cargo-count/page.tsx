@@ -402,7 +402,7 @@ export default function CargoCountPage() {
             </div>
 
             <div data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
-              style={{ aspectRatio: '3 / 4', ['--kp-ar' as string]: '3 / 4', ['--kp-chrome' as string]: '430px', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+              style={{ aspectRatio: '3 / 4', ['--kp-ar' as string]: '3 / 4', ['--kp-chrome' as string]: '480px', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <SpaceScene />
 
               {/* the rocket on its launch pad */}
