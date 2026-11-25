@@ -407,8 +407,10 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
   }, [walkK, onPause]);
 
   // ── ground taps walk Kailia ──
+  const nearSunny = useRef<(x: number, y: number) => boolean>(() => false);
   const onGround = useCallback((x: number, y: number) => {
     touch();
+    if (nearSunny.current(x, y)) return;
     walkK({ x, y: y < 640 ? 700 : y });
   }, [walkK]);
 
@@ -438,6 +440,7 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
   const canHandlers = {
     onStart: () => {
       touch();
+      setCanHeld(false);
       setCan(c => ({ ...c, drag: true, parked: false }));
       actK('reach', 600000, CAN_HOME.x);
     },
@@ -471,11 +474,36 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
         return;
       }
       if (!can.parked) {
-        setWiggle('can'); later(1400, () => setWiggle(null));
-        say('noel', 'Hold the can and slide it to Sunny!');
+        // a tap picks the can up: it rides in Kailia's hand, then a tap
+        // on (or near) Sunny waters her (Grok round 6: tapping the can and
+        // then Sunny never finished). Sliding it there still works too.
+        const k = bodiesRef.current.k;
+        setCanHeld(true);
+        setCan({ x: k.x + 46, y: k.y - 40, drag: false, parked: false });
+        sfx.plop();
+        say('noel', 'Got the watering can! Now tap Sunny to water her.');
       }
     },
   };
+  const [canHeld, setCanHeld] = useState(false);
+  /** Kailia carries the can to Sunny and it pours until she wakes. */
+  const waterFromHand = () => {
+    if (!canHeld || watered || !canActive) return false;
+    setCanHeld(false);
+    walkK({ x: POUR_AT.x - 150, y: 720 });
+    setCan({ ...POUR_AT, drag: false, parked: true });
+    emit({ type: 'can-drop', onTarget: true, via: 'tap' });
+    later(450, () => startPour(true, 'tap'));
+    return true;
+  };
+  // a tap anywhere near Sunny counts as tapping her; with the can in hand it rides along wherever Kailia walks
+  useEffect(() => {
+    nearSunny.current = (x: number, y: number) => {
+      if (canHeld && dist({ x, y }, FLOWER) < 300) return waterFromHand();
+      if (canHeld) setCan(c => ({ ...c, x: x + 46, y: (y < 640 ? 700 : y) - 40 }));
+      return false;
+    };
+  });
   const pouring = !watered && pourOn;
   const lift = watered ? 1 : Math.min(1, pourMs / demands.holdMs);
 
@@ -751,7 +779,7 @@ export default function GardenGame({ pet, demands, initialQuest, initialLadybugs
       </Thing>
 
       <Thing x={FLOWER.x} y={FLOWER.y} w={220} h={340} label={watered ? 'Sunny the sunflower' : 'Sunny the sunflower, asleep'}
-        onTap={() => { touch(); if (watered) { chime.tap(); say('noel', 'Sunny is pointing across the stream!'); } else say('noel', 'Sunny is sleepy and thirsty. Bring her the watering can!'); }}>
+        onTap={() => { touch(); if (waterFromHand()) return; if (watered) { chime.tap(); say('noel', 'Sunny is pointing across the stream!'); } else say('noel', 'Sunny is sleepy and thirsty. Bring her the watering can!'); }}>
         <Sunflower lift={lift} bloomed={watered} />
       </Thing>
 
