@@ -16,13 +16,15 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import LivingSky from '@/components/scenery/LivingSky';
 import { isPremium } from '@/lib/premium';
+import { FREE } from '@/lib/pricing';
 import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
 import BackButton from '@/components/ui/BackButton';
 
 // Free preview size for the browsable library (the 3 daily quests above
 // are always free — this only limits how much of the full 69-activity
 // library you can browse before Premium).
-const FREE_LIBRARY_PREVIEW = 4;
+// how many library quests a family without a plan can browse: lib/pricing.ts
+const FREE_LIBRARY_PREVIEW = FREE.libraryPreview;
 
 // ─── Parent & Baby Quest Library ──────────────────────────────────────────────
 // Daily real-world quests for the youngest adventurers, coached by Noel,
@@ -316,7 +318,7 @@ export default function ActivityLibraryPage() {
                 <Link href="/upgrade"
                   className="block text-center rounded-2xl p-4 font-extrabold text-sm transition-transform hover:scale-[1.02]"
                   style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.4)', color: bright ? '#92400E' : '#FDE047' }}>
-                  🔒 {library.length - FREE_LIBRARY_PREVIEW} more activities — Unlock Premium
+                  {library.length - FREE_LIBRARY_PREVIEW} more together quests with Family Premium (grown-ups)
                 </Link>
               )}
               {library.length === 0 && (
