@@ -9,7 +9,7 @@ import {
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
-import { AccessibilityPrefs, DEFAULT_A11Y, NARRATION_SPEEDS, loadA11y, saveA11y, applyA11y } from '@/lib/accessibility';
+import { AccessibilityPrefs, DEFAULT_A11Y, NARRATION_SPEEDS, loadA11y, saveA11y, applyA11y, deviceWantsLessMotion } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import LivingSky from '@/components/scenery/LivingSky';
 import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/lib/customTasks';
@@ -61,6 +61,9 @@ export default function ParentZonePage() {
   const [confirmingAll, setConfirmingAll] = useState(false);
   const [deletedMsg, setDeletedMsg] = useState('');
   const [a11y, setA11y] = useState<AccessibilityPrefs>(DEFAULT_A11Y);
+  // the device's own reduce-motion setting (read after the page loads)
+  const [deviceStill, setDeviceStill] = useState(false);
+  useEffect(() => { setDeviceStill(deviceWantsLessMotion()); }, []);
   const [showAddChild, setShowAddChild] = useState(false);
   const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
   const [newTaskText, setNewTaskText] = useState('');
@@ -423,13 +426,15 @@ export default function ParentZonePage() {
           </div>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
-            <span className={`text-sm font-semibold text-gray-700`}>🎬 Reduce motion &amp; animation</span>
-            <input type="checkbox" checked={a11y.reducedMotion} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
+            <span className={`text-sm font-semibold text-gray-700`}>Reduce motion &amp; animation
+              {deviceStill && <span className="block text-xs font-normal text-gray-500">On, because this device is set to reduce motion.</span>}
+            </span>
+            <input type="checkbox" checked={a11y.reducedMotion || deviceStill} disabled={deviceStill} onChange={e => updateA11y({ reducedMotion: e.target.checked })} className="w-5 h-5" />
           </label>
 
           <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
             <span className="text-sm font-semibold text-gray-700">Calm mode
-              <span className="block text-xs font-normal text-gray-500">Plain backgrounds in the games, for children who focus better with less to look at.</span>
+              <span className="block text-xs font-normal text-gray-500">Plain backgrounds, no pulsing or sparkles, and less movement in every game, for children who focus better with less to look at. The moon button on the map switches it too.</span>
             </span>
             <input type="checkbox" checked={a11y.calmMode} onChange={e => updateA11y({ calmMode: e.target.checked })} className="w-5 h-5 shrink-0" />
           </label>

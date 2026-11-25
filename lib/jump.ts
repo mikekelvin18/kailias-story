@@ -100,6 +100,7 @@ export interface JumpPlan {
   landDone: boolean;
   openLand: string | null;
   plus: boolean | null;    // null = leave as it is
+  calm: boolean | null;    // ?calm=1|0: calm mode on or off (null = leave as it is)
   review: boolean;         // /go/review: the reviewers' profile, every level open
   /** a link that needs its own made-up state (day one, a 2-year-old, a fresh
    *  sign-up...): it always uses the scratch test child, never the reviewer's */
@@ -118,6 +119,7 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     all: q.all === '1' || q.all === 'yes', levels: {}, pet: 'none', petTask: null,
     dailyPopup: false, newFriend: false, landDone: false, openLand: null,
     plus: q.plus === '1' ? true : q.plus === '0' ? false : null,
+    calm: q.calm === '1' ? true : q.calm === '0' ? false : null,
     review: what === 'review', scratch: years > 0 || (what === 'map' && !(q.all === '1' || q.all === 'yes')),
   };
   const petQ = (q.pet ?? '').toLowerCase();
@@ -274,6 +276,7 @@ export function applyJump(plan: JumpPlan) {
   }));
 
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
+  setCalm(ls, plan.calm);
 
   try {
     if (plan.openLand) sessionStorage.setItem('kailia_jump_open_land', plan.openLand);
@@ -315,8 +318,18 @@ function reuseReviewProfile(plan: JumpPlan, fam: object, key: (b: string) => str
     }));
   }
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
+  setCalm(ls, plan.calm);
   try {
     if (plan.openLand) sessionStorage.setItem('kailia_jump_open_land', plan.openLand);
     else sessionStorage.removeItem('kailia_jump_open_land');
   } catch { /* fine */ }
+}
+
+/** ?calm=1|0 on any jump link: calm mode (a display setting, not child data). */
+function setCalm(ls: Storage, calm: boolean | null) {
+  if (calm === null) return;
+  try {
+    const a = JSON.parse(ls.getItem('kailia_a11y_v1') ?? '{}');
+    ls.setItem('kailia_a11y_v1', JSON.stringify({ ...a, calmMode: calm }));
+  } catch { /* ignore */ }
 }

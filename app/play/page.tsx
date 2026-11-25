@@ -22,6 +22,7 @@ import { characterArt } from '@/components/characters/characters.config';
 import BottomNav from '@/components/BottomNav';
 import CarePet from '@/components/carepet/CarePet';
 import PopupClose, { OnTop } from '@/components/PopupClose';
+import CalmToggle from '@/components/CalmToggle';
 import ThemeToggle from '@/components/ThemeToggle';
 import { scopedKey, activeChild } from '@/lib/family';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -513,15 +514,16 @@ export default function AdventureMap() {
             </button>
           </div>
         </div>
-        {/* second row: the greeting, then the day/night, calm and sound
+        {/* second row: the greeting, then the day/night, calm (moon) and sound
             switches (the sound button docks here from components/GameMusic.tsx,
             so it never covers the pet egg or the tab bar) */}
-        <div className="flex items-center gap-2 px-1 mb-1 sm:mb-3 flex-shrink-0">
+        <div data-map-switches className="flex items-center gap-2 px-1 mb-1 sm:mb-3 flex-shrink-0">
           <p data-map-sub className={`flex-1 min-w-0 text-base leading-tight font-semibold ${theme.subtitle}`}>
             {state.childName ? `${state.childName}, six magical lands are waiting!` : 'Six magical lands are waiting!'}
           </p>
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
             <ThemeToggle />
+            <CalmToggle />
             <span data-sound-slot className="flex" />
           </div>
         </div>
@@ -621,7 +623,7 @@ export default function AdventureMap() {
         <div className="flex items-center gap-3 mt-2 sm:mt-4 rounded-2xl p-2.5 sm:p-3 flex-shrink-0"
           style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-          <div className="rounded-2xl px-4 py-2 sm:py-2.5 text-base leading-snug font-semibold text-gray-800 relative"
+          <div data-noel-bubble className="rounded-2xl px-4 py-2 sm:py-2.5 text-base leading-snug font-semibold text-gray-800 relative"
             style={{ background: 'white' }}>
             <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />

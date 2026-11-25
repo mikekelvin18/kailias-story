@@ -1238,6 +1238,9 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
   [data-map-col] > * { grid-column: 2; margin-top: 6px !important; margin-bottom: 0 !important; min-width: 0; }
   [data-map-col] > :first-child { grid-column: 1 / -1; margin-top: 0 !important; padding-top: 6px !important; }
   [data-map-col] [data-map-sub] { display: none; }
+  /* the title on the left, the day/night, calm and sound switches on the right, one row */
+  [data-map-col] > :first-child { grid-column: 1 !important; }
+  [data-map-col] > [data-map-switches] { grid-column: 2; grid-row: 1; justify-content: flex-end; margin-top: 0 !important; padding-top: 6px; }
   /* the grown-ups' link is one tap away under Family on a short screen */
   [data-map-col] > [data-map-grownups] { display: none; }
   /* smaller islands, so the first and last land stay inside the frame */
@@ -1256,6 +1259,9 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 }
 @media (orientation: landscape) and (max-height: 500px) {
   [data-map-col] > a, [data-map-col] > button { font-size: 0.875rem; }
+  /* the narrow side column: three friends' faces, and Noel's words a little smaller */
+  [data-map-col] > :is(a, button) > span.flex > img:nth-child(n+4) { display: none; }
+  [data-map-col] [data-noel-bubble] { font-size: 0.875rem; padding-inline: 10px; }
 }
 
 /* Tall phones: a game with a lot above and below its play area (Word
@@ -1301,3 +1307,38 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
   .kp-back { min-height: 40px; position: relative; }
   .kp-back::before { content: ''; position: absolute; inset: -4px; border-radius: 999px; }
 }
+
+/* ── Device "reduce motion" respected by default ──
+   Before the app's own script runs (and on pages it never reaches), a phone
+   set to reduce motion gets the same still app as the Parent Zone switch
+   (lib/accessibility.ts also marks <html> data-reduced-motion for the
+   pieces that move by script). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Calm mode (Parent Zone > Display, or the moon button on the map) ──
+   For children who focus better with less to look at, in every game:
+   • plain backgrounds: one soft, flat night-blue behind every game and
+     intro, no painted scenery, no drifting dust;
+   • nothing pulses, glows, sparkles or twinkles, and no confetti;
+   • the scenery inside the play area holds still (trees, falling leaves,
+     clouds); the things to tap still move, and the characters still breathe.
+   Hints that point at something stay, just shown steady. */
+:root[data-calm="true"] .gf-screen,
+:root[data-calm="true"] main:has(> [data-play-col]) { background: #26304F !important; }
+:root[data-calm="true"] :is(.gf-backdrop, .gf-dust, .gf-confetti, .gf-rays, .gf-shine, .rise-fade, .pm-confetti) { display: none !important; }
+:root[data-calm="true"] :is(.pulse, .portal-pulse, .portal-ring, .gf-cta, .wiggle, .sparkle, .sky-twinkle,
+  .deco-spin, .deco-breathe, .deco-twinkle, .deco-wing, .deco-flutter-path, .deco-sway, .deco-glide, .deco-flap,
+  .fg-twinkle, .fg-glow, .fg-drift, .fg-rise, .fg-sway, .nf-sway-far, .nf-sway-mid, .gb-pulse, .gb-blink, .gb-wing, .gb-wing-slow,
+  .lantern-swing, .gw-ripple, .gw-drip, .gw-zzz, .pm-glow, .lp-trail, .gf-stage, .gf-flutter) { animation: none !important; }
+:root[data-calm="true"] .fg-fall { display: none !important; }
+:root[data-calm="true"] .sky-lane { animation: none !important; transform: translateX(var(--rest)); }
+:root[data-calm="true"] :is(.soft-pulse, .hint-glow) { animation: none !important; opacity: 1; }
+/* the big button sits still, with a softer shadow */
+:root[data-calm="true"] .gf-cta { box-shadow: 0 5px 0 #3b2416; }

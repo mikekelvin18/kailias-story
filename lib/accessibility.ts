@@ -10,7 +10,9 @@ export interface AccessibilityPrefs {
   textSize: 'normal' | 'large' | 'xlarge';
   dyslexiaFriendly: boolean;
   colorblindSafe: boolean;
-  /** Calm mode: plain game backgrounds, no painted scenery behind the games. */
+  /** Calm mode: plain game backgrounds, no pulsing, glows or sparkles, slower
+   *  and fewer moving decorations (the targets still move). The grown-ups'
+   *  Display settings and the moon button on the map switch it. */
   calmMode: boolean;
   /** Soft background music in the games. */
   musicOn: boolean;
@@ -79,10 +81,17 @@ export function saveA11y(prefs: AccessibilityPrefs) {
 // Applies prefs as attributes on <html> so plain CSS (globals.css) can
 // react to them everywhere, without every component needing to read
 // the settings itself.
+/** The phone or computer itself asks for less motion (its accessibility settings). */
+export function deviceWantsLessMotion(): boolean {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+}
+
 export function applyA11y(prefs: AccessibilityPrefs) {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  root.dataset.reducedMotion = String(prefs.reducedMotion);
+  // the device's own "reduce motion" counts too, without anyone having to
+  // find the switch in the Parent Zone
+  root.dataset.reducedMotion = String(prefs.reducedMotion || deviceWantsLessMotion());
   root.dataset.textSize = prefs.textSize;
   root.dataset.dyslexiaFriendly = String(prefs.dyslexiaFriendly);
   root.dataset.colorblindSafe = String(prefs.colorblindSafe);
