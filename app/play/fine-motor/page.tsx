@@ -739,7 +739,9 @@ export default function MazeRunnerPage() {
       const prev=charRef.current;
       const moved=prev?Math.hypot(p.x-prev.x,p.y-prev.y):0;
       const arc=arcAlong(p,pathRef.current);
-      if (arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
+      // progress only counts from inside the glow (a corner cut is forgiven,
+      // never a shortcut across a wall)
+      if (ok && arc<=progressRef.current+LEAP+moved*1.3) progressRef.current=Math.max(progressRef.current,arc);
       // mark the path points along this stroke (both ends inside the path)
       const from = prev && closestOnPath(prev, pathRef.current) <= corridorRef.current ? prev : p;
       const n = Math.max(1, Math.ceil(Math.hypot(p.x - from.x, p.y - from.y) / 8));
@@ -796,8 +798,8 @@ export default function MazeRunnerPage() {
     const coverage = coveredRef.current.size / Math.max(1, pathRef.current.length);
     // Most of the path followed is a win: a cut corner never blocks the flag.
     if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
-        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.6
-            || progressRef.current>=lengthRef.current*0.6)) {
+        && (progressRef.current>=lengthRef.current-FINISH_SLACK
+            || (coverage>=0.6 && progressRef.current>=lengthRef.current*0.6))) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);

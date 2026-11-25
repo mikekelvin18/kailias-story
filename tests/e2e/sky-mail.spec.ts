@@ -59,7 +59,8 @@ for (const bagName of BAGS) {
     test.setTimeout(180_000);
     const errors = watchErrors(page);
     // Rhyme Chime and Tricky Wind join the shelf once a child reads
-    await seedFamily(page, { strong: /Rhyme|Tricky/.test(bagName) });
+    // Tricky Wind (follow the arrow, not the word) joins from 7 (lib/ageBands.ts)
+    await seedFamily(page, { strong: /Rhyme|Tricky/.test(bagName), ...(bagName === 'Tricky Wind' ? { ageMonths: 96 } : {}) });
     await page.goto('/play/sky-mail');
     await expect(page.getByTestId('game-intro')).toBeVisible();
     await page.locator('.gf-choice', { hasText: bagName }).first().click({ force: true });

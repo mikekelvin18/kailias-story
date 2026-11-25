@@ -57,7 +57,7 @@ export default function AssessmentGate({ children }: { children: React.ReactNode
         <div data-unfinished-checkup className="max-w-sm w-full rounded-3xl bg-white p-6 shadow-xl text-center">
           <KailiaSprite size={72} expression="happy" className="mx-auto" />
           <h1 className="text-xl font-extrabold text-slate-800 mt-2">
-            {others.me?.nickname ?? 'This child'} hasn&apos;t finished the first check-up yet
+            {`${others.me?.nickname ?? 'This child'} hasn't finished the first check-up yet`}
           </h1>
           <p className="text-slate-600 mt-2">The map opens once it&apos;s done. Noel keeps the answers given so far.</p>
           <button onClick={() => router.push('/setup')}
@@ -69,7 +69,7 @@ export default function AssessmentGate({ children }: { children: React.ReactNode
             <button key={c.id} onClick={() => { setActiveChild(c.id); setOthers(null); }}
               className="mt-3 w-full min-h-[48px] rounded-full font-bold text-base border-2"
               style={{ borderColor: '#7C3AED', color: '#5B21B6' }}>
-              Switch to {c.nickname}
+              {`Switch to ${c.nickname}`}
             </button>
           ))}
         </div>
