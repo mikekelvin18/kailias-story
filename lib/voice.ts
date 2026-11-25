@@ -10,7 +10,7 @@
 // hand in Grown-ups > Display & accessibility (saved on this device only,
 // like the other display settings; it is not child data).
 
-import { loadA11y, masterVolume } from './accessibility';
+import { loadA11y, masterVolume, narrationOn, narrationSpeed } from './accessibility';
 import { deviceNames } from './nameSounds';
 
 /* Voices we know sound warm and friendly, best first. Matching is by
@@ -117,6 +117,35 @@ export interface SayOptions {
    * the line the game itself just started ("The baby dragons are hungry…").
    */
   owner?: string;
+  /** called as each sentence starts (its number in splitSentences(text)), for the reading highlight */
+  onSentence?: (index: number) => void;
+  /** called once the whole line has been read (not when it was cut off by a newer line) */
+  onDone?: () => void;
+}
+
+// ── Pause and play (the narration player's big button) ──
+let pausedNow = false;
+const pauseListeners = new Set<(paused: boolean) => void>();
+function setPaused(p: boolean) {
+  if (pausedNow === p) return;
+  pausedNow = p;
+  pauseListeners.forEach(fn => { try { fn(p); } catch { /* ignore */ } });
+}
+export function onPaused(fn: (paused: boolean) => void) { pauseListeners.add(fn); return () => { pauseListeners.delete(fn); }; }
+export function voicePaused() { return pausedNow; }
+/** Pause whatever is being read, mid-sentence. */
+export function pauseVoice() {
+  if (!talkingNow) return;
+  try { if (player && !player.paused) player.pause(); } catch { /* ignore */ }
+  try { window.speechSynthesis?.pause(); } catch { /* ignore */ }
+  setPaused(true);
+}
+/** Carry on from where it was paused. */
+export function resumeVoice() {
+  if (!pausedNow) return;
+  setPaused(false);
+  try { if (player && player.paused && player.src && player.src !== SILENCE) void player.play().catch(() => {}); } catch { /* ignore */ }
+  try { window.speechSynthesis?.resume(); } catch { /* ignore */ }
 }
 
 // ── The pet friends' own voices ──
@@ -169,6 +198,7 @@ function whenVoicesReady(go: () => void) {
 
 /** Split into sentences where end punctuation is followed by a new capitalised
     sentence, so "3.5" and "their little song… then echo it" stay whole. */
+export function splitSentences(text: string): string[] { return sentences(text); }
 function sentences(text: string): string[] {
   const parts = text.split(/(?<=[.!?…])\s+(?=[A-Z0-9"'“‘])/).map(p => p.trim()).filter(Boolean);
   return parts.length ? parts : [text];
@@ -196,6 +226,21 @@ if (typeof window !== 'undefined') {
     .then((m: Record<string, string>) => { clips = new Map(Object.entries(m ?? {})); })
     .catch(() => { clips = new Map(); });
 }
+
+// ── Voices made by scripts/generate_voices.py ──
+// public/audio/manifest.json lists every pre-made clip by speaker:
+// { "kailia": { "<voiceKey of the sentence>": "kailia/hi-im-kailia-1a2b3c4d.mp3" } }.
+// Kailia speaks only from these; a sentence with no clip yet is read by the
+// device voice, a little higher and quicker, until her clips are made.
+let audioClips: Record<string, Record<string, string>> | null = null;
+if (typeof window !== 'undefined') {
+  fetch('/audio/manifest.json')
+    .then(r => (r.ok ? r.json() : {}))
+    .then((m: Record<string, Record<string, string>>) => { audioClips = m ?? {}; })
+    .catch(() => { audioClips = {}; });
+}
+/** Device-voice pitch for Kailia when she has no clip for a sentence. */
+const KAILIA_PITCH = 1.45;
 
 let player: HTMLAudioElement | null = null;
 
@@ -271,14 +316,16 @@ function stopClip() {
 }
 
 /** Play recorded sentences one after another. Returns false if it couldn't start. */
-function playClips(files: string[], gen: number, fallback: () => void, base = '/voice') {
+function playClips(files: string[], gen: number, fallback: () => void, base = '/voice', hooks: SayOptions = {}) {
   player = player ?? new Audio();
   const audio = player;
   let i = 0;
   const next = () => {
     if (gen !== generation) return;
-    if (i >= files.length) { setTalking(false); return; }
+    if (i >= files.length) { setTalking(false); hooks.onDone?.(); return; }
+    hooks.onSentence?.(i);
     audio.src = `${base}/${files[i++]}`;
+    audio.playbackRate = narrationSpeed();
     audio.dataset.owner = lineOwner ?? ''; // whose line this is (scripts/voice-check.mjs reads it)
     audio.volume = masterVolume();
     audio.onended = () => setTimeout(next, 140); // a small breath between sentences
@@ -308,6 +355,9 @@ let replay: { text: string; opts: SayOptions } | null = null;
 
 export function say(text: string, opts: SayOptions = {}) {
   if (typeof window === 'undefined') return;
+  // grown-ups can switch read-aloud off (Parent Zone): nothing is spoken
+  if (!narrationOn()) { generation++; stopClip(); try { window.speechSynthesis?.cancel(); } catch { /* ignore */ } setTalking(false); return; }
+  setPaused(false);
   lastLine = { text, opts };
   lineOwner = opts.owner ?? null;
   replay = null;
@@ -339,7 +389,7 @@ export function say(text: string, opts: SayOptions = {}) {
       // Lifelike voices already sound warm; pushing their pitch far makes
       // them sound squeaky, so they get half the lift the plain ones get.
       const pitch = natural ? 1 + (wantPitch - 1) * 0.5 : wantPitch;
-      const rate = opts.rate ?? 0.92;
+      const rate = (opts.rate ?? 0.92) * narrationSpeed();
       // SHOUTED words ("the SAME color", uppercase headings) get spelled out
       // letter by letter on some voices, so read them as normal words
       const parts = sentences(clean).map(p => deviceNames(p.replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase()))));
@@ -349,9 +399,9 @@ export function say(text: string, opts: SayOptions = {}) {
         if (voice) { u.voice = voice; u.lang = voice.lang; }
         u.rate = rate;
         u.pitch = Math.max(0.5, Math.min(2, pitch));
-        u.onstart = () => { if (gen === generation) setTalking(true); };
+        u.onstart = () => { if (gen === generation) { setTalking(true); opts.onSentence?.(i); } };
         if (i === parts.length - 1) {
-          const end = () => { if (gen === generation) setTalking(false); };
+          const end = () => { if (gen === generation) { setTalking(false); opts.onDone?.(); } };
           u.onend = end; u.onerror = end;
         }
         synth.speak(u);
@@ -359,15 +409,28 @@ export function say(text: string, opts: SayOptions = {}) {
       // Safari sometimes starts out paused after a cancel
       if (synth.paused) synth.resume();
     };
+    // Kailia: her own made-ahead clips, else the device voice in a higher, kid pitch.
+    const who = opts.voice ? opts.voice.toLowerCase() : null;
+    if (who === 'kailia') {
+      const mine = audioClips?.kailia ?? {};
+      const files = sentences(clean).map(p => mine[voiceKey(p)]);
+      opts = { ...opts, pitch: opts.pitch ?? KAILIA_PITCH, rate: opts.rate ?? 1 };
+      if (files.length && files.every(Boolean)) {
+        playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); }, '/audio', opts);
+      } else {
+        whenVoicesReady(busy ? () => setTimeout(start, 80) : start);
+      }
+      return;
+    }
     // A pet friend talking: its own recordings, never Noel's.
-    const pet = opts.voice ? opts.voice.toLowerCase() : null;
+    const pet = who;
     if (pet && PET_VOICES[pet]) {
       const devicePitch = () => { opts = { ...opts, pitch: opts.pitch ?? PET_VOICES[pet].pitch }; };
       const tryClips = (m: Map<string, string>) => {
         if (gen !== generation) return;
         const files = sentences(clean).map(p => m.get(voiceKey(p)));
         if (files.length && files.every(Boolean)) {
-          playClips(files as string[], gen, () => { stopClip(); devicePitch(); whenVoicesReady(start); }, `/voice/pets/${pet}`);
+          playClips(files as string[], gen, () => { stopClip(); devicePitch(); whenVoicesReady(start); }, `/voice/pets/${pet}`, opts);
         } else { devicePitch(); whenVoicesReady(busy ? () => setTimeout(start, 80) : start); }
       };
       const m = petManifest(pet);
@@ -380,7 +443,7 @@ export function say(text: string, opts: SayOptions = {}) {
     if (clips && (opts.pitch ?? 1) < 1.25) {
       const files = sentences(clean).map(p => clips!.get(voiceKey(p)));
       if (files.length && files.every(Boolean)) {
-        playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); });
+        playClips(files as string[], gen, () => { stopClip(); whenVoicesReady(start); }, '/voice', opts);
         return;
       }
       // No device voice to fill the gaps: play the sentences that are
@@ -417,6 +480,7 @@ export function hushOwn(owner: string) {
 
 export function hush() {
   generation++;
+  setPaused(false);
   waiting = null;
   replay = null;
   stopClip();

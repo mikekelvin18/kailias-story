@@ -12,6 +12,7 @@
 // the first tap (finger lifted) or key press, fading in gently.
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { A11Y_EVENT, musicEnabled, soundEnabled, updateA11yPrefs, setMutedNow } from '@/lib/accessibility';
 import { hush } from '@/lib/voice';
@@ -86,6 +87,20 @@ export default function GameMusic() {
     return () => document.removeEventListener('visibilitychange', vis);
   }, []);
 
+  // The map keeps the button in its header (a slot marked
+  // data-sound-slot), so it never covers the pet egg or the tab bar.
+  const [slot, setSlot] = useState<Element | null>(null);
+  useEffect(() => {
+    let tries = 0, t: ReturnType<typeof setTimeout> | null = null;
+    const find = () => {
+      const el = document.querySelector('[data-sound-slot]');
+      setSlot(el);
+      if (!el && tries++ < 20) t = setTimeout(find, 150);
+    };
+    find();
+    return () => { if (t) clearTimeout(t); };
+  }, [path]);
+
   if (!showButton || hidden) return null;
 
   // One button (Kelvin: "just have a button to turn it off"): tap for all
@@ -104,19 +119,19 @@ export default function GameMusic() {
     if (next) { if (inGame) music().start(true); } else { music().stop(); hush(); }
   };
 
-  return (
-    <div className="fixed z-[60]"
-      style={{
+  const docked = !!slot && slot.isConnected;
+  const button = (
+    <div className={docked ? 'flex' : 'fixed z-[60]'}
+      style={docked ? undefined : {
         right: 'max(14px, env(safe-area-inset-right))',
-        // the map has the bottom tab bar (about 68px, more on computers): sit just above it
-        bottom: path === '/play' ? 'calc(env(safe-area-inset-bottom, 0px) + 92px)' : 'max(14px, env(safe-area-inset-bottom))',
+        bottom: 'max(14px, env(safe-area-inset-bottom))',
       }}>
       <button type="button" onClick={toggle}
         aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'} aria-pressed={!soundOn}
         title={soundOn ? 'Sound on (tap to turn off)' : 'Sound off (tap to turn on)'}
-        className={`grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105 `}
+        className={`${docked ? 'kp-tap-pad ' : ''}grid place-items-center rounded-full transition-transform active:scale-90 hover:scale-105 `}
         style={{
-          width: 46, height: 46,
+          width: docked ? 40 : 48, height: docked ? 40 : 48,
           background: 'rgba(255,255,255,0.92)',
           border: '2px solid rgba(124,58,237,0.35)',
           boxShadow: '0 4px 14px rgba(20,10,60,0.28)',
@@ -130,4 +145,5 @@ export default function GameMusic() {
       </button>
     </div>
   );
+  return docked ? createPortal(button, slot!) : button;
 }

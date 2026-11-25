@@ -88,7 +88,7 @@ const TRAILS = [
   'Today the trail goes all the way to the waterfall!',
   'The trail friends are playing a riddle game. Can you answer them all?',
   'Kailia is collecting friends for a big group hug.',
-  'The trail leads to the old oak tree, where the owl tells stories.',
+  'The trail leads to the old oak tree, for story time.',
   'Today is the trail clean-up day, and every friend helps!',
   'The friends along the trail are waiting for the mail.',
   'Kailia is on her way to the rainbow at the end of the trail.',
@@ -262,9 +262,9 @@ export default function TrailWalkPage() {
 
   return (
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 45%, #86efac 100%)' }}>
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
           <h1 className="text-xl font-extrabold text-sky-950 drop-shadow-sm whitespace-nowrap">
             Kailia&apos;s Trail <span className="text-xs font-bold text-amber-800 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.4)' }}>Lv {level}</span>
           </h1>
@@ -300,8 +300,8 @@ export default function TrailWalkPage() {
 
         {phase !== 'intro' && (
           <>
-            <div ref={sceneRef} className="relative w-full rounded-3xl overflow-hidden select-none"
-              style={{ height: SCENE_H, border: '3px solid rgba(14,116,144,0.3)', boxShadow: '0 8px 0 rgba(14,116,144,0.18)',
+            <div ref={sceneRef} data-play-field data-fixed className="relative w-full rounded-3xl overflow-hidden select-none"
+              style={{ height: SCENE_H, ['--kp-h' as string]: `${SCENE_H}px`, border: '3px solid rgba(14,116,144,0.3)', boxShadow: '0 8px 0 rgba(14,116,144,0.18)',
                 background: 'linear-gradient(180deg, #6cc8f5 0%, #bfe7fb 52%, #e3f6ff 66%)' }}>
               {/* sky: the sun turns slowly, clouds drift by on their own */}
               <Sun size={48} className="absolute" style={{ right: 14, top: 12, pointerEvents: 'none' }} />

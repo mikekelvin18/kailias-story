@@ -17,6 +17,7 @@ import { speak, stopSpeaking } from '@/lib/speak';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
 import { useBursts } from '@/components/friends/kit/Burst';
 import { seeded } from '@/components/friends/kit/Stage';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import { Thing } from '@/components/art/things';
@@ -71,27 +72,28 @@ const HUNTS: Hunt[] = [
       { e: 'owl', c: 'wings' }, { e: 'octopus', c: 'fins' }, { e: 'penguin', c: 'wings' }, { e: 'snail', c: 'crawl' }] },
 ];
 
-type Round = ({ story?: string }) & (
+type Round = ({ story?: string; who?: StoryWho | null }) & (
   | { kind: 'hunt'; hunt: Hunt; pieces: { id: number; item: HuntItem; x: number; y: number; dx: number; dy: number; dur: number }[] }
   | { kind: 'odd'; hue: number; delta: number; count: number; oddIdx: number });
 
 // ── Why we're looking: a new little story every round ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
-const SENSE_STORIES = [
-  'The rainbow fairy is collecting colors for her paint box.',
-  'The magpie wants something special for her nest.',
-  'Kailia\'s lantern is hungry for light!',
-  'The cave museum needs new treasures for the big show.',
-  'The baby owl is practicing spotting things in the dark.',
-  'The wizard needs just the right things for a spell.',
-  'A gust of wind blew the treasures all around the cave!',
-  'The crystal cave is having a treasure hunt!',
-  'The fox wants to decorate her cozy den.',
-  'The bats are playing a looking game.',
-  'The cave queen lost something special.',
-  'The cave elves are tidying up before bedtime.',
-  'The glow worms want to build a sparkly tower.',
-  'Grandpa mole needs help, because his eyes are tired.',
+// Whoever the story is about waits in the cave beside Kailia (StoryGuest).
+const SENSE_STORIES: { line: string; who: StoryWho | null }[] = [
+  { line: 'The peacock is collecting colors for her feathers.', who: 'peacock' },
+  { line: 'The parrot wants something special for her nest.', who: 'parrot' },
+  { line: 'Kailia\'s lantern is hungry for light!', who: null },
+  { line: 'The raccoon needs new treasures for his cave museum.', who: 'raccoon' },
+  { line: 'The little hedgehog is practicing spotting things in the dark.', who: 'hedgehog' },
+  { line: 'The koala needs just the right things for a magic trick.', who: 'koala' },
+  { line: 'A gust of wind blew the treasures all around the cave!', who: null },
+  { line: 'The squirrel is having a treasure hunt in the cave!', who: 'squirrel' },
+  { line: 'The bunny wants to decorate her cozy den.', who: 'rabbit' },
+  { line: 'The frogs are playing a looking game.', who: 'frog' },
+  { line: 'The swan lost something special in the cave.', who: 'swan' },
+  { line: 'The deer are tidying up before bedtime.', who: 'deer' },
+  { line: 'The bees want to build a sparkly tower.', who: 'bee' },
+  { line: 'Grandpa hedgehog needs help, because his eyes are tired.', who: 'hedgehog' },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -239,7 +241,7 @@ export default function SenseExplorerPage() {
     for (let i = 0; i < ROUNDS_PER_LEVEL; i++) {
       const r = (i % 2 === (level % 2)) ? buildOdd(level, tiny) : buildHunt(level, tiny, lastHunt.current);
       if (r.kind === 'hunt') lastHunt.current = r.hunt.target;
-      rs.push({ ...r, story: stories[i] });
+      rs.push({ ...r, story: stories[i].line, who: stories[i].who });
     }
     setRounds(rs); setRIdx(0);
     setCaught(new Set()); setTries(0); setRoundDone(false); setWobble(null);
@@ -364,9 +366,9 @@ export default function SenseExplorerPage() {
     <main className="relative min-h-screen pb-8 overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 70%, #155e75 120%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Sense Explorer <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
@@ -422,7 +424,7 @@ export default function SenseExplorerPage() {
             </div>
 
             {/* the cave */}
-            <div key={rIdx} className="relative w-full rounded-[28px] overflow-hidden select-none bounce-in"
+            <div key={rIdx} data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none bounce-in"
               style={{ aspectRatio: '3 / 3.9', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <CrystalCave />
 
@@ -478,6 +480,7 @@ export default function SenseExplorerPage() {
                 );
               })}
 
+              <StoryGuest who={round?.who} x={74} y={GROUND} size={48} z={5} cheer={roundDone} />
               <KailiaActor x={kailiaAt} y={GROUND} h={74} hop={kailiaHop} z={6} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 1} h={54}

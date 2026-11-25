@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
@@ -10,14 +10,22 @@ import { logQuestMetric } from '@/lib/metrics';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
-import NightForest from '@/components/games/NightForest';
+import NightForestArt from '@/components/games/NightForest';
 import GlowBug from '@/components/games/GlowBug';
 import { levelStories, randInt, roundRandom } from '@/lib/variety';
-import KailiaActor from '@/components/games/KailiaActor';
+import KailiaActorArt from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
-import Actor, { usePetMood } from '@/components/friends/kit/Actor';
+import ActorArt, { usePetMood } from '@/components/friends/kit/Actor';
+
+// The scene and characters only redraw when their own props change, not on
+// every frame the fireflies move (keeps phones smooth).
+const NightForest = memo(NightForestArt);
+const KailiaActor = memo(KailiaActorArt);
+const Actor = memo(ActorArt);
 import { useBursts } from '@/components/friends/kit/Burst';
 import { chime } from '@/components/friends/voice';
+import { CritterSprite, type SpeciesKey } from '@/components/characters/CritterSprite';
+import StoryGuest from '@/components/games/StoryGuest';
 
 // ─── Firefly Catch ────────────────────────────────────────────────────────────
 // A real fine-motor exercise: tap drifting fireflies (targeting, speed),
@@ -38,32 +46,38 @@ interface RoundCfg {
   jitter: number;  // random direction changes (zippy round)
   mode: 'tap' | 'drag';
   done?: string;   // the round's happy ending
+  who?: Guest | null; // the story's friend, drawn in the glade
 }
 
 const BASE_ROUNDS: RoundCfg[] = [
   { label: 'Sleepy fireflies',  noel: 'Tap the fireflies gently to catch them!',                      count: 5, r: 34, speed: 26, jitter: 0,  mode: 'tap' },
   { label: 'Playful fireflies', noel: 'Ooh, these ones like to wander — follow the glow!',            count: 6, r: 26, speed: 55, jitter: 0,  mode: 'tap' },
   { label: 'Zippy fireflies',   noel: 'Whoa, speedy ones! Watch closely and tap right on them!',      count: 6, r: 20, speed: 92, jitter: 70, mode: 'tap' },
-  { label: 'Carry them home',   noel: 'These sleepy ones need a ride. Drag each one into the lantern!', count: 4, r: 30, speed: 0, jitter: 0, mode: 'drag' },
+  { label: 'Carry them home',   noel: 'These ones are sleepy. Drag each firefly to the lamp!', count: 4, r: 30, speed: 0, jitter: 0, mode: 'drag' },
 ];
 
 // ── Why Kailia needs the fireflies tonight: a new little story every round ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
-const NIGHTS: { line: string; done: string }[] = [
-  { line: 'The old owl wants to read a bedtime story. Let\'s light her lamp!', done: 'Now the owl can read her story!' },
-  { line: 'A little bunny is lost in the dark. Let\'s light the way home!', done: 'The bunny found her way home!' },
-  { line: 'The village is having a night party. Let\'s fill the lanterns!', done: 'The party lanterns are glowing!' },
-  { line: 'The baby frog is scared of the dark. Let\'s make his pond glow!', done: 'The baby frog is smiling now!' },
-  { line: 'The squirrel dropped her acorns in the dark. Let\'s light up the forest floor!', done: 'She found every acorn!' },
-  { line: 'The moon is hiding behind the clouds. Let\'s make our own moonlight!', done: 'What a bright, glowing night!' },
-  { line: 'The deer family is going for a night walk. Let\'s light their path!', done: 'The deer family is walking safely!' },
-  { line: 'The little hedgehog wants a night light for his bedroom.', done: 'Sweet dreams, little hedgehog!' },
-  { line: 'The bees want to see their flowers at night!', done: 'The flowers are twinkling for the bees!' },
-  { line: 'It\'s the koala\'s birthday! Let\'s make a glowing birthday cake.', done: 'Happy birthday, koala!' },
-  { line: 'The swan wants to dance on a sparkly lake!', done: 'The swan is dancing in the light!' },
-  { line: 'Let\'s draw a twinkly picture in the sky!', done: 'What a beautiful sky picture!' },
-  { line: 'The raccoon is building a fort and needs some light!', done: 'The raccoon\'s fort is glowing!' },
-  { line: 'The butterflies are having a sleepover. Let\'s light their tent!', done: 'Good night, butterflies!' },
+// Every story names a friend that really shows up in the glade (Kelvin
+// 2026-11-23: "it says the deer are safe, but it's only Noel"). `who` is the
+// friend drawn on the hill all round and cheering at the round's end; the
+// two sky stories have no animal, and the moon/sky is what lights up.
+type Guest = Exclude<SpeciesKey, 'dragon' | 'fox' | 'owl' | 'turtle'>;
+const NIGHTS: { line: string; done: string; who: Guest | null }[] = [
+  { line: 'The peacock wants to show off her feathers tonight. Let\'s make them sparkle!', done: 'Her feathers are sparkling!', who: 'peacock' },
+  { line: 'A little bunny is lost in the dark. Let\'s light the way home!', done: 'The bunny found her way home!', who: 'rabbit' },
+  { line: 'The parrots are having a night party. Let\'s fill the lanterns!', done: 'The parrots are dancing by the lanterns!', who: 'parrot' },
+  { line: 'The baby frog is scared of the dark. Let\'s make his pond glow!', done: 'The baby frog is smiling now!', who: 'frog' },
+  { line: 'The squirrel dropped her acorns in the dark. Let\'s light up the forest floor!', done: 'She found every acorn!', who: 'squirrel' },
+  { line: 'The moon is hiding behind the clouds. Let\'s make our own moonlight!', done: 'What a bright, glowing night!', who: null },
+  { line: 'The deer family is going for a night walk. Let\'s light their path!', done: 'The deer family is walking safely!', who: 'deer' },
+  { line: 'The little hedgehog wants a night light for his bedroom.', done: 'Sweet dreams, little hedgehog!', who: 'hedgehog' },
+  { line: 'The bees want to see their flowers at night!', done: 'The flowers are twinkling for the bees!', who: 'bee' },
+  { line: 'It\'s the koala\'s birthday! Let\'s make a glowing birthday cake.', done: 'Happy birthday, koala!', who: 'koala' },
+  { line: 'The swan wants to dance on a sparkly lake!', done: 'The swan is dancing in the light!', who: 'swan' },
+  { line: 'Let\'s draw a twinkly picture in the sky!', done: 'What a beautiful sky picture!', who: null },
+  { line: 'The raccoon is building a fort and needs some light!', done: 'The raccoon\'s fort is glowing!', who: 'raccoon' },
+  { line: 'The butterflies are having a sleepover. Let\'s light their tent!', done: 'Good night, butterflies!', who: 'butterfly' },
 ];
 
 // The level's rounds: how many fireflies, where the "carry them home"
@@ -82,7 +96,7 @@ function planFor(level: number): RoundCfg[] {
   return order.map((r, i) => {
     const extra = r.mode === 'drag' ? Math.floor((L - 1) / 4) : Math.floor((L - 1) / 3);
     const count = Math.min(r.mode === 'drag' ? 7 : 12, r.count + extra + randInt(rand, 0, 1));
-    return { ...r, count, noel: `${nights[i].line} ${r.noel}`, done: nights[i].done };
+    return { ...r, count, noel: `${nights[i].line} ${r.noel}`, done: nights[i].done, who: nights[i].who };
   });
 }
 
@@ -171,7 +185,13 @@ export default function FireflyCatchPage() {
   const consecMissRef = useRef(0);
   const roundMissesRef = useRef(0);
   const burstIdRef = useRef(0);
-  const dragRef = useRef<{ id: number; path: number; lx: number; ly: number; sx: number; sy: number } | null>(null);
+  const dragRef = useRef<{ id: number; path: number; lx: number; ly: number; sx: number; sy: number; cx: number; cy: number } | null>(null);
+  // the firefly being carried is moved straight on screen (no re-render per
+  // finger move), so dragging stays smooth on phones; its spot is saved
+  // when the finger lifts
+  const flyEls = useRef(new Map<number, HTMLDivElement>());
+  const lastPetMoveRef = useRef(0);
+  const [carried, setCarried] = useState(0); // drops made this round (hides the "to the lamp" guide)
   const metricsRef = useRef({
     tapOffsets: [] as number[], catchMs: [] as number[], misses: 0,
     dragRatios: [] as number[], dropOffsets: [] as number[], startedAt: 0,
@@ -230,6 +250,7 @@ export default function FireflyCatchPage() {
     setPetPos({ x: 72, y: 93 });
     setRoundIdx(idx);
     setFireflies(flies);
+    setCarried(0);
     setNoelLine(round.noel);
     setNoelMood('excited');
     setPhase('playing');
@@ -241,6 +262,28 @@ export default function FireflyCatchPage() {
     sfx.round();
     startRound(0);
   }
+
+  // The play area is sized to fit the screen (a phone turned sideways makes
+  // it shorter), and the first round starts before it is on screen. Keep the
+  // fireflies' world the same size as the play area: when it changes, every
+  // firefly moves with it, so none is ever left outside the frame.
+  useEffect(() => {
+    if (phase === 'intro') return;
+    const el = areaRef.current;
+    if (!el) return;
+    const fit = () => {
+      const r = el.getBoundingClientRect();
+      const { w, h } = sizeRef.current;
+      if (!r.width || !r.height || (Math.abs(r.width - w) < 1 && Math.abs(r.height - h) < 1)) return;
+      const sx = r.width / w, sy = r.height / h;
+      sizeRef.current = { w: r.width, h: r.height };
+      setFireflies(prev => prev.map(f => ({ ...f, x: f.x * sx, y: f.y * sy })));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [phase]);
 
   // ── Drift physics ──
   useEffect(() => {
@@ -368,11 +411,11 @@ export default function FireflyCatchPage() {
     setPetPos({ x: besideKailia(clampPct((best.x / w) * 100), kailiaPos.x), y: 93 });
   }
 
-  function tickle() {
+  const tickle = useCallback(() => {
     setPetMood('dance');
     chime.tap();
     setTimeout(() => setPetMood('idle'), 1300);
-  }
+  }, [setPetMood]);
 
   function pointerPos(e: React.PointerEvent): { x: number; y: number } {
     const rect = areaRef.current!.getBoundingClientRect();
@@ -389,7 +432,7 @@ export default function FireflyCatchPage() {
     if (cfg.mode === 'drag') {
       const target = fireflies.find(f => !f.caught && Math.hypot(f.x - x, f.y - y) <= cfg.r + 18);
       if (target) {
-        dragRef.current = { id: target.id, path: 0, lx: x, ly: y, sx: target.x, sy: target.y };
+        dragRef.current = { id: target.id, path: 0, lx: x, ly: y, sx: target.x, sy: target.y, cx: target.x, cy: target.y };
         setDraggingId(target.id);
         chime.tap();
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* keep dragging even if capture fails */ }
@@ -442,9 +485,16 @@ export default function FireflyCatchPage() {
     const { w, h } = sizeRef.current;
     const cx = Math.max(cfg.r, Math.min(w - cfg.r, x));
     const cy = Math.max(cfg.r, Math.min(h - cfg.r, y));
-    setFireflies(prev => prev.map(f => (f.id === drag.id ? { ...f, x: cx, y: cy } : f)));
-    // the friend trots along underneath the sleepy firefly
-    setPetPos({ x: besideKailia(clampPct((cx / w) * 100 + 9), kailiaPos.x), y: 93 });
+    drag.cx = cx; drag.cy = cy;
+    const el = flyEls.current.get(drag.id);
+    if (el) { el.style.transform = `translate(${cx - drag.sx}px, ${cy - drag.sy}px)`; }
+    // the friend trots along underneath the sleepy firefly (a few times a
+    // second is plenty; it walks there smoothly by itself)
+    const now = performance.now();
+    if (now - lastPetMoveRef.current > 300) {
+      lastPetMoveRef.current = now;
+      setPetPos({ x: besideKailia(clampPct((cx / w) * 100 + 9), kailiaXRef.current), y: 93 });
+    }
   }
 
   function onPointerUp() {
@@ -452,8 +502,13 @@ export default function FireflyCatchPage() {
     if (!drag || phase !== 'playing') return;
     dragRef.current = null;
     setDraggingId(null);
-    const fly = fireflies.find(f => f.id === drag.id);
-    if (!fly) return;
+    const found = fireflies.find(f => f.id === drag.id);
+    if (!found) return;
+    const fly = { ...found, x: drag.cx, y: drag.cy };
+    // save where it was let go, and clear the on-screen nudge
+    const el = flyEls.current.get(drag.id);
+    if (el) el.style.transform = '';
+    setFireflies(prev => prev.map(f => (f.id === drag.id ? { ...f, x: fly.x, y: fly.y } : f)));
     const { x: lx, y: ly } = lanternPos();
     const dropDist = Math.hypot(fly.x - lx, fly.y - ly);
     if (dropDist <= tuning.zone) {
@@ -462,10 +517,11 @@ export default function FireflyCatchPage() {
       metricsRef.current.dropOffsets.push(Math.min(1, dropDist / tuning.zone));
       setFireflies(prev => prev.map(f => (f.id === drag.id ? { ...f, caught: true } : f)));
       setTotalCaught(n => n + 1);
+      setCarried(n => n + 1);
       sfx.home();
       cheer(fly.x, fly.y);
     } else {
-      setNoelLine('Almost! Carry it all the way to the lantern!');
+      setNoelLine('Almost! Carry it all the way to the lamp!');
       setNoelMood('thinking');
       setPetMood('oops');
     }
@@ -478,11 +534,11 @@ export default function FireflyCatchPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #04100a 0%, #07271a 55%, #0a3323 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-emerald-300">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-emerald-300">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Firefly Catch <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -534,7 +590,7 @@ export default function FireflyCatchPage() {
               </div>
             </div>
 
-            <div ref={areaRef} data-mode={cfg.mode}
+            <div ref={areaRef} data-play-field data-mode={cfg.mode}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
               onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
               className="relative w-full rounded-[28px] overflow-hidden select-none"
@@ -554,6 +610,32 @@ export default function FireflyCatchPage() {
                 <Lantern glow={glow} size={64} gulp={gulp} />
               </div>
 
+              {/* the story's friend, waiting on the hill for the light */}
+              <StoryGuest who={cfg.who} x={84} y={71} size={58} glow={glow} cheer={phase === 'roundDone'} />
+
+              {/* how to carry: a ghost firefly glides from a sleepy one to the lamp, with a label */}
+              {cfg.mode === 'drag' && phase === 'playing' && carried === 0 && draggingId === null && (() => {
+                const first = fireflies.find(f => !f.caught);
+                if (!first) return null;
+                return (
+                  <>
+                    <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%" style={{ zIndex: 5, overflow: 'visible' }} aria-hidden="true">
+                      <line x1={first.x} y1={first.y} x2={lanternX} y2={lanternY - 30} stroke="rgba(253,224,71,0.75)" strokeWidth="4" strokeLinecap="round" strokeDasharray="2 12" />
+                    </svg>
+                    <div className="absolute ff-guide" style={{ left: first.x - 16, top: first.y - 16, width: 32, height: 32, pointerEvents: 'none', zIndex: 9, opacity: 0.8,
+                      ['--fx' as string]: `${lanternX - first.x}px`, ['--fy' as string]: `${lanternY - 30 - first.y}px` } as React.CSSProperties}>
+                      <GlowBug size={32} seed={3} lit={1} />
+                    </div>
+                  </>
+                );
+              })()}
+              {cfg.mode === 'drag' && phase === 'playing' && carried === 0 && (
+                <div data-lamp-label className="absolute font-extrabold text-sm text-amber-900 rounded-full px-3 py-1 bounce-in" style={{ left: lanternX, top: lanternY - 74, transform: 'translate(-50%, -100%)',
+                  background: '#FEF3C7', border: '2px solid #3b2416', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 12 }}>
+                  Bring it to the lamp!
+                </div>
+              )}
+
               {/* Kailia and the friend, in the glade */}
               <KailiaActor x={kailiaPos.x} y={kailiaPos.y} h={84} hop={kailiaHop} />
               <div data-pet>
@@ -568,7 +650,9 @@ export default function FireflyCatchPage() {
                 const size = Math.min(64, cfg.r * 1.7);
                 const dragging = draggingId === f.id;
                 return (
-                  <div key={f.id} data-firefly className="absolute" style={{ left: f.x - size / 2, top: f.y - size / 2, width: size, height: size, pointerEvents: 'none', zIndex: 10 }}>
+                  <div key={f.id} data-firefly className="absolute"
+                    ref={el => { if (el) flyEls.current.set(f.id, el); else flyEls.current.delete(f.id); }}
+                    style={{ left: f.x - size / 2, top: f.y - size / 2, width: size, height: size, pointerEvents: 'none', zIndex: 10, willChange: cfg.mode === 'drag' ? 'transform' : undefined }}>
                     {hintId === f.id && (
                       <span className="absolute inset-[-10%] rounded-full hint-glow" style={{ border: '3px solid rgba(255,255,255,0.85)' }} />
                     )}
@@ -595,7 +679,9 @@ export default function FireflyCatchPage() {
               {phase === 'roundDone' && roundIdx + 1 < ROUNDS.length && (
                 <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(8,12,40,0.35)', zIndex: 40 }}>
                   <div className="text-center bounce-in">
-                    <PandaSprite size={90} expression="celebrating" />
+                    {cfg.who
+                      ? <span className="inline-block kp-hop"><CritterSprite species={cfg.who} size={96} /></span>
+                      : <PandaSprite size={90} expression="celebrating" />}
                     <p className="text-xl font-extrabold text-white drop-shadow mt-1">{praise}</p>
                   </div>
                 </div>

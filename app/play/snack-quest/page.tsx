@@ -62,13 +62,13 @@ interface RoundCfg {
 const WISHES: { thing: Thing | null; line: string }[] = [
   { thing: 'cookie', line: "It's the baby dragon's birthday! She wants cookies for her party." },
   { thing: 'berry', line: 'The baby dragon is packing a picnic. She wants berries!' },
-  { thing: 'apple', line: 'The baby dragon wants apples to share with her big brother.' },
+  { thing: 'apple', line: 'The baby dragon wants apples for a crunchy snack.' },
   { thing: 'carrot', line: 'The baby dragon is cooking carrot soup!' },
-  { thing: 'flower', line: 'The baby dragon wants flowers for her mommy.' },
+  { thing: 'flower', line: 'The baby dragon wants flowers to make a pretty crown.' },
   { thing: 'shell', line: 'The baby dragon is decorating her sandcastle with shells!' },
-  { thing: 'ball', line: 'The baby dragon wants balls to play catch with her friends!' },
+  { thing: 'ball', line: 'The baby dragon wants balls to play catch with Kailia!' },
   { thing: 'coin', line: 'The baby dragon is filling her treasure jar with gold coins.' },
-  { thing: 'acorn', line: 'The baby dragon wants acorns for the hungry squirrels.' },
+  { thing: 'acorn', line: 'The baby dragon is saving acorns for winter.' },
   { thing: 'leaf', line: 'The baby dragon is making a soft leafy bed for her nap.' },
   { thing: null, line: 'The baby dragon woke up with a rumbly tummy!' },
 ];
@@ -213,7 +213,7 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore, devMonths } = useAssessment();
+  const { state, totalScore, devMonths, chronoMonths } = useAssessment();
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
   useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
@@ -300,7 +300,14 @@ export default function SnackQuestPage() {
       small: { w: [3, 4, 5], h: [0, 1, 2] },
       big:   { w: [4, 7, 9], h: [0, 3, 4] },
     };
-    const { w, h } = plans[tier];
+    const { w } = plans[tier];
+    // "How many MORE?" is taking away in disguise, too hard for 3 to 5 year
+    // olds (reviewer 2026-11-25). Children working below about 6 years count
+    // to a wish ("I wish for 3 cookies!"), with empty slots to fill; only 6+
+    // gets the "I already have 2! How many more?" rounds.
+    const months = devMonths != null && chronoMonths != null ? Math.min(devMonths, chronoMonths)
+      : devMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
+    const h = months >= 72 ? plans[tier].h : plans[tier].h.map(() => 0);
     const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
     // the wishes grow every level (a step each two levels, plus a little
     // surprise up or down), and a round never asks for the same as the
@@ -322,7 +329,7 @@ export default function SnackQuestPage() {
         : 'Walk to a snack to pick it up, then bring it to her!'}`;
       return { want, have, intro, thing: wish.thing, walls: wallsFor(lvl, i) };
     });
-  }, [state.ageGroup, totalScore, devMonths]);
+  }, [state.ageGroup, totalScore, devMonths, chronoMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
@@ -389,7 +396,7 @@ export default function SnackQuestPage() {
   }
 
   // ── Walking ──
-  function walkTo(target: Tile) {
+  function walkTo(target: Tile, stepMs = 70) {
     // Already on the way to a snack? Finish picking it up first, then go
     // (a quick tap on the dragon used to cancel the pickup).
     const dest = destRef.current;
@@ -461,7 +468,7 @@ export default function SnackQuestPage() {
         queuedRef.current = null;
         if (q) setTimeout(() => walkTo(q), 0);
       }
-    }, 135); // a brisker walk, so fewer taps land mid-walk (Muse round 4)
+    }, stepMs); // twice as quick as before (reviewer 2026-11-25: walking took too long)
   }
 
   function onFieldTap(e: React.PointerEvent) {
@@ -479,7 +486,8 @@ export default function SnackQuestPage() {
     // nest tiles) means "go to the dragon": aim for the nest.
     if (r <= 2 && c >= 4 && !inDragonZone({ r, c })) {
       const nest = [{ r: 1, c: 5 }, { r: 1, c: 6 }, { r: 0, c: 5 }, { r: 0, c: 6 }].find(t => !walls.some(w => w.r === t.r && w.c === t.c));
-      if (nest) { if (phase === 'checking') countTapRef.current = nest; else walkTo(nest); return; }
+      // carrying snacks: tapping the dragon sends Kailia running straight there
+      if (nest) { if (phase === 'checking') countTapRef.current = nest; else walkTo(nest, carriedRef.current > 0 ? 38 : 70); return; }
     }
     // while the dragon counts, the tap is kept and done right after
     if (phase === 'checking') { countTapRef.current = { r, c }; return; }
@@ -490,9 +498,13 @@ export default function SnackQuestPage() {
   useEffect(() => {
     if (phase !== 'checking') return;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    for (let i = 1; i <= delivered; i++) {
-      timers.push(setTimeout(() => { setRevealed(i); sfx.count(); }, i * 380));
-    }
+    // the snacks land in the wish bar right away (reviewer 2026-11-25: the
+    // carry badge said x2 while the wish bar still showed none delivered),
+    // with a quick count chime for each one
+    setRevealed(delivered);
+    setCarried(0);
+    carriedRef.current = 0;
+    for (let i = 1; i <= delivered; i++) timers.push(setTimeout(() => sfx.count(), i * 160));
     timers.push(setTimeout(() => {
       const total = cfg.have + kept + delivered;
       tripsRef.current += 1;
@@ -568,7 +580,7 @@ export default function SnackQuestPage() {
         setKept(0);
         setPhase('playing');
       }
-    }, delivered * 380 + 700));
+    }, delivered * 160 + 450));
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -577,7 +589,9 @@ export default function SnackQuestPage() {
   useEffect(() => {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < rounds.length) {
-      const t = setTimeout(() => startRound(roundIdx + 1, rounds), 1700);
+      // a short party, then the next wish: when the child taps Next, or by
+      // itself 2 seconds after everything was delivered
+      const t = setTimeout(() => startRound(roundIdx + 1, rounds), 2000);
       return () => clearTimeout(t);
     }
     sfx.fanfare();
@@ -614,11 +628,11 @@ export default function SnackQuestPage() {
     <main className="relative overflow-hidden min-h-screen pb-4" style={{ background: skin?.bg ?? 'linear-gradient(180deg, #1c1006 0%, #2b1a08 60%, #3a2410 100%)', isolation: 'isolate' }}>
       {cave && <GameBackdrop mode="play" />}
       {/* the column is sized so the field fills the screen height with little waste */}
-      <div className="mx-auto px-3" style={{ width: 'min(100%, calc((100dvh - 330px) * 0.875 + 24px), 44rem)' }}>
+      <div data-play-col className="mx-auto px-3" style={{ width: 'min(100%, calc((100dvh - 330px) * 0.875 + 24px), 44rem)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold whitespace-nowrap" style={{ color: skin?.accent ?? '#FDBA74' }}>← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold whitespace-nowrap" style={{ color: skin?.accent ?? '#FDBA74' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow whitespace-nowrap">
             Snack Quest <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -698,7 +712,7 @@ export default function SnackQuestPage() {
             </div>
 
             {/* Field: a painted little place, seen from above */}
-            <div ref={fieldRef} data-field onPointerDown={onFieldTap}
+            <div ref={fieldRef} data-play-field data-field onPointerDown={onFieldTap}
               className="relative w-full rounded-3xl overflow-hidden select-none"
               style={{ aspectRatio: `${COLS} / ${ROWS}`, touchAction: 'none', cursor: 'pointer',
                 border: `3px solid ${skin.border}`, boxShadow: '0 8px 0 rgba(0,0,0,0.25)' }}>
@@ -802,6 +816,14 @@ export default function SnackQuestPage() {
                         ))}
                       </span>
                     </p>
+                    <div className="mt-3">
+                      <button type="button" onPointerDown={e => e.stopPropagation()}
+                        onClick={() => startRound(roundIdx + 1, rounds)}
+                        className="inline-flex items-center gap-2 min-h-[52px] px-7 rounded-full text-xl font-extrabold shadow-lg active:scale-95 transition-transform"
+                        style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)', color: '#3b2416', border: '3px solid #fff' }}>
+                        Next <GoArrow />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

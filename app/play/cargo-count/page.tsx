@@ -7,6 +7,7 @@ import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import SpaceScene from '@/components/games/SpaceScene';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
 import KailiaActor from '@/components/games/KailiaActor';
 import { usePlayPet } from '@/components/games/playPet';
 import Actor, { usePetMood } from '@/components/friends/kit/Actor';
@@ -65,19 +66,21 @@ function planFor(level: number, tier: DifficultyTier): Plan {
 
 // ── Where each rocket is going: a new little story every order ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
-const MISSIONS = [
-  'The moon bunnies are building a carrot farm. They need supplies!',
-  'The space crew is throwing a birthday party on Mars!',
-  'A comet needs fixing before it can zoom again.',
-  'The star whales are hungry. Let\'s send a snack rocket!',
-  'The robots are building a playground on the moon!',
-  'A baby star lost its sparkle. Send some star dust!',
-  'The astronauts are camping on a comet tonight.',
-  'The Saturn ring needs new paint!',
-  'The space garden needs seeds and water.',
-  'A rocket full of toys for the moon kids!',
-  'The space station is making pancakes for everyone!',
-  'The aliens want to build a giant snowman on Pluto!',
+// Every crew order comes from a space friend who waits by the rocket
+// (StoryGuest), so the story's friend is always on screen.
+const MISSIONS: { line: string; who: StoryWho | null }[] = [
+  { line: 'The moon bunnies are building a carrot farm. They need supplies!', who: 'rabbit' },
+  { line: 'Captain Raccoon is throwing a birthday party on Mars!', who: 'raccoon' },
+  { line: 'A comet needs fixing before it can zoom again.', who: null },
+  { line: 'The space koala is hungry. Let\'s send a snack rocket!', who: 'koala' },
+  { line: 'The squirrel is building a playground on the moon!', who: 'squirrel' },
+  { line: 'A baby star lost its sparkle. Send some star dust!', who: null },
+  { line: 'The space frogs are camping on a comet tonight.', who: 'frog' },
+  { line: 'The Saturn ring needs new paint!', who: null },
+  { line: 'The bees are planting a space garden. They need seeds and water.', who: 'bee' },
+  { line: 'A rocket full of toys for the hedgehog on the moon!', who: 'hedgehog' },
+  { line: 'The space peacock is making pancakes for everyone!', who: 'peacock' },
+  { line: 'The deer want to build a giant snowman on Pluto!', who: 'deer' },
 ];
 
 const rnd = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
@@ -172,6 +175,7 @@ export default function CargoCountPage() {
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const [petX, setPetX] = useState(38);
   const [kailiaX, setKailiaX] = useState(20);
+  const [guest, setGuest] = useState<StoryWho | null>(null);
   const [kailiaHop, setKailiaHop] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
 
@@ -189,7 +193,9 @@ export default function CargoCountPage() {
     let t = rnd(plan.lo, plan.hi);
     for (let k = 0; k < 8 && t === lastTarget.current && plan.hi > plan.lo; k++) t = rnd(plan.lo, plan.hi);
     lastTarget.current = t;
-    const mission = levelStories(MISSIONS, 'cargo-count', level, ORDERS_PER_LEVEL)[idx];
+    const missionStory = levelStories(MISSIONS, 'cargo-count', level, ORDERS_PER_LEVEL)[idx];
+    const mission = missionStory.line;
+    setGuest(missionStory.who);
     const made = podsFor(t, plan, nextId.current);
     nextId.current += made.length + 1;
     setTarget(t);
@@ -345,9 +351,9 @@ export default function CargoCountPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #0d0826 0%, #1b1450 60%, #241a5e 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-indigo-200">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-indigo-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Cargo Count <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -395,8 +401,8 @@ export default function CargoCountPage() {
               </div>
             </div>
 
-            <div className="relative w-full rounded-[28px] overflow-hidden select-none"
-              style={{ aspectRatio: '3 / 4', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+            <div data-play-field className="relative w-full rounded-[28px] overflow-hidden select-none"
+              style={{ aspectRatio: '3 / 4', ['--kp-ar' as string]: '3 / 4', ['--kp-chrome' as string]: '480px', containerType: 'inline-size', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
               <SpaceScene />
 
               {/* the rocket on its launch pad */}
@@ -418,6 +424,7 @@ export default function CargoCountPage() {
                 )}
               </div>
 
+              <StoryGuest who={guest} x={47} y={83} size={46} z={4} />
               <KailiaActor x={kailiaX} y={94} h={80} hop={kailiaHop} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={93} h={58} mood={petMood} moodKey={petMoodKey} onTap={tickle} z={7} />

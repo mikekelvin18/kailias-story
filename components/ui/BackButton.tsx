@@ -10,7 +10,7 @@ export default function BackButton({ href, label }: { href: string; label: strin
   const { theme } = useHubTheme();
   return (
     <Link href={href}
-      className="inline-flex items-center gap-1 min-h-[44px] px-4 rounded-full text-sm font-extrabold shadow-sm transition-transform active:scale-95 whitespace-nowrap"
+      className="inline-flex items-center gap-1 min-h-[48px] px-4 rounded-full text-base font-extrabold shadow-sm transition-transform active:scale-95 whitespace-nowrap"
       style={{ background: theme.backBg, color: theme.backText, border: `1px solid ${theme.navBorder}` }}>
       <span aria-hidden="true">←</span> {label}
     </Link>

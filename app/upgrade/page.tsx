@@ -58,7 +58,7 @@ function UpgradeContent() {
   }
 
   return (
-    <main className="min-h-screen pb-24" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%)' }}>
+    <main className="min-h-screen kp-nav-pad" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%)' }}>
       <div className="max-w-md mx-auto px-4 pt-6">
         <BackButton href="/play" label="Map" />
 

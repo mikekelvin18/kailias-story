@@ -40,20 +40,20 @@ const FINDS_PER_LEVEL = 5;
 // ── Why each fish is being looked for: a new little story every find ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
 const REEF_STORIES = [
-  'Mama fish is looking for her baby. Help her find him!',
+  'This baby fish swam away from home. Help find him!',
   'This fish is late for school!',
   'It\'s this little fish\'s birthday. Let\'s find her for the party!',
-  'The crab wants to give this fish a present.',
+  'This fish has a present to give. Let\'s find her!',
   'This fish is playing hide and seek. Ready or not!',
-  'The sea turtle needs this fish to help carry shells.',
+  'This fish is collecting shiny shells.',
   'This fish forgot her lunch at home!',
-  'The octopus wants to teach this fish a dance.',
+  'This fish is learning a brand-new dance!',
   'This fish is the star of tonight\'s bubble show!',
-  'Grandpa whale is telling a story. This fish doesn\'t want to miss it!',
+  'Story time is starting. This fish doesn\'t want to miss it!',
   'This fish lost his way in the dark reef.',
-  'The seahorses are racing, and this fish is the winner!',
+  'This fish just won the big race!',
   'This fish is sleepy and wants to go home to bed.',
-  'The starfish found a pearl for this fish!',
+  'This fish found a shiny pearl!',
   'A little fish is collecting bubbles. Can you find him?',
 ];
 const BODIES = ['#FB7185', '#FACC15', '#38BDF8', '#84CC16', '#A78BFA', '#FB923C'];
@@ -329,9 +329,9 @@ export default function ReefExplorerPage() {
   return (
     <main className="min-h-screen pb-6 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #06263f 0%, #0a3557 60%, #0b3d63 100%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3">
+      <div data-play-col className="max-w-md mx-auto px-3">
         <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="text-sm font-bold text-cyan-200">← Map</Link>
+          <Link href="/play" className="kp-back text-sm font-bold text-cyan-200">← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Reef Explorer <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
@@ -379,7 +379,7 @@ export default function ReefExplorerPage() {
               </div>
             </div>
 
-            <div ref={areaRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+            <div ref={areaRef} data-play-field onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
               data-reef data-light-x={Math.round(light.x)} data-light-y={Math.round(light.y)}
               className="relative w-full rounded-[28px] overflow-hidden select-none"
               style={{ aspectRatio: '3 / 4', touchAction: 'none', cursor: 'crosshair', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>

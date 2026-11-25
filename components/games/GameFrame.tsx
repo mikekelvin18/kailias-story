@@ -25,6 +25,7 @@ import StarIcon from '@/components/games/StarIcon';
 import { seeded } from '@/components/friends/kit/Stage';
 import { useReducedMotion } from '@/components/world/useReducedMotion';
 import { petWidth } from '@/lib/companionTrails';
+import { ReadAloudControls } from '@/components/NarrationPlayer';
 
 interface Pet { art: string; name: string }
 
@@ -241,11 +242,13 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
           <span className="gf-bubble-tail" aria-hidden="true" />
           <div className="text-gray-900 text-[17px] font-bold leading-snug space-y-2">{story}</div>
         </div>
+        {/* play/pause, replay and speed for Noel reading the story above */}
+        {readAloud && <div className="gf-rise-in mt-3" style={{ animationDelay: '0.11s' }}><ReadAloudControls tone="dark" /></div>}
         {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.12s' }}>{extras}</div>}
         {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.14s' }}>{levels}</div>}
         {onStart && (
-          <div className="gf-rise-in mt-5" style={{ animationDelay: '0.16s' }}>
-            <PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton>
+          <div className="gf-cta-dock mt-5">
+            <div className="gf-rise-in" style={{ animationDelay: '0.16s' }}><PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton></div>
           </div>
         )}
         {footer && <div className="mt-4">{footer}</div>}
@@ -341,7 +344,8 @@ export function GameFinish({ title, theme, pet, message, earned, trophy, actions
           {trophy && <div className="gf-drop-in relative mt-3 inline-block" style={{ animationDelay: '0.3s' }}>{trophy}</div>}
           <div className="relative mt-2"><Gang pet={pet} accent={theme.accent} party kailiaH={140} /></div>
         </div>
-        {message && <div className="gf-rise-in mt-3 text-white font-bold text-lg leading-snug drop-shadow" style={{ animationDelay: '0.6s' }}>{message}</div>}
+        {/* a soft dark card under the words: the confetti falls behind it, never across the letters */}
+        {message && <div className="gf-rise-in mt-3 text-white font-bold text-lg leading-snug drop-shadow rounded-2xl px-4 py-3" style={{ animationDelay: '0.6s', background: 'rgba(15,10,40,0.55)', backdropFilter: 'blur(3px)' }}>{message}</div>}
         {earned != null && earned > 0 && <StarCounter earned={earned} accent={theme.accent} />}
         <div className="gf-rise-in mt-5 flex gap-3 justify-center flex-wrap" style={{ animationDelay: '1.1s' }}>{actions}</div>
       </div>

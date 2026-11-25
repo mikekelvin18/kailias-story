@@ -184,10 +184,10 @@ export function GrownUpReport({ title, steps, tip, onDone }: { title?: string; s
 
 function GrownUpRow({ onDone }: { onDone: (o: Outcome) => void }) {
   return (
-    <div className="flex justify-center gap-2 mt-4 text-sm font-bold" style={{ color: '#7C6FA8' }}>
-      <button className="min-h-[44px] px-3 rounded-full" onClick={() => onDone('help')}>We needed help</button>
+    <div className="flex flex-wrap justify-center gap-2 mt-4 text-base font-bold" style={{ color: '#6B5E99' }}>
+      <button className="min-h-[48px] px-4 rounded-full" onClick={() => onDone('help')}>We needed help</button>
       <span aria-hidden="true" className="self-center opacity-50">·</span>
-      <button className="min-h-[44px] px-3 rounded-full" onClick={() => onDone('miss')}>Not today</button>
+      <button className="min-h-[48px] px-4 rounded-full" onClick={() => onDone('miss')}>Not today</button>
     </div>
   );
 }

@@ -295,15 +295,15 @@ function drawScenery(ctx: CanvasRenderingContext2D, lv: Level, t: number) {
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
 const MAZE_STORIES = [
   'Ooh, the fireflies lost their way!',
-  'The baby bunny is waiting at the flag with a surprise!',
+  'A surprise is waiting at the flag!',
   'Kailia is racing to the flag before the sun goes down!',
   'The flag marks the spot where the treasure is buried!',
-  'A friendly giant dropped his lunch at the flag. Let\'s bring it back!',
+  'Noel left his lunch at the flag. Let\'s go get it!',
   'The fireflies are having a party at the flag tonight!',
-  'Noel is waiting at the flag with a big bamboo cake.',
+  'There\'s a big bamboo cake for Noel at the flag!',
   'The flag is the finish line of the forest race!',
   'The wind blew Kailia\'s hat all the way to the flag!',
-  'A lost kitten is meowing by the flag. Let\'s go help!',
+  'Kailia hears a happy song coming from the flag!',
   'The stars fell into the maze. Let\'s collect them on the way!',
 ];
 
@@ -892,10 +892,10 @@ export default function MazeRunnerPage() {
   return (
     <main className="min-h-screen px-3 py-4"
       style={{background:`linear-gradient(135deg,${lv.bg},${lv.wall})`}}>
-      <div className="max-w-2xl mx-auto">
+      <div data-play-col className="max-w-2xl mx-auto">
 
         <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
+          <Link href="/play" className="kp-back font-bold text-sm hover:opacity-70" style={{color:lv.accent}}>← Map</Link>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.85)'}}>
             Lv {level}
@@ -918,8 +918,8 @@ export default function MazeRunnerPage() {
         </div>
 
         {/* Canvas, with the friend and the sparkles laid over it */}
-        <div ref={wrapRef} className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
-          style={{border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
+        <div ref={wrapRef} data-play-field data-wide className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
+          style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
           onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
           onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}>
           <canvas ref={canvasRef} width={W} height={H}

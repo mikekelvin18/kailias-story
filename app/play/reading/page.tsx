@@ -135,17 +135,17 @@ function shuffle<T>(arr: T[]): T[] {
 // ── Where the signposts lead today: a new little story every level ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
 const PATHS = [
-  'Today the signposts lead to Grandma Owl\'s cozy library.',
+  'Today the signposts lead to the cozy library.',
   'Today the signposts lead to a secret waterfall.',
-  'Today the signposts lead to the bunny\'s birthday party!',
+  'Today the signposts lead to a birthday party in the meadow!',
   'Today the signposts lead to the treasure cave.',
   'Today the signposts lead to the village bakery. Yum!',
   'Today the signposts lead to the rainbow bridge.',
-  'Today the signposts lead to the friendly giant\'s garden.',
-  'Today the signposts lead to the beach, where the turtles are hatching!',
+  'Today the signposts lead to the giant pumpkin garden.',
+  'Today the signposts lead to the beach, where the seashells sparkle!',
   'Today the signposts lead to the top of the tallest tree.',
   'Today the signposts lead to the fair, with a big spinning wheel!',
-  'Today the signposts lead to the dragon\'s playground.',
+  'Today the signposts lead to the playground on the hill.',
   'Today the signposts lead to the moonlit pond.',
 ];
 
@@ -313,9 +313,9 @@ export default function WordWizardPage() {
     <main className="relative min-h-screen pb-8 overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #1e3a8a 0%, #2563eb 55%, #93c5fd 120%)', isolation: 'isolate' }}>
       <GameBackdrop mode="play" />
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Word Wizard <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
@@ -378,7 +378,7 @@ export default function WordWizardPage() {
             </div>
 
             {/* the meadow: balloons in the sky, Kailia and the friend on the stepping stones */}
-            <Stage world="flick" className="mt-2" style={{ aspectRatio: '3 / 3.4' }}>
+            <Stage field world="flick" className="mt-2" style={{ aspectRatio: '3 / 3.4', ['--kp-ar' as string]: '3 / 3.4', ['--kp-chrome' as string]: '450px' }}>
               {/* stepping stones and the finish flag */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 {Array.from({ length: round.length }, (_, i) => (
