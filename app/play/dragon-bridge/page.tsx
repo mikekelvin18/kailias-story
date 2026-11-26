@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -81,9 +82,9 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 }
 const sfx = {
   plop: (n: number) => playNotes([{ f: 440 + Math.min(n, 10) * 40, t: 0, d: 0.12 }]),
-  back: () => playNotes([{ f: 520, t: 0, d: 0.08 }, { f: 400, t: 0.07, d: 0.1 }]),
+  back: () => playNotes([{ f: 440, t: 0, d: 0.08 }, { f: 494, t: 0.07, d: 0.1 }]), // soft and rising, never a falling buzz
   hop: (i: number) => playNotes([{ f: 523 + i * 45, t: 0, d: 0.1 }]),
-  good: () => playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.18 }]),
+  good: () => { buzzGood(); playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.18 }]); },
   soft: () => playNotes([{ f: 330, t: 0, d: 0.14 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };

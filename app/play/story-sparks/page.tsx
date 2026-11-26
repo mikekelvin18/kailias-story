@@ -1,5 +1,7 @@
 'use client';
 
+import { useTalkMoment } from '@/components/TalkMoment';
+import { buzzGood } from '@/lib/haptics';
 import { dealIndex } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -191,7 +193,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
   } catch { /* sound optional */ }
 }
 const sfx = {
-  spark: () => playNotes([{ f: 740, t: 0, d: 0.1 }, { f: 988, t: 0.07, d: 0.18 }]),
+  spark: () => { buzzGood(); playNotes([{ f: 740, t: 0, d: 0.1 }, { f: 988, t: 0.07, d: 0.18 }]); },
   giggle: () => playNotes([{ f: 392, t: 0, d: 0.09 }, { f: 494, t: 0.09, d: 0.09 }, { f: 392, t: 0.18, d: 0.12 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
@@ -230,6 +232,7 @@ export default function StorySparksPage() {
   const [wobble, setWobble] = useState(false);
   const [sillyThisBeat, setSillyThisBeat] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
+  const talk = useTalkMoment('story-sparks');
 
   // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
@@ -268,13 +271,17 @@ export default function StorySparksPage() {
       setTimeout(() => {
         busyRef.current = false;
         if (beatIdx + 1 < story.beats.length) {
-          setBeatIdx(i => i + 1);
-          setFlipped(Math.random() < 0.5);
-          setBeatKey(k => k + 1);
-          setPicked(null);
-          setSillyThisBeat(0);
-          setNoelMood('excited');
-          setNoelLine('And then…?');
+          const goOn = () => {
+            setBeatIdx(i => i + 1);
+            setFlipped(Math.random() < 0.5);
+            setBeatKey(k => k + 1);
+            setPicked(null);
+            setSillyThisBeat(0);
+            setNoelMood('excited');
+            setNoelLine('And then…?');
+          };
+          // after the first page of each story, Kailia pauses: "Your turn!"
+          if (beatIdx === 0) talk.maybe(goOn, `level-${level}`); else goOn();
         } else {
           const s = statsRef.current;
           logQuestMetric('communication', 'story-sparks', {

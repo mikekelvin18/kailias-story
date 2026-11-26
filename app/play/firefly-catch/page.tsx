@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -142,7 +143,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 }
 
 const sfx = {
-  catch:   () => playNotes([{ f: 880, t: 0, d: 0.12 }, { f: 1175, t: 0.06, d: 0.18 }]),
+  catch:   () => { buzzGood(); playNotes([{ f: 880, t: 0, d: 0.12 }, { f: 1175, t: 0.06, d: 0.18 }]); },
   home:    () => playNotes([{ f: 523, t: 0, d: 0.1 }, { f: 784, t: 0.08, d: 0.22 }]),
   round:   () => playNotes([{ f: 659, t: 0, d: 0.12 }, { f: 784, t: 0.1, d: 0.12 }, { f: 988, t: 0.2, d: 0.25 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),

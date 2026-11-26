@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
@@ -102,7 +103,7 @@ interface Placed {
   found: boolean;
 }
 
-import { soundEnabled } from '@/lib/accessibility';
+import { soundEnabled, lowVisual } from '@/lib/accessibility';
 import { audioCtx, sfxOut } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
@@ -120,8 +121,8 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
   } catch { /* sound optional */ }
 }
 const sfx = {
-  found: () => playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.2 }]),
-  noel: () => playNotes([{ f: 523, t: 0, d: 0.12 }, { f: 659, t: 0.1, d: 0.12 }, { f: 784, t: 0.2, d: 0.25 }]),
+  found: () => { buzzGood(); playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.2 }]); },
+  noel: () => { buzzGood(); playNotes([{ f: 523, t: 0, d: 0.12 }, { f: 659, t: 0.1, d: 0.12 }, { f: 784, t: 0.2, d: 0.25 }]); },
   look: () => playNotes([{ f: 392, t: 0, d: 0.12 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
@@ -189,7 +190,8 @@ export default function WheresNoelPage() {
     // and a quieter scene for younger age bands (lib/ageBands.ts)
     const BAND_CROWD = { together: 12, little: 24, early: 40, big: 60, older: 72 } as const;
     const base = Math.min(tier === 'tiny' ? 30 : tier === 'small' ? 45 : 60, BAND_CROWD[fit.band]);
-    const crowdCount = Math.min(base + (level - 1) * (fit.band === 'together' ? 3 : fit.band === 'little' ? 6 : 12), 150);
+    // Low visual (grown-ups' setting): a less busy scene, about half the crowd
+    const crowdCount = Math.round(Math.min(base + (level - 1) * (fit.band === 'together' ? 3 : fit.band === 'little' ? 6 : 12), 150) * (lowVisual() ? 0.55 : 1));
     const sizeBase = (tier === 'tiny' ? 34 : 28) - Math.min(8, (level - 1) * 1.5);
     const u = sizeBase * 0.85;   // px → drawing units (the scene is ~1.2 px per unit on a phone)
 

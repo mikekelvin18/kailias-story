@@ -6,7 +6,7 @@
 // once the browser's limit is hit). Every game now borrows this one.
 // Background music (lib/music.ts) keeps its own context on purpose.
 
-import { masterVolume, A11Y_EVENT } from './accessibility';
+import { effectsVolume, musicVolume, gentleSounds, A11Y_EVENT } from './accessibility';
 
 let shared: AudioContext | null = null;
 
@@ -38,25 +38,54 @@ export function audioCtx(fromTap = false): AudioContext | null {
 }
 
 // ── Grown-ups' volume (Parent Zone) ──
-// Every sound effect goes out through one gain per audio context, set from
-// the volume slider (lib/accessibility.ts masterVolume) and kept in step
-// when it moves.
-const outs = new WeakMap<BaseAudioContext, GainNode>();
-const live = new Set<GainNode>();
+// Every sound effect goes out through one chain per audio context, set from
+// the grown-ups' "Sound effects" slider (lib/accessibility.ts effectsVolume)
+// and kept in step when it moves. "Gentle sounds" rounds off the sharp top
+// of every effect (a soft low-pass) and squeezes loud peaks (a compressor),
+// so a fanfare or a bright chime never startles; effectsVolume() also plays
+// them quieter. Background music has its own chain (musicOut) and slider.
+interface Chain { input: GainNode; tone: BiquadFilterNode; squeeze: DynamicsCompressorNode; volume: () => number }
+const outs = new WeakMap<BaseAudioContext, Chain>();
+const musicOuts = new WeakMap<BaseAudioContext, Chain>();
+const live = new Set<Chain>();
 let listening = false;
-export function sfxOut(ctx: BaseAudioContext): AudioNode {
-  let g = outs.get(ctx);
-  if (!g) {
-    g = ctx.createGain();
-    g.gain.value = masterVolume();
-    g.connect(ctx.destination);
-    outs.set(ctx, g); live.add(g);
-    if (!listening && typeof window !== 'undefined') {
-      listening = true;
-      window.addEventListener(A11Y_EVENT, () => { const v = masterVolume(); live.forEach(n => { n.gain.value = v; }); });
-    }
+
+function tune(c: Chain) {
+  const gentle = gentleSounds();
+  c.input.gain.value = c.volume();
+  c.tone.frequency.value = gentle ? 1600 : 20000;
+  c.squeeze.threshold.value = gentle ? -30 : 0;
+  c.squeeze.ratio.value = gentle ? 8 : 1;
+}
+
+function chain(ctx: BaseAudioContext, volume: () => number): Chain {
+  const input = ctx.createGain();
+  const tone = ctx.createBiquadFilter();
+  tone.type = 'lowpass'; tone.Q.value = 0.4;
+  const squeeze = ctx.createDynamicsCompressor();
+  squeeze.knee.value = 12; squeeze.attack.value = 0.003; squeeze.release.value = 0.2;
+  input.connect(tone).connect(squeeze).connect(ctx.destination);
+  const c = { input, tone, squeeze, volume };
+  tune(c);
+  live.add(c);
+  if (!listening && typeof window !== 'undefined') {
+    listening = true;
+    window.addEventListener(A11Y_EVENT, () => live.forEach(tune));
   }
-  return g;
+  return c;
+}
+
+export function sfxOut(ctx: BaseAudioContext): AudioNode {
+  let c = outs.get(ctx);
+  if (!c) { c = chain(ctx, effectsVolume); outs.set(ctx, c); }
+  return c.input;
+}
+
+/** Where the background music goes out (its own "Music" slider). */
+export function musicOut(ctx: BaseAudioContext): AudioNode {
+  let c = musicOuts.get(ctx);
+  if (!c) { c = chain(ctx, musicVolume); musicOuts.set(ctx, c); }
+  return c.input;
 }
 
 // ── iPhone silent switch ──

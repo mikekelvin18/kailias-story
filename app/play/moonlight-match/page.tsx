@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { roundEase } from '@/lib/ageBands';
@@ -71,8 +72,9 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 const sfx = {
   flip: () => playNotes([{ f: 520, t: 0, d: 0.07 }]),
   // combo chimes rise in pitch with the streak
-  match: (streak: number) => playNotes([{ f: 660 + streak * 80, t: 0, d: 0.12 }, { f: 880 + streak * 80, t: 0.08, d: 0.2 }]),
-  miss: () => playNotes([{ f: 240, t: 0, d: 0.16 }]),
+  match: (streak: number) => { buzzGood(); playNotes([{ f: 660 + streak * 80, t: 0, d: 0.12 }, { f: 880 + streak * 80, t: 0.08, d: 0.2 }]); },
+  // a soft, rising "hmm?" (never a low buzz): the cards just turn back over
+  miss: () => playNotes([{ f: 392, t: 0, d: 0.1 }, { f: 440, t: 0.09, d: 0.14 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 

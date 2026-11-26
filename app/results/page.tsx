@@ -11,6 +11,7 @@ import { loadProgress } from '@/lib/adventure';
 import StepGuide from '@/components/ui/StepGuide';
 import BackButton from '@/components/ui/BackButton';
 import ResultsDisclaimer from '@/components/ui/ResultsDisclaimer';
+import StrengthsView, { ParentNotes } from '@/components/ui/StrengthsView';
 import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 import { DOMAIN_META } from '@/lib/activities';
 import PlayLog from '@/components/ui/PlayLog';
@@ -225,14 +226,30 @@ export default function ResultsPage() {
             <span style={{ fontSize: 72 }}>{stageEmoji}</span>
           </div>
           <h2 className="text-4xl font-extrabold text-white mb-1">{learningStage}</h2>
-          <p className="text-purple-100 text-base leading-relaxed mb-5">{stageDescription}</p>
+          <p className="text-purple-100 text-base leading-relaxed">{stageDescription}</p>
+        </div>
 
+        {/* Strengths first (Kelvin, 2026-11-25); the rough age range lives in Details below */}
+        <StrengthsView name={state.childName} />
+        <ParentNotes />
+
+        {/* ── Details: the rough age estimates, closed until a grown-up opens them ── */}
+        <details data-testid="age-details" className="group rounded-3xl mb-6 overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.15)' }}>
+          <summary className="flex items-center gap-3 p-4 min-h-[56px] cursor-pointer list-none [&::-webkit-details-marker]:hidden select-none">
+            <span className="flex-1">
+              <span className="block text-white font-extrabold">Details: rough age estimates</span>
+              <span className="block text-slate-300 text-sm">A rough estimate from a short set of milestones, not a measurement.</span>
+            </span>
+            <span className="text-slate-300 text-lg transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+          </summary>
+          <div className="px-4 pb-4">
+          <div className="text-center">
           <div
             className="rounded-2xl px-6 py-4 mb-4 inline-block w-full"
             style={{ background: 'rgba(255,255,255,0.15)' }}
           >
             <p className="text-purple-100 text-sm font-semibold uppercase tracking-wide mb-1">
-              Estimated Developmental Level
+              Rough estimate: developmental level
             </p>
             <p className="text-white text-3xl font-extrabold">{developmentalAge}</p>
             <p className="text-purple-200 text-xs mt-1">
@@ -241,13 +258,9 @@ export default function ResultsPage() {
           </div>
 
           <div className="flex justify-center gap-4 text-white text-sm font-semibold">
-            {answersUsed > 0 ? (
+            {answersUsed > 0 && (
               <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
                 {answersUsed} milestones checked
-              </span>
-            ) : (
-              <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 14px' }}>
-                Score: {totalScore} / 40
               </span>
             )}
             {chronoMonths != null && (
@@ -256,11 +269,10 @@ export default function ResultsPage() {
               </span>
             )}
           </div>
-        </div>
-
+          </div>
         {/* Domain breakdown */}
         <div
-          className="rounded-3xl p-6 mb-6 shadow-xl"
+          className="rounded-3xl p-6 mt-4 shadow-xl text-left"
           style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
         >
           <h3 className="text-xl font-bold text-white mb-1">Skill Breakdown</h3>
@@ -364,6 +376,9 @@ export default function ResultsPage() {
             </p>
           )}
         </div>
+
+          </div>
+        </details>
 
         {/* Sensory section */}
         {state.sensoryCompleted ? (

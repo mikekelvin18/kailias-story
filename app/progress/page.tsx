@@ -11,6 +11,7 @@ import BottomNav from '@/components/BottomNav';
 import BackButton from '@/components/ui/BackButton';
 import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
 import PlayLog from '@/components/ui/PlayLog';
+import StrengthsView, { ParentNotes } from '@/components/ui/StrengthsView';
 import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
@@ -26,6 +27,13 @@ export default function ProgressReportPage() {
   const [entries, setEntries] = useState<ReportEntry[]>([]);
   const [customTasks, setCustomTasks] = useState<CustomTask[]>([]);
   const [games, setGames] = useState<GameSummary[]>([]);
+  // the printed report shows the Details section opened
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const on = () => setPrinting(true), off = () => setPrinting(false);
+    window.addEventListener('beforeprint', on); window.addEventListener('afterprint', off);
+    return () => { window.removeEventListener('beforeprint', on); window.removeEventListener('afterprint', off); };
+  }, []);
 
   useEffect(() => {
     setChild(activeChild());
@@ -66,10 +74,22 @@ export default function ProgressReportPage() {
           teacher, or pediatrician for context on what {child ? child.nickname : 'your child'} has been practicing at home.
         </p>
 
-        {/* Developmental snapshot from the initial assessment */}
+        {/* Strengths first (Kelvin, 2026-11-25); the rough age ranges are under Details */}
+        <StrengthsView tone="light" name={child?.nickname} />
+        <ParentNotes tone="light" />
+
+        {/* Developmental snapshot from the initial assessment: a rough
+            estimate, closed under Details (opens by itself when printed) */}
         {state.childName && (
-          <section className="mb-6">
-            <h2 className="text-sm font-extrabold text-slate-700 mb-2">Developmental Snapshot (from screening)</h2>
+          <details data-testid="age-details" className="mb-6 rounded-2xl bg-white border border-slate-200 group" open={printing}>
+            <summary className="flex items-center gap-2 p-3 min-h-[48px] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <span className="flex-1">
+                <span className="block text-sm font-extrabold text-slate-700">Details: rough age estimates (from the check-up)</span>
+                <span className="block text-[11px] text-slate-500">A rough estimate from a short set of milestones, not a measurement.</span>
+              </span>
+              <span className="text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+            </summary>
+          <section className="px-3 pb-3">
             <p className="text-[11px] text-slate-500 mb-2">
               Each range is the likeliest 8 in 10 developmental ages, worked out from age-tagged milestones
               (CDC 2022 checklists under 5, OT norms for hand skills and pencil grasp, end-of-grade standards for
@@ -110,6 +130,7 @@ export default function ProgressReportPage() {
               </div>
             </div>
           </section>
+          </details>
         )}
 
         {/* What the child actually played in the app's games */}

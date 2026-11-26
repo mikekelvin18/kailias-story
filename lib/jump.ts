@@ -18,6 +18,10 @@ import { LANDS } from './adventure';
 import { COMPANIONS } from './rewards';
 
 export const JUMP_CHILD_ID = 'child-jump';
+/** sessionStorage hints a jump link leaves for the screen it opens */
+export const JUMP_TALK_KEY = 'kailia_jump_talk';
+export const JUMP_FEELINGS_KEY = 'kailia_jump_feelings';
+export const JUMP_BREAK_KEY = 'kailia_jump_break';
 /** The outside reviewers' test child (/go/review): made once, then reused by
  *  every jump link that doesn't need a different made-up state, so a reviewer
  *  never loses progress by following a link (reviewer 2026-11-25). */
@@ -58,6 +62,18 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
     { href: '/go/new-friend', label: 'New friend unlocked pop-up' },
     { href: '/go/land-done', label: 'Land finished party' },
     { href: '/go/land/dragons-cave', label: "A land's quest sheet (Dragon's Cave)" },
+    { href: '/go/feelings?land=dragons-cave', label: 'Feelings check-in after a land (tap Worried for the breathing bubble)' },
+    { href: '/go/break', label: 'Break reminder (movement quest)' },
+    { href: '/go/done-today', label: '"Done for today" cozy ending' },
+  ]},
+  { group: 'Talking', items: [
+    { href: '/go/talk?place=story-sparks&age=4', label: '"Your turn!" in Story Sparks (age 4: one word)' },
+    { href: '/go/talk?place=story-sparks&age=2', label: '"Your turn!" (age 2: animal sounds)' },
+    { href: '/go/talk?place=trail-walk&age=6', label: "\"Your turn!\" in Kailia's Trail (age 6: phrases, what happens next)" },
+    { href: '/go/talk?place=echo-song&age=8', label: '"Your turn!" in Echo Song (age 8: tell it in your own words)' },
+    { href: '/go/talk?place=story', label: '"Your turn!" in the story opening' },
+    { href: '/go/talk-cards', label: 'Printable Talking practice cards' },
+    { href: '/go/senses', label: 'Parent Zone: senses, talking and break settings' },
   ]},
   { group: 'Map', items: [
     { href: '/go/map', label: 'Map, just starting' },
@@ -102,6 +118,8 @@ export interface JumpPlan {
   plus: boolean | null;    // null = leave as it is
   calm: boolean | null;    // ?calm=1|0: calm mode on or off (null = leave as it is)
   review: boolean;         // /go/review: the reviewers' profile, every level open
+  /** one-time hints for the screen it opens (sessionStorage key → value), e.g. show a talking moment straight away */
+  session: Record<string, string>;
   /** a link that needs its own made-up state (day one, a 2-year-old, a fresh
    *  sign-up...): it always uses the scratch test child, never the reviewer's */
   scratch: boolean;
@@ -120,6 +138,7 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     dailyPopup: false, newFriend: false, landDone: false, openLand: null,
     plus: q.plus === '1' ? true : q.plus === '0' ? false : null,
     calm: q.calm === '1' ? true : q.calm === '0' ? false : null,
+    session: {},
     review: what === 'review', scratch: years > 0 || (what === 'map' && !(q.all === '1' || q.all === 'yes')),
   };
   const petQ = (q.pet ?? '').toLowerCase();
@@ -140,6 +159,21 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     if (!(years > 0)) plan.ageMonths = 26;
   } else if (what === 'new-friend') { plan.newFriend = true; plan.scratch = true; }
   else if (what === 'land-done') { plan.landDone = true; plan.scratch = true; }
+  // ── talking, feelings and breaks (thread "Add talking, sensory and feelings features") ──
+  else if (what === 'talk') {
+    // a "Your turn!" moment opens straight away (?place=story|story-sparks|trail-walk|echo-song, ?age=2|3|6|8 for each age's kind of ask)
+    const place = (q.place ?? 'story-sparks').toLowerCase();
+    if (!['story', 'story-sparks', 'trail-walk', 'echo-song'].includes(place)) return null;
+    plan.path = place === 'story' ? '/story' : `/play/${place}`;
+    plan.session[JUMP_TALK_KEY] = place;
+  } else if (what === 'feelings') {
+    const land = (q.land ?? 'dragons-cave').toLowerCase();
+    if (!LAND_IDS.slice(0, 6).includes(land)) return null;
+    plan.session[JUMP_FEELINGS_KEY] = land;
+  } else if (what === 'break') { plan.session[JUMP_BREAK_KEY] = 'break'; }
+  else if (what === 'done-today') { plan.session[JUMP_BREAK_KEY] = 'done'; }
+  else if (what === 'senses' || what === 'play-settings') { plan.path = '/family#senses'; }
+  else if (what === 'talk-cards') { plan.path = '/printables/talk-practice'; }
   else if (what === 'land') {
     if (!arg || !LAND_IDS.includes(arg)) return null;
     plan.openLand = arg;
@@ -278,6 +312,7 @@ export function applyJump(plan: JumpPlan) {
 
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
   setCalm(ls, plan.calm);
+  setSessionHints(plan);
 
   try {
     if (plan.openLand) sessionStorage.setItem('kailia_jump_open_land', plan.openLand);
@@ -320,9 +355,17 @@ function reuseReviewProfile(plan: JumpPlan, fam: object, key: (b: string) => str
   }
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
   setCalm(ls, plan.calm);
+  setSessionHints(plan);
   try {
     if (plan.openLand) sessionStorage.setItem('kailia_jump_open_land', plan.openLand);
     else sessionStorage.removeItem('kailia_jump_open_land');
+  } catch { /* fine */ }
+}
+
+function setSessionHints(plan: JumpPlan) {
+  try {
+    [JUMP_TALK_KEY, JUMP_FEELINGS_KEY, JUMP_BREAK_KEY].forEach(k => sessionStorage.removeItem(k));
+    for (const [k, v] of Object.entries(plan.session)) sessionStorage.setItem(k, v);
   } catch { /* fine */ }
 }
 

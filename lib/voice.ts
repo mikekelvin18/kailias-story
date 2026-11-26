@@ -10,7 +10,7 @@
 // hand in Grown-ups > Display & accessibility (saved on this device only,
 // like the other display settings; it is not child data).
 
-import { loadA11y, masterVolume, narrationOn, narrationSpeed } from './accessibility';
+import { loadA11y, voiceVolume, narrationOn, narrationSpeed } from './accessibility';
 import { deviceNames } from './nameSounds';
 
 /* Voices we know sound warm and friendly, best first. Matching is by
@@ -467,7 +467,7 @@ function speakParts(parts: string[], files: (string | null)[], base: string, gen
     audio.src = `${base}/${file}`;
     audio.playbackRate = narrationSpeed();
     audio.dataset.owner = lineOwner ?? ''; // whose line this is (scripts/voice-check.mjs reads it)
-    audio.volume = masterVolume();
+    audio.volume = voiceVolume();
     audio.onended = () => { audio.onpause = null; if (gen === generation) breath(); };
     audio.onerror = () => { audio.onpause = null; if (gen === generation) deviceOne(k, 0, true); };
     // The phone paused the clip by itself (not our pause button, not a newer
@@ -510,7 +510,7 @@ function speakParts(parts: string[], files: (string | null)[], base: string, gen
       // letter by letter on some voices, so read them as normal words
       const said = deviceNames(parts[k].replace(/\b[A-Z]{2,}\b/g, w => (w === 'GO' || w === 'OK' ? w : w.toLowerCase())));
       const u = new SpeechSynthesisUtterance(said);
-      u.volume = masterVolume();
+      u.volume = voiceVolume();
       if (voice) { u.voice = voice; u.lang = voice.lang; }
       u.rate = rate;
       u.pitch = Math.max(0.5, Math.min(2, pitch));

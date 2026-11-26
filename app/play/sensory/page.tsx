@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import { levelStories } from '@/lib/variety';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
@@ -293,6 +294,7 @@ export default function SenseExplorerPage() {
     if (piece.item.c !== round.hunt.target) { miss(id, 'hunt'); return; }
     const next = new Set(caught); next.add(id);
     setCaught(next); setTries(0);
+    buzzGood();
     chime([523 + next.size * 60, 784 + next.size * 60]);
     const spot = pieceSpot(piece);
     celebrate(spot.x, spot.y, round.hunt.color);
@@ -319,6 +321,7 @@ export default function SenseExplorerPage() {
     }
     setCaught(new Set([i]));
     setRoundDone(true);
+    buzzGood();
     chime([659, 880, 1175]);
     const spot = crystalSpots(round.count)[i];
     celebrate(spot.x, spot.y, `hsl(${(round.hue + round.delta) % 360} 75% 58%)`);
