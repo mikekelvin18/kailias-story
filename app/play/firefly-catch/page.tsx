@@ -605,7 +605,7 @@ export default function FireflyCatchPage() {
               </div>
             </div>
 
-            <div ref={areaRef} data-play-field
+            <div ref={areaRef} data-play-field data-mode={cfg.mode}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove}
               onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
               className="relative w-full rounded-[28px] overflow-hidden select-none"
@@ -615,7 +615,7 @@ export default function FireflyCatchPage() {
               <NightForest glow={glow} />
 
               {/* the lantern: fills with light as fireflies arrive */}
-              <div className="absolute" style={{ left: lanternX, top: lanternY, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 4 }}>
+              <div data-lantern className="absolute" style={{ left: lanternX, top: lanternY, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 4 }}>
                 {cfg.mode === 'drag' && phase === 'playing' && (
                   <span className="absolute rounded-full pulse" style={{
                     left: '50%', top: '50%', transform: 'translate(-50%, -50%)',

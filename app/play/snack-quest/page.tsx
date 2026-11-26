@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -289,6 +290,8 @@ export default function SnackQuestPage() {
   useEffect(() => () => { if (walkTimer.current) clearInterval(walkTimer.current); }, []);
 
   const cfg: RoundCfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '', thing: null, walls: WALLS[0] };
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => { testHook('snack', { phase, round: roundIdx, want: cfg.want, have: cfg.have, kept, carried, items, cols: COLS, rows: ROWS }); });
 
   // ── Round plans, scaled to the child's developmental level ──
   // Every 3 levels the dragon's wishes grow by one (capped per tier so
@@ -487,12 +490,15 @@ export default function SnackQuestPage() {
 
   function onFieldTap(e: React.PointerEvent) {
     if ((phase !== 'playing' && phase !== 'checking') || !fieldRef.current) return;
-    // tickling the friend is play, not a walk
-    if ((e.target as HTMLElement).closest?.('[data-pet]')) return;
     const rect = fieldRef.current.getBoundingClientRect();
     const c = Math.floor(((e.clientX - rect.left) / rect.width) * COLS);
     const r = Math.floor(((e.clientY - rect.top) / rect.height) * ROWS);
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+    // tickling the friend is play, not a walk; but its picture is taller
+    // than its tile, so a tap on a snack or the dragon it overlaps still
+    // walks there (the robot check caught taps on a cookie being swallowed)
+    const wanted = itemsRef.current.some(i => i.r === r && i.c === c) || (r <= 2 && c >= 4);
+    if (!wanted && (e.target as HTMLElement).closest?.('[data-pet]')) return;
     // A tap anywhere on the dragon's picture (it hangs a little below her
     // nest tiles) means "go to the dragon": aim for the nest.
     if (r <= 2 && c >= 4 && !inDragonZone({ r, c })) {
@@ -723,7 +729,7 @@ export default function SnackQuestPage() {
             </div>
 
             {/* Field: a painted little place, seen from above */}
-            <div ref={fieldRef} data-play-field onPointerDown={onFieldTap}
+            <div ref={fieldRef} data-play-field data-field onPointerDown={onFieldTap}
               className="relative w-full rounded-3xl overflow-hidden select-none"
               style={{ aspectRatio: `${COLS} / ${ROWS}`, touchAction: 'none', cursor: 'pointer',
                 border: `3px solid ${skin.border}`, boxShadow: '0 8px 0 rgba(0,0,0,0.25)' }}>

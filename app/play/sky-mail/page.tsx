@@ -119,7 +119,7 @@ const SENTENCE_PAIRS: [string, string][] = [
   ['Birds fly in the sky', 'Sky the in fly birds'],
   ['The fish can swim', 'Swim can fish the'],
   ['Mom bakes yummy bread', 'Bread yummy mom bakes'],
-  ['The sun is bright', 'Bright is the sun'],
+  ['The sun is bright', 'Sun the bright is'],  // (was 'Bright is the sun', which is a real, poetic sentence)
   ['I hug my teddy', 'Teddy my hug I'],
   ['Frogs hop on rocks', 'Rocks on hop frogs'],
   ['We read a book', 'Book a read we'],
@@ -700,7 +700,7 @@ export default function SkyMailPage() {
                       style={{ transform: 'translateY(8px) scale(0.93)', opacity: 0.6, border: '2.5px solid #3b2416' }} />
                   )}
                   {/* the flying letter */}
-                  <div ref={cardRef} data-card data-correct={card.correct}
+                  <div ref={cardRef} data-card data-index={idx} data-correct={card.correct}
                     onPointerDown={onPointerDown} onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
                     className={`absolute inset-0 rounded-3xl select-none flex flex-col items-center justify-center px-3 ${wobble ? 'shake' : ''}`}

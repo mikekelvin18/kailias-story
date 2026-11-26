@@ -1,5 +1,6 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { roundEase } from '@/lib/ageBands';
@@ -176,6 +177,7 @@ export default function FireflyTrailsPage() {
 
   const startLevel = useCallback(() => {
     const pts = skyPoints(shape);
+    testHook('trail', { pts });
     ptsRef.current = pts;
     setPts(pts);
     litRef.current = pts.map(() => false);

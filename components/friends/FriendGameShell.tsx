@@ -8,6 +8,7 @@
 // reactions (never "wrong"), then the level celebration, starlight, saved
 // level and one quiet number-only metric.
 
+import { testHook } from '@/lib/testHooks';
 import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -87,6 +88,12 @@ export default function FriendGameShell({ game }: { game: FriendGameDef }) {
   const stats = useRef({ startD: 1, startedAt: 0, data: {} as Record<string, number> });
 
   useEffect(() => { clearReturnPath(); setLevel(nextGameLevel(game.id)); }, [game.id]);
+
+  // the robot player in tests/ can finish a round as a win or a miss (does nothing for real players)
+  useEffect(() => {
+    testHook('friendGame', { phase, level, round, rounds, results, line, between: !!between, cheers: game.cheers, tryAgain: game.tryAgain,
+      finishRound: (ok: boolean) => onDone({ ok }) });
+  });
 
   function say(text: string) { setLine(text); speak(text, { voice: trail.pet }); }
 
