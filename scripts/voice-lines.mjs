@@ -30,7 +30,7 @@ function literals(file, src) {
   return out;
 }
 
-const ROOTS = ['app/play', 'app/story', 'components/NoelHello.tsx', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts'];
+const ROOTS = ['app/play', 'app/story', 'components/NoelHello.tsx', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts', 'lib/dragonBridgePlan.ts'];
 
 function walk(p, out = []) {
   const st = statSync(p);
@@ -140,9 +140,11 @@ const found = scan(ROOTS);
 dynamicLines().forEach(l => sentences(l).forEach(s => found.add(s)));
 EXTRA.forEach(l => found.add(l));
 // Word Wizard: Noel reads back the word on a tapped balloon ("That one says leaf.")
-for (const m of readFileSync('app/play/reading/page.tsx', 'utf8').matchAll(/choices:\s*\[([^\]]*)\]/g)) {
+for (const m of readFileSync('app/play/reading/page.tsx', 'utf8').matchAll(/(?:choices:\s*|pq\([^\n]*?)\[([^\]]*)\]/g)) {
   for (const w of m[1].matchAll(/'([^']+)'|"([^"]+)"/g)) found.add(`That one says ${w[1] ?? w[2]}.`);
 }
+// the picture riddles' answers too: pq('Who says moo?', 'cow', [...])
+for (const m of readFileSync('app/play/reading/page.tsx', 'utf8').matchAll(/pq\('[^']*',\s*'([^']+)'/g)) found.add(`That one says ${m[1]}.`);
 // sentences the robot heard Noel say with no recording (scripts/voice-miss-check.mjs)
 if (existsSync('voice/misses.json')) Object.keys(JSON.parse(readFileSync('voice/misses.json', 'utf8'))).forEach(l => sentences(l).forEach(s => found.add(s)));
 
