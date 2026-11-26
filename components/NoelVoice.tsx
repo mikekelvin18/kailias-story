@@ -40,7 +40,8 @@ function wordsOf(el: Element): string {
   return text
     .split(/\n+/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean)
     .map((l, i, all) => (i < all.length - 1 && !/[.!?…:,;—-]$/.test(l) ? `${l}.` : l))
-    .join(' ');
+    .join(' ')
+    .replace(/([a-z][.!?…])(?=[A-Z])/g, '$1 '); // two sentences glued together on screen ("balloons!Listen")
 }
 
 function onScreen(el: Element) {

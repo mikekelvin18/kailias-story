@@ -29,14 +29,34 @@ export function echoSeqLen(level: number, tier: DifficultyTier): number {
 // 5–6 year olds 8, older children 10–12+. One more pair every three levels
 // (it was one more EVERY level, so level 5 already asked a 3-year-old for 7).
 // Age bands (Grok's review 2026-11-25): level 1 starts at the band's own
-// number of pairs (under 3: 2, 3–4: 3, 5–6: 4, 7–8: 6, 9–12: 8), so every
-// child starts Moonlight Match on level 1 and climbs from there.
-const MOON_BAND_CAP: Record<AgeBand, number> = { together: 3, little: 5, early: 8, big: 10, older: 12 };
+// gentle number of pairs (under 3: 2, 3–4: 3, 5–6: 4, 7–8: 6, 9–12: 8).
+// Kelvin (2026-11-25): "start with the first game easy, then make it a little
+// challenging after", so level 2 jumps halfway and level 3 reaches what most
+// children that age can do (6-year-old: 4 → 6 → 8 pairs), then it keeps growing.
+const MOON_BAND_CAP: Record<AgeBand, number> = { together: 4, little: 6, early: 10, big: 12, older: 12 };
+// pairs most children can hold, by age in months (same norms as lib/ageFit.ts pairsAge)
+const PAIRS_BY_AGE: [number, number][] = [[30, 2], [36, 3], [42, 4], [54, 6], [66, 8], [84, 10], [108, 12]];
+export function agePairs(months: number): number {
+  const m = months - Math.max(6, months * 0.1);   // a touch under the age: a little challenging, not hard
+  let n = PAIRS_BY_AGE[0][1];
+  for (const [age, pairs] of PAIRS_BY_AGE) if (m >= age) n = pairs;
+  return n;
+}
+/** Kelvin's ramp: an easy first level, halfway on the second, the child's own level from the third. */
+export function rampTo(level: number, start: number, target: number): number {
+  if (level <= 1) return start;
+  if (level === 2) return Math.round((start + target) / 2);
+  return target;
+}
 export function moonPairs(level: number, tier: DifficultyTier, months?: number | null): number {
   const L = Math.max(1, level);
   if (months != null) {
     const band = bandForMonths(months);
-    return Math.min(MOON_BAND_CAP[band], BAND_SETTINGS[band].memoryPairs + Math.floor((L - 1) / 3));
+    const base = BAND_SETTINGS[band].memoryPairs;
+    const target = agePairs(months);
+    // after the ramp it keeps growing a pair every 3 levels from the child's own level
+    const grown = Math.max(base + Math.floor((L - 1) / 3), L >= 3 ? target + Math.floor((L - 3) / 3) : 0);
+    return Math.min(MOON_BAND_CAP[band], Math.max(grown, rampTo(L, base, target)));
   }
   const base = tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4;
   const cap = tier === 'tiny' ? 4 : tier === 'small' ? 8 : 12;
@@ -54,8 +74,11 @@ export function mazeCorridor(level: number, tier: DifficultyTier = 'big', months
   const widen = tier === 'tiny' ? 8 : tier === 'small' ? 4 : 0;
   const curve = Math.max(13, 28 - lap * 3) + widen;
   if (months == null) return curve;
+  // the extra band width is all there on level 1 (an easy first game), half on
+  // level 2, and gone from level 3 (Kelvin 2026-11-25: easy first, then a little challenging)
   const bandWiden = Math.max(0, BAND_SETTINGS[bandForMonths(months)].pathTolerance - BAND_SETTINGS.big.pathTolerance);
-  return Math.max(13, 28 - lap * 3) + Math.max(widen, bandWiden);
+  const extra = Math.max(widen, rampTo(level, bandWiden, widen));
+  return Math.max(13, 28 - lap * 3) + extra;
 }
 
 // ── Cargo Count: which boxes float, how big the orders are ──

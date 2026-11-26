@@ -393,7 +393,7 @@ export default function WordWizardPage() {
               theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #2563eb 0%, #1e3a8a 55%, #172554 100%)', accent: '#60A5FA', accent2: '#2563EB' }}
               pet={pet}
               story={<><p>
-                {levelStory(PATHS, 'word-wizard', level)} Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons!
+                {levelStory(PATHS, 'word-wizard', level)} Uh-oh! The signposts&apos; words <strong>floated away</strong> as balloons!{' '}
                 {preReader && bankFor(level) === 0 ? 'Listen to Noel and tap the right picture balloon to bring it home.' : 'Tap the balloon with the right word to bring it home.'}
               </p></>}
               levels={<LevelPath gameId="word-wizard" level={level} onPick={setLevel} startLevel={startLevel} />}
