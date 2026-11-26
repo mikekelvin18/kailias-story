@@ -58,8 +58,9 @@ for (const bagName of BAGS) {
   test(`Sky Mail: the "${bagName}" mailbag sorts to the end`, async ({ page }) => {
     test.setTimeout(180_000);
     const errors = watchErrors(page);
-    // Rhyme Chime and Tricky Wind join the shelf once a child reads
-    await seedFamily(page, { strong: /Rhyme|Tricky/.test(bagName) });
+    // Rhyme Chime and Tricky Wind join the shelf once a child reads, and
+    // Tricky Wind (follow the arrow, not the word) only from 7
+    await seedFamily(page, { strong: /Rhyme|Tricky/.test(bagName), ageMonths: /Tricky/.test(bagName) ? 96 : undefined });
     await page.goto('/play/sky-mail');
     await expect(page.getByTestId('game-intro')).toBeVisible();
     await page.locator('.gf-choice', { hasText: bagName }).first().click({ force: true });
@@ -90,4 +91,12 @@ test('Sky Mail: a letter in the wrong mailbox bounces back with a hint', async (
   await swipe(page, dir === 'left' ? 'right' : 'left');
   await until(async () => /almost|again|close|think|tricked|count|say both/i.test(await guideLine(page)), 'a hint');
   expect(await card.innerText()).toBe(before);
+});
+
+test('Sky Mail: a 6-year-old is not given the Tricky Wind bag (it starts at 7)', async ({ page }) => {
+  await seedFamily(page, { strong: true });
+  await page.goto('/play/sky-mail');
+  await expect(page.getByTestId('game-intro')).toBeVisible();
+  await expect(page.locator('.gf-choice', { hasText: 'Rhyme Chime' }).first()).toBeVisible();
+  await expect(page.locator('.gf-choice', { hasText: 'Tricky Wind' })).toHaveCount(0);
 });
