@@ -16,6 +16,7 @@ import { useEffect } from 'react';
 import { unlockVoice } from '@/lib/voice';
 import { audioCtx, keepSoundOn, markAudioStale, pauseSoundKeeper } from '@/lib/sfx';
 import { music } from '@/lib/music';
+import { endedAScroll } from '@/lib/tapGuard';
 
 export default function SoundStart() {
   useEffect(() => {
@@ -31,7 +32,9 @@ export default function SoundStart() {
     // Every tap, for as long as the app is open (cheap when sound already
     // runs): an iPhone home-screen app that was in the background comes back
     // with its sound engines stuck silent, and only a tap can start them again.
-    function wake() {
+    function wake(e: Event) {
+      // the end of a scroll is not a tap: waking the sound engines then cut Noel off
+      if (endedAScroll(e)) return;
       keepSoundOn(); // iPhone: music and effects play even with the silent switch on
       unlockVoice();
       audioCtx(true); // made (or made fresh) inside the tap, so later beeps can play

@@ -16,6 +16,7 @@ import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { A11Y_EVENT, musicEnabled, soundEnabled, updateA11yPrefs, setMutedNow } from '@/lib/accessibility';
 import { hush } from '@/lib/voice';
+import { endedAScroll } from '@/lib/tapGuard';
 import { music, WELCOME } from '@/lib/music';
 
 /** Listening games, where music would cover the sounds the child must hear. */
@@ -71,7 +72,7 @@ export default function GameMusic() {
     // On iPhones only a finger LIFTING (touchend/click) lets sound start, not
     // touching down, so listen for those, on every tap: start() on a tune
     // that's already playing just wakes it if the phone paused it.
-    const go = () => { if (musicEnabled()) m.start(true); };
+    const go = (e: Event) => { if (!endedAScroll(e) && musicEnabled()) m.start(true); };
     const events = ['touchend', 'click', 'keydown', 'mouseup'] as const;
     events.forEach(e => window.addEventListener(e, go, true));
     return () => events.forEach(e => window.removeEventListener(e, go, true));
