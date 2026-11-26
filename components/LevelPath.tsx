@@ -72,7 +72,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
 
   return (
     <div className="mx-2 mt-4 rounded-3xl px-3 pt-3 pb-2 select-none"
-      style={{ background: 'rgba(15,23,42,0.38)', border: '1.5px solid rgba(255,255,255,0.22)', backdropFilter: 'blur(4px)' }}>
+      style={{ background: 'rgba(15,23,42,0.38)', border: '1.5px solid rgba(255,255,255,0.22)' }}>
       <div className="flex items-center justify-between">
         <button aria-label="Previous chapter" onClick={() => setPage(p => Math.max(0, p - 1))}
           disabled={page === 0}

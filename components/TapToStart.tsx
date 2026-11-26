@@ -72,7 +72,6 @@ export default function TapToStart() {
       className="fixed inset-0 z-[90] flex flex-col items-center justify-center cursor-pointer select-none"
       style={{
         background: 'radial-gradient(120% 90% at 50% 45%, rgba(76,52,170,0.82) 0%, rgba(30,18,72,0.92) 70%)',
-        backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
         opacity: closing ? 0 : 1, transition: 'opacity 0.35s ease-out',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
