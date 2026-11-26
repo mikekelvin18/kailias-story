@@ -52,7 +52,7 @@ export default function KailiaActor({ x, y, h, moveMs = 700, hop = 0, z = 6 }: P
   const { ms, faceLeft } = move;
   const w = Math.round(h * 0.78);
   return (
-    <div className="absolute pointer-events-none" style={{
+    <div data-actor="Kailia" className="absolute pointer-events-none" style={{
       left: `${x}%`, top: `${y}%`, width: w, height: h, marginLeft: -w / 2, marginTop: -h, zIndex: z,
       transition: `left ${ms}ms linear, top ${ms}ms ease-out`,
     }}>

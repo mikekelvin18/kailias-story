@@ -178,7 +178,9 @@ export default function ReefExplorerPage() {
       const row = i % 4;
       list.push({
         id: nextId.current++, look: made.look, target: isT, diff: made.diff,
-        x: 10 + ((i * 41 + Math.random() * 12) % 80),
+        // friends in one lane start spread out along it, never on top of
+        // each other (Kelvin 2026-11-26: two green fish began stacked)
+        x: 10 + ((80 * (Math.floor(i / 4) + 0.5)) / Math.ceil((n - row) / 4) + row * 19) % 80 + (Math.random() - 0.5) * 6,
         y: 16 + row * 14 + Math.random() * 5,
         vx: (Math.random() < 0.5 ? -1 : 1) * plan.speed * (0.7 + Math.random() * 0.6),
         bob: Math.random() * 4,

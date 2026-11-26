@@ -1221,6 +1221,12 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
   [data-play-col] > :has([data-play-field]) > [data-play-field][data-cards] {
     width: calc(((100dvh - 16px - var(--kp-safe-y) - var(--top-pad, 12px) - var(--ground) - (var(--rows) - 1) * 10px) / var(--rows)) * 0.75 * var(--cols) + (var(--cols) - 1) * 10px + 24px) !important;
   }
+  /* a sky that sets its own height from --stage-h (Sky Mail): as tall as the
+     screen, and about as wide as it is upright */
+  [data-play-col] > :has([data-play-field]) > [data-play-field][data-stage] {
+    --stage-h: calc(100dvh - 16px - var(--kp-safe-y)) !important; height: var(--stage-h) !important;
+    width: min(62vw, calc(var(--stage-h) * 0.9)) !important;
+  }
   /* the header sits tighter so the left column fits the short screen */
   [data-play-col]:has([data-play-field]) > :first-child { padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important; padding-bottom: 2px !important; }
 }

@@ -20,6 +20,21 @@ function kindOf(pet: string): Kind | null {
 
 const players = new Map<Kind, HTMLAudioElement>();
 let lastAt = 0;
+
+function player(kind: Kind) {
+  let a = players.get(kind);
+  if (!a) { a = new Audio(`/sounds/pets/${kind}.mp3`); a.preload = 'auto'; players.set(kind, a); }
+  return a;
+}
+
+/** Load a pet's call ahead of time (when the pet appears on screen), so the
+ *  first tap answers at once instead of waiting for the download
+ *  (Kelvin 2026-11-26: the pets' voices felt laggy). */
+export function preloadPetCall(pet: string) {
+  if (typeof window === 'undefined') return;
+  const kind = kindOf(pet);
+  if (kind) try { player(kind).load(); } catch { /* sound is a bonus */ }
+}
 let lastCheerAt = 0;
 
 /**
@@ -37,8 +52,7 @@ export function petCall(pet: string, { volume = 0.55, cheer = false } = {}) {
   lastAt = now;
   if (cheer) lastCheerAt = now;
   try {
-    let a = players.get(kind);
-    if (!a) { a = new Audio(`/sounds/pets/${kind}.mp3`); players.set(kind, a); }
+    const a = player(kind);
     a.volume = Math.min(1, volume * effectsVolume());
     a.currentTime = 0;
     void a.play().catch(() => { /* sound is a bonus */ });

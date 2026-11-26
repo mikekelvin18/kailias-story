@@ -186,7 +186,7 @@ export default function FireflyTrailsPage() {
     setTrail([]);
     setHintIdx(null);
     setKailiaX(clampPct(pts[0].x * 100 - 4));
-    setPetX(clampPct(pts[0].x * 100 + 16));
+    setPetX(besideKailia(clampPct(pts[0].x * 100 + 16), clampPct(pts[0].x * 100 - 4)));
     quietStrokesRef.current = 0;
     quarterRef.current = 0;
     lastLitRef.current = 0;

@@ -32,6 +32,31 @@ function tuneFor(path: string): string | null {
   return null;
 }
 
+/** In a game, a place for the sound button in the top bar ("← Map", title,
+ *  and whatever sits on the right): the empty spacer if there is one, else
+ *  beside the right-hand item, else at the end of the bar. */
+function gameBarSlot(): Element | null {
+  const bar = document.querySelector('.kp-back')?.parentElement;
+  if (!bar) return null;
+  const last = bar.lastElementChild;
+  if (!last || last.classList.contains('kp-back')) return null;
+  if (last.tagName === 'SPAN' && !last.childElementCount && !last.textContent?.trim()) {
+    last.setAttribute('data-sound-slot', '');
+    return last;
+  }
+  const slot = document.createElement('span');
+  slot.setAttribute('data-sound-slot', '');
+  slot.style.cssText = 'display:inline-flex;align-items:center;margin-left:6px;flex:none';
+  // beside the right-hand item when it is a plain holder (the progress dots),
+  // else as the bar's own last item (a button can't hold another button)
+  if ((last.tagName === 'SPAN' || last.tagName === 'DIV') && !last.querySelector('button, a')) {
+    (last as HTMLElement).style.display = 'inline-flex';
+    (last as HTMLElement).style.alignItems = 'center';
+    last.appendChild(slot);
+  } else bar.appendChild(slot);
+  return slot;
+}
+
 export default function GameMusic() {
   const path = usePathname() ?? '';
   const tune = tuneFor(path);
@@ -89,17 +114,24 @@ export default function GameMusic() {
   }, []);
 
   // The map keeps the button in its header (a slot marked
-  // data-sound-slot), so it never covers the pet egg or the tab bar.
+  // data-sound-slot), so it never covers the pet egg or the tab bar. In a
+  // game it docks in the empty corner of the game's top bar (the spacer
+  // after "← Map"), so on a phone turned sideways it never sits on top of
+  // Kailia or the friend (Kelvin 2026-11-26). The slot is looked up again
+  // whenever the page changes (a game's bar only appears after its intro).
   const [slot, setSlot] = useState<Element | null>(null);
   useEffect(() => {
-    let tries = 0, t: ReturnType<typeof setTimeout> | null = null;
+    let raf = 0;
     const find = () => {
-      const el = document.querySelector('[data-sound-slot]');
-      setSlot(el);
-      if (!el && tries++ < 20) t = setTimeout(find, 150);
+      raf = 0;
+      let el = document.querySelector('[data-sound-slot]');
+      if (!el) el = gameBarSlot();
+      setSlot(prev => (prev === el ? prev : el));
     };
     find();
-    return () => { if (t) clearTimeout(t); };
+    const mo = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(find); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => { mo.disconnect(); if (raf) cancelAnimationFrame(raf); };
   }, [path]);
 
   if (!showButton || hidden) return null;
