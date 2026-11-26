@@ -65,7 +65,7 @@ function BreakScreen({ onDone }: { onDone: () => void }) {
   return (
     <OnTop>
       <div className="fixed inset-0 z-[85] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Time for a little break"
-        data-testid="break-screen" style={{ background: 'linear-gradient(170deg, rgba(30,58,95,0.9), rgba(23,37,84,0.94))', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
+        data-testid="break-screen" style={{ background: 'linear-gradient(170deg, rgba(30,58,95,0.9), rgba(23,37,84,0.94))' }}>
         <div className="m-auto w-full max-w-sm [@media(max-height:520px)]:max-w-3xl text-center py-2 flex flex-col [@media(max-height:520px)]:flex-row [@media(max-height:520px)]:items-center gap-5">
           <div className="flex-1 min-w-0">
           <div className="flex items-end justify-center gap-1">
@@ -105,7 +105,7 @@ function DoneScreen({ onMore }: { onMore: () => void }) {
   return (
     <OnTop>
       <div className="fixed inset-0 z-[85] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Done for today"
-        data-testid="done-today" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(124,45,18,0.88), rgba(30,20,50,0.95))', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
+        data-testid="done-today" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(124,45,18,0.88), rgba(30,20,50,0.95))' }}>
         {/* a few still stars and a moon: the map gets cozy for the night */}
         <svg aria-hidden="true" className="absolute inset-x-0 top-0 mx-auto" width="360" height="140" viewBox="0 0 360 140">
           <path d="M290 30a26 26 0 1 0 18 44a21 21 0 0 1 -18 -44z" fill="#FDE68A" />

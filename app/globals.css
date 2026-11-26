@@ -868,7 +868,6 @@ button:active {
 .gf-back {
   display: inline-flex; align-items: center; min-height: 48px; padding: 8px 18px; border-radius: 999px; font-weight: 800; font-size: 16px;
   color: #fff; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.35);
-  backdrop-filter: blur(4px);
 }
 .gf-title {
   margin: 6px 0 4px; font-size: 40px; line-height: 1.05; font-weight: 900; letter-spacing: 0.5px; color: #fff;
@@ -1388,3 +1387,14 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 :root[data-bigkid="true"] .gf-letter { animation: none; }
 :root[data-bigkid="true"] .gf-cast { transform: scale(0.82); transform-origin: 50% 100%; }
 :root[data-bigkid="true"] .gf-stage { animation: none; }
+
+/* ── The map on a phone held upright (Kelvin 2026-11-26: "squeezed on a tiny square") ──
+   The bigger 16px text, the Calm switch and the 48px buttons left the map
+   only the space nobody else wanted, so it shrank to a small box with the
+   names on top of each other. Upright, the map now keeps a good height of
+   its own and the page scrolls a little to reach the rows below it. */
+@media (orientation: portrait) {
+  [data-map-page] { overflow-y: auto !important; overscroll-behavior-y: contain; }
+  [data-map-page] > [data-map-col] { height: auto; min-height: 100%; }
+  [data-map-col] > [data-map-main] { flex: 0 0 auto; height: min(600px, 130vw, 66dvh); min-height: 400px; }
+}

@@ -497,7 +497,7 @@ export default function AdventureMap() {
   }
 
   return (
-    <main className="h-dvh overflow-hidden" style={{ background: theme.background, isolation: 'isolate' }}>
+    <main data-map-page className="h-dvh overflow-hidden" style={{ background: theme.background, isolation: 'isolate' }}>
       <LivingSky mood={bright ? 'day' : 'night'} />
       {/* One flex column, exactly one screen tall, never scrolls — the map
           (flex-1) is the only part that gives up space when the chrome
@@ -675,7 +675,7 @@ export default function AdventureMap() {
       {showGuide && (
         <OnTop>
         <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Starlight"
-          style={{ background: 'rgba(10,8,40,0.78)', backdropFilter: 'blur(4px)' }} onClick={() => setShowGuide(false)}>
+          style={{ background: 'rgba(10,8,40,0.84)' }} onClick={() => setShowGuide(false)}>
           <div className="relative w-full max-w-md rounded-3xl p-5 bounce-in shadow-2xl"
             style={{ background: 'linear-gradient(180deg, #1e1b4b, #312e81)', border: '2px solid rgba(253,224,71,0.35)' }}
             onClick={e => e.stopPropagation()}>
@@ -732,7 +732,7 @@ export default function AdventureMap() {
       {dailyPrompt && band && (
         <OnTop>
         <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Today's quests"
-          style={{ background: 'rgba(10,8,40,0.78)', backdropFilter: 'blur(4px)' }} onClick={dismissDaily}>
+          style={{ background: 'rgba(10,8,40,0.84)' }} onClick={dismissDaily}>
           <div className="relative w-full max-w-md rounded-3xl p-5 bounce-in text-center"
             style={{ background: 'linear-gradient(180deg, #FFFBEB, #FEF3C7)', border: '4px solid #FFFFFF', boxShadow: '0 28px 80px rgba(20,10,50,0.55)' }}
             onClick={e => e.stopPropagation()}>
@@ -776,7 +776,7 @@ export default function AdventureMap() {
       {openLand && (
         <OnTop>
         <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={openLand.name}
-          style={{ background: 'rgba(10,8,40,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setOpenLand(null)}>
+          style={{ background: 'rgba(10,8,40,0.7)' }} onClick={() => setOpenLand(null)}>
           <div className="relative w-full max-w-md rounded-3xl p-5 bounce-in" style={{ background: openLand.sky, border: '4px solid #FFFFFF', boxShadow: '0 28px 80px rgba(20,10,50,0.5)' }}
             onClick={e => e.stopPropagation()}>
             <PopupClose onClose={() => setOpenLand(null)} color={openLand.color} />
