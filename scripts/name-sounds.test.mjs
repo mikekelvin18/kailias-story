@@ -61,5 +61,5 @@ test('the device voice says the names the same way', () => {
   assert.equal(deviceNames("Kailia's lantern and Noel's letters"), "Kai-leeya's lantern and No-el's letters");
   assert.equal(deviceNames('Noelle'), 'Noelle');
   const voice = readFileSync('lib/voice.ts', 'utf8');
-  assert.match(voice, /sentences\(clean\)\.map\(p => deviceNames\(/, 'say() must pass device-voice lines through deviceNames');
+  assert.match(voice, /const said = deviceNames\(parts\[k\]/, 'say() must pass device-voice lines through deviceNames');
 });

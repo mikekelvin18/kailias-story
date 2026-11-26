@@ -6,7 +6,7 @@
 // This is a generous net: it may catch a few sentences that are only
 // shown, never spoken, which costs a few cents and does no harm.
 
-import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { dynamicLines } from './voice-dynamic.mjs';
 import { createRequire } from 'node:module';
@@ -30,7 +30,7 @@ function literals(file, src) {
   return out;
 }
 
-const ROOTS = ['app/play', 'app/story', 'components/NoelHello.tsx', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts'];
+const ROOTS = ['app/play', 'app/story', 'components/NoelHello.tsx', 'components/friends', 'components/carepet', 'components/world', 'components/games', 'lib/petTasks.ts', 'lib/companionTrails.ts', 'lib/dragonBridgePlan.ts'];
 
 function walk(p, out = []) {
   const st = statSync(p);
@@ -57,6 +57,18 @@ const EXTRA = ['Fair and square!', 'Yum!', 'Hi!', 'Look!', 'Your turn!', 'Listen
   'We can try it again another day.', 'Thank you for playing with me!', 'Look, I grew bigger!', "Wow, I'm all grown up!",
   'I missed you!', 'Big hug!', 'Look, a magic egg!', 'Something is wiggling inside.', 'The magic egg is wiggling!',
   'Onward!', 'A Magic Map.', 'The flag is close!', 'The flag needs more friends!', 'What happens next?', 'Keep going!', 'Psst!'];
+
+/** The fixed sentences of a bit of JSX with {changing} parts in it. Text
+    shown only sometimes ({x && <>Tonight is tricky…</>}) counts as fixed. */
+function fixedSentences(jsx) {
+  let t = jsx;
+  for (let k = 0; k < 4; k++) t = t.replace(/\{[^{}]*?<>([^{}]*?)<\/>[^{}]*?\}/g, ' $1 ');
+  t = t.replace(/\{\s*'([^'{}]*)'\s*\}/g, '$1').replace(/\{\s*"([^"{}]*)"\s*\}/g, '$1')
+    .replace(/<[^>]+>/g, ' ');
+  for (let k = 0; k < 4; k++) t = t.replace(/\{[^{}]*\}/g, ' Q\u0001 ');
+  t = t.replace(/&apos;/g, "'").replace(/\s+([,.!?…:;])/g, '$1').replace(/\s+/g, ' ').trim();
+  return sentences(t).filter(p => !p.includes('\u0001') && !/[{}]/.test(p));
+}
 
 export function scan(roots, found = new Set()) {
 const add = text => {
@@ -100,11 +112,17 @@ for (const root of roots) {
       const flat = paras.filter(t => !/[{}]/.test(t)).map(t => t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
       flat.forEach(add);
       add(flat.join(' '));
+      // a paragraph with a changing part ("The night sky pictures went dark!
+      // {skyStory}") or a part shown only sometimes ({tricky && <> Tonight is
+      // tricky…</>}): keep its fixed sentences (2026-11-25: these were missed,
+      // and the whole bubble fell back to the phone's own voice)
+      paras.filter(t => /[{}]/.test(t)).forEach(t => fixedSentences(t).forEach(add));
     }
     // JSX text inside read-aloud story cards (<strong> etc. flattened)
     for (const m of src.matchAll(/data-read-aloud[^>]*>([\s\S]*?)<\/div>/g)) {
       const text = m[1].replace(/\{[^}]*\}/g, ' ').replace(/<[^>]+>/g, ' ');
       if (!/[{}]/.test(text)) add(text);
+      else fixedSentences(m[1]).forEach(add);
       // also each paragraph alone
       for (const p of m[1].matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)) {
         if (!/[{}]/.test(p[1])) add(p[1].replace(/<[^>]+>/g, ' '));
@@ -121,6 +139,14 @@ const found = scan(ROOTS);
 // sentences with a changing word (numbers, friends' names, shapes...), every version
 dynamicLines().forEach(l => sentences(l).forEach(s => found.add(s)));
 EXTRA.forEach(l => found.add(l));
+// Word Wizard: Noel reads back the word on a tapped balloon ("That one says leaf.")
+for (const m of readFileSync('app/play/reading/page.tsx', 'utf8').matchAll(/(?:choices:\s*|pq\([^\n]*?)\[([^\]]*)\]/g)) {
+  for (const w of m[1].matchAll(/'([^']+)'|"([^"]+)"/g)) found.add(`That one says ${w[1] ?? w[2]}.`);
+}
+// the picture riddles' answers too: pq('Who says moo?', 'cow', [...])
+for (const m of readFileSync('app/play/reading/page.tsx', 'utf8').matchAll(/pq\('[^']*',\s*'([^']+)'/g)) found.add(`That one says ${m[1]}.`);
+// sentences the robot heard Noel say with no recording (scripts/voice-miss-check.mjs)
+if (existsSync('voice/misses.json')) Object.keys(JSON.parse(readFileSync('voice/misses.json', 'utf8'))).forEach(l => sentences(l).forEach(s => found.add(s)));
 
 const lines = [...found].sort();
 mkdirSync('voice', { recursive: true });
