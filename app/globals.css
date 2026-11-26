@@ -1364,11 +1364,11 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 /* ── "Your turn!" talking moment (components/TalkMoment.tsx) ──
    The mouth opens and closes while Kailia asks; while she waits for the
    child, the sound waves ripple out slowly instead. */
-.tm-mouth { transform-origin: 60px 34px; animation: tm-talk 0.5s step-end infinite; }
+.tm-mouth { transform-origin: 60px 34px; animation: tm-talk 0.42s ease-in-out infinite; }
 .tm-waves { opacity: 0; }
 .tm-listening .tm-mouth { animation: tm-rest 2.4s ease-in-out infinite; }
 .tm-listening .tm-waves { animation: tm-waves 1.6s ease-in-out infinite; }
-@keyframes tm-talk { 0% { transform: scaleY(1); } 50% { transform: scaleY(0.55) scaleX(1.06); } }
+@keyframes tm-talk { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.55) scaleX(1.06); } }
 @keyframes tm-rest { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 @keyframes tm-waves { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 :root[data-reduced-motion="true"] :is(.tm-mouth, .tm-waves) { animation: none !important; }

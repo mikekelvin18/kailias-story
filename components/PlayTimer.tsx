@@ -38,17 +38,14 @@ function calmMoment(path: string): boolean {
   return !!document.querySelector('[data-game-finish], [data-game-intro]');
 }
 
-/** Small drawn pictures for the movement quest (no emoji art). */
+/** A soft numbered step for the movement quest (clean and calm, no drawn doodles). */
 function MoveIcon({ i }: { i: number }) {
-  const s = { fill: 'none', stroke: INK, strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const [bg, fg] = [['#BBF7D0', '#065F46'], ['#FDE68A', '#92400E'], ['#FBCFE8', '#9D174D'], ['#BAE6FD', '#075985']][i % 4];
   return (
-    <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
-      <circle cx="20" cy="20" r="18" fill={['#BBF7D0', '#FDE68A', '#FBCFE8', '#BAE6FD'][i % 4]} />
-      {i === 0 && <g {...s}><path d="M20 30 V14" /><path d="M20 16 L13 9 M20 16 L27 9" /><circle cx="20" cy="10" r="0.5" /></g>}
-      {i === 1 && <g {...s}><path d="M12 28 Q16 14 20 26 Q24 14 28 28" /></g>}
-      {i === 2 && <g {...s}><path d="M11 22 l3 -8 M17 22 l1 -10 M23 22 l-1 -10 M29 22 l-3 -8" /><path d="M10 26 Q20 32 30 26" /></g>}
-      {i === 3 && <g {...s}><circle cx="16" cy="20" r="5" /><circle cx="26" cy="20" r="2" /><path d="M8 20 Q16 10 24 20" /></g>}
-    </svg>
+    <span aria-hidden="true" className="grid place-items-center shrink-0 rounded-full text-xl font-extrabold"
+      style={{ width: 40, height: 40, background: bg, color: fg, boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.08)' }}>
+      {i + 1}
+    </span>
   );
 }
 
@@ -68,7 +65,7 @@ function BreakScreen({ onDone }: { onDone: () => void }) {
   return (
     <OnTop>
       <div className="fixed inset-0 z-[85] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Time for a little break"
-        data-testid="break-screen" style={{ background: 'linear-gradient(170deg, rgba(30,58,95,0.97), rgba(23,37,84,0.98))' }}>
+        data-testid="break-screen" style={{ background: 'linear-gradient(170deg, rgba(30,58,95,0.9), rgba(23,37,84,0.94))', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
         <div className="m-auto w-full max-w-sm [@media(max-height:520px)]:max-w-3xl text-center py-2 flex flex-col [@media(max-height:520px)]:flex-row [@media(max-height:520px)]:items-center gap-5">
           <div className="flex-1 min-w-0">
           <div className="flex items-end justify-center gap-1">
@@ -108,7 +105,7 @@ function DoneScreen({ onMore }: { onMore: () => void }) {
   return (
     <OnTop>
       <div className="fixed inset-0 z-[85] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Done for today"
-        data-testid="done-today" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(124,45,18,0.92), rgba(30,20,50,0.97))' }}>
+        data-testid="done-today" style={{ background: 'radial-gradient(120% 80% at 50% 30%, rgba(124,45,18,0.88), rgba(30,20,50,0.95))', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
         {/* a few still stars and a moon: the map gets cozy for the night */}
         <svg aria-hidden="true" className="absolute inset-x-0 top-0 mx-auto" width="360" height="140" viewBox="0 0 360 140">
           <path d="M290 30a26 26 0 1 0 18 44a21 21 0 0 1 -18 -44z" fill="#FDE68A" />

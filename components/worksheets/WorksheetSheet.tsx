@@ -6,6 +6,7 @@
 
 import type { Worksheet } from '@/lib/worksheets';
 import { TALK_WORDS } from '@/lib/talk';
+import GlowBug from '@/components/games/GlowBug';
 
 const PAGE_W = 800;
 const PAGE_H = 1035; // roughly US-letter proportions
@@ -166,7 +167,9 @@ function TalkCards() {
         return (
           <g key={t.id}>
             <rect x={x} y={y} width={w} height={h} rx={18} fill="#FFFDF7" stroke={INK} strokeWidth={2.5} strokeDasharray="12 8" />
-            <image href={t.art} x={x + 12} y={y + 14} width={96} height={96} preserveAspectRatio="xMidYMid meet" />
+            {t.id === 'firefly'
+              ? <g transform={`translate(${x + 14} ${y + 16})`}><GlowBug size={92} lit={1} happy /></g>
+              : <image href={t.art} x={x + 12} y={y + 14} width={96} height={96} preserveAspectRatio="xMidYMid meet" />}
             <text x={x + 122} y={y + 74} style={{ fontSize: 46, fontWeight: 800, fill: '#1e1b4b', fontFamily: font }}>{t.word}</text>
             {(() => {
               // wrap each line at about 40 letters, on a space

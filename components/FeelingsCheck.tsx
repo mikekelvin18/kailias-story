@@ -123,7 +123,7 @@ export default function FeelingsCheck({ land, onDone }: { land: string; onDone: 
   return (
     <OnTop>
       <div className="fixed inset-0 z-[70] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="How do you feel?"
-        data-testid="feelings-check" style={{ background: 'linear-gradient(160deg, rgba(49,46,129,0.985), rgba(30,27,75,0.99))' }}>
+        data-testid="feelings-check" style={{ background: 'linear-gradient(160deg, rgba(49,46,129,0.93), rgba(30,27,75,0.95))', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
         <div className="m-auto w-full max-w-md [@media(max-height:520px)]:max-w-3xl text-center py-2">
           {breathing ? <BreathingBubble onDone={breathed} /> : (
             <div className="flex flex-col [@media(max-height:520px)]:flex-row [@media(max-height:520px)]:items-center gap-5">
