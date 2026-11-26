@@ -446,6 +446,10 @@ type Kind = 'noel' | 'girl' | 'boy';
  */
 function speakParts(parts: string[], files: (string | null)[], base: string, gen: number, busy: boolean, opts: SayOptions, kind: Kind) {
   const synth: SpeechSynthesis | undefined = window.speechSynthesis;
+  // fetch every sentence's clip now, so the next one is already on the phone
+  // when the last one ends (Kelvin 2026-11-26: pet voices sounded laggy, a
+  // pause while each sentence downloaded)
+  files.forEach(f => { if (f) void fetch(`${base}/${f}`, { cache: 'force-cache' }).catch(() => {}); });
   let i = 0;
   const finish = () => { if (gen === generation) { setTalking(false); opts.onDone?.(); } };
   const next = () => {

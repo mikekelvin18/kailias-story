@@ -354,7 +354,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
         <div className="fixed inset-0 z-[70] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Your pet friend"
           style={{ padding: 'max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))' }}>
           {/* the page behind goes dim; tapping it closes the box */}
-          <div className="absolute inset-0 fade-in" style={{ background: 'rgba(30,20,60,0.62)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }} onClick={close} />
+          <div className="absolute inset-0 fade-in" style={{ background: 'rgba(30,20,60,0.78)' }} onClick={close} />
           {/* a floating box in the middle: rounded, white rim, deep shadow */}
           <div className="pm-card relative w-full max-w-[440px]">
           <div className="relative overflow-hidden flex flex-col rounded-[32px]"

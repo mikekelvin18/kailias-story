@@ -109,7 +109,7 @@ export default function TalkMoment({ place, prompt, onDone }: { place: TalkPlace
   return (
     <OnTop>
       <div className="fixed inset-0 z-[80] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Your turn to talk"
-        data-testid="talk-moment" style={{ background: 'rgba(10,8,40,0.6)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}>
+        data-testid="talk-moment" style={{ background: 'rgba(10,8,40,0.86)' }}>
         {/* grown-ups' corner button: small, out of the child's way */}
         <button type="button" onClick={openGrownUp} data-testid="talk-grownup"
           className="absolute top-3 right-3 min-h-[44px] px-3 rounded-full text-sm font-bold"
