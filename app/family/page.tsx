@@ -16,9 +16,11 @@ import { CustomTask, loadCustomTasks, addCustomTask, removeCustomTask } from '@/
 import { DOMAIN_META, ActivityDomain } from '@/lib/activities';
 import { LANDS, recordQuestPlay } from '@/lib/adventure';
 import { useAssessment } from '@/context/AssessmentContext';
+import GameLevelSettings from '@/components/GameLevelSettings';
 import BackButton from '@/components/ui/BackButton';
 import StepGuide from '@/components/ui/StepGuide';
 import Section from '@/components/ui/Section';
+import PlaySettings from '@/components/family/PlaySettings';
 import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
@@ -70,7 +72,7 @@ export default function ParentZonePage() {
   const [newTaskDomain, setNewTaskDomain] = useState<ActivityDomain>('communication');
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
-  const { state: assessment, loaded: assessmentLoaded } = useAssessment();
+  const { state: assessment, loaded: assessmentLoaded, chronoMonths } = useAssessment();
 
   useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
 
@@ -85,7 +87,9 @@ export default function ParentZonePage() {
   }
 
   function updateA11y(patch: Partial<AccessibilityPrefs>) {
-    const next = { ...a11y, ...patch };
+    // start from what's saved now, so settings changed in another section
+    // (Senses, talking & breaks) are never overwritten by an older copy
+    const next = { ...loadA11y(), ...patch };
     saveA11y(next);
     applyA11y(next);
     setA11y(next);
@@ -407,6 +411,12 @@ export default function ParentZonePage() {
               </div>
             )}
 
+            {!onboarding && (
+              <div className="rounded-3xl p-4 mb-5" style={{ background: theme.surface }}>
+                <GameLevelSettings key={child.id} child={child} ageMonths={chronoMonths} />
+              </div>
+            )}
+
             <p className={`text-xs font-extrabold uppercase tracking-wide mb-2 px-1 ${theme.subtitle}`}>{onboarding ? 'Optional · you can skip these' : 'More options'}</p>
           </>
         )}
@@ -484,6 +494,9 @@ export default function ParentZonePage() {
             These settings are saved on this device only — they&apos;re not part of your child&apos;s data.
           </p>
         </Section>
+
+        {/* volume per sound, Gentle sounds, Low visual, buzz, talking pauses, breaks */}
+        <PlaySettings />
 
         {/* Privacy & data — parental rights (COPPA rule 7): view everything
             stored, delete the child, delete the account. Always reachable

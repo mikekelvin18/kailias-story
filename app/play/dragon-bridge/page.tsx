@@ -1,15 +1,16 @@
 'use client';
 
 import { testHook } from '@/lib/testHooks';
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, COMPANIONS, levelStarlight } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { awardStarlight, recordGameLevel, COMPANIONS, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
 import { speak } from '@/lib/speak';
 import { chapterFor } from '@/lib/levels';
@@ -82,9 +83,9 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 }
 const sfx = {
   plop: (n: number) => playNotes([{ f: 440 + Math.min(n, 10) * 40, t: 0, d: 0.12 }]),
-  back: () => playNotes([{ f: 520, t: 0, d: 0.08 }, { f: 400, t: 0.07, d: 0.1 }]),
+  back: () => playNotes([{ f: 440, t: 0, d: 0.08 }, { f: 494, t: 0.07, d: 0.1 }]), // soft and rising, never a falling buzz
   hop: (i: number) => playNotes([{ f: 523 + i * 45, t: 0, d: 0.1 }]),
-  good: () => playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.18 }]),
+  good: () => { buzzGood(); playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.18 }]); },
   soft: () => playNotes([{ f: 330, t: 0, d: 0.14 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
@@ -96,12 +97,13 @@ type NoelMood = 'happy' | 'excited' | 'thinking' | 'celebrating';
 interface Flyer { id: number; nest: number; back: boolean; dx: number; dy: number }
 
 export default function DragonBridgePage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('dragon-bridge');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('dragon-bridge')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('dragon-bridge', fit.startLevel)); }, [fit.startLevel]);
 
   const [rounds, setRounds] = useState<Round[]>([]);
   const [ri, setRi] = useState(0);
@@ -231,7 +233,7 @@ export default function DragonBridgePage() {
     const light = levelStarlight(level, x.misses);
     awardStarlight(light);
     setEarned(light);
-    recordGameLevel('dragon-bridge', level);
+    recordGameLevel('dragon-bridge', level, roundEase(x.misses, x.shares + x.blanks));
     later(() => setPhase('done'), 600);
   }
 
@@ -415,7 +417,7 @@ export default function DragonBridgePage() {
           ))}
         </div>
       }
-      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} />}
+      levels={<LevelPath gameId="dragon-bridge" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
       startLabel={<>Play level {level}</>}
       onStart={startGame}
       footer={<SkillIntro gameId="dragon-bridge" />}
@@ -431,7 +433,7 @@ export default function DragonBridgePage() {
       message={<>The treasure chest is sparkling, {chapter.name} bridge-builder!</>}
       earned={earned}
       actions={<>
-        <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('dragon-bridge', level)); setPhase('intro'); }}>{nextLabel('dragon-bridge', level)} <GoArrow /></PlayButton>
         <SoftButton href="/play">Back to the map</SoftButton>
       </>}
     />

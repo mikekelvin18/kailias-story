@@ -1,16 +1,18 @@
 'use client';
 
 import { testHook } from '@/lib/testHooks';
+import { useTalkMoment } from '@/components/TalkMoment';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { echoSeqLen } from '@/lib/gameCurves';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { endlessRamp } from '@/lib/levels';
 import { levelStory } from '@/lib/variety';
 import { soundEnabled } from '@/lib/accessibility';
@@ -94,8 +96,9 @@ const SONGS: { line: string; done: string; who: StoryWho | null }[] = [
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const talk = useTalkMoment('echo-song');
+  const fit = useGameFit('echo-song');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'cheer' | 'levelDone'>('intro');
@@ -124,17 +127,15 @@ export default function EchoSongPage() {
   const statsRef = useRef({ attempts: 0, replays: 0, startedAt: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('echo-song')); const timers = timersRef; return () => timers.current.forEach(clearTimeout); }, []);
+  useEffect(() => { setLevel(openingLevel('echo-song', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { const timers = timersRef; return () => timers.current.forEach(clearTimeout); }, []);
 
-  // the song grows a note each early level, then a note every three
-  // levels, and the crystals sing a little faster every level, so levels
-  // keep getting harder long after the song is long
-  const seqLen = useCallback((lvl: number) => {
-    const base = tier === 'tiny' ? 2 : tier === 'small' ? 2 : 3;
-    const cap = tier === 'tiny' ? 6 : tier === 'small' ? 8 : 10;
-    return Math.min(cap, lvl <= 4 ? base + lvl - 1 : base + 3 + Math.floor((lvl - 4) / 3));
-  }, [tier]);
+  // the song grows a note every three levels (capped near what the child's
+  // stage can remember: lib/gameCurves.ts), and the crystals sing a little
+  // faster every level, so levels keep getting harder after the song is long
+  const seqLen = useCallback((lvl: number) => echoSeqLen(lvl, tier), [tier]);
   const story = levelStory(SONGS, 'echo-song', level);
 
   const sing = useCallback((c: number, d?: number) => {
@@ -149,7 +150,8 @@ export default function EchoSongPage() {
     timersRef.current = [];
     // Kailia and the friend step back to the middle of the floor to listen
     setKailiaX(42); setPetX(60);
-    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14));
+    // younger age bands hear the song a little slower (lib/ageBands.ts speed)
+    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14) * (1 + (1 - fit.look.speed) * 0.6));
     s.forEach((c, i) => {
       timersRef.current.push(setTimeout(() => sing(c), 500 + i * gap));
       timersRef.current.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.6));
@@ -159,7 +161,7 @@ export default function EchoSongPage() {
       setNoelLine('Your turn — echo the song!');
       setNoelMood('excited');
     }, 500 + s.length * gap + 200));
-  }, [tier, sing, level]);
+  }, [tier, sing, level, fit.look.speed]);
 
   const startLevel = useCallback((lvl: number) => {
     // a fresh song: never the same crystal three times in a row
@@ -208,7 +210,7 @@ export default function EchoSongPage() {
         });
         const stars = levelStarlight(level, s.attempts);
         awardStarlight(stars);
-        recordGameLevel('echo-song', level);
+        recordGameLevel('echo-song', level, roundEase(s.attempts, seq.length));
         setEarned(stars);
         setPhase('cheer');
         setNoelLine(`You sang the whole song! ${story.done}`);
@@ -219,7 +221,11 @@ export default function EchoSongPage() {
           fanfare();
           SPOTS.forEach(([x, y], i) => fire(x, y - 14, ['#FFE066', '#FFFFFF', CRYSTALS[i].color], 10, 60));
         }, 280));
-        timersRef.current.push(setTimeout(() => setPhase('levelDone'), 1800));
+        // every other song, Kailia pauses before the party: "Your turn!"
+        timersRef.current.push(setTimeout(() => {
+          if (level % 2 === 1) talk.maybe(() => setPhase('levelDone'), `level-${level}`);
+          else setPhase('levelDone');
+        }, 1800));
       }
     } else {
       statsRef.current.attempts += 1;
@@ -291,7 +297,7 @@ export default function EchoSongPage() {
               extras={<div className="flex items-end justify-center gap-3"><svg viewBox="0 0 100 120" width={54} height={65} aria-hidden="true" style={{ overflow: 'visible' }}>
                 <Crystal c={0} lit={false} />
               </svg></div>}
-              levels={<LevelPath gameId="echo-song" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="echo-song" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Level {level} — listen!</>}
               onStart={() => startLevel(level)}
               footer={<SkillIntro gameId="echo-song" />}
@@ -389,7 +395,7 @@ export default function EchoSongPage() {
             message={<>A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('echo-song', level); setLevel(nl); startLevel(nl); }}>{nextLabel('echo-song', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

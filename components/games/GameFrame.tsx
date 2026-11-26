@@ -156,7 +156,7 @@ function Gang({ pet, accent, party, kailiaH = 132 }: { pet: Pet; accent: string;
   const kw = Math.round(kailiaH * 0.82);
   const petH = Math.round(kailiaH * 0.56);
   return (
-    <div className="relative mx-auto" style={{ width: 340, maxWidth: '100%', height: kailiaH + 34, marginTop: 26 /* room for Noel's happy hop under the title */ }}>
+    <div className="gf-cast relative mx-auto" style={{ width: 340, maxWidth: '100%', height: kailiaH + 34, marginTop: 26 /* room for Noel's happy hop under the title */ }}>
       {/* the glowing stage they stand on */}
       <span aria-hidden="true" className="gf-stage absolute left-1/2 rounded-[50%]" style={{
         bottom: 0, width: 300, height: 46, marginLeft: -150,
@@ -229,7 +229,7 @@ interface IntroProps {
 
 export function GameIntro({ title, theme, pet, story, extras, levels, startLabel, onStart, footer, backHref = '/play', readAloud = true }: IntroProps) {
   return (
-    <main data-testid="game-intro" className="gf-screen" style={{ background: theme.bg }}>
+    <main data-testid="game-intro" data-game-intro="" className="gf-screen" style={{ background: theme.bg }}>
       <GameBackdrop />
       <StarDust />
       <div className="relative max-w-sm w-full mx-auto px-4 pt-3 pb-8 text-center">
@@ -332,10 +332,12 @@ interface FinishProps {
 export function GameFinish({ title, theme, pet, message, earned, trophy, actions }: FinishProps) {
   const reduced = useReducedMotion();
   return (
-    <main data-testid="game-finish" className="gf-screen flex items-center" style={{ background: theme.bg }}>
+    <main data-testid="game-finish" data-game-finish="" className="gf-screen flex items-center" style={{ background: theme.bg }}>
       <GameBackdrop />
       {!reduced && <Confetti colors={['#FDE047', '#F472B6', '#60A5FA', '#4ADE80', '#FFFFFF', '#FB923C', theme.accent]} />}
       <div className="relative max-w-sm w-full mx-auto px-4 py-8 text-center" style={{ zIndex: 2 }}>
+        {/* Low visual (grown-ups' setting): one still gold star in place of the confetti */}
+        <span aria-hidden="true" className="gf-still-star mx-auto mb-2"><StarIcon size={64} /></span>
         <div className="relative">
           <span aria-hidden="true" className="gf-rays absolute left-1/2 top-1/2" />
           <div className="gf-ribbon relative" style={{ ['--gf-accent' as string]: theme.accent } as CSSProperties}>

@@ -1,16 +1,20 @@
 'use client';
 
 import { testHook } from '@/lib/testHooks';
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { SNACK_PLANS, SNACK_MAX_STEP, snackAgeCap, snackGrowth, snackMode, snackWobble } from '@/lib/gameCurves';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import LevelPath from '@/components/LevelPath';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import LiveArt from '@/components/characters/LiveArt';
@@ -161,8 +165,8 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 const sfx = {
   pickup:  () => playNotes([{ f: 660, t: 0, d: 0.1 }]),
   count:   () => playNotes([{ f: 784, t: 0, d: 0.08 }]),
-  yay:     () => playNotes([{ f: 659, t: 0, d: 0.12 }, { f: 784, t: 0.1, d: 0.12 }, { f: 988, t: 0.2, d: 0.25 }]),
-  hmm:     () => playNotes([{ f: 294, t: 0, d: 0.15 }, { f: 262, t: 0.14, d: 0.2 }]),
+  yay:     () => { buzzGood(); playNotes([{ f: 659, t: 0, d: 0.12 }, { f: 784, t: 0.1, d: 0.12 }, { f: 988, t: 0.2, d: 0.25 }]); },
+  hmm:     () => playNotes([{ f: 330, t: 0, d: 0.12 }, { f: 392, t: 0.12, d: 0.16 }]), // a curious rising "hmm?", never a falling "uh-oh"
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 
@@ -213,10 +217,13 @@ function petSpot(want: Tile, hero: Tile, walls: Tile[], items: Tile[]): Tile | n
 }
 
 export default function SnackQuestPage() {
-  const { state, totalScore, devMonths, chronoMonths } = useAssessment();
+  const { chronoMonths } = useAssessment();
+  const fit = useGameFit('snack-quest');
   const [skin, setSkin] = useState<Skin | null>(null);
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('snack-quest')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('snack-quest', fit.startLevel)); }, [fit.startLevel]);
   const [phase, setPhase] = useState<'select' | 'playing' | 'checking' | 'roundDone' | 'done'>('select');
   const [roundIdx, setRoundIdx] = useState(0);
   const [rounds, setRounds] = useState<RoundCfg[]>([]);
@@ -291,45 +298,55 @@ export default function SnackQuestPage() {
   // the field never overflows), and "how many more?" rounds start from a
   // bigger pile — counting, then adding, with ever-larger numbers.
   const buildRounds = useCallback((lvl: number): RoundCfg[] => {
-    const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+    const tier = fit.tier;
+    const fitMonths = fit.fitMonths;
     tierRef.current = tier;
     // Three wishes per feast (was four, ~22 one-snack trips; Muse review
     // 2026-11-18): count, then two "how many MORE?" wishes.
-    const plans: Record<DifficultyTier, { w: number[]; h: number[] }> = {
-      tiny:  { w: [1, 2, 3], h: [0, 1, 1] },   // developmental level under ~2½ yrs
-      small: { w: [3, 4, 5], h: [0, 1, 2] },
-      big:   { w: [4, 7, 9], h: [0, 3, 4] },
-    };
+    const plans = SNACK_PLANS;   // lib/gameCurves.ts (checked against ages by scripts/age-fit.test.mjs)
     const { w } = plans[tier];
     // "How many MORE?" is taking away in disguise, too hard for 3 to 5 year
     // olds (reviewer 2026-11-25). Children working below about 6 years count
     // to a wish ("I wish for 3 cookies!"), with empty slots to fill; only 6+
     // gets the "I already have 2! How many more?" rounds.
-    const months = devMonths != null && chronoMonths != null ? Math.min(devMonths, chronoMonths)
-      : devMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
-    const h = months >= 72 ? plans[tier].h : plans[tier].h.map(() => 0);
-    const cap = tier === 'tiny' ? 5 : tier === 'small' ? 9 : 12;  // fits the field's free spots
-    // the wishes grow every level (a step each two levels, plus a little
-    // surprise up or down), and a round never asks for the same as the
-    // same round of the level before
+    const months = fitMonths != null && chronoMonths != null ? Math.min(fitMonths, chronoMonths)
+      : fitMonths ?? chronoMonths ?? (tier === 'big' ? 72 : 48);
+    // age band (lib/ageBands.ts): count to a wish → "bring me 2 more" → "how many MORE?"
+    const mode = snackMode(months);
+    const h = mode === 'howManyMore' ? plans[tier].h : plans[tier].h.map(() => 0);
+    const cap = snackAgeCap(months, tier);
+    const [wLo, wHi] = snackWobble(tier);
+    // the wishes grow with the level (plus a little surprise), and a round
+    // never asks for the same as the same round of the level before
     const wantAt = (L: number, i: number) => {
       const rand = roundRandom('snack-quest:want', L, i);
-      return Math.max(h[i] + 1, Math.min(cap, w[i] + Math.floor((L - 1) / 2) + randInt(rand, -1, 1)));
+      return Math.max(h[i] + 1, Math.min(cap, w[i] + snackGrowth(L, tier) + randInt(rand, wLo, wHi)));
     };
     const wishes = levelStories(WISHES, 'snack-quest', lvl, 3);
+    let prevWant = 0;
     return w.map((_, i) => {
       let want = wantAt(lvl, i);
-      if (lvl > 1 && want === wantAt(lvl - 1, i)) want = want < cap ? want + 1 : want - 1;
+      // little ones are nudged down (never past what their age can count)
+      if (lvl > 1 && want === wantAt(lvl - 1, i)) want = tier !== 'big' && want - 1 >= h[i] + 1 ? want - 1 : want < cap ? want + 1 : want - 1;
+      // no big jumps inside one feast (3 then 8)
+      if (prevWant) want = Math.max(h[i] + 1, Math.min(want, prevWant + SNACK_MAX_STEP));
+      want = Math.min(cap, want);
+      prevWant = want;
       const bump = Math.floor((lvl - 1) / 3);
-      const have = h[i] > 0 ? Math.max(1, Math.min(want - 1, h[i] + Math.floor(bump / 2) + randInt(roundRandom('snack-quest:have', lvl, i), -1, 1))) : 0;
+      let have = h[i] > 0 ? Math.max(1, Math.min(want - 1, h[i] + Math.floor(bump / 2) + randInt(roundRandom('snack-quest:have', lvl, i), -1, 1))) : 0;
+      // 5–6 year olds: after the first wish, she has some and asks for just 2 more
+      const twoMore = mode === 'twoMore' && i > 0 && want >= 3;
+      if (twoMore) have = want - 2;
       // the very first round ever keeps the field's own snack
       const wish = lvl === 1 && i === 0 ? WISHES[WISHES.length - 1] : wishes[i];
-      const intro = `${wish.line} ${have
+      const intro = `${wish.line} ${twoMore
+        ? 'She already has some. Bring her 2 more!'
+        : have
         ? 'Look, she already has some! How many MORE does she need?'
         : 'Walk to a snack to pick it up, then bring it to her!'}`;
       return { want, have, intro, thing: wish.thing, walls: wallsFor(lvl, i) };
     });
-  }, [state.ageGroup, totalScore, devMonths, chronoMonths]);
+  }, [fit.tier, fit.fitMonths, chronoMonths]);
 
   function spawnItems(round: RoundCfg, wallSet: Tile[]): Item[] {
     const needed = round.want - round.have;
@@ -609,7 +626,7 @@ export default function SnackQuestPage() {
     // ✨ starlight for the feast: perfect first tries shine extra
     const stars = levelStarlight(level, m.attempts);
     awardStarlight(stars);
-    recordGameLevel('snack-quest', level);
+    recordGameLevel('snack-quest', level, roundEase(m.attempts, 3));
     const t = setTimeout(() => { setEarned(stars); setPhase('done'); }, 1500);
     return () => clearTimeout(t);
   }, [phase, roundIdx, rounds, startRound, level]);
@@ -678,7 +695,7 @@ export default function SnackQuestPage() {
                   </button>
                 </div>
               </>}
-              levels={<LevelPath gameId="snack-quest" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="snack-quest" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               footer={<SkillIntro gameId="snack-quest" />}
             />
           </div>
@@ -859,7 +876,7 @@ export default function SnackQuestPage() {
             message={<>The dragon is full and happy! {pet.name} is doing a happy dance!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); choose(skin.id, nl); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('snack-quest', level); setLevel(nl); choose(skin.id, nl); }}>{nextLabel('snack-quest', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

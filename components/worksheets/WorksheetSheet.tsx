@@ -5,6 +5,8 @@
 // that isn't already in lib/worksheets.ts.
 
 import type { Worksheet } from '@/lib/worksheets';
+import { TALK_WORDS } from '@/lib/talk';
+import GlowBug from '@/components/games/GlowBug';
 
 const PAGE_W = 800;
 const PAGE_H = 1035; // roughly US-letter proportions
@@ -143,6 +145,57 @@ function CardContent({ items }: { items: string[] }) {
   );
 }
 
+// Six cut-out cards in a 2 × 3 grid: a painted picture, the word in big
+// letters, and one line for each age (a sound to copy, the word, a short
+// phrase, something to tell), matching Kailia's "Your turn!" moments.
+function TalkCards() {
+  const cols = 2, rows = 3;
+  const x0 = 40, y0 = 170, gap = 16;
+  const w = (PAGE_W - x0 * 2 - gap) / cols;
+  const h = (PAGE_H - y0 - 60 - gap * (rows - 1)) / rows;
+  const font = 'var(--font-baloo), sans-serif';
+  return (
+    <>
+      {TALK_WORDS.map((t, i) => {
+        const x = x0 + (i % cols) * (w + gap), y = y0 + Math.floor(i / cols) * (h + gap);
+        const lines: [string, string][] = [
+          ['Sound', t.sound.replace(/^Can you /, '').replace(/\?.*$/, '!')],
+          ['Word', `"${t.word}"`],
+          ['Phrase', `"${t.phrase}"`],
+          ['Tell', t.tell],
+        ];
+        return (
+          <g key={t.id}>
+            <rect x={x} y={y} width={w} height={h} rx={18} fill="#FFFDF7" stroke={INK} strokeWidth={2.5} strokeDasharray="12 8" />
+            {t.id === 'firefly'
+              ? <g transform={`translate(${x + 14} ${y + 16})`}><GlowBug size={92} lit={1} happy /></g>
+              : <image href={t.art} x={x + 12} y={y + 14} width={96} height={96} preserveAspectRatio="xMidYMid meet" />}
+            <text x={x + 122} y={y + 74} style={{ fontSize: 46, fontWeight: 800, fill: '#1e1b4b', fontFamily: font }}>{t.word}</text>
+            {(() => {
+              // wrap each line at about 40 letters, on a space
+              let row = 0;
+              return lines.map(([label, text], k) => {
+                const words = `${label}: ${text}`.split(' ');
+                const parts: string[] = [''];
+                words.forEach(wd => { if ((parts[parts.length - 1] + ' ' + wd).trim().length > 40) parts.push(wd); else parts[parts.length - 1] = (parts[parts.length - 1] + ' ' + wd).trim(); });
+                return parts.map((part, j) => {
+                  const yy = y + 136 + row++ * 23;
+                  const head = j === 0 ? `${label}:` : '';
+                  return (
+                    <text key={`${k}-${j}`} x={x + 16 + (j ? 14 : 0)} y={yy} style={{ fontSize: 15.5, fontWeight: 600, fill: INK_DARK, fontFamily: font }}>
+                      {head && <tspan style={{ fontWeight: 800, fill: '#6d28d9' }}>{head} </tspan>}{head ? part.slice(head.length + 1) : part}
+                    </text>
+                  );
+                });
+              });
+            })()}
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 export default function WorksheetSheet({ worksheet }: { worksheet: Worksheet }) {
   const c = worksheet.content;
   return (
@@ -160,6 +213,7 @@ export default function WorksheetSheet({ worksheet }: { worksheet: Worksheet }) 
       {c.kind === 'letters' && <LettersContent chars={c.chars} />}
       {c.kind === 'maze' && <MazeContent complexity={c.complexity} />}
       {c.kind === 'card' && <CardContent items={c.items} />}
+      {c.kind === 'talkcards' && <TalkCards />}
 
       <text x={PAGE_W / 2} y={PAGE_H - 25} textAnchor="middle" style={{ fontSize: 16, fill: '#94a3b8', fontFamily: 'var(--font-baloo), sans-serif' }}>
         Kailia&apos;s Story — printed for home use

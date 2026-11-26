@@ -6,6 +6,7 @@ import StepGuide from '@/components/ui/StepGuide';
 import { activeChild } from '@/lib/family';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
+import { useTalkMoment, TalkHost } from '@/components/TalkMoment';
 import NarrationPlayer, { type NarrationLine } from '@/components/NarrationPlayer';
 
 // Four short story pages, told by Kailia herself in her own voice (first
@@ -70,6 +71,7 @@ function PanelArt({ art }: { art: (typeof PANELS)[number]['art'] }) {
 export default function StoryPage() {
   const [panel, setPanel] = useState(0);
   const router = useRouter();
+  const talk = useTalkMoment('story');
   const current = PANELS[panel];
   const isLast = panel === PANELS.length - 1;
 
@@ -78,6 +80,9 @@ export default function StoryPage() {
       // Step 2 is the grown-up setup: go straight there unless a child
       // profile already exists (then on to the adventure check).
       router.push(activeChild() ? '/setup' : '/family');
+    } else if (current.art === 'map') {
+      // after the magic map, Kailia pauses: "Your turn!" (once a visit)
+      talk.maybe(() => setPanel(p => p + 1), 'map');
     } else {
       setPanel(p => p + 1);
     }
@@ -140,6 +145,7 @@ export default function StoryPage() {
           </p>
         )}
       </div>
+      <TalkHost />
     </main>
   );
 }

@@ -1,17 +1,18 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import LevelPath from '@/components/LevelPath';
 import { chapterLabel } from '@/lib/levels';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
 import { CritterSprite, type SpeciesKey } from '@/components/characters/CritterSprite';
 import { characterArt } from '@/components/characters/characters.config';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -102,7 +103,7 @@ interface Placed {
   found: boolean;
 }
 
-import { soundEnabled } from '@/lib/accessibility';
+import { soundEnabled, lowVisual } from '@/lib/accessibility';
 import { audioCtx, sfxOut } from '@/lib/sfx';
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
@@ -120,8 +121,8 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
   } catch { /* sound optional */ }
 }
 const sfx = {
-  found: () => playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.2 }]),
-  noel: () => playNotes([{ f: 523, t: 0, d: 0.12 }, { f: 659, t: 0.1, d: 0.12 }, { f: 784, t: 0.2, d: 0.25 }]),
+  found: () => { buzzGood(); playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.08, d: 0.2 }]); },
+  noel: () => { buzzGood(); playNotes([{ f: 523, t: 0, d: 0.12 }, { f: 659, t: 0.1, d: 0.12 }, { f: 784, t: 0.2, d: 0.25 }]); },
   look: () => playNotes([{ f: 392, t: 0, d: 0.12 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
@@ -141,8 +142,8 @@ function besideSpot(x: number, k: number, gap = 17) {
 }
 
 export default function WheresNoelPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('hidden-friends');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'playing' | 'levelDone'>('intro');
@@ -166,8 +167,10 @@ export default function WheresNoelPage() {
   const [kailiaHop, setKailiaHop] = useState(0);
   const { layer: burstLayer, fire } = useBursts();
 
+  // a new player starts on their own level (hooks/useGameFit.ts)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('hidden-friends')); const t = timersRef; return () => t.current.forEach(clearTimeout); }, []);
+  useEffect(() => { setLevel(openingLevel('hidden-friends', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { const t = timersRef; return () => t.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
     const el = sceneRef.current;
@@ -184,8 +187,11 @@ export default function WheresNoelPage() {
 
   const startLevel = useCallback(() => {
     // clutter grows with level; the littlest ones get fewer, bigger things
-    const base = tier === 'tiny' ? 30 : tier === 'small' ? 45 : 60;
-    const crowdCount = Math.min(base + (level - 1) * 12, 150);
+    // and a quieter scene for younger age bands (lib/ageBands.ts)
+    const BAND_CROWD = { together: 12, little: 24, early: 40, big: 60, older: 72 } as const;
+    const base = Math.min(tier === 'tiny' ? 30 : tier === 'small' ? 45 : 60, BAND_CROWD[fit.band]);
+    // Low visual (grown-ups' setting): a less busy scene, about half the crowd
+    const crowdCount = Math.round(Math.min(base + (level - 1) * (fit.band === 'together' ? 3 : fit.band === 'little' ? 6 : 12), 150) * (lowVisual() ? 0.55 : 1));
     const sizeBase = (tier === 'tiny' ? 34 : 28) - Math.min(8, (level - 1) * 1.5);
     const u = sizeBase * 0.85;   // px → drawing units (the scene is ~1.2 px per unit on a phone)
 
@@ -223,7 +229,20 @@ export default function WheresNoelPage() {
     setKailiaX(22); setPetX(38);
     setNoelLine(`Find Noel and the ${scene.treasure.count} ${scene.treasure.label}!`);
     setPhase('playing');
-  }, [level, scene, tier]);
+  }, [level, scene, tier, fit.band]);
+
+  // a gentle glow on something still hiding after 10 quiet seconds
+  // (Grok's review 2026-11-25); the clock restarts with every find
+  const foundCount = items.filter(i => i.found).length;
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    const t = setTimeout(() => {
+      const left = items.filter(i => i.kind !== 'crowd' && !i.found);
+      if (left.length) setHintId(h => h ?? left[0].id);
+    }, 10000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, foundCount, level]);
 
   function tapCrowd(it: Placed) {
     if (phase !== 'playing') return;
@@ -274,7 +293,7 @@ export default function WheresNoelPage() {
       });
       const stars = levelStarlight(level, s.wrongTaps);
       awardStarlight(stars);
-      recordGameLevel('hidden-friends', level);
+      recordGameLevel('hidden-friends', level, roundEase(s.wrongTaps, scene.treasure.count + 1));
       setEarned(stars);
       setNoelLine('Everyone is found! Hooray!');
       timersRef.current.push(setTimeout(() => { sfx.fanfare(); setPhase('levelDone'); }, 1300));
@@ -323,7 +342,7 @@ export default function WheresNoelPage() {
               <p>{sceneStory}</p></>}
               extras={<div className="flex items-end justify-center gap-3"><Magnifier size={70} />
               <PeekingNoel size={58} /></div>}
-              levels={<LevelPath gameId="hidden-friends" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="hidden-friends" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Start the search!</>}
               onStart={startLevel}
               footer={<SkillIntro gameId="hidden-friends" />}
@@ -372,7 +391,7 @@ export default function WheresNoelPage() {
               {items.filter(it => it.kind !== 'crowd').map(it => {
                 const isNoel = it.kind === 'noel';
                 const w = ((isNoel ? it.size * 0.85 : it.size) / VW) * sceneW;  // drawing size, px
-                const hit = Math.max(48, w * 1.35);                                   // tap size, px
+                const hit = Math.max(fit.look.minTap, w * 1.35);                      // tap size, px (never under the age band's smallest tap)
                 return (
                   <button key={it.id} data-kind={it.kind} data-found={it.found} onClick={() => tapTarget(it)}
                     aria-label={isNoel ? 'Noel' : scene.treasure.label}
@@ -432,7 +451,7 @@ export default function WheresNoelPage() {
             message={<>You found Noel and every {scene.treasure.label.replace(/s$/, '')} in {scene.name}!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Next level <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('hidden-friends', level)); setPhase('intro'); }}>Next level <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

@@ -14,7 +14,11 @@ export default function AccessibilityProvider() {
     try { mq = window.matchMedia('(prefers-reduced-motion: reduce)'); } catch { /* ignore */ }
     const again = () => applyA11y(loadA11y());
     mq?.addEventListener?.('change', again);
-    return () => mq?.removeEventListener?.('change', again);
+    // and so can its "increase contrast" setting
+    let mc: MediaQueryList | null = null;
+    try { mc = window.matchMedia('(prefers-contrast: more)'); } catch { /* ignore */ }
+    mc?.addEventListener?.('change', again);
+    return () => { mq?.removeEventListener?.('change', again); mc?.removeEventListener?.('change', again); };
   }, []);
   return null;
 }

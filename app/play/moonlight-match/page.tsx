@@ -1,8 +1,11 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { moonPairs } from '@/lib/gameCurves';
 import { levelStory } from '@/lib/variety';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
@@ -10,8 +13,7 @@ import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoAr
 import LevelPath from '@/components/LevelPath';
 import { shuffled } from '@/lib/shuffle';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel, levelStarlight } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import NightForest from '@/components/games/NightForest';
 import KailiaActor from '@/components/games/KailiaActor';
 import StarIcon from '@/components/games/StarIcon';
@@ -41,9 +43,9 @@ interface CardT {
 }
 
 // the sleeping creatures, painted (components/art/things)
-const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel'];
+const CREATURES = ['pic:fox', 'pic:rabbit', 'pic:owl', 'pic:frog', 'pic:butterfly', 'pic:bee', 'pic:turtle', 'pic:hedgehog', 'pic:ladybug', 'pic:squirrel', 'pic:penguin', 'pic:octopus'];
 const SHAPES = SHAPE_KINDS.map(k => `shape:${k}`);
-const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff'];
+const LETTERS = ['Aa', 'Bb', 'Dd', 'Ee', 'Gg', 'Mm', 'Rr', 'Ss', 'Tt', 'Ff', 'Hh', 'Nn'];
 
 import { soundEnabled } from '@/lib/accessibility';
 import { Thing } from '@/components/art/things';
@@ -70,8 +72,9 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 const sfx = {
   flip: () => playNotes([{ f: 520, t: 0, d: 0.07 }]),
   // combo chimes rise in pitch with the streak
-  match: (streak: number) => playNotes([{ f: 660 + streak * 80, t: 0, d: 0.12 }, { f: 880 + streak * 80, t: 0.08, d: 0.2 }]),
-  miss: () => playNotes([{ f: 240, t: 0, d: 0.16 }]),
+  match: (streak: number) => { buzzGood(); playNotes([{ f: 660 + streak * 80, t: 0, d: 0.12 }, { f: 880 + streak * 80, t: 0.08, d: 0.2 }]); },
+  // a soft, rising "hmm?" (never a low buzz): the cards just turn back over
+  miss: () => playNotes([{ f: 392, t: 0, d: 0.1 }, { f: 440, t: 0.09, d: 0.14 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 
@@ -111,8 +114,10 @@ const MOON_STORIES = [
 ];
 
 export default function MoonlightMatchPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('moonlight-match');
+  const tier = fit.tier;
+  // two wrong cards stay open longer for little ones (Muse: they flipped back too fast)
+  const flipBackMs = Math.min(1800, Math.round(750 / fit.look.speed));
 
   const [level, setLevel] = useState(1);
   const [cards, setCards] = useState<CardT[]>([]);
@@ -144,21 +149,21 @@ export default function MoonlightMatchPage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const cardEls = useRef<Record<number, HTMLButtonElement | null>>({});
 
-  useEffect(() => { setLevel(nextGameLevel('moonlight-match')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('moonlight-match', fit.startLevel)); }, [fit.startLevel]);
 
   // pairs grow with level; the starting size and cap follow the child's tier
-  const pairsForLevel = useCallback((lvl: number) => {
-    const base = tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4;
-    const cap = tier === 'tiny' ? 6 : tier === 'small' ? 8 : 10;
-    return Math.min(base + (lvl - 1), cap);
-  }, [tier]);
+  // (lib/gameCurves.ts: one more pair every three levels, capped by stage)
+  const pairsForLevel = useCallback((lvl: number) => moonPairs(lvl, tier, fit.fitMonths), [tier, fit.fitMonths]);
 
   const startLevel = useCallback((lvl: number) => {
     const story = levelStory(MOON_STORIES, 'moonlight-match', lvl);
     const pairs = pairsForLevel(lvl);
     // content rotates by level; readers sometimes get letter pairs (A ↔ a)
     const useLetters = tier === 'big' && lvl % 3 === 0;
-    const pool = useLetters ? LETTERS : lvl % 2 === 0 ? SHAPES : CREATURES;
+    // (there are 10 shapes, so the biggest boards use creatures)
+    const pool = useLetters ? LETTERS : lvl % 2 === 0 && pairs <= SHAPES.length ? SHAPES : CREATURES;
     const chosen = shuffled(pool).slice(0, pairs);
     const deck: CardT[] = shuffled(chosen.flatMap((key, i) => {
       const [a, b] = useLetters ? [key[0], key[1]] : [key, key];
@@ -268,7 +273,7 @@ export default function MoonlightMatchPage() {
         // wait for the two feathers to finish turning back over before the
         // next tap counts, so a quick tap never lands on a half-turned card
         setTimeout(() => { busyRef.current = false; }, 450);
-      }, 750);
+      }, flipBackMs);
     }
   }
 
@@ -288,7 +293,7 @@ export default function MoonlightMatchPage() {
       totalMs: Date.now() - s.startedAt,
     });
     awardStarlight(levelStarlight(level, s.mismatches));
-    recordGameLevel('moonlight-match', level);
+    recordGameLevel('moonlight-match', level, roundEase(Math.max(0, s.mismatches - pairs), pairs));
     sfx.fanfare();
     setNoelMood('celebrating');
     setPhase('levelDone');
@@ -312,7 +317,7 @@ export default function MoonlightMatchPage() {
   }, [cards, phase]);
 
   const pairs = pairsForLevel(level);
-  const cols = pairs <= 3 ? 3 : pairs <= 6 ? 4 : pairs <= 8 ? 4 : 5;
+  const cols = pairs <= 2 ? 2 : pairs <= 3 ? 3 : pairs <= 8 ? 4 : 5;
 
   return (
     <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #0c0a2e 0%, #1e1b4b 55%, #312e81 100%)', isolation: 'isolate' }}>
@@ -348,7 +353,7 @@ export default function MoonlightMatchPage() {
               extras={<div className="flex items-end justify-center gap-3"><span className="mb-3 float inline-block" style={{ animationDelay: '0.5s' }}>
                 <Feather size={46} color="#E9E1FF" vein="#7C6BD6" />
               </span></div>}
-              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="moonlight-match" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Level {level} — flip!</>}
               onStart={() => startLevel(level)}
               footer={<SkillIntro gameId="moonlight-match" />}
@@ -444,7 +449,7 @@ export default function MoonlightMatchPage() {
             message={<>Every friend found their twin under the moon. {pet.name} is doing a happy dance!{statsRef.current.bestStreak >= 2 && <><br />Best combo ×{statsRef.current.bestStreak}!</>}</>}
             earned={levelStarlight(level, statsRef.current.mismatches)}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('moonlight-match', level); setLevel(nl); startLevel(nl); }}>{nextLabel('moonlight-match', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

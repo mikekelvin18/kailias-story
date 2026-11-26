@@ -1342,3 +1342,49 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
 :root[data-calm="true"] :is(.soft-pulse, .hint-glow) { animation: none !important; opacity: 1; }
 /* the big button sits still, with a softer shadow */
 :root[data-calm="true"] .gf-cta { box-shadow: 0 5px 0 #3b2416; }
+
+/* ── Low visual (grown-ups' setting, lib/accessibility.ts lowVisual) ──
+   Low visual turns on every Calm mode rule above (applyA11y sets
+   data-calm too) and adds: no confetti or bursts anywhere (one still star
+   at the end of a level instead), and no drifting background pieces. */
+.gf-still-star { display: none; }
+:root[data-low-visual="true"] .gf-still-star { display: block; width: max-content; }
+:root[data-low-visual="true"] :is(.gf-confetti, .pm-confetti, .fg-burst, .fg-fall, .gf-fly-star, .gf-dust, .sky-lane, .sky-twinkle, .float, .critter-bob) { animation: none !important; }
+:root[data-low-visual="true"] :is(.gf-confetti, .pm-confetti, .fg-burst, .fg-fall, .gf-fly-star, .gf-dust, .sky-twinkle) { display: none !important; }
+
+/* ── More contrast (the device's own "increase contrast" setting) ──
+   Speech bubbles and buttons get solid backgrounds and dark outlines, and
+   the softened game backdrops step back further. */
+:root[data-contrast="more"] .gf-bubble { background: #FFFFFF !important; border: 3px solid #1F2937 !important; }
+:root[data-contrast="more"] :is(.gf-back, .gf-soft) { background: #FFFFFF !important; color: #111827 !important; border: 2px solid #111827 !important; }
+:root[data-contrast="more"] .gf-cta { outline: 3px solid #111827; outline-offset: 2px; }
+:root[data-contrast="more"] .gf-backdrop { opacity: 0.35; }
+:root[data-contrast="more"] [data-noel-bubble] { border: 2px solid #1F2937; color: #111827 !important; }
+
+/* ── "Your turn!" talking moment (components/TalkMoment.tsx) ──
+   The mouth opens and closes while Kailia asks; while she waits for the
+   child, the sound waves ripple out slowly instead. */
+.tm-mouth { transform-origin: 60px 34px; animation: tm-talk 0.42s ease-in-out infinite; }
+.tm-waves { opacity: 0; }
+.tm-listening .tm-mouth { animation: tm-rest 2.4s ease-in-out infinite; }
+.tm-listening .tm-waves { animation: tm-waves 1.6s ease-in-out infinite; }
+@keyframes tm-talk { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.55) scaleX(1.06); } }
+@keyframes tm-rest { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes tm-waves { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+:root[data-reduced-motion="true"] :is(.tm-mouth, .tm-waves) { animation: none !important; }
+:root[data-reduced-motion="true"] .tm-listening .tm-waves { opacity: 0.8; }
+
+/* "Done for today": Noel's sleepy z's drift up slowly */
+.dt-zzz { animation: dt-zzz 3s ease-in-out infinite; }
+@keyframes dt-zzz { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(-8px); opacity: 1; } }
+:root[data-reduced-motion="true"] .dt-zzz { animation: none; }
+
+/* ── Big Kid look (Family → Game level; components/BigKidLook.tsx) ──
+   For older children who find the games babyish: no sparkles or confetti,
+   a calmer title, and the cast on the game cards a little smaller. Targets,
+   hints and the game itself are unchanged. */
+:root[data-bigkid="true"] :is(.sparkle, .gf-dust, .gf-confetti, .gf-rays, .gf-shine, .pm-confetti, .rise-fade, .sky-twinkle, .fg-twinkle) { display: none !important; }
+:root[data-bigkid="true"] .gf-title { font-size: 34px; letter-spacing: 1px; text-shadow: 0 3px 0 #3b2416; }
+:root[data-bigkid="true"] .gf-letter { animation: none; }
+:root[data-bigkid="true"] .gf-cast { transform: scale(0.82); transform-origin: 50% 100%; }
+:root[data-bigkid="true"] .gf-stage { animation: none; }

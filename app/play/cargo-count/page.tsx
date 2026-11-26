@@ -1,5 +1,6 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
@@ -16,9 +17,10 @@ import { chime, tones } from '@/components/friends/voice';
 import { shuffled } from '@/lib/shuffle';
 import { levelStories } from '@/lib/variety';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, levelStarlight, nextGameLevel, recordGameLevel } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { cargoPlan, type CargoPlan } from '@/lib/gameCurves';
+import { awardStarlight, levelStarlight, recordGameLevel, levelAfter, nextLabel } from '@/lib/rewards';
 
 // ─── Cargo Count (Space Outpost) ──────────────────────────────────────────────
 // Its own game, not a re-skin (Muse round 5): the space crew orders an
@@ -44,25 +46,9 @@ const POD_COLORS: Record<number, { body: string; band: string; dot: string }> = 
   10: { body: '#FDE68A', band: '#F59E0B', dot: '#4A2E05' },
 };
 
-interface Plan { values: number[]; lo: number; hi: number; speed: number; size: number }
-
-// the level curve: which boxes exist, how big the orders are, how fast
-// boxes drift and how big they are drawn
-function planFor(level: number, tier: DifficultyTier): Plan {
-  const L = Math.max(1, level);
-  let values = L <= 5 ? [1] : L <= 10 ? [1, 2] : L <= 15 ? [1, 2, 5] : [1, 2, 5, 10];
-  let lo: number, hi: number;
-  if (L <= 5) { lo = L + 1; hi = L + 3; }
-  else if (L <= 10) { lo = L - 1; hi = L + 2; }
-  else if (L <= 15) { lo = L - 2; hi = L + 3; }
-  else { lo = L - 4; hi = L + 4; }
-  hi = Math.min(50, hi); lo = Math.min(lo, hi - 1);
-  let speed = Math.min(10, 2.4 + L * 0.3);
-  if (tier === 'tiny') { values = values.filter(v => v <= 2); hi = Math.min(hi, 6 + Math.floor(L / 6)); lo = Math.min(lo, 3 + Math.floor(L / 8)); speed *= 0.5; }
-  else if (tier === 'small') { values = values.filter(v => v <= 5); hi = Math.min(hi, L <= 10 ? 10 : 20); lo = Math.min(lo, hi - 2); speed *= 0.8; }
-  const size = Math.max(54, 74 - L * 0.7);
-  return { values, lo, hi, speed, size };
-}
+// the level curve lives in lib/gameCurves.ts (checked against ages by scripts/age-fit.test.mjs)
+type Plan = CargoPlan;
+const planFor = cargoPlan;
 
 // ── Where each rocket is going: a new little story every order ──
 // (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
@@ -141,21 +127,26 @@ function rejoin(pods: Pod[], p: Pod, speed: number): Pod {
 
 const sfx = {
   beam:   () => tones([{ f: 520, t: 0, d: 0.1 }, { f: 780, t: 0.06, d: 0.1 }, { f: 1040, t: 0.12, d: 0.16 }], 'triangle'),
-  back:   () => tones([{ f: 700, t: 0, d: 0.1 }, { f: 470, t: 0.07, d: 0.16 }], 'triangle'),
+  back:   () => tones([{ f: 440, t: 0, d: 0.1 }, { f: 494, t: 0.08, d: 0.14 }]), // soft and rising, never a falling buzz
   rumble: () => tones([{ f: 140, t: 0, d: 0.25 }, { f: 120, t: 0.15, d: 0.3 }], 'triangle'),
-  launch: () => tones([{ f: 392, t: 0, d: 0.14 }, { f: 523, t: 0.12, d: 0.14 }, { f: 659, t: 0.24, d: 0.14 }, { f: 784, t: 0.36, d: 0.4 }]),
+  launch: () => { buzzGood(); tones([{ f: 392, t: 0, d: 0.14 }, { f: 523, t: 0.12, d: 0.14 }, { f: 659, t: 0.24, d: 0.14 }, { f: 784, t: 0.36, d: 0.4 }]); },
 };
 
 const CHEERS = ['Lift off! Perfect count!', 'Whoosh! The crew loves it!', 'Right on the number! Off it goes!'];
 
 export default function CargoCountPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('cargo-count');
+  const tier = fit.tier;
   const [phase, setPhase] = useState<'intro' | 'playing' | 'launching' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- saved progress is only readable after mount
-  useEffect(() => { setLevel(nextGameLevel('cargo-count')); }, []);
-  const plan = useMemo(() => planFor(level, tier), [level, tier]);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('cargo-count', fit.startLevel)); }, [fit.startLevel]);
+  // boxes never smaller than the age band's smallest tap, a little quicker from 9 (lib/ageBands.ts)
+  const plan = useMemo(() => {
+    const p = planFor(level, tier);
+    return { ...p, size: Math.max(p.size, fit.look.minTap), speed: p.speed * (fit.band === 'older' ? fit.look.speed : 1) };
+  }, [level, tier, fit.look.minTap, fit.look.speed, fit.band]);
   const [earned, setEarned] = useState(0);
 
   const [orderIdx, setOrderIdx] = useState(0);
@@ -336,7 +327,7 @@ export default function CargoCountPage() {
       const stars = levelStarlight(level, m.slips);
       awardStarlight(stars);
       setEarned(stars);
-      recordGameLevel('cargo-count', level);
+      recordGameLevel('cargo-count', level, roundEase(m.slips, 4));
       chime.fanfare();
       setPhase('done');
     }, 1900);
@@ -377,7 +368,7 @@ export default function CargoCountPage() {
                 Cargo boxes are floating all around. <strong>Beam aboard exactly what the crew ordered</strong>, then press Launch!
               </p></>}
               extras={<div className="flex items-end justify-center gap-2"><PodArt value={1} size={44} /><PodArt value={2} size={48} /><Rocket size={70} /></div>}
-              levels={<LevelPath gameId="cargo-count" level={level} onPick={setLevel} />}
+              levels={<LevelPath gameId="cargo-count" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
               startLabel={<>Load the rocket!</>}
               onStart={startGame}
               footer={<SkillIntro gameId="cargo-count" />}
@@ -499,7 +490,7 @@ export default function CargoCountPage() {
             message={<>Every rocket flew with just the right cargo. The crew is waving to {pet.name}!</>}
             earned={earned}
             actions={<>
-              <PlayButton theme={GOLD} onClick={() => { setLevel(l => l + 1); setPhase('intro'); }}>Level {level + 1} <GoArrow /></PlayButton>
+              <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('cargo-count', level)); setPhase('intro'); }}>{nextLabel('cargo-count', level)} <GoArrow /></PlayButton>
               <SoftButton href="/play">Back to the map</SoftButton>
             </>}
           />

@@ -23,6 +23,7 @@ const START: Item[] = [
   { href: '/go/story', label: 'Story opening', note: 'The short animated story before the map.' },
   { href: '/go/map', label: 'The map on day one (starts fresh)', note: 'Only the first land open, like a brand new player.' },
   { href: '/go/try', label: 'Try one game with no account (starts fresh)', note: 'The try-before-sign-up path.' },
+  { href: '/review/ages', label: 'Games by age band', note: 'Every game’s settings and starting level for under 3s, 3–4, 5–6, 7–8 and 9–12, side by side.' },
   { href: '/go/setup', label: 'First check-up (starts fresh)', note: 'The placement games a new child plays (signup already done).' },
 ];
 
@@ -39,8 +40,20 @@ const PET: Item[] = [
   { href: '/go/friend/sage', label: "One friend's trail (Sage the owl)" },
 ];
 
+const FEELINGS: Item[] = [
+  { href: '/go/talk?place=story-sparks&age=4', label: '"Your turn!" talking moment, age 4 (one word)', note: 'Kailia pauses for the child to talk. Nothing is recorded; a grown-up can tap Said it / Tried / Not yet.' },
+  { href: '/go/talk?place=story-sparks&age=2', label: '"Your turn!" age 2 (animal sounds)' },
+  { href: '/go/talk?place=trail-walk&age=6', label: '"Your turn!" age 6 (phrases, what happens next)' },
+  { href: '/go/talk?place=echo-song&age=8', label: '"Your turn!" age 8 (tell it in your own words)' },
+  { href: '/go/feelings?land=dragons-cave', label: 'Feelings check-in after a land', note: 'Tap Worried or Sad for the breathing bubble with Noel.' },
+  { href: '/go/break', label: 'Break reminder with a movement quest' },
+  { href: '/go/done-today', label: '"Done for today" cozy ending' },
+];
+
 const GROWN_UPS: Item[] = [
-  { href: '/go/results', label: 'Check-up results', note: 'Developmental age shown as a range, with the not-a-diagnosis note.' },
+  { href: '/go/results', label: 'Check-up results', note: 'Strengths first (Shining at, Growing in, Try next); the rough age range is under Details.' },
+  { href: '/go/senses', label: 'Parent Zone: senses, talking and breaks', note: 'Voice, effects and music volume, Gentle sounds, Low visual, vibration, talking pauses, break reminders, Done for today.' },
+  { href: '/go/talk-cards', label: 'Printable Talking practice cards' },
   { href: '/go/progress', label: 'Progress over time' },
   { href: '/go/family', label: 'Parent Zone', note: 'Child profiles, privacy, see and delete all data.' },
   { href: '/go/activities', label: 'Parent & Baby quests' },
@@ -117,6 +130,11 @@ export default async function ReviewGuide() {
         <section className="mt-8">
           <h2 className="text-lg font-extrabold">Daily pet, friends and rewards</h2>
           <LinkList items={PET} />
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-extrabold">Talking, feelings and breaks</h2>
+          <LinkList items={FEELINGS} />
         </section>
 
         <section className="mt-8">

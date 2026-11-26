@@ -1,13 +1,16 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
+import { useMemo, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { BAND_SETTINGS } from '@/lib/ageBands';
+import { useGameFit } from '@/hooks/useGameFit';
+import { skyMathKind, SKY_SENTENCE_FROM_MONTHS } from '@/lib/gameCurves';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
 import { GameFinish, GameIntro, GoArrow, GOLD, PlayButton, SoftButton } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
+import { DifficultyTier } from '@/lib/difficulty';
 import { awardStarlight, recordGameLevel, levelStarlight } from '@/lib/rewards';
 import { recordQuestWin } from '@/lib/adventure';
 import Stage from '@/components/friends/kit/Stage';
@@ -40,6 +43,7 @@ import {
 // pieces are drawn (shapes, berries, treats, arrows, wind riders,
 // faces); only the Feeling Finder's little moments are still emoji.
 
+const TRICKY_WIND_FROM_MONTHS = BAND_SETTINGS.big.fromMonths;
 type DeckId = 'math' | 'sentence' | 'wind' | 'tricky' | 'shapes' | 'feelings' | 'rhyme' | 'berries';
 type Dir = 'left' | 'right' | 'up' | 'down';
 
@@ -167,7 +171,7 @@ function playNotes(notes: { f: number; t: number; d: number }[]) {
 }
 
 const sfx = {
-  whoosh: () => playNotes([{ f: 880, t: 0, d: 0.09 }, { f: 1245, t: 0.05, d: 0.14 }]),
+  whoosh: () => { buzzGood(); playNotes([{ f: 880, t: 0, d: 0.09 }, { f: 1245, t: 0.05, d: 0.14 }]); },
   back:   () => playNotes([{ f: 262, t: 0, d: 0.18 }]),
   deck:   () => playNotes([{ f: 659, t: 0, d: 0.12 }, { f: 784, t: 0.1, d: 0.12 }, { f: 988, t: 0.2, d: 0.25 }]),
   fanfare:() => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
@@ -179,28 +183,46 @@ const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 const txt = (s: string): Piece => ({ t: 'text', s });
 
 // ── Card generation, scaled to the child's tier ──
-function buildDeck(deck: DeckId, tier: DifficultyTier): Card[] {
+function buildDeck(deck: DeckId, tier: DifficultyTier, months: number): Card[] {
   const count = tier === 'tiny' ? 8 : 10;
   const cards: Card[] = [];
 
   if (deck === 'math') {
     for (let i = 0; i < count; i++) {
       let question: Piece, answer: number, sub: string | undefined;
-      if (tier === 'tiny') {
-        answer = 1 + Math.floor(Math.random() * 5);
-        question = { t: 'treats', kind: pick<TreatKind>(['straw', 'cookie', 'star', 'apple']), n: answer };
+      // the sums follow the child's working age (lib/gameCurves.ts skyMathKind):
+      // counting pictures, then adding pictures, written sums, take-aways,
+      // and times tables only from about 8½ (it gave 5-year-olds times
+      // tables and 3-year-olds written sums before; age-fit check 2026-11-25)
+      const kind = skyMathKind(months);
+      const r = (lo: number, hi: number) => lo + Math.floor(Math.random() * (hi - lo + 1));
+      const treat = () => pick<TreatKind>(['straw', 'cookie', 'star', 'apple']);
+      if (kind === 'count3' || kind === 'count5') {
+        answer = r(1, kind === 'count3' ? 3 : 5);
+        question = { t: 'treats', kind: treat(), n: answer };
         sub = 'How many?';
-      } else if (tier === 'small') {
-        const a = 1 + Math.floor(Math.random() * 5), b = 1 + Math.floor(Math.random() * 4);
-        answer = a + b; question = txt(`${a} + ${b}`);
+      } else if (kind === 'addPics') {
+        const a = r(1, 3), b = r(1, 2);
+        answer = a + b; question = { t: 'treats', kind: treat(), n: answer };
+        sub = `${a} and ${b} more. How many?`;
+      } else if (kind === 'add10') {
+        const a = r(1, 6), b = r(1, 10 - a); answer = a + b; question = txt(`${a} + ${b}`);
+      } else if (kind === 'addSub10') {
+        if (Math.random() < 0.5) { const a = r(1, 6), b = r(1, 10 - a); answer = a + b; question = txt(`${a} + ${b}`); }
+        else { const a = r(3, 10), b = r(1, a - 1); answer = a - b; question = txt(`${a} − ${b}`); }
+      } else if (kind === 'addSub20') {
+        if (Math.random() < 0.5) { const a = r(3, 12), b = r(2, 8); answer = a + b; question = txt(`${a} + ${b}`); }
+        else { const a = r(8, 20), b = r(2, Math.min(a - 1, 9)); answer = a - b; question = txt(`${a} − ${b}`); }
+      } else if (kind === 'times') {
+        const x = Math.random();
+        if (x < 0.6) { const a = r(2, 9), b = pick([2, 3, 4, 5, 10]); answer = a * b; question = txt(`${a} × ${b}`); }
+        else { const a = r(12, 60), b = r(5, 39); answer = a + b; question = txt(`${a} + ${b}`); }
       } else {
-        const kind = Math.random();
-        if (kind < 0.45) { const a = 3 + Math.floor(Math.random() * 12), b = 1 + Math.floor(Math.random() * 8); answer = a + b; question = txt(`${a} + ${b}`); }
-        else if (kind < 0.8) { const a = 5 + Math.floor(Math.random() * 13), b = 1 + Math.floor(Math.random() * Math.min(a, 9)); answer = a - b; question = txt(`${a} − ${b}`); }
-        else { const a = 2 + Math.floor(Math.random() * 4), b = 2 + Math.floor(Math.random() * 3); answer = a * b; question = txt(`${a} × ${b}`); }
+        if (Math.random() < 0.6) { const a = r(3, 12), b = r(3, 9); answer = a * b; question = txt(`${a} × ${b}`); }
+        else { const b = r(2, 9), q = r(2, 10); answer = q; question = txt(`${b * q} ÷ ${b}`); }
       }
       let wrong = answer + pick([-2, -1, 1, 2]);
-      if (wrong < 0 || wrong === answer) wrong = answer + 1;
+      if (wrong < 1 || wrong === answer) wrong = answer + 1;
       const correct: Dir = Math.random() < 0.5 ? 'left' : 'right';
       cards.push({ main: question, sub, correct,
         targets: { left: txt(String(correct === 'left' ? answer : wrong)), right: txt(String(correct === 'right' ? answer : wrong)) } });
@@ -340,8 +362,10 @@ const BOX_PX = 64; // drawn mailbox width
 const clampPct = (v: number) => Math.max(10, Math.min(90, v));
 
 export default function SkyMailPage() {
-  const { state, totalScore, devMonths } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore, devMonths);
+  const fit = useGameFit('sky-mail');
+  const tier = fit.tier;
+  // Sky Mail has mailbags, not levels: the math bag follows the working age
+  const months = fit.fitMonths ?? (tier === 'tiny' ? 24 : tier === 'small' ? 48 : 78);
 
   const [deckId, setDeckId] = useState<DeckId | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
@@ -382,14 +406,17 @@ export default function SkyMailPage() {
   // decks; readers unlock rhymes and the Tricky Wind inhibition deck.
   const availableDecks = useMemo<DeckId[]>(() => {
     if (tier === 'tiny') return ['berries', 'shapes', 'feelings', 'math', 'wind'];
-    if (tier === 'small') return ['berries', 'shapes', 'feelings', 'math', 'sentence', 'wind'];
-    return ['math', 'berries', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', 'tricky'];
-  }, [tier]);
+    // silly sentences are heard and judged from about 4
+    if (tier === 'small') return ['berries', 'shapes', 'feelings', 'math', ...(months >= SKY_SENTENCE_FROM_MONTHS ? ['sentence' as DeckId] : []), 'wind'];
+    // Tricky Wind (follow the arrow, ignore the word) only from 7 (age band
+    // "big", lib/ageBands.ts; Grok's review 2026-11-25)
+    return ['math', 'berries', 'sentence', 'wind', 'shapes', 'feelings', 'rhyme', ...(months >= TRICKY_WIND_FROM_MONTHS ? ['tricky' as DeckId] : [])];
+  }, [tier, months]);
 
   const startDeck = useCallback((d: DeckId) => {
     sfx.deck();
     setDeckId(d);
-    setCards(buildDeck(d, tier));
+    setCards(buildDeck(d, tier, months));
     setIdx(0);
     metricsRef.current = { wrong: 0, ms: [], eff: [] };
     missesRef.current = 0;
@@ -401,7 +428,7 @@ export default function SkyMailPage() {
     setNoelLine(DECKS[d].noel);
     setNoelMood('excited');
     setPhase('playing');
-  }, [tier]);
+  }, [tier, months]);
 
   // ── Swipe physics ──
   function onPointerDown(e: React.PointerEvent) {
