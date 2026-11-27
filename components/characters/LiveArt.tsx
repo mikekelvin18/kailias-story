@@ -31,9 +31,13 @@ interface Props {
   pokeable?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  /** false: just the breathing picture, no moving-parts canvas. For small
+   *  extras in a crowd (a game's opening row of friends), so a phone never
+   *  has too many drawing canvases alive at once. */
+  rigged?: boolean;
 }
 
-export default function LiveArt({ src, alt, size, kind = 'pet', pokeable = kind === 'pet', className, style }: Props) {
+export default function LiveArt({ src, alt, size, kind = 'pet', pokeable = kind === 'pet', className, style, rigged = true }: Props) {
   const id = useId();
   const [poked, setPoked] = useState(0);
   const [taps, setTaps] = useState(0);
@@ -44,7 +48,7 @@ export default function LiveArt({ src, alt, size, kind = 'pet', pokeable = kind 
   const delay = `${-(seed % 29) / 10}s`;
   const idle = kind === 'land' ? 'art-float' : 'art-breathe';
   const anim = poked ? 'live-poke' : idle;
-  const rig = kind === 'pet' ? rigFor(src) : null;
+  const rig = kind === 'pet' && rigged ? rigFor(src) : null;
 
   const poke = () => {
     if (kind === 'pet') petCall(src); // each friend answers with its own call

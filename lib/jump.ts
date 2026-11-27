@@ -18,6 +18,9 @@ import { LANDS } from './adventure';
 import { COMPANIONS } from './rewards';
 import { TEST_TAP_KEY } from './testMode';
 
+/** components/ParentGate.tsx remembers a grown-up pass under this key. */
+const GROWNUP_PASS_KEY = 'kailia_grownup_pass_v1';
+
 export const JUMP_CHILD_ID = 'child-jump';
 /** sessionStorage hints a jump link leaves for the screen it opens */
 export const JUMP_TALK_KEY = 'kailia_jump_talk';
@@ -487,6 +490,11 @@ function setSessionHints(plan: JumpPlan) {
   try {
     [JUMP_TALK_KEY, JUMP_FEELINGS_KEY, JUMP_BREAK_KEY].forEach(k => sessionStorage.removeItem(k));
     for (const [k, v] of Object.entries(plan.session)) sessionStorage.setItem(k, v);
+    // a jump link (previews only) counts as having passed the grown-up check
+    // for this visit, so Kelvin, reviewers and the look checks land on the
+    // real page. Add ?gate=1 to see the check itself. Real visits keep it.
+    if (new URLSearchParams(location.search).get('gate') === '1') sessionStorage.removeItem(GROWNUP_PASS_KEY);
+    else sessionStorage.setItem(GROWNUP_PASS_KEY, String(Date.now()));
   } catch { /* fine */ }
 }
 
