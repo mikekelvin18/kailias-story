@@ -65,7 +65,12 @@ async function open(page: Page, path: string) {
 async function settle(page: Page) {
   // a sound or music file can keep the network busy; don't wait on it forever
   await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-  await page.evaluate(() => document.fonts.ready);
+  // fonts can stay "loading" on a busy check machine with the page clock frozen:
+  // move the clock along until they're ready, but never wait more than ~10 s
+  for (let i = 0; i < 40 && !(await page.evaluate(() => document.fonts.status === 'loaded')); i++) {
+    await tick(page, 250);
+    await page.waitForTimeout(250);
+  }
   await tick(page, 1500);
   await page.waitForTimeout(300);
 }
