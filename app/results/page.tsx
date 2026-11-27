@@ -41,6 +41,32 @@ const GRASP_LOOKUP: Record<string, { emoji: string; label: string; milestone: st
   dynamic_tripod:  { emoji: '✏️', label: 'Dynamic Tripod (mature)', milestone: '~5–6+ yrs',   color: '#059669' },
 };
 
+const SENSORY_PATTERNS = [
+  { key: 'lowRegistration', label: 'Low Registration',  color: '#94A3B8' },
+  { key: 'seeking',         label: 'Sensory Seeking',   color: '#3B82F6' },
+  { key: 'sensitive',       label: 'Sensory Sensitive', color: '#8B5CF6' },
+  { key: 'avoiding',        label: 'Sensory Avoiding',  color: '#D97706' },
+];
+const SENSORY_MAX = 6; // per pattern: 3 questions × 2 points
+
+// A folded section (Kelvin, 2026-11-27: senses and home activities fold
+// away so the page stays light; the closed row says what's inside).
+function Fold({ title, hint, light, children, testId }: { title: string; hint?: string; light?: boolean; children: React.ReactNode; testId?: string }) {
+  return (
+    <details data-testid={testId} className="group rounded-3xl mb-6 overflow-hidden"
+      style={light ? { background: 'rgba(255,255,255,0.95)' } : { background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}>
+      <summary className="flex items-center gap-3 px-5 py-4 min-h-[56px] cursor-pointer list-none [&::-webkit-details-marker]:hidden select-none">
+        <span className="flex-1 min-w-0">
+          <span className={`block text-lg font-bold ${light ? 'text-gray-800' : 'text-white'}`}>{title}</span>
+          {hint && <span className={`block text-sm ${light ? 'text-gray-500' : 'text-slate-300'}`}>{hint}</span>}
+        </span>
+        <span className={`text-lg transition-transform group-open:rotate-180 ${light ? 'text-gray-500' : 'text-slate-300'}`} aria-hidden="true">▾</span>
+      </summary>
+      <div className="px-5 pb-5">{children}</div>
+    </details>
+  );
+}
+
 const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> = {
   'Early Explorer': {
     title: 'Perfect starting point activities:',
@@ -311,23 +337,32 @@ export default function ResultsPage() {
 
         <ParentNotes />
 
-        {/* Sensory section */}
+        {/* Senses: folded, the style name shows on the closed row */}
         {state.sensoryCompleted ? (
-          <div
-            className="rounded-3xl p-5 mb-6"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.15)' }}
-          >
-            <h3 className="text-lg font-bold text-white mb-1">Senses</h3>
+          <Fold testId="senses-fold" title="Senses" hint={primarySensoryPattern ? `Style: ${primarySensoryPattern}` : undefined}>
             {primarySensoryPattern && (
-              <>
-                <p className="text-white font-extrabold">{primarySensoryPattern}</p>
-                <p className="text-slate-200 text-sm leading-relaxed mt-1">{sensoryPatternDescription}</p>
-              </>
+              <p className="text-slate-200 text-sm leading-relaxed mb-4">{sensoryPatternDescription}</p>
             )}
-            <p className="text-slate-400 text-xs mt-3">
+            <div className="space-y-3">
+              {SENSORY_PATTERNS.map(p => {
+                const score = state.sensoryScores[p.key as keyof typeof state.sensoryScores];
+                const isPrimary = p.label === primarySensoryPattern;
+                return (
+                  <div key={p.key}>
+                    <p className="text-sm text-white font-semibold mb-1">
+                      {p.label}{isPrimary && <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: p.color }}>Main style</span>}
+                    </p>
+                    <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                      <div className="h-2 rounded-full" style={{ width: `${Math.round((score / SENSORY_MAX) * 100)}%`, background: p.color, minWidth: 6 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-slate-400 text-xs mt-4">
               A sensory style from your answers (Dunn&apos;s Sensory Processing Model), not an age or a diagnosis.
             </p>
-          </div>
+          </Fold>
         ) : (
           /* Sensory CTA — not yet completed */
           <button
@@ -340,17 +375,16 @@ export default function ResultsPage() {
           </button>
         )}
 
-        {/* More ideas for home: three, not seven (2026-11-27 trim) */}
-        <div className="rounded-3xl p-5 mb-6" style={{ background: 'rgba(255,255,255,0.95)' }}>
-          <h3 className="text-lg font-bold text-gray-800 mb-3">More ideas for home</h3>
+        {/* Activities to keep growing: the full list, folded (Kelvin, 2026-11-27) */}
+        <Fold testId="activities-fold" light title="Activities to keep growing" hint={`${activities.activities.length} ideas to try at home`}>
           <ul className="space-y-2">
-            {activities.activities.slice(0, 3).map((act, i) => (
+            {activities.activities.map((act, i) => (
               <li key={i} className="rounded-xl px-3 py-2.5 text-gray-700 font-medium" style={{ background: '#F8F0FF' }}>
                 {act.split(' ').slice(1).join(' ')}
               </li>
             ))}
           </ul>
-        </div>
+        </Fold>
 
         {/* What the child has played since the check (games only log numbers;
             they never change the age range above) */}
