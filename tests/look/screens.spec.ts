@@ -110,6 +110,9 @@ for (const path of ['/go/talk?place=story-sparks&age=4', '/go/talk?place=trail-w
     await prepare(page, { still: true });
     await page.goto(path);
     const tap = page.getByRole('dialog', { name: 'Tap to start' });
+    // (wait for the jump link to move on first: a check started during that
+    // hop can lose track of the page)
+    await page.waitForURL(u => !u.pathname.startsWith('/go'), { timeout: 20_000 });
     await expect(tap).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(3000);
     const problems = (await lookOver(page, `${path}, before tapping`)).filter(p => p.includes('two pop-ups'));

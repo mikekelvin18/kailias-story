@@ -79,6 +79,8 @@ export async function prepare(page: Page, opts: OpenOpts = {}) {
 /** Opens a jump link (it makes the test child) and taps "Tap to start!". */
 export async function openJump(page: Page, path: string) {
   await page.goto(path);
+  // a jump link hops on to the real page; looking during the hop can lose track
+  if (path.startsWith('/go')) await page.waitForURL(u => !u.pathname.startsWith('/go'), { timeout: 30_000 });
   const tap = page.getByRole('dialog', { name: 'Tap to start' });
   await tap.click({ force: true, timeout: 8_000 }).catch(() => {});
   await expect(tap).toHaveCount(0);
@@ -154,6 +156,14 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
     const scrollsY = (n: Element) => { const st = getComputedStyle(n); return /(auto|scroll)/.test(st.overflowY) && n.scrollHeight > n.clientHeight + 4; };
     const scrolls = document.documentElement.scrollHeight > H + 4 || [...document.querySelectorAll('body *')].some(scrollsY);
     const barOk = (e: Element) => scrolls && !atEnd && !!e.closest('nav, [role="navigation"]');
+    /** Really seen: nothing else is drawn over the middle of its visible part. */
+    const seen = (e: Element) => {
+      const r = e.getBoundingClientRect();
+      const x = (Math.max(r.left, 0) + Math.min(r.right, W)) / 2, y = (Math.max(r.top, 0) + Math.min(r.bottom, H)) / 2;
+      if (x < 0 || x > W || y < 0 || y > H) return false;
+      const hit = document.elementFromPoint(x, y);
+      return !!hit && (e.contains(hit) || hit.contains(e));
+    };
     const onScreen = (r: DOMRect) => r.width > 2 && r.height > 2 && r.bottom > 0 && r.top < H && r.right > 0 && r.left < W;
     // the pop-ups that are open; anything outside the top one is meant to be covered
     const dialogs = [...document.querySelectorAll('[role="dialog"], [role="alertdialog"], [aria-modal="true"]')]
@@ -177,6 +187,7 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
       const over = hit.closest(TAP) || hit;
       if (name(over) === name(e)) continue; // a twin of itself on top (the same button)
       if (over.closest('[data-actor]')) continue; // a character walking past is checked elsewhere
+      if (e.closest('[data-play-field]') && over.closest('[data-play-field]')) continue; // hiding things is part of some games
       if (barOk(over)) continue;
       let layer = false;
       for (let n: Element | null = over; n && n !== document.body; n = n.parentElement) {
@@ -205,6 +216,8 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
       }
       if (scroller) continue;
       const outside = Math.max(0, box.left - r.left) + Math.max(0, r.right - box.right);
+      // partly showing (a thing wholly out of sight is off camera, not cut off)
+      if (outside >= r.width - 2) continue;
       if (outside > Math.max(4, r.width * 0.15)) out.push(`"${name(e)}" is cut off at the ${r.left < box.left ? 'left' : 'right'} (${Math.round(outside)} px out of sight)`);
     }
     // text cut short inside its own box (no "…" and no way to see the rest)
@@ -223,7 +236,7 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
       const font = parseFloat(getComputedStyle(e).fontSize);
       const range = document.createRange(); range.selectNodeContents(e);
       const lines = new Set([...range.getClientRects()].map(c => Math.round(c.top))).size;
-      if (words >= 4 && lines >= words && onScreen(r) && r.width < font * 5) out.push(`"${name(e)}" is squeezed into a column ${Math.round(r.width)} px wide (one word per line)`);
+      if (words >= 4 && lines >= words && onScreen(r) && r.width < font * 5 && seen(e)) out.push(`"${name(e)}" is squeezed into a column ${Math.round(r.width)} px wide (one word per line)`);
     }
 
     // ── hard to read ──
@@ -231,7 +244,7 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
     const lum = (c: { r: number; g: number; b: number }) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
     const ratio = (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
     for (const e of leaves) {
-      if (hidden(e) || !onScreen(e.getBoundingClientRect())) continue;
+      if (hidden(e) || !onScreen(e.getBoundingClientRect()) || !seen(e)) continue;
       const s = getComputedStyle(e);
       const fg = rgba(s.color);
       if (!fg || fg.a < 0.5) continue;
@@ -260,9 +273,9 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
     }
 
     // ── crowded: words sitting on a button they don't belong to ──
-    const tapBoxes = taps.map(t => ({ t, r: t.getBoundingClientRect() })).filter(b => onScreen(b.r));
+    const tapBoxes = taps.map(t => ({ t, r: t.getBoundingClientRect() })).filter(b => onScreen(b.r) && seen(b.t));
     for (const e of leaves) {
-      if (hidden(e) || e.closest(TAP)) continue;
+      if (hidden(e) || e.closest(TAP) || !seen(e)) continue;
       const range = document.createRange(); range.selectNodeContents(e);
       const r = range.getBoundingClientRect();
       if (!onScreen(r)) continue;

@@ -36,6 +36,21 @@ async function flip(box: import('@playwright/test').Locator) {
   await box.click();
 }
 
+/** Gets past the grown-up check (hold 3 s, then a times-table) if it shows. */
+async function passGate(page: Page) {
+  const hold = page.getByRole('button', { name: 'Press and hold for 3 seconds' });
+  if (!(await hold.isVisible({ timeout: 3000 }).catch(() => false))) return;
+  const b = (await hold.boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(3600);
+  await page.mouse.up();
+  const ask = page.getByText(/what is \d+ × \d+\?/);
+  const [, a, c] = (await ask.innerText()).match(/(\d+) × (\d+)/)!;
+  await page.getByRole('textbox').fill(String(Number(a) * Number(c)));
+  await page.getByRole('button', { name: 'Continue' }).click();
+}
+
 const heard = (page: Page) => page.evaluate(() => (window as unknown as { __heard: string[] }).__heard);
 
 test('Sound off: music and Read aloud show as paused, nothing plays, and they come back as they were', async ({ page }) => {
@@ -48,9 +63,10 @@ test('Sound off: music and Read aloud show as paused, nothing plays, and they co
   await page.waitForTimeout(4000);
   expect((await heard(page)).length, 'with sound on, the robot hears the game').toBeGreaterThan(0);
   await openJump(page, '/go/family');
+  await passGate(page);
   // the grown-up turns Sound off in the Parent Zone
   await page.getByText(/Display & accessibility/).first().click();
-  const off = page.getByRole('checkbox', { name: /Sound off/ });
+  const off = page.getByRole('checkbox', { name: /^\W*Sound off/ });
   const music = page.getByRole('checkbox', { name: /Soft music/ });
   const read = page.getByRole('checkbox', { name: /Read aloud/ });
   await expect(music).toBeChecked();
@@ -76,6 +92,7 @@ test('Sound off: music and Read aloud show as paused, nothing plays, and they co
 
   // turning Sound off back off brings music and Read aloud back as they were
   await openJump(page, '/go/family');
+  await passGate(page);
   await page.getByText(/Display & accessibility/).first().click();
   await flip(off);
   await expect(off).not.toBeChecked();
