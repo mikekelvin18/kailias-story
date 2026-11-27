@@ -103,10 +103,10 @@ export default async function AgesReview() {
                   const route = ROUTE[g.id] ?? g.id;
                   return (
                     <td key={b} style={cell}>
-                      <a href={`/go/game/${route}?age=${years(m).replace('½', '.5')}`} className="underline" style={{ color: '#6D28D9' }}>
+                      <a href={`/go/game/${route}?age=${years(m).replace('½', '.5')}`} className="inline-block underline" style={{ color: '#6D28D9' }}>
                         {g.leveled ? `L${L}` : 'bag'} {v === 'good' ? '✓' : v === 'easy' ? '↓' : '↑'}
                       </a>
-                      {note && <span className="block text-xs">{note}</span>}
+                      {note && <span className="block mt-1 text-xs">{note}</span>}
                     </td>
                   );
                 })}
