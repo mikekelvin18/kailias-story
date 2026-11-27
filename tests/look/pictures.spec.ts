@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { GAMES, SIZES, prepare } from './helpers';
+import { GAMES, SCREENS, SIZES, prepare } from './helpers';
 import sharp from 'sharp';
 
 // When a picture differs, the check's log gets a small copy of what the
@@ -44,16 +44,6 @@ test.afterEach(async ({}, info) => {
 // that commit before merging. (Locally, --update-snapshots makes pictures
 // for trying things out; don't commit those.)
 
-const SCREENS: [string, string][] = [
-  ['front-page', '/go/home'], ['story', '/go/story'], ['setup', '/go/setup'], ['try', '/go/try'],
-  ['map', '/go/map'], ['map-all-open', '/go/map?all=1'],
-  ['pet-popup-egg', '/go/pet-popup'], ['pet-popup-baby', '/go/pet-popup?pet=baby'], ['pet-popup-grown', '/go/pet-popup?pet=grown'],
-  ['pet-popup-play', '/go/pet-popup?pet=little&task=play'], ['pet-popup-care', '/go/pet-popup?pet=little&task=care'],
-  ['daily-quests', '/go/daily-quests'], ['new-friend', '/go/new-friend'], ['land-done', '/go/land-done'], ['land-sheet', '/go/land/dragons-cave'],
-  ['friends', '/go/friends'], ['friend-sage', '/go/friend/sage'], ['garden', '/go/garden'],
-  ['results', '/go/results'], ['progress', '/go/progress'], ['family', '/go/family'], ['activities', '/go/activities'],
-  ['printables', '/go/printables'], ['upgrade', '/go/upgrade'],
-];
 
 // games whose targets fly, swim or fall on their own clock: their play field
 // is covered in the picture (the framing and smoothness checks watch it live)
@@ -66,7 +56,25 @@ const MOVING = new Set(['firefly-catch', 'reef-explorer', 'potion-sort', 'sensor
 // daily task, the same line from Noel, the same spot in every timer.
 const FROZEN_AT = new Date('2026-11-26T16:00:00Z');
 
-async function tick(page: Page, ms: number) { await page.clock.runFor(ms); }
+// How far the page's clock has moved since the screen was opened. Every
+// picture is taken at the same moment on the page's clock (BUDGET after
+// opening), however long a slow check machine took to get there: the map's
+// Noel changes what he says every 8 s, and a busy machine that needed more
+// small steps once caught him on another line (and the taller speech bubble
+// pushed the whole map down: map-sideways, 2026-11-27).
+const BUDGET = 4000;
+const moved = new WeakMap<Page, number>();
+async function tick(page: Page, ms: number) {
+  moved.set(page, (moved.get(page) ?? 0) + ms);
+  await page.clock.runFor(ms);
+}
+/** Moves the clock on to exactly BUDGET ms after the screen opened. */
+async function toBudget(page: Page) {
+  const done = moved.get(page) ?? 0;
+  if (done > BUDGET) console.log(`[pictures] ${page.url()}: the page's clock had to move ${done} ms (more than ${BUDGET}) before it was ready`);
+  else if (done < BUDGET) await page.clock.runFor(BUDGET - done);
+  moved.set(page, Math.max(done, BUDGET));
+}
 
 /** Moves the frozen clock in small steps until `ready()` says yes. */
 async function tickUntil(page: Page, ready: () => Promise<boolean>, what: string) {
@@ -83,6 +91,7 @@ async function open(page: Page, path: string) {
   page.on('response', r => { if (r.status() >= 400) console.log(`[pictures] ${path}: ${r.status()} for ${r.url().replace(/^https?:\/\/[^/]+/, '')}`); });
   page.on('requestfailed', r => console.log(`[pictures] ${path}: failed ${r.url().replace(/^https?:\/\/[^/]+/, '')} (${r.failure()?.errorText})`));
   await page.goto(path);
+  moved.set(page, 0);
   const tap = page.getByRole('dialog', { name: 'Tap to start' });
   // pages with "Tap to start!" show it once they're live; the others are
   // ready once the jump link has moved on to the real page
@@ -109,7 +118,7 @@ async function settle(page: Page) {
     await tick(page, 250);
     await page.waitForTimeout(250);
   }
-  await tick(page, 1500);
+  await toBudget(page);
   await page.waitForTimeout(300);
 }
 
@@ -141,6 +150,7 @@ for (const game of GAMES) {
       // most games start with one big button; Snack Quest and Sky Mail start
       // by picking a place or a mailbag
       await intro.locator('.gf-cta, .gf-choice').first().click({ force: true });
+      moved.set(page, 0); // the playing picture: BUDGET ms after the tap
       await tickUntil(page, async () => (await intro.count()) === 0, 'the game started');
       await settle(page);
       const mask = MOVING.has(game) ? [page.locator('[data-play-field]')] : [];
