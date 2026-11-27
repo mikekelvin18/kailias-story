@@ -166,6 +166,7 @@ export default function PotionSortPage() {
   const [kailiaHop, setKailiaHop] = useState(0);
   const [petX, setPetX] = useState(62);
   const [hintColor, setHintColor] = useState<string | null>(null);
+  const hintAtRef = useRef(-Infinity);
   // the last cauldron that got a potion (jelly gulp) or a wrong one (wobble)
   const [potFx, setPotFx] = useState<{ idx: number; n: number; kind: 'gulp' | 'wobble' }>({ idx: -1, n: 0, kind: 'gulp' });
   const { layer: burstLayer, fire } = useBursts();
@@ -188,6 +189,7 @@ export default function PotionSortPage() {
   const startRound = useCallback((idx: number, rs: RoundCfg[]) => {
     roundMissesRef.current = 0;
     slipStreakRef.current = 0;
+    hintAtRef.current = -Infinity;
     spawnedRef.current = 0;
     setBottles([]);
     setHintColor(null);
@@ -212,7 +214,10 @@ export default function PotionSortPage() {
   const slip = useCallback((landedId?: number) => {
     setPetMood('oops');
     slipStreakRef.current += 1;
-    if (slipStreakRef.current >= 2) {
+    // a hint stays put long enough for Noel to say it to the end (Kelvin
+    // 2026-11-26: no cut-off voices; each slip used to restart the line)
+    if (slipStreakRef.current >= 2 && performance.now() - hintAtRef.current > 4500) {
+      hintAtRef.current = performance.now();
       const left = bottlesRef.current.filter(b => b.id !== landedId);
       const next = left.find(b => b.dragging) ?? left[0];
       if (next) {
@@ -391,6 +396,7 @@ export default function PotionSortPage() {
         setPotFx(f => ({ idx: zoneIdx, n: f.n + 1, kind: 'gulp' }));
         fire(cx, 66, ['#FFE066', '#FFFFFF', COLORS.find(c => c.key === bottle.color)!.hex], 12, 56);
         slipStreakRef.current = 0;
+        hintAtRef.current = -Infinity;
         setHintColor(null);
         setNoelLine(['Splash! Perfect match!', 'Into the pot it goes!', 'Bubble bubble!', 'Just right!'][metricsRef.current.correct % 4]);
         setNoelMood('excited');

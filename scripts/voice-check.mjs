@@ -126,6 +126,7 @@ for (const game of GAMES) {
     const ok = r.out.length === 0;
     if (!ok) failed++;
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${game.padEnd(16)} ${way.padEnd(4)} lines started ${r.started}, finished ${r.ended}${ok ? '' : '  ← ' + r.out.join('; ')}`);
+    if (!ok && process.env.VOICE_DEBUG && r.log) console.log(JSON.stringify(r.log))
   }
 }
 await browser.close();

@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import LiveArt from '@/components/characters/LiveArt';
 import { petWidth } from '@/lib/companionTrails';
-import { petCall } from '@/lib/petSounds';
+import { petCall, preloadPetCall } from '@/lib/petSounds';
 
 export type Mood = 'idle' | 'fly' | 'talk' | 'cheer' | 'oops' | 'dance';
 
@@ -60,9 +60,11 @@ export default function Actor({ art, name, x, y, h, mood = 'idle', moodKey = 0, 
   useEffect(() => {
     if (mood === 'cheer' || mood === 'dance') petCall(art, { cheer: true });
   }, [mood, moodKey, art]);
+  // its call is ready before the first tap
+  useEffect(() => { preloadPetCall(art); }, [art]);
   const tap = onTap ? () => { petCall(art); onTap(); } : undefined;
   return (
-    <div className="absolute" style={{
+    <div data-actor={name} className="absolute" style={{
       left: `${x}%`, top: `${y}%`, width: w, height: h, marginLeft: -w / 2, marginTop: -h, zIndex: z,
       transition: `left ${moveMs}ms cubic-bezier(.45,.05,.4,1), top ${moveMs}ms cubic-bezier(.3,-0.3,.4,1)`,
       pointerEvents: onTap ? 'auto' : 'none',

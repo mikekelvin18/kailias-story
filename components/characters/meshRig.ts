@@ -186,7 +186,11 @@ export function startRig(canvas: HTMLCanvasElement, pictures: HTMLImageElement |
     const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
     const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    // Draw into the buffer the browser really gave us. iPhone Safari can hand
+    // back a smaller one than asked for (many canvases on a page); a viewport
+    // of the asked-for size then blows the picture up and shows only its
+    // lower-left corner (Kelvin 2026-11-26: just the fox's tail in its bubble).
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   };
 
   // blinking: random gaps, now and then a double blink
