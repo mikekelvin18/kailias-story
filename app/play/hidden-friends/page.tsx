@@ -300,7 +300,15 @@ export default function WheresNoelPage() {
     }
   }
 
+  // tapping the friend asks for help (Muse round 7): it sits under something still hiding
   function tickle() {
+    const left = items.filter(i => i.kind !== 'crowd' && !i.found);
+    if (phase === 'playing' && left.length) {
+      setHintId(h => (h != null && left.some(i => i.id === h) ? h : left[0].id));
+      setPetMood('talk');
+      setNoelLine(`${pet.name} is sitting right under something! Look up above ${pet.name}!`);
+      return;
+    }
     setPetMood('dance');
     timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300));
   }
@@ -420,7 +428,7 @@ export default function WheresNoelPage() {
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petSpot} y={GROUND} h={50}
                   mood={hinted ? 'talk' : petMood} moodKey={petMoodKey} moveMs={900}
-                  onTap={tickle} z={9} />
+                  onTap={tickle} z={9} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
               {burstLayer}
             </div>

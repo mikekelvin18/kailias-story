@@ -699,7 +699,7 @@ function gripEvidence(grip: string | null): Evidence[] {
 }
 
 export default function GamesPage() {
-  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
+  const { state, loaded, chronoMonths, setDomainScore, setDomainEvidence, setChallengeRound, setPlacementRun, setFineMotorInputMethod, setGraspPattern, setFineMotorSubScores, completeAssessment } = useAssessment();
   const router = useRouter();
   const age = chronoMonths ?? (state.childAge ?? 8) * 12;
 
@@ -785,6 +785,9 @@ export default function GamesPage() {
     setEvidence(ev => [...ev, entry]);
     // the challenge saves every answer, so leaving part way can carry on
     if (challenge) setChallengeRound({ step: gameStep, asked, evidence: [...evidence, entry] });
+    // every placement answer is saved too, so leaving after one question
+    // carries on from there (Muse round 7: it restarted at Question 1)
+    else setPlacementRun({ step: gameStep, asked, evidence: [...evidence, entry] });
     const pool = r === 1 ? ENCOURAGEMENTS : GOOD_TRIES;
     let line = pool[Math.floor(Math.random() * pool.length)];
     // A miss gets a gentle "here's the one Kailia picked" so the child
@@ -839,7 +842,11 @@ export default function GamesPage() {
       if (!state.assessmentCompleted) {
         const order: MilestoneDomain[] = ['reading', 'writing', 'communication', 'math'];
         const done = order.map(d => (state.evidence?.[d]?.length ?? 0) > 0);
-        if (done.some(Boolean)) setResumeAt(done.every(Boolean) ? 4 : done.indexOf(false));
+        const at = done.every(Boolean) ? 4 : done.indexOf(false);
+        // a game left part way (Muse round 7) counts as a spot to come back to
+        const run = state.placementRun;
+        const midGame = !!run && run.step === at && run.evidence.length > 0;
+        if (done.some(Boolean) || midGame) setResumeAt(at);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -856,8 +863,14 @@ export default function GamesPage() {
     // above their age
     return nextPlacementQuestion(bank, evidence.map((e, i) => ({ idx: asked[i], right: e.r === 1, months: e.months })), age);
   };
-  // The real number of questions (Muse round 4: never "7/7", "8/8").
-  const shownTotal = Math.min(bank.length, asked.length > QUESTIONS_PER_GAME || aceExtra ? QUESTIONS_PER_GAME + 2 : QUESTIONS_PER_GAME);
+  // The counter always says the same number (Muse round 7: the dashes said
+  // "6 of 6" while the footer said "/8"). Every game is 6 questions; a child
+  // who aced everything above their age may then get up to 2 BONUS questions,
+  // counted on their own ("Bonus question 1"), never stretching the 6.
+  void aceExtra;
+  const mainTotal = Math.min(bank.length, QUESTIONS_PER_GAME);
+  const bonusIdx = questionIdx + 1 - mainTotal; // 1, 2 on a bonus question; else ≤ 0
+  const shownTotal = mainTotal;
 
   const handleNext = () => {
     if (!game) return;
@@ -879,6 +892,7 @@ export default function GamesPage() {
     const next = plannedNext();
     if (next == null) {
       setDomainEvidence(domainKey, evidence);
+      setPlacementRun(null);
       // Legacy 0–10 score (share right) — still drives the stage name and the bars.
       setDomainScore(domainKey, Math.round((evidence.reduce((t, e) => t + e.r, 0) / Math.max(1, evidence.length)) * 10));
       // Then a few attention / memory questions for the grown-up (checklist page, processing only).
@@ -886,6 +900,7 @@ export default function GamesPage() {
       else startGame(gameStep + 1);
     } else {
       setAsked(a => [...a, next]);
+      setPlacementRun({ step: gameStep, asked: [...asked, next], evidence });
       resetQuestion();
     }
   };
@@ -943,25 +958,35 @@ export default function GamesPage() {
 
   if (resumeAt !== null) {
     const names = ['the reading game', 'the tracing game', 'the talking game', 'the counting game'];
+    const midRun = state.placementRun && state.placementRun.step === resumeAt && state.placementRun.evidence.length > 0 ? state.placementRun : null;
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: '#FFF9F0' }}>
         <div className="max-w-md w-full rounded-3xl p-8 shadow-xl text-center bg-white">
           <p className="text-5xl mb-2" aria-hidden="true">🐼</p>
           <h1 className="text-2xl font-extrabold text-gray-800 mb-2">Welcome back!</h1>
-          <p className="text-gray-600 mb-6">
+          <p data-placement-resume className="text-gray-600 mb-6">
             Noel saved your spot. {resumeAt >= 4
               ? 'All four games are done, just the grown-up questions are left.'
-              : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
+              : midRun
+                ? `${resumeAt} of 4 games are done. You were on question ${midRun.asked.length} of ${names[resumeAt]}.`
+                : `${resumeAt} of 4 games are done. Next up: ${names[resumeAt]}.`}
           </p>
           <button onClick={() => {
               const at = resumeAt; setResumeAt(null);
-              if (at >= 4) router.push('/assessment/checklist'); else startGame(at);
+              if (at >= 4) { router.push('/assessment/checklist'); return; }
+              if (midRun) {
+                // back on the very question the child left: answered ones stay answered
+                setGameStep(midRun.step); setAsked(midRun.asked); setEvidence(midRun.evidence); resetQuestion();
+                if (midRun.evidence.length >= midRun.asked.length) { setSubmitted(true); setEncourage('Welcome back! Tap below to keep going. ⭐'); }
+                return;
+              }
+              startGame(at);
             }}
             className="w-full px-8 py-4 rounded-full font-extrabold text-xl text-white shadow-lg mb-3"
             style={{ background: 'linear-gradient(135deg, #059669, #7C3AED)' }}>
             Keep going →
           </button>
-          <button onClick={() => setResumeAt(null)} className="text-sm font-bold text-gray-500 underline">
+          <button onClick={() => { setResumeAt(null); setPlacementRun(null); }} className="text-sm font-bold text-gray-500 underline">
             Start the games over
           </button>
         </div>
@@ -1018,13 +1043,17 @@ export default function GamesPage() {
             <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
               style={{ background: i < questionIdx ? game.color : i === questionIdx ? `${game.color}66` : '#E5E7EB' }} />
           ))}
+          {/* bonus questions: little gold stars after the six, only once reached */}
+          {!challenge && bonusIdx > 0 && Array.from({ length: bonusIdx }, (_, i) => (
+            <div key={`b${i}`} className="w-3 h-1.5 rounded-full" style={{ background: '#F59E0B' }} />
+          ))}
         </div>
 
         <div className="rounded-3xl p-8 shadow-xl mb-5 bounce-in" key={`${gameStep}-${questionIdx}`} style={{ background: 'white' }}>
           <div className="flex items-start gap-3 mb-5">
             <span className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-base"
               style={{ background: game.color }}>
-              {questionIdx + 1}
+              {!challenge && bonusIdx > 0 ? '★' : questionIdx + 1}
             </span>
             <p className="text-gray-800 font-semibold text-lg leading-relaxed">{question.text}</p>
           </div>
@@ -1092,7 +1121,7 @@ export default function GamesPage() {
               className="px-10 py-4 rounded-full font-extrabold text-xl text-white shadow-lg transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${game.color}, #EC4899)` }}>
               {challenge ? (isLastQ ? (isLastChallengeGame ? 'See My Results! 🎉' : 'Next Game! 🚀') : 'Next Question →')
-                : plannedNext() != null ? 'Next Question →'
+                : plannedNext() != null ? (asked.length >= mainTotal ? 'Bonus question! ⭐' : 'Next Question →')
                 : isLastStep ? (state.sensoryCompleted ? 'See My Results! 🎉' : 'Great job! Last part →') : 'Next Game! 🚀'}
             </button>
           )}
@@ -1102,7 +1131,9 @@ export default function GamesPage() {
           {challenge
             ? <span data-challenge-counter>{`Game ${liveChallengeSteps.indexOf(gameStep) + 1} of ${liveChallengeSteps.length} • ${stepLabels[gameStep]} • Question ${questionIdx + 1}${challengeTotal > questionIdx + 1 ? ' of up to ' : '/'}${challengeTotal}`}</span>
             : <>Game {gameStep + 1} of {totalSteps} • {stepLabels[gameStep]}
-              {!isTracingStep && ` • Question ${questionIdx + 1}/${shownTotal}`}</>}
+              {!isTracingStep && <span data-placement-counter>{bonusIdx > 0
+                ? ` • Bonus question ${bonusIdx}`
+                : ` • Question ${questionIdx + 1} of ${shownTotal}`}</span>}</>}
         </p>
       </div>
     </main>

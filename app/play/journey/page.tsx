@@ -15,6 +15,7 @@ import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/
 import { logQuestMetric } from '@/lib/metrics';
 import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
 import { makeChallenge, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
+import MissingFriend from '@/components/games/MissingFriend';
 import { Critter } from '@/components/characters/CritterSprite';
 import { COMPANIONS } from '@/lib/rewards';
 import KailiaActor from '@/components/games/KailiaActor';
@@ -136,6 +137,11 @@ function buildPath(): Pt[] {
   return pts;
 }
 
+/** How many wild friends a level asks for (the intro says it before the map exists). */
+function friendsWanted(tier: string, level: number) {
+  return Math.min(6, (tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4) + Math.floor((level - 1) / 3));
+}
+
 function buildWorld(tier: string, level: number, months?: number | null) {
   const biome = BIOMES[(level - 1) % BIOMES.length];
   const path = buildPath();
@@ -144,12 +150,17 @@ function buildWorld(tier: string, level: number, months?: number | null) {
   const pathKeys = new Set(path.map(key));
   path.forEach(p => { grid[p.y][p.x] = 'path'; });
 
-  const required = Math.min(6, (tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4) + Math.floor((level - 1) / 3));
+  const wanted = friendsWanted(tier, level);
   const encounterIdx: number[] = [];
-  for (let i = 0; i < required; i++) {
-    const idx = Math.max(1, Math.min(path.length - 2, Math.round((i + 1) * (path.length - 1) / (required + 1))));
+  for (let i = 0; i < wanted; i++) {
+    let idx = Math.max(1, Math.min(path.length - 2, Math.round((i + 1) * (path.length - 1) / (wanted + 1))));
+    // never two friends on one tile, so the count the intro promised holds
+    while (encounterIdx.includes(idx) && idx < path.length - 2) idx++;
     if (!encounterIdx.includes(idx)) encounterIdx.push(idx);
   }
+  // the friends to find are exactly the patches of tall grass made (Muse
+  // round 7: the intro, the party box and Noel must all say one number)
+  const required = encounterIdx.length;
   const encounters: Record<string, Encounter> = {};
   encounterIdx.forEach((idx, i) => {
     const p = path[idx];
@@ -273,6 +284,8 @@ export default function JourneyPage() {
   const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
   const [kailiaHop, setKailiaHop] = useState(0);
   const [battleMisses, setBattleMisses] = useState(0);
+  // the child tapped the friend for help on this riddle (Muse round 7)
+  const [askedHelp, setAskedHelp] = useState(false);
   const { layer: burstLayer, fire } = useBursts();
 
   const movingRef = useRef(false);
@@ -355,7 +368,7 @@ export default function JourneyPage() {
       setKailiaHop(n => n + 1);
       setPhase('done');
     } else {
-      setDialog(`The flag needs more friends! ${world.required - met} still hiding in the tall grass…`);
+      setDialog(`The flag needs ${world.required} friends! ${met} found, ${world.required - met} still hiding in the tall grass…`);
     }
   }, [world, party, level, setPetMood]);
 
@@ -394,12 +407,13 @@ export default function JourneyPage() {
         setTimeout(() => {
           setActiveTile(k);
           setBattleMisses(0);
+          setAskedHelp(false);
           sfx.encounter();
           const ch = w.encounters[k].challenge;
           setDialog(`A wild ${creatureName(ch.creature)} appeared!`);
           if (ch.type === 'memory') {
             setPhase('memoryShow');
-            setTimeout(() => setPhase('battle'), 2400);
+            setTimeout(() => setPhase('battle'), 3200);
           } else {
             setPhase('battle');
           }
@@ -432,8 +446,22 @@ export default function JourneyPage() {
     stepQueue();
   }, [stepQueue]);
 
+  // Tapping the friend asks for help (Muse round 7: it only danced, so a
+  // child couldn't tell what it was for). In a riddle it bounces by the right
+  // answer (and a memory riddle shows the missing friend's shadow); on the
+  // map it says where the friends are.
   function tickle() {
+    if (phase === 'battle' && activeEncounter) {
+      setAskedHelp(true);
+      setPetMood('talk');
+      setDialog(`${partner.name} is bouncing by the glowing one. Try that one!`);
+      return;
+    }
     setPetMood('dance');
+    if (phase === 'walking' && world) {
+      const met = party.filter(p => !p.startsWith(PET_TAG)).length;
+      setDialog(met >= world.required ? `${partner.name} says: everyone's here, head for the flag!` : `${partner.name} says: friends hide in the tall grass along the path!`);
+    }
     setTimeout(() => setPetMood('idle'), 1300);
   }
 
@@ -480,7 +508,11 @@ export default function JourneyPage() {
         })) });
         setActiveTile(null);
         setCaughtCreature(null);
-        setDialog(party.filter(p => !p.startsWith(PET_TAG)).length + 1 >= world.required ? 'That was the last friend — head for the flag!' : 'Onward! More friends may be hiding in the grass…');
+        {
+          const met = party.filter(p => !p.startsWith(PET_TAG)).length + 1;
+          setDialog(met >= world.required ? `That's all ${world.required} friends — head for the flag!`
+            : `${met} of ${world.required} friends found! ${world.required - met} still hiding in the grass…`);
+        }
         setPetMood('cheer');
         setPhase('walking');
       }, 1500);
@@ -493,7 +525,7 @@ export default function JourneyPage() {
       const misses = battleMisses + 1;
       setBattleMisses(misses);
       const hint = challenge.type === 'count' ? 'Count one by one with your finger, then try again!'
-        : challenge.type === 'memory' ? 'Try to remember who was missing… look again!'
+        : challenge.type === 'memory' ? 'Look at the shadow in the empty spot. Who has that shape?'
         : challenge.type === 'word' ? 'Sound it out slowly… try again!'
         : 'Look closely and try again!';
       setDialog(misses >= 2 ? `${partner.name} is bouncing by the glowing one. Try that one!` : hint);
@@ -534,7 +566,7 @@ export default function JourneyPage() {
     );
   }, [world]);
 
-  const challengeHint = battleMisses >= 2 && phase === 'battle';
+  const challengeHint = (battleMisses >= 2 || askedHelp) && phase === 'battle';
   const partyPets = party.filter(p => p.startsWith(PET_TAG)).length;
 
   return (
@@ -558,7 +590,8 @@ export default function JourneyPage() {
                     <p>
                       Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
                       anywhere on the map to walk there! Step into patches of <strong>tall grass</strong> to meet
-                      wild creatures — solve their riddle to catch them, then lead your new friends to the flag!
+                      wild creatures — solve their riddle to catch them, then lead
+                      your <strong data-journey-goal>{friendsWanted(tier, level)} new friends</strong> to the flag!
                     </p>
                   </>}
                   extras={<div className="flex items-center justify-center gap-3">
@@ -618,7 +651,7 @@ export default function JourneyPage() {
                     style={{ position: 'absolute', left: x * TILE, top: y * TILE - 6, pointerEvents: 'none' }} />;
                 }
                 if (t === 'flag') {
-                  return <Flag key={`${x}-${y}`} size={TILE * 0.9} ready={party.length >= world.required}
+                  return <Flag key={`${x}-${y}`} size={TILE * 0.9} ready={party.length - partyPets >= world.required}
                     style={{ position: 'absolute', left: x * TILE + TILE * 0.2, top: y * TILE - TILE * 0.55, pointerEvents: 'none', zIndex: 3 + y }} />;
                 }
                 return null;
@@ -636,7 +669,7 @@ export default function JourneyPage() {
                 <Actor art={partner.art} name={partner.name}
                   x={((petTile.x + 0.5) / W) * 100} y={((petTile.y + 0.92) / H) * 100} h={38}
                   mood={petMood} moodKey={petMoodKey} moveMs={230} flip={petLeft}
-                  onTap={tickle} z={30 + petTile.y * 2 + (petTile.y > player.y ? 1 : -1)} />
+                  onTap={tickle} z={30 + petTile.y * 2 + (petTile.y > player.y ? 1 : -1)} tapLabel={`Ask ${partner.name} for a hint`} />
               </div>
             </div>
             <Weather kind={world.biome.weather} />
@@ -771,7 +804,7 @@ export default function JourneyPage() {
             <div data-pet>
               <Actor art={partner.art} name={partner.name} x={45} y={93} h={64}
                 mood={challengeHint ? 'talk' : petMood} moodKey={petMoodKey} moveMs={500}
-                onTap={tickle} z={7} />
+                onTap={tickle} z={7} tapLabel={`Ask ${partner.name} for a hint`} />
             </div>
             {phase === 'capturing' && (
               <div className="absolute text-center" style={{ left: '72%', top: '12%', transform: 'translateX(-50%)', zIndex: 20 }}>
@@ -793,14 +826,10 @@ export default function JourneyPage() {
 
             {phase === 'battle' && (
               <div>
-                {activeEncounter.challenge.memoryCast && (
+                {activeEncounter.challenge.memoryFull && activeEncounter.challenge.memoryGap != null && (
                   <>
-                    <p className="text-center text-sm font-bold" style={{ color: '#475569' }}>Still here:</p>
-                    <div className="flex gap-2 justify-center my-1 flex-wrap">
-                      {activeEncounter.challenge.memoryCast.map((c, i) => (
-                        <Critter key={i} emoji={c} size={40} />
-                      ))}
-                    </div>
+                    <p className="text-center text-sm font-bold" style={{ color: '#475569' }}>{battleMisses > 0 || askedHelp ? 'Who left this shadow?' : 'Who was standing in the empty spot?'}</p>
+                    <MissingFriend full={activeEncounter.challenge.memoryFull} gap={activeEncounter.challenge.memoryGap} size={40} shadow={battleMisses > 0 || askedHelp} />
                   </>
                 )}
                 {activeEncounter.challenge.display && (

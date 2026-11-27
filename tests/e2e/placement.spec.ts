@@ -40,7 +40,7 @@ async function answer(page: Page, right: boolean) {
 }
 
 async function next(page: Page) {
-  await page.getByRole('button', { name: /Next Question|Next Game|See My Results|Last part/ }).click({ force: true });
+  await page.getByRole('button', { name: /Next Question|Bonus question|Next Game|See My Results|Last part/ }).click({ force: true });
 }
 
 test('Placement: misses get honest, kind feedback; right answers get praise; counters stay inside', async ({ page }) => {
@@ -73,4 +73,49 @@ test('Challenge round: reading, communication and math all finish, counters neve
     await next(page);
   }
   await expect(page).toHaveURL(/\/results/);
+});
+
+// Muse round 7: the dashes said "6 of 6" while the footer said "/8". Every
+// game is 6 questions; extra rungs for a child who aces it are "Bonus".
+test('Placement: an all-right run counts "of 6" and then "Bonus question", never past 6', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72, noAssessment: true });
+  await page.goto('/assessment/games');
+  await expect(page.getByText("Kailia's Treasure Hunt")).toBeVisible();
+  let bonus = 0;
+  for (let q = 0; q < 10; q++) {
+    if (!(await page.getByText("Kailia's Treasure Hunt").isVisible())) break;
+    const counter = (await page.locator('[data-placement-counter]').innerText()).trim();
+    const m = counter.match(/Question (\d+) of (\d+)/);
+    if (m) {
+      expect(Number(m[2]), counter).toBe(6);
+      expect(Number(m[1])).toBeLessThanOrEqual(6);
+      expect(bonus, 'no "Question n of 6" after a bonus question').toBe(0);
+    } else { expect(counter).toMatch(/Bonus question \d/); bonus++; }
+    // the little bars above agree: six, plus one gold bar per bonus reached
+    await answer(page, true);
+    await next(page);
+  }
+  expect(bonus, "an all-right run reaches the bonus questions").toBeGreaterThanOrEqual(1);
+  expect(bonus).toBeLessThanOrEqual(2);
+});
+
+// Muse round 7: answering Q1, leaving and coming back restarted at Question 1.
+test('Placement: leaving after a question carries on from the same spot', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72, noAssessment: true });
+  await page.goto('/assessment/games');
+  await expect(page.getByText("Kailia's Treasure Hunt")).toBeVisible();
+  await answer(page, true);
+  await next(page);
+  await expect(page.locator('[data-placement-counter]')).toContainText('Question 2 of 6');
+  await page.goto('/play');
+  await page.goto('/assessment/games');
+  await expect(page.locator('[data-placement-resume]')).toContainText('question 2 of the reading game');
+  await page.getByRole('button', { name: /Keep going/ }).click();
+  await expect(page.locator('[data-placement-counter]')).toContainText('Question 2 of 6');
+  // answered-but-not-moved-on also comes back answered
+  await answer(page, false);
+  await page.reload();
+  await page.getByRole('button', { name: /Keep going/ }).click();
+  await expect(page.locator('[data-placement-counter]')).toContainText('Question 2 of 6');
+  await expect(page.getByRole('button', { name: /Next Question/ })).toBeVisible();
 });

@@ -99,3 +99,24 @@ test('Moonlight Match: the squirrel pair shows its picture and matches', async (
   const pic = await page.locator('[data-mkey="pic:squirrel"]').first().evaluate(e => !!e.querySelector('img, svg image, svg path'));
   expect(pic, 'the squirrel card has a picture').toBe(true);
 });
+
+// Muse round 7: on Lv5, after lifting a bee, "Tickle Flick" twice lit no card.
+// With one feather up, a tap on the friend rings that feather's twin; with
+// none up, the friend says what to do first.
+test('Moonlight Match: tapping the friend rings the twin of the lifted feather', async ({ page }) => {
+  await seedFamily(page, { levels: { 'moonlight-match': 5 } });
+  await startGame(page, '/play/moonlight-match');
+  const friend = page.getByRole('button', { name: /Ask .* for a hint/ });
+  await expect(page.locator('[data-mkey][data-state="down"]').first()).toBeVisible();
+  await friend.click({ force: true });
+  await until(async () => /Flip one feather/i.test(await guideLine(page)), 'what to do first');
+  const first = page.locator('[data-mkey][data-state="down"]').first();
+  const key = await first.getAttribute('data-mkey');
+  await first.click({ force: true });
+  await friend.click({ force: true });
+  await expect(page.locator(`[data-hint="1"]`)).toHaveAttribute('data-mkey', key!);
+  // tapping it again keeps working (it did nothing the second time before)
+  await friend.click({ force: true });
+  await expect(page.locator(`[data-hint="1"]`)).toHaveAttribute('data-mkey', key!);
+  await expect(friend, 'the friend stays on screen').toBeInViewport();
+});

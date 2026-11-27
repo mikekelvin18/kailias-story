@@ -47,6 +47,10 @@ export interface AssessmentState {
    *  the questions asked there and their answers, so it can carry on.
    *  Lives in the same saved assessment (already a child-data key). */
   challengeRound?: ChallengeRound | null;
+  /** The placement game in progress (Muse round 7: leaving after a question
+   *  lost the answer and restarted at Question 1). Same shape as a challenge
+   *  round; cleared when that game's answers are saved. */
+  placementRun?: ChallengeRound | null;
 }
 
 export interface ChallengeRound { step: number; asked: number[]; evidence: Evidence[] }
@@ -57,6 +61,7 @@ interface AssessmentContextType {
   setChildInfo: (name: string, age: number, ageMonths?: number) => void;
   setDomainEvidence: (domain: MilestoneDomain, evidence: Evidence[]) => void;
   setChallengeRound: (round: ChallengeRound | null) => void;
+  setPlacementRun: (run: ChallengeRound | null) => void;
   setAssessmentType: (type: 'checklist' | 'games') => void;
   setDomainScore: (domain: keyof AssessmentState['scores'], score: number) => void;
   setSensoryScore: (pattern: keyof SensoryScores, score: number) => void;
@@ -278,6 +283,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     setState(s => ({ ...s, evidence: { ...s.evidence, [domain]: evidence } }));
   const setChallengeRound = (round: ChallengeRound | null) =>
     setState(s => ({ ...s, challengeRound: round }));
+  const setPlacementRun = (run: ChallengeRound | null) =>
+    setState(s => ({ ...s, placementRun: run }));
 
   const setAssessmentType = (type: 'checklist' | 'games') =>
     setState(s => ({ ...s, assessmentType: type }));
@@ -292,7 +299,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     setState(s => ({ ...s, sensoryCompleted: true }));
 
   const completeAssessment = () =>
-    setState(s => ({ ...s, assessmentCompleted: true }));
+    setState(s => ({ ...s, assessmentCompleted: true, placementRun: null }));
 
   const setFineMotorInputMethod = (method: InputMethod) =>
     setState(s => ({ ...s, fineMotorInputMethod: method }));
@@ -376,6 +383,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       setChildInfo,
       setDomainEvidence,
       setChallengeRound,
+      setPlacementRun,
       setAssessmentType,
       setDomainScore,
       setSensoryScore,

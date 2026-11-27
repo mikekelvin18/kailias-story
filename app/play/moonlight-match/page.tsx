@@ -277,10 +277,25 @@ export default function MoonlightMatchPage() {
     }
   }
 
+  // Tapping the friend asks for help (Muse round 7: "Tickle" did nothing a
+  // child could see). With one feather lifted, the friend runs to its twin
+  // and a golden ring lights it; with none lifted, it says what to do first.
   function tickle() {
-    setPetMood('dance');
     chime.tap();
-    setTimeout(() => setPetMood('idle'), 1300);
+    if (phase !== 'playing') { setPetMood('dance'); setTimeout(() => setPetMood('idle'), 1300); return; }
+    const open = openRef.current != null ? cards.find(c => c.id === openRef.current) : null;
+    const twin = open ? cards.find(c => c.matchKey === open.matchKey && c.id !== open.id && c.state === 'down') : null;
+    if (twin) {
+      setHintId(twin.id);
+      setPetMood('talk');
+      const tx = clampPct(spotOf(twin.id).x);
+      setPetX(Math.abs(tx - kailiaX) < 15 ? clampPct(tx + (tx > 50 ? -15 : 15)) : tx);
+      setNoelLine(`${pet.name} is sitting by its twin! Look for the golden ring.`);
+    } else {
+      setPetMood('talk');
+      setNoelLine(`Flip one feather, then tap ${pet.name} for help finding its twin!`);
+      setTimeout(() => setPetMood('idle'), 1300);
+    }
   }
 
   function completeLevel() {
@@ -412,7 +427,7 @@ export default function MoonlightMatchPage() {
               <KailiaActor x={kailiaX} y={96} h={80} hop={kailiaHop} z={9} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={95} h={58}
-                  mood={petMood} moodKey={petMoodKey} moveMs={900} onTap={tickle} z={9} />
+                  mood={petMood} moodKey={petMoodKey} moveMs={900} onTap={tickle} z={9} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
 
               {burstLayer}
