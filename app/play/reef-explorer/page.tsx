@@ -164,6 +164,8 @@ export default function ReefExplorerPage() {
   const roundMisses = useRef(0);
   const metrics = useRef({ firstTry: 0, misses: 0, findMs: [] as number[], startedAt: 0 });
   const foundIdRef = useRef<number | null>(null);
+  // the fish hold still until this time (after the light jumps onto one)
+  const holdUntilRef = useRef(0);
   useEffect(() => { foundIdRef.current = foundId; }, [foundId]);
 
   const startRound = useCallback((idx: number) => {
@@ -219,6 +221,7 @@ export default function ReefExplorerPage() {
       // how wide a fish is, in % of the reef
       const w = areaRef.current?.clientWidth || 360;
       const gap = (sizeRef.current / w) * 100 * 0.85;
+      if (now < holdUntilRef.current) { raf = requestAnimationFrame(tick); return; }
       setFish(prev => {
         const next = prev.map(f => {
           if (f.id === foundIdRef.current) return f;
@@ -270,10 +273,33 @@ export default function ReefExplorerPage() {
     return Math.hypot(dx, dy) <= plan.light * 0.9;
   }
 
+  // tapping the friend asks for help (Muse round 7): a ring lights the fish to find
+  function askFriend() {
+    chime.tap();
+    const t = fish.find(q => q.target);
+    if (phase === 'playing' && t) {
+      setHintId(t.id);
+      setPetMood('talk');
+      setNoelLine(`${pet.name} spotted it! Look for the glowing ring.`);
+      return;
+    }
+    setPetMood('dance');
+  }
+
   function tapFish(f: Fish, e: React.PointerEvent) {
     if (phase !== 'playing') return;
-    if (!isLit(f)) return; // in the dark: the tap just moves the light there (handled by the stage)
     e.stopPropagation();
+    if (!isLit(f)) {
+      // in the dark (Muse round 7: taps on a dimly seen fish "all missed"):
+      // the light jumps right onto that fish and everyone holds still for a
+      // moment, so the next tap lands on what the child is looking at. It is
+      // not a pick yet: every pick is still a real look in the light.
+      setLight({ x: f.x, y: f.y });
+      lightRef.current = { x: f.x, y: f.y };
+      holdUntilRef.current = performance.now() + 1400;
+      setNoelLine('Now you can see it! Is it the one on the card? Tap it!');
+      return;
+    }
     if (f.target) {
       if (roundMisses.current === 0) metrics.current.firstTry += 1;
       metrics.current.findMs.push(clock() - roundStart.current);
@@ -405,7 +431,7 @@ export default function ReefExplorerPage() {
                   aria-label={f.target ? 'Sea friend' : 'Sea friend'}
                   onPointerDown={e => tapFish(f, e)}
                   className="absolute"
-                  style={{ left: `${f.x}%`, top: `${f.y}%`, width: plan.size, height: plan.size * 0.7, marginLeft: -plan.size / 2, marginTop: -plan.size * 0.35, zIndex: 10, background: 'none', border: 0, padding: 0, touchAction: 'none' }}>
+                  style={{ left: `${f.x}%`, top: `${f.y}%`, width: plan.size + 24, height: plan.size * 0.7 + 24, marginLeft: -(plan.size + 24) / 2, marginTop: -(plan.size * 0.7 + 24) / 2, zIndex: 10, background: 'none', border: 0, padding: 12, touchAction: 'none' }}>
                   <span key={wobbleId?.id === f.id ? wobbleId.n : 0} className={`block ${foundId === f.id ? 'rf-found' : wobbleId?.id === f.id ? 'kp-jelly' : 'rf-bob'}`} style={{ animationDelay: foundId === f.id ? undefined : `${-f.bob}s` }}>
                     <FishArt look={f.look} size={plan.size} flip={f.vx < 0} />
                   </span>
@@ -417,7 +443,7 @@ export default function ReefExplorerPage() {
               <KailiaActor x={16} y={95} h={78} hop={kailiaHop} z={16} />
               <div data-pet>
                 <span className="absolute rf-bubble pointer-events-none" style={{ left: `${petX}%`, top: '95%', width: 74, height: 74, transform: 'translate(-50%, -94%)', zIndex: 15, transition: 'left 1.1s ease-in-out' }} />
-                <Actor art={pet.art} name={pet.name} x={petX} y={94} h={56} mood={petMood} moodKey={petMoodKey} onTap={() => { setPetMood('dance'); chime.tap(); }} z={16} />
+                <Actor art={pet.art} name={pet.name} x={petX} y={94} h={56} mood={petMood} moodKey={petMoodKey} onTap={askFriend} z={16} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
 
               {/* the dark, with a circle of light and the beam from Kailia's flashlight */}

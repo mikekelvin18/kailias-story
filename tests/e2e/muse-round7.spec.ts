@@ -66,3 +66,48 @@ test('Quest Library: every shelf shows its ages and today\'s quests stay on the 
   await page.getByRole('button', { name: /Back to .* shelf/ }).click();
   await expect(page.locator('[data-other-band]')).toHaveCount(0);
 });
+
+// Item 9: on a 1919px screen the Journey world was a ~1000px strip with the
+// path in its left third and the arrows alone in the far corner.
+test.describe('on a big computer screen', () => {
+  test.use({ viewport: { width: 1919, height: 1000 } });
+  test('Journey: the world fills the width, the whole trail is in view, arrows sit by Noel', async ({ page }) => {
+    await seedFamily(page, { levels: { journey: 2 } });
+    await page.goto('/play/journey');
+    await page.locator('[data-testid="game-intro"] .gf-cta').first().click({ force: true });
+    const map = page.locator('[data-journey-map]');
+    await expect(map).toBeVisible();
+    await page.waitForTimeout(500);
+    const box = (await map.boundingBox())!;
+    expect(box.width, 'the world is as wide as the screen').toBeGreaterThan(1919 * 0.85);
+    expect(box.y, 'the top of the world is on screen').toBeGreaterThan(-5);
+    expect(box.y + box.height, 'the bottom of the world sits above Noel\'s bar').toBeLessThanOrEqual(1000 - 100);
+    const pad = (await page.locator('[data-dpad]').boundingBox())!;
+    expect(pad.y, 'the arrows are in the bottom bar').toBeGreaterThan(1000 - 200);
+    expect(pad.x, 'the arrows are beside Noel, not in the far corner').toBeLessThan(1919 * 0.6);
+  });
+});
+
+// Item 10: the Parent Zone showed two identical "Robin" buttons. Test Robins
+// made by jump links fold into one on the Parent Zone itself, not only when a
+// jump link opens; other children stay.
+test('Parent Zone: duplicate test Robins fold into one', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.clear();
+    const at = new Date().toISOString();
+    const kid = (id: string, nickname: string) => ({ id, nickname, birthYear: 2020, birthMonth: 5, avatar: 'fox', createdAt: at });
+    localStorage.setItem('kailia_family_v1', JSON.stringify({
+      id: 'fam-preview', createdAt: at,
+      consent: { agreedAt: at, policyVersion: '2026-07-draft-1', method: 'checkbox' }, photoConsent: null,
+      children: [kid('child-jump', 'Robin'), kid('child-old-1', 'Robin'), kid('child-test', 'Test Kid')],
+      activeChildId: 'child-jump', migratedLegacyData: true,
+    }));
+  });
+  await page.goto('/family');
+  await page.waitForTimeout(1500);
+  const fam = await page.evaluate(() => JSON.parse(localStorage.getItem('kailia_family_v1')!));
+  expect(fam.children.filter((c: { nickname: string }) => c.nickname === 'Robin')).toHaveLength(1);
+  expect(fam.children.map((c: { nickname: string }) => c.nickname)).toContain('Test Kid');
+});

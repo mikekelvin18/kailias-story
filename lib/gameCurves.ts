@@ -108,12 +108,15 @@ export function reefPlan(level: number, tier: DifficultyTier): ReefPlan {
   const L = Math.max(1, level);
   const band = L <= 5 ? 0 : L <= 10 ? 1 : L <= 15 ? 2 : 3;
   const plan: ReefPlan = {
+    // Muse round 7: level 1 was too hard for a 6-year-old (small, dim, quick
+    // fish; 0 of 5 found). The first levels now start slower, bigger, brighter
+    // and with a wider light, and reach the old pace by about level 8.
     fish: Math.min(9, 4 + Math.floor((L - 1) / 2)),
-    speed: Math.min(9, 2.5 + L * 0.25),
-    light: Math.max(14, 27 - L * 0.55),
-    dark: Math.min(0.93, 0.72 + L * 0.012),
+    speed: Math.min(9, 1.2 + L * 0.42),
+    light: Math.max(14, 31 - L * 0.75),
+    dark: Math.min(0.93, 0.56 + L * 0.03),
     band,
-    size: Math.max(52, 72 - L * 0.8),
+    size: Math.max(52, 90 - L * 2.4),
   };
   if (tier === 'tiny') { plan.fish = Math.min(plan.fish, 4); plan.speed *= 0.5; plan.light += 8; plan.dark = Math.min(plan.dark, 0.62); plan.band = Math.min(band, 1); }
   else if (tier === 'small') { plan.fish = Math.min(plan.fish, 6); plan.speed *= 0.8; plan.light += 4; plan.dark = Math.min(plan.dark, 0.82); plan.band = Math.min(band, 2); }

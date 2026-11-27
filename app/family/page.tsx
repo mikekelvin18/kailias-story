@@ -8,6 +8,7 @@ import {
   deleteChildAndData, deleteEverything, childDataInventory, DataSection, POLICY_VERSION,
 } from '@/lib/family';
 import BottomNav from '@/components/BottomNav';
+import { cleanUpTestRobins } from '@/lib/jump';
 import ThemeToggle from '@/components/ThemeToggle';
 import { AccessibilityPrefs, DEFAULT_A11Y, NARRATION_SPEEDS, loadA11y, saveA11y, applyA11y, deviceWantsLessMotion } from '@/lib/accessibility';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -88,7 +89,10 @@ function ParentZone() {
   const bright = themeName === 'bright';
   const { state: assessment, loaded: assessmentLoaded, chronoMonths } = useAssessment();
 
-  useEffect(() => { setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
+  // Muse round 7: two identical "Robin" buttons. Test Robins that jump links
+  // made are folded into one here too, not only when a jump link opens
+  // (a real family's own child is never touched: lib/jump.ts strayRobins).
+  useEffect(() => { cleanUpTestRobins(); setFamily(loadFamily()); setLoaded(true); setA11y(loadA11y()); setCustomTasks(loadCustomTasks()); }, []);
 
   function handleAddTask() {
     if (!newTaskText.trim()) return;
