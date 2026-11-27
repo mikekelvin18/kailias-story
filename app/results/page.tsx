@@ -42,10 +42,10 @@ const GRASP_LOOKUP: Record<string, { emoji: string; label: string; milestone: st
 };
 
 const SENSORY_PATTERNS = [
-  { key: 'lowRegistration', label: 'Low Registration',  color: '#94A3B8' },
-  { key: 'seeking',         label: 'Sensory Seeking',   color: '#3B82F6' },
-  { key: 'sensitive',       label: 'Sensory Sensitive', color: '#8B5CF6' },
-  { key: 'avoiding',        label: 'Sensory Avoiding',  color: '#D97706' },
+  { key: 'lowRegistration', label: 'Low Registration',  emoji: '😌', color: '#94A3B8' },
+  { key: 'seeking',         label: 'Sensory Seeking',   emoji: '🎢', color: '#3B82F6' },
+  { key: 'sensitive',       label: 'Sensory Sensitive', emoji: '🌊', color: '#8B5CF6' },
+  { key: 'avoiding',        label: 'Sensory Avoiding',  emoji: '🛡️', color: '#D97706' },
 ];
 const SENSORY_MAX = 6; // per pattern: 3 questions × 2 points
 
@@ -156,7 +156,7 @@ const STAGE_ACTIVITIES: Record<string, { title: string; activities: string[] }> 
 
 export default function ResultsPage() {
   const {
-    state, totalScore, learningStage, stageDescription,
+    state, totalScore, learningStage, stageEmoji, stageDescription,
     domainRange, domainComparison, estimates, chronoMonths, devMonths, resetAssessment, loaded,
     primarySensoryPattern, sensoryPatternDescription,
   } = useAssessment();
@@ -232,7 +232,7 @@ export default function ResultsPage() {
         <div className="rounded-3xl px-5 py-4 mb-6 text-center shadow-xl bounce-in"
           style={{ background: 'linear-gradient(135deg, #7C3AED, #EC4899)' }}>
           <p className="text-xs font-bold uppercase tracking-wide text-purple-100">Stage</p>
-          <h2 className="text-2xl font-extrabold text-white">{learningStage}</h2>
+          <h2 className="text-2xl font-extrabold text-white"><span aria-hidden="true">{stageEmoji}</span> {learningStage}</h2>
           <p className="text-purple-100 text-sm leading-snug mt-0.5">{stageDescription}</p>
         </div>
 
@@ -260,7 +260,7 @@ export default function ResultsPage() {
               return (
                 <div key={d.key}>
                   <p className="text-white font-bold text-sm">
-                    {d.label} <span className="text-slate-400 text-xs font-normal">· {d.land}</span>
+                    {d.emoji} {d.label} <span className="text-slate-400 text-xs font-normal">· {d.land}</span>
                   </p>
                   <p className="text-sm mt-0.5 mb-1.5">
                     <span className="font-bold" style={{ color: 'white' }}>{age.replace(/, at or above their age$/, '')}</span>
@@ -339,7 +339,7 @@ export default function ResultsPage() {
 
         {/* Senses: folded, the style name shows on the closed row */}
         {state.sensoryCompleted ? (
-          <Fold testId="senses-fold" title="Senses" hint={primarySensoryPattern ? `Style: ${primarySensoryPattern}` : undefined}>
+          <Fold testId="senses-fold" title="👀 Senses" hint={primarySensoryPattern ? `Style: ${primarySensoryPattern}` : undefined}>
             {primarySensoryPattern && (
               <p className="text-slate-200 text-sm leading-relaxed mb-4">{sensoryPatternDescription}</p>
             )}
@@ -350,7 +350,7 @@ export default function ResultsPage() {
                 return (
                   <div key={p.key}>
                     <p className="text-sm text-white font-semibold mb-1">
-                      {p.label}{isPrimary && <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: p.color }}>Main style</span>}
+                      {p.emoji} {p.label}{isPrimary && <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: p.color }}>Main style</span>}
                     </p>
                     <div className="h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
                       <div className="h-2 rounded-full" style={{ width: `${Math.round((score / SENSORY_MAX) * 100)}%`, background: p.color, minWidth: 6 }} />
@@ -376,11 +376,12 @@ export default function ResultsPage() {
         )}
 
         {/* Activities to keep growing: the full list, folded (Kelvin, 2026-11-27) */}
-        <Fold testId="activities-fold" light title="Activities to keep growing" hint={`${activities.activities.length} ideas to try at home`}>
+        <Fold testId="activities-fold" light title="🗺️ Activities to keep growing" hint={`${activities.activities.length} ideas to try at home`}>
           <ul className="space-y-2">
             {activities.activities.map((act, i) => (
-              <li key={i} className="rounded-xl px-3 py-2.5 text-gray-700 font-medium" style={{ background: '#F8F0FF' }}>
-                {act.split(' ').slice(1).join(' ')}
+              <li key={i} className="flex items-start gap-3 rounded-xl px-3 py-2.5" style={{ background: '#F8F0FF' }}>
+                <span className="text-lg flex-shrink-0" aria-hidden="true">{act.split(' ')[0]}</span>
+                <span className="text-gray-700 font-medium">{act.split(' ').slice(1).join(' ')}</span>
               </li>
             ))}
           </ul>

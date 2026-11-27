@@ -89,11 +89,11 @@ export default function ProgressReportPage() {
             </p>
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {([
-                ['Early Books & Sounds · Signposts', 'reading'],
-                ['Hand Skills · Firefly Forest', 'writing'],
-                ['Talking & Listening · Story Keepers', 'communication'],
-                ['Counting & Sorting · Dragon\'s Cave', 'math'],
-                ['Thinking & Remembering · Owl\'s Tower', 'processing'],
+                ['📖 Early Books & Sounds · Signposts', 'reading'],
+                ['✍️ Hand Skills · Firefly Forest', 'writing'],
+                ['🗣️ Talking & Listening · Story Keepers', 'communication'],
+                ['🔢 Counting & Sorting · Dragon\'s Cave', 'math'],
+                ['🦉 Thinking & Remembering · Owl\'s Tower', 'processing'],
               ] as [string, MilestoneDomain][]).filter(([, key]) => key !== 'processing' || domainRange(key) !== 'not checked yet').map(([label, key]) => {
                 const cmp = domainComparison(key);
                 return (
@@ -109,7 +109,7 @@ export default function ProgressReportPage() {
               {/* Senses: a style from the grown-up's answers (like standard
                   sensory questionnaires), never an age. */}
               <div className="px-3 py-2 bg-white">
-                <span className="text-sm font-semibold text-slate-700">Senses · Echo Caves: </span>
+                <span className="text-sm font-semibold text-slate-700">👀 Senses · Echo Caves: </span>
                 {state.sensoryCompleted && primarySensoryPattern ? (
                   <>
                     <span className="text-sm font-bold text-slate-500">{primarySensoryPattern}</span>
