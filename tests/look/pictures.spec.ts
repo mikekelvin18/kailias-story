@@ -63,8 +63,12 @@ async function open(page: Page, path: string) {
 }
 
 async function settle(page: Page) {
-  // a sound or music file can keep the network busy; don't wait on it forever
-  await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+  // a sound or music file can keep the network busy; don't wait on it forever,
+  // but do wait until every picture on screen has arrived and been decoded
+  await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+  // (checked from here, not in the page: the page's own timers are frozen)
+  for (let i = 0; i < 60 && !(await page.evaluate(() => [...document.images].every(im => { const r = im.getBoundingClientRect(); const seen = r.width > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; return !seen || !im.src || (im.complete && im.naturalWidth > 0); }))); i++)
+    await page.waitForTimeout(250);
   // fonts can stay "loading" on a busy check machine with the page clock frozen:
   // move the clock along until they're ready, but never wait more than ~10 s
   for (let i = 0; i < 40 && !(await page.evaluate(() => document.fonts.status === 'loaded')); i++) {
