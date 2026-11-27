@@ -111,3 +111,41 @@ test('Parent Zone: duplicate test Robins fold into one', async ({ page }) => {
   expect(fam.children.filter((c: { nickname: string }) => c.nickname === 'Robin')).toHaveLength(1);
   expect(fam.children.map((c: { nickname: string }) => c.nickname)).toContain('Test Kid');
 });
+
+// Item 14: on a short computer screen Sky Mail's opening showed only Noel's
+// words and the play controls; the mailbags (the menu) were below the fold and
+// faded in late. A "Pick a mailbag" line and the first mailbag show at once.
+test('Sky Mail: the mailbag menu shows on arrival at desktop height', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 600 });
+  await seedFamily(page);
+  await page.goto('/play/sky-mail');
+  await expect(page.getByTestId('game-intro')).toBeVisible({ timeout: 30_000 });
+  const hint = page.locator('[data-mailbag-hint]');
+  await expect(hint).toBeInViewport();
+  await expect(hint).toContainText(/ways to play/);
+  await hint.click();
+  await expect(page.locator('[data-mailbags] .gf-choice').first()).toBeInViewport();
+});
+
+// Item 15: the break reminder covered the map with one way out. The big X,
+// Escape and a tap on the dim space around it all set it aside.
+test('Break reminder: easy to set aside', async ({ page }) => {
+  await seedFamily(page);
+  for (const how of ['x', 'escape', 'outside'] as const) {
+    await page.goto('/go/break');
+    const box = page.getByTestId('break-screen');
+    await expect(box).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('dialog', { name: 'Tap to start' }).click({ force: true, timeout: 3000 }).catch(() => {});
+    if (how === 'x') await page.getByRole('button', { name: 'Not now, back to play' }).click();
+    else if (how === 'escape') await page.keyboard.press('Escape');
+    else await box.click({ position: { x: 6, y: 830 } });
+    await expect(box).toHaveCount(0);
+  }
+});
+
+// Item 16: /go/challenge was a hidden path. It now opens the Challenge round.
+test('/go/challenge opens the Challenge round', async ({ page }) => {
+  await page.goto('/go/challenge');
+  await expect(page).toHaveURL(/\/assessment\/games\?challenge=1/, { timeout: 30_000 });
+  await expect(page.getByText(/Challenge round/i).first()).toBeVisible({ timeout: 30_000 });
+});

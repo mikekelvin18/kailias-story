@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
-import { OnTop } from '@/components/PopupClose';
+import PopupClose, { OnTop } from '@/components/PopupClose';
 import { GoArrow } from '@/components/games/GameFrame';
 import { say, hush } from '@/lib/voice';
 import { A11Y_EVENT } from '@/lib/accessibility';
@@ -60,12 +60,25 @@ function SleepyZs() {
   );
 }
 
-function BreakScreen({ onDone }: { onDone: () => void }) {
+// Muse round 7: the break screen covered the whole map with only one way out
+// ("We moved!"). It is now easy to set aside: the same big X as every other
+// pop-up, Escape, or a tap on the dimmed space around it. Setting it aside
+// only snoozes it (it comes back after 5 more minutes of play).
+function BreakScreen({ onDone, onLater }: { onDone: () => void; onLater: () => void }) {
   useEffect(() => { say(BREAK_LINE, { voice: 'kailia' }); return () => hush(); }, []);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onLater(); };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [onLater]);
   return (
     <OnTop>
       <div className="fixed inset-0 z-[85] flex p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-label="Time for a little break"
-        data-testid="break-screen" style={{ background: 'linear-gradient(170deg, rgba(30,58,95,0.9), rgba(23,37,84,0.94))' }}>
+        data-testid="break-screen" style={{ background: 'linear-gradient(170deg, rgba(30,58,95,0.9), rgba(23,37,84,0.94))' }}
+        onClick={e => { if (e.target === e.currentTarget) onLater(); }}>
+        <div className="fixed top-1 right-1 w-16 h-16 z-30" data-break-close>
+          <PopupClose onClose={onLater} label="Not now, back to play" color="#7DD3FC" />
+        </div>
         <div className="m-auto w-full max-w-sm [@media(max-height:520px)]:max-w-3xl text-center py-2 flex flex-col [@media(max-height:520px)]:flex-row [@media(max-height:520px)]:items-center gap-5">
           <div className="flex-1 min-w-0">
           <div className="flex items-end justify-center gap-1">
@@ -202,7 +215,8 @@ export default function PlayTimer() {
     return () => clearTimeout(t);
   }, [path, show]);
 
-  if (show === 'break') return <BreakScreen onDone={() => { setSinceBreak(0); setShow(null); }} />;
+  if (show === 'break') return <BreakScreen onDone={() => { setSinceBreak(0); setShow(null); }}
+    onLater={() => { setSinceBreak(Math.max(0, (breakMinutes() - 5) * 60_000)); setShow(null); }} />;
   if (show === 'done') return <DoneScreen onMore={() => { addExtraMinutes(10); setSinceBreak(0); setShow(null); }} />;
   return null;
 }
