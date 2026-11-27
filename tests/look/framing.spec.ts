@@ -81,7 +81,8 @@ test('Reef Explorer: sea friends never swim stacked on top of each other (uprigh
     const runs: Record<string, number> = {};
     for (let s = 0; s < 40; s++) { // 8 seconds, from the very start of the round
       const stacked = await page.evaluate(() => {
-        const r = [...document.querySelectorAll('[data-fish]')].map(e => e.getBoundingClientRect());
+        // the fish as drawn (each button has a little extra invisible tap room around it)
+        const r = [...document.querySelectorAll('[data-fish]')].map(e => (e.querySelector('[data-fish-art]') ?? e).getBoundingClientRect());
         const out: string[] = [];
         for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) {
           const ox = Math.min(r[i].right, r[j].right) - Math.max(r[i].left, r[j].left);

@@ -431,8 +431,8 @@ export default function ReefExplorerPage() {
                   aria-label={f.target ? 'Sea friend' : 'Sea friend'}
                   onPointerDown={e => tapFish(f, e)}
                   className="absolute"
-                  style={{ left: `${f.x}%`, top: `${f.y}%`, width: plan.size + 24, height: plan.size * 0.7 + 24, marginLeft: -(plan.size + 24) / 2, marginTop: -(plan.size * 0.7 + 24) / 2, zIndex: 10, background: 'none', border: 0, padding: 12, touchAction: 'none' }}>
-                  <span key={wobbleId?.id === f.id ? wobbleId.n : 0} className={`block ${foundId === f.id ? 'rf-found' : wobbleId?.id === f.id ? 'kp-jelly' : 'rf-bob'}`} style={{ animationDelay: foundId === f.id ? undefined : `${-f.bob}s` }}>
+                  style={{ left: `${f.x}%`, top: `${f.y}%`, width: plan.size + 24, height: plan.size * 0.7 + 12, marginLeft: -(plan.size + 24) / 2, marginTop: -(plan.size * 0.7 + 12) / 2, zIndex: 10, background: 'none', border: 0, padding: '6px 12px', touchAction: 'none' }}>
+                  <span data-fish-art key={wobbleId?.id === f.id ? wobbleId.n : 0} className={`block ${foundId === f.id ? 'rf-found' : wobbleId?.id === f.id ? 'kp-jelly' : 'rf-bob'}`} style={{ animationDelay: foundId === f.id ? undefined : `${-f.bob}s` }}>
                     <FishArt look={f.look} size={plan.size} flip={f.vx < 0} />
                   </span>
                 </button>
