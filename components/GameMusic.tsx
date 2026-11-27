@@ -124,7 +124,8 @@ export default function GameMusic() {
     let raf = 0;
     const find = () => {
       raf = 0;
-      let el = document.querySelector('[data-sound-slot]');
+      // a game's opening card covers the game's own bar: dock in the card's slot
+      let el = document.querySelector('[data-game-intro] [data-sound-slot]') ?? document.querySelector('[data-sound-slot]');
       if (!el) el = gameBarSlot();
       setSlot(prev => (prev === el ? prev : el));
     };

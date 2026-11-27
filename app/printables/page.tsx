@@ -6,6 +6,8 @@ import PandaSprite from '@/components/characters/PandaSprite';
 import { WORKSHEETS, CATEGORY_INFO, WorksheetCategory } from '@/lib/worksheets';
 import { loadWorksheetProgress } from '@/lib/worksheetProgress';
 import { hasActiveConsent } from '@/lib/family';
+import { canOpenPrintable } from '@/lib/paywall';
+import { ParentGateModal } from '@/components/ParentGate';
 import BottomNav from '@/components/BottomNav';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
@@ -25,12 +27,16 @@ const CATEGORIES = Object.keys(CATEGORY_INFO) as WorksheetCategory[];
 export default function PrintablesPage() {
   const [progress, setProgress] = useState<Record<string, { completedAt: string; hasPhoto: boolean }>>({});
   const [consented, setConsented] = useState(false);
+  // printables past the free sample (lib/pricing.ts) wait for a family plan
+  const [openable, setOpenable] = useState<(id: string) => boolean>(() => () => true);
+  const [gate, setGate] = useState(false);
   const { theme, name: themeName } = useHubTheme();
   const bright = themeName === 'bright';
 
   useEffect(() => {
     setProgress(loadWorksheetProgress());
     setConsented(hasActiveConsent());
+    setOpenable(() => canOpenPrintable);
   }, []);
 
   const doneCount = Object.keys(progress).length;
@@ -77,6 +83,17 @@ export default function PrintablesPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {items.map(w => {
                   const done = !!progress[w.id];
+                  if (!openable(w.id)) {
+                    return (
+                      <button key={w.id} onClick={() => setGate(true)}
+                        className="rounded-2xl p-3 text-left opacity-80"
+                        style={{ background: theme.surface, border: '2px dashed rgba(253,224,71,0.7)' }}>
+                        <span className="block text-3xl mb-1">{w.emoji}</span>
+                        <span className="block font-extrabold text-gray-800 text-sm leading-tight">{w.title}</span>
+                        <span className="block text-[11px] font-bold text-amber-800 mt-1">With Family Premium (grown-ups)</span>
+                      </button>
+                    );
+                  }
                   return (
                     <Link key={w.id} href={`/printables/${w.id}`}
                       className="rounded-2xl p-3 transition-transform hover:scale-105"
@@ -94,6 +111,7 @@ export default function PrintablesPage() {
           );
         })}
       </div>
+      {gate && <ParentGateModal href="/upgrade" onClose={() => setGate(false)} note="All printables open with a family plan." />}
       <BottomNav />
     </main>
   );

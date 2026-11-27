@@ -12,6 +12,7 @@
 // off, or, the first time, their own starting level (Kelvin 2026-11-25: older
 // children met 3-year-old levels because every game began on level 1).
 
+import { useTestTapMode } from '@/hooks/useTestTapMode';
 import { useEffect, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import { difficultyTier, type DifficultyTier } from '@/lib/difficulty';
@@ -61,7 +62,9 @@ export function useGameFit(gameId: string): GameFit {
   const fitMonths = shiftedMonths(est ? est.mid : devMonths ?? chronoMonths, gameLevel);
   const tier = difficultyTier(state.ageGroup, totalScore, fitMonths);
   const band = bandForMonths(fitMonths);
-  const look = BAND_SETTINGS[band];
+  // reviewers' test mode (/go/test-mode, preview only): tap instead of drag
+  const tapTest = useTestTapMode();
+  const look = tapTest ? { ...BAND_SETTINGS[band], tapToMove: true } : BAND_SETTINGS[band];
   return {
     tier, band, look, fitMonths,
     startLevel: loaded ? fitStartLevel(gameId, fitMonths) : 1,

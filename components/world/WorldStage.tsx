@@ -128,7 +128,7 @@ export default function WorldStage({ width, height, focusX, freeze, reducedMotio
 
   return (
     <StageCtx.Provider value={api}>
-      <div ref={viewRef} className="fixed inset-0 overflow-hidden select-none" style={{ touchAction: 'none' }}
+      <div ref={viewRef} data-play-field="" className="fixed inset-0 overflow-hidden select-none" style={{ touchAction: 'none' }}
         // focusing a button off-screen would scroll this box and break the
         // camera; the camera alone decides what is visible
         onScroll={e => { e.currentTarget.scrollTop = 0; e.currentTarget.scrollLeft = 0; }}>

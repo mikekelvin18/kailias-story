@@ -860,9 +860,11 @@ button:active {
    Entrances overshoot and settle; the Play button breathes and shines;
    confetti flutters down. "Reduce motion" shows it all still. */
 .gf-screen { position: relative; min-height: 100vh; overflow: hidden; overflow: clip; isolation: isolate; }
-/* the intro's Play button stays in view on a short phone (overflow: clip, not
-   hidden, so position: sticky still follows the page) */
-.gf-cta-dock { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; }
+/* the intro's Play button (IntroStart in GameFrame.tsx, shared by every game):
+   in normal page flow BELOW the level picker, never fixed/sticky/absolute, so
+   it can't float over the level bubbles (Grok play-test 2026-11-27). At least
+   16px above it, and room for the phone's home bar below it. */
+.gf-cta-dock { position: static; margin-top: 20px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
 /* Calm mode (grown-ups' Display settings): no painted scenery behind games */
 :root[data-calm="true"] .gf-backdrop { display: none; }
 .gf-back {

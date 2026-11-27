@@ -25,6 +25,7 @@ import {
   TALK_THANKS, TALK_RATING_LABEL, type TalkPlace, type TalkPrompt, type TalkRating,
 } from '@/lib/talk';
 import { JUMP_TALK_KEY } from '@/lib/jump';
+import { subscribeTapToStart, tapToStartShowing } from '@/components/TapToStart';
 
 /** A big cartoon mouth, opening and closing, with sound waves beside it. */
 export function TalkMouth({ size = 76, listening = false }: { size?: number; listening?: boolean }) {
@@ -178,7 +179,9 @@ const subscribeHost = (l: () => void) => { hostListeners.add(l); return () => { 
 /** Shows the talking moment a game asked for. Mount once per page. */
 export function TalkHost() {
   const p = useSyncExternalStore(subscribeHost, () => pending, () => null);
-  if (!p) return null;
+  // never under "Tap to start!": the moment waits until that is tapped away
+  const waitForStart = useSyncExternalStore(subscribeTapToStart, tapToStartShowing, () => true);
+  if (!p || waitForStart) return null;
   return <TalkMoment key={p.prompt.id + p.prompt.text} place={p.place} prompt={p.prompt}
     onDone={() => { const n = p.next; setPending(null); n(); }} />;
 }

@@ -413,7 +413,9 @@ export default function DragonBridgePage() {
         <div className="flex justify-center items-end gap-3 flex-wrap" aria-hidden data-level-friends={preview.map(p => p.who).join(',')}>
           {preview.map((p, i) => (
             <span key={i} className="float inline-flex flex-col items-center" style={{ animationDelay: `${i * 0.3}s` }}>
-              <WhoArt who={p.who} h={52} />
+              {/* breathing pictures, not moving-parts canvases: the opening
+                  already has Kailia, Noel and the friend moving */}
+              <WhoArt who={p.who} h={52} rigged={false} />
               {p.thing && <span className="-mt-1"><ThingIcon k={p.thing} size={24} /></span>}
             </span>
           ))}
@@ -712,8 +714,8 @@ function Stone() {
 }
 
 // the round's friend: a baby dragon (Ember's picture) or a visiting animal
-function WhoArt({ who, h }: { who: Who; h: number }) {
-  if (who === 'dragon') return <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, h)} kind="pet" pokeable={false} />;
+function WhoArt({ who, h, rigged = true }: { who: Who; h: number; rigged?: boolean }) {
+  if (who === 'dragon') return <LiveArt src={EMBER.art} alt="" size={petWidth(EMBER.art, h)} kind="pet" pokeable={false} rigged={rigged} />;
   return <CritterSprite species={who} size={h} />;
 }
 

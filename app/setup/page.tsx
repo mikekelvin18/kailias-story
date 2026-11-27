@@ -67,7 +67,7 @@ export default function SetupPage() {
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center px-4 py-10 relative"
-      style={{ background: 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 50%, #667EEA 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #0F766E 0%, #115E59 50%, #4338CA 100%)' /* deep enough for white words (4.5:1+) */ }}
     >
       {/* Drawn sparkles twinkling behind the card (no emoji art) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

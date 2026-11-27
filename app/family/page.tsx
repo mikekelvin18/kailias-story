@@ -24,6 +24,9 @@ import PlaySettings from '@/components/family/PlaySettings';
 import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
+import { canAddChild } from '@/lib/premium';
+import WeeklySummary from '@/components/WeeklySummary';
+import { ParentGatePage } from '@/components/ParentGate';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
@@ -48,7 +51,18 @@ const COLLECTED = [
   ['☀️', 'Your one-tap reports on daily activities (did it / tried with help / not yet).'],
 ];
 
+// The Parent Zone holds child profiles, deletion and settings, so it sits
+// behind the grown-up check (Kelvin, 2026-11-25): a child tapping "Family"
+// in the bottom bar meets "Grown-ups only", never the forms.
 export default function ParentZonePage() {
+  return (
+    <ParentGatePage note="The Family page is for grown-ups.">
+      <ParentZone />
+    </ParentGatePage>
+  );
+}
+
+function ParentZone() {
   const [family, setFamily] = useState<FamilyAccount | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [agreeChecked, setAgreeChecked] = useState(false);
@@ -205,8 +219,9 @@ export default function ParentZonePage() {
             </div>
             <p className="text-xs text-gray-500 mb-3">
               Full details: <Link href="/privacy" className="underline font-semibold">Privacy Policy</Link> ·{' '}
-              <Link href="/retention" className="underline font-semibold">Data Retention Policy</Link>{' '}
-              (both drafts, pending legal review).
+              <Link href="/retention" className="underline font-semibold">Data Retention Policy</Link> ·{' '}
+              <Link href="/terms" className="underline font-semibold">Terms of Use</Link>{' '}
+              (drafts, pending legal review) · <Link href="/about" className="underline font-semibold">About us</Link>.
             </p>
 
             <label className="flex items-start gap-2.5 rounded-xl p-3 cursor-pointer" style={{ background: '#EFF6FF', border: '2px solid #93C5FD' }}>
@@ -248,14 +263,32 @@ export default function ParentZonePage() {
                   <ChildAvatar avatar={c.avatar} size={26} /> {c.nickname}
                 </button>
               ))}
-              <button onClick={() => setShowAddChild(true)}
-                className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
-                style={{ border: '1.5px dashed #CBD5E1' }}>
-                + Add a child
-              </button>
+              {canAddChild(family.children.length) ? (
+                <button onClick={() => setShowAddChild(true)}
+                  className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
+                  style={{ border: '1.5px dashed #CBD5E1' }}>
+                  + Add a child
+                </button>
+              ) : (
+                <Link href="/upgrade"
+                  className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-violet-700"
+                  style={{ border: '1.5px dashed #C4B5FD' }}>
+                  More children with Family Premium
+                </Link>
+              )}
             </div>
           </div>
         )}
+
+        {/* This week, in plain words (on-device only, components/WeeklySummary.tsx) */}
+        {consented && child && <WeeklySummary childName={child.nickname} />}
+
+        {/* trust pages, always easy to find (Grok 2026-11-27) */}
+        <nav aria-label="About the app" data-trust-links className="flex flex-wrap gap-2 mb-4">
+          <Link href="/about" className="inline-flex items-center min-h-[44px] px-4 rounded-full text-sm font-bold bg-white text-violet-800" style={{ border: '1.5px solid #DDD6FE' }}>About Kailia&apos;s Story</Link>
+          <Link href="/terms" className="inline-flex items-center min-h-[44px] px-4 rounded-full text-sm font-bold bg-white text-violet-800" style={{ border: '1.5px solid #DDD6FE' }}>Terms of Use (draft)</Link>
+          <Link href="/privacy" className="inline-flex items-center min-h-[44px] px-4 rounded-full text-sm font-bold bg-white text-violet-800" style={{ border: '1.5px solid #DDD6FE' }}>Privacy</Link>
+        </nav>
 
         {/* ── STEP 2: Add child profile (always for the first child; a
             toggled form for adding a sibling afterward) ── */}
@@ -397,8 +430,8 @@ export default function ParentZonePage() {
                 })}
               </div>
               <button onClick={handleAddTask} disabled={!newTaskText.trim()}
-                className="w-full min-h-[48px] rounded-full font-extrabold text-white transition-colors"
-                style={{ background: newTaskText.trim() ? '#7C3AED' : '#CBD5E1' }}>
+                className="w-full min-h-[48px] rounded-full font-extrabold transition-colors"
+                style={newTaskText.trim() ? { background: '#7C3AED', color: '#FFFFFF' } : { background: '#E2E8F0', color: '#475569' }}>
                 Add goal
               </button>
             </div>
@@ -454,16 +487,27 @@ export default function ParentZonePage() {
             <input type="checkbox" checked={a11y.reducedSound} onChange={e => updateA11y({ reducedSound: e.target.checked })} className="w-5 h-5" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
-            <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games</span>
-            <input type="checkbox" checked={a11y.musicOn} onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5" />
+          {/* While Sound off is on, music and read-aloud show as off and can't be
+              changed; their own saved choices are kept untouched, so turning
+              Sound off back off brings back exactly what they were. */}
+          <label data-sound-dependent="music" aria-disabled={a11y.reducedSound}
+            className={`flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 ${a11y.reducedSound ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer'}`} style={{ background: '#F1F5F9' }}>
+            <span className={`text-sm font-semibold text-gray-700`}>🎵 Soft music in the games
+              {a11y.reducedSound && <span className="block text-xs font-normal text-gray-600">Paused while Sound off is on</span>}
+            </span>
+            <input type="checkbox" checked={a11y.musicOn && !a11y.reducedSound} disabled={a11y.reducedSound}
+              onChange={e => updateA11y({ musicOn: e.target.checked })} className="w-5 h-5 shrink-0" />
           </label>
 
-          <label className="flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 cursor-pointer" style={{ background: '#F1F5F9' }}>
+          <label data-sound-dependent="read-aloud" aria-disabled={a11y.reducedSound}
+            className={`flex items-center justify-between gap-2 rounded-xl p-3 min-h-[48px] mb-2 ${a11y.reducedSound ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer'}`} style={{ background: '#F1F5F9' }}>
             <span className="text-sm font-semibold text-gray-700">Read aloud
-              <span className="block text-xs font-normal text-gray-500">Kailia, Noel and the friends read every story, instruction and speech bubble out loud.</span>
+              <span className="block text-xs font-normal text-gray-500">
+                {a11y.reducedSound ? 'Paused while Sound off is on' : 'Kailia, Noel and the friends read every story, instruction and speech bubble out loud.'}
+              </span>
             </span>
-            <input type="checkbox" checked={a11y.narrationOn !== false} onChange={e => updateA11y({ narrationOn: e.target.checked })} className="w-5 h-5 shrink-0" />
+            <input type="checkbox" checked={a11y.narrationOn !== false && !a11y.reducedSound} disabled={a11y.reducedSound}
+              onChange={e => updateA11y({ narrationOn: e.target.checked })} className="w-5 h-5 shrink-0" />
           </label>
 
           <div className="rounded-xl p-3 mb-2" style={{ background: '#F1F5F9' }}>
@@ -582,7 +626,9 @@ export default function ParentZonePage() {
 
             <p className="text-sm text-gray-500 mt-4">
               <Link href="/privacy" className="underline font-semibold">Privacy Policy</Link> ·{' '}
-              <Link href="/retention" className="underline font-semibold">Data Retention Policy</Link>
+              <Link href="/retention" className="underline font-semibold">Data Retention Policy</Link> ·{' '}
+              <Link href="/terms" className="underline font-semibold">Terms of Use (draft)</Link> ·{' '}
+              <Link href="/about" className="underline font-semibold">About us</Link>
             </p>
           </Section>
         )}

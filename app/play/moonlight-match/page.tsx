@@ -325,13 +325,15 @@ export default function MoonlightMatchPage() {
       <div data-play-col className="max-w-md mx-auto px-3 relative">
 
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 px-1 relative z-10" style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
-          <Link href="/play" className="kp-back h-12 px-4 inline-flex items-center rounded-full text-base font-bold text-white"
+        <div className="flex items-center justify-between gap-2 pb-2 px-1 relative z-10" style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
+          <Link href="/play" className="kp-back h-12 px-4 inline-flex items-center rounded-full text-base font-bold text-white flex-none whitespace-nowrap"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
-          <h1 className="text-xl font-extrabold text-white drop-shadow">
-            Moonlight Match <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+          {/* the title may shorten on a small phone; the level badge never does */}
+          <h1 className="min-w-0 flex items-center justify-center gap-1 text-xl font-extrabold text-white drop-shadow" style={{ fontSize: 'min(1.25rem, 5.2vw)' }}>
+            <span className="min-w-0 truncate">Moonlight Match</span>
+            <span className="flex-none whitespace-nowrap text-xs font-bold text-yellow-300 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="w-14 flex items-center justify-end gap-0.5 text-sm font-extrabold text-yellow-300">
+          <span className="w-14 flex-none flex items-center justify-end gap-0.5 text-sm font-extrabold text-yellow-300">
             {streak >= 2 && phase === 'playing' && <><Flame size={22} />×{streak}</>}
           </span>
         </div>
@@ -428,10 +430,15 @@ export default function MoonlightMatchPage() {
             <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              {/* capped height (Grok 2026-11-27: at large text the panel took most of
+                  the screen); a longer line scrolls inside the bubble */}
+              <div className="rounded-2xl bg-white relative min-w-0 flex-1">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
-                {noelLine}
+                <div data-read-aloud data-speech-panel className="px-3 py-2 text-lg font-bold text-gray-900 overflow-y-auto overscroll-contain"
+                  style={{ maxHeight: 'max(26vh, 8.5rem)' }}>
+                  {noelLine}
+                </div>
               </div>
             </div>
           </div>

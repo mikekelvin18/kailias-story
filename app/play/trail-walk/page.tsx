@@ -270,18 +270,27 @@ export default function TrailWalkPage() {
   return (
     <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #7dd3fc 0%, #bae6fd 45%, #86efac 100%)' }}>
       <div data-play-col className="max-w-md mx-auto px-3">
-        <div className="flex items-center justify-between pt-4 pb-2 px-1">
-          <Link href="/play" className="kp-back text-sm font-bold text-sky-900 whitespace-nowrap">← Map</Link>
-          <h1 className="text-xl font-extrabold text-sky-950 drop-shadow-sm whitespace-nowrap">
-            Kailia&apos;s Trail <span className="text-xs font-bold text-amber-800 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.4)' }}>Lv {level}</span>
+        {/* Top bar (Grok 2026-11-27: dark title on a dark bar, crowding the Map
+            and sound buttons, dots cut off). One solid deep-teal bar with white
+            words (well over 4.5:1): Map, the friends met (they wrap if they need
+            to) and the sound button on the first row; the title gets its own row. */}
+        <div data-trail-bar className="mt-3 mb-2 rounded-2xl px-2 pt-1.5 pb-2" style={{ background: '#0C4A6E' }}>
+          <div className="flex items-center gap-2">
+            <Link href="/play" className="kp-back font-bold text-white whitespace-nowrap flex-none" style={{ background: 'rgba(255,255,255,0.14)' }}>← Map</Link>
+            <span data-trail-dots aria-label={phase !== 'intro' ? `${party.length} of ${STOPS} friends met` : undefined}
+              className="flex flex-1 min-w-0 flex-wrap items-center justify-end gap-1">
+              {phase !== 'intro' && Array.from({ length: STOPS }).map((_, i) => (
+                i < party.length
+                  ? <Critter key={i} emoji={party[i]} size={20} animate={false} />
+                  : <span key={i} className="inline-block w-3 h-3 mx-0.5 rounded-full flex-none" style={{ background: '#FFFFFF', border: '2.5px solid #67E8F9' }} />
+              ))}
+            </span>
+            {/* the sound button docks here (components/GameMusic.tsx) */}
+            <span className="flex-none" />
+          </div>
+          <h1 className="mt-1 text-center text-xl font-extrabold text-white truncate">
+            Kailia&apos;s Trail <span className="text-xs font-bold align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: '#FDE68A', color: '#78350F' }}>Lv {level}</span>
           </h1>
-          <span className="flex items-center justify-end gap-0.5 w-20">
-            {phase !== 'intro' && Array.from({ length: STOPS }).map((_, i) => (
-              i < party.length
-                ? <Critter key={i} emoji={party[i]} size={20} animate={false} />
-                : <span key={i} className="inline-block w-3 h-3 mx-1 rounded-full" style={{ background: '#FFFFFF', border: '2.5px solid #0E7490' }} />
-            ))}
-          </span>
         </div>
 
         {phase === 'intro' && (

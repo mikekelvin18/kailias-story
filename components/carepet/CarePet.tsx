@@ -15,8 +15,9 @@
 // step changes.
 
 import { createPortal } from 'react-dom';
+import { subscribeTapToStart, tapToStartShowing } from '@/components/TapToStart';
 import PopupClose from '@/components/PopupClose';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import LiveArt from '@/components/characters/LiveArt';
@@ -108,6 +109,8 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   const [pet, setPet] = useState<CarePetState | null>(null);
   const [friend, setFriend] = useState<PlayPet>(COMPANIONS[1]);
   const [open, setOpen] = useState(false);
+  // never pop up under the "Tap to start!" screen: wait until it is tapped away
+  const waitForStart = useSyncExternalStore(subscribeTapToStart, tapToStartShowing, () => true);
   const [phase, setPhase] = useState<Phase>('hello');
   const [task, setTask] = useState<PetTask | null>(null);
   const [line, setLine] = useState('');
@@ -197,11 +200,11 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
 
   // pop up by itself once a day, after the map has settled
   useEffect(() => {
-    if (!pet || open || holdAutoOpen) return;
+    if (!pet || open || holdAutoOpen || waitForStart) return;
     if (!shouldAutoOpen(pet, today()) || petLocked(pet)) return;
     const t = setTimeout(() => openMoment(true), 900);
     return () => clearTimeout(t);
-  }, [pet, open, holdAutoOpen, openMoment]);
+  }, [pet, open, holdAutoOpen, waitForStart, openMoment]);
 
   // while the box is open: Escape closes it, the page behind can't scroll
   const closeFn = useRef<() => void>(() => {});
@@ -368,7 +371,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
       </button>
 
       {/* ── The pet moment, in the middle of the screen ── */}
-      {open && createPortal(
+      {open && !waitForStart && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Your pet friend"
           style={{ padding: 'max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))' }}>
           {/* the page behind goes dim; tapping it closes the box */}

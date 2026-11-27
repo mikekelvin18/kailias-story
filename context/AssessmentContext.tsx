@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { cleanUpTestRobins } from '@/lib/jump';
 import { scopedKey, ACTIVE_CHILD_CHANGED_EVENT } from '@/lib/family';
 import {
   estimateAge, formatAgeRange, aheadCeiling, challengeCeiling, isChallengeEvidence, screenView, compareToAge, MILESTONE_DOMAINS,
@@ -75,6 +76,8 @@ interface AssessmentContextType {
   chronoMonths: number | null;
   /** Range estimate per area, null for checks done before the milestone ladders existed. */
   estimates: Partial<Record<MilestoneDomain, AgeEstimate>>;
+  /** The overall range parents read (low/high in months), null before the milestone ladders. */
+  overallEstimate: AgeEstimate | null;
   /** Midpoint of the overall estimate, in months — drives game difficulty and the Quest Library band. */
   devMonths: number | null;
   /** "about 2½ to 3½ years" for one area, falling back to the older score bands. */
@@ -233,6 +236,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   // whenever the active child switches, since this provider is mounted
   // once at the root layout and otherwise wouldn't notice.
   useEffect(() => {
+    // fold any duplicate made-up test "Robin" profiles into one (lib/jump.ts)
+    try { cleanUpTestRobins(); } catch { /* never blocks loading */ }
     const load = () => {
       try {
         const raw = localStorage.getItem(scopedKey(STORAGE_KEY));
@@ -331,13 +336,25 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   // read uses the screen view, held near the real age at the top.
   const devMonths = rawOverall ? rawOverall.mid : null;
   const overall = rawOverall ? screenView(rawOverall, chronoMonths, pooled.some(isChallengeEvidence), topPassed(pooled)) : null;
+  // A skill with no check-up answers (only a few game scores) used to read a
+  // fixed table by age group, so a 6-year-old with easy wins showed "about
+  // 10–12 yrs" (Grok play-test 2026-11-27). Now it is a range around the
+  // child's own age, moved down for low scores and held by screenView at
+  // about half a year above their age at most, like every other estimate.
+  const fromScore = (d: MilestoneDomain): AgeEstimate | null => {
+    if (chronoMonths == null || d === 'processing') return null;
+    const f = Math.max(0, Math.min(10, state.scores[d] ?? 0)) / 10;
+    const mid = chronoMonths * (0.7 + 0.35 * f);
+    const est: AgeEstimate = { low: mid * 0.85, mid, high: mid * 1.15, items: 0 };
+    return screenView(est, chronoMonths);
+  };
   const domainRange = (d: MilestoneDomain) => {
-    const est = estimates[d];
+    const est = estimates[d] ?? fromScore(d);
     if (est) return formatAgeRange(est);
     return d === 'processing' ? 'not checked yet' : getDomainAge(state.scores[d], state.ageGroup);
   };
   const domainComparison = (d: MilestoneDomain) => {
-    const est = estimates[d];
+    const est = estimates[d] ?? fromScore(d);
     return est ? compareToAge(est, chronoMonths) : null;
   };
   // The stage name and its at-home activity list never run ahead of the
@@ -376,6 +393,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       domainAge: (score) => getDomainAge(score, state.ageGroup),
       chronoMonths,
       estimates,
+      overallEstimate: overall,
       devMonths,
       domainRange,
       domainComparison,

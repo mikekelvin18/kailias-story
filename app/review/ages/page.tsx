@@ -61,7 +61,10 @@ export default async function AgesReview() {
     { k: 'Math', v: b => ({ find12: 'find 1–2', count5: 'count to 5', count10: 'count to 10, 2 more', addSub20: '± within 20', timesWords: '× and word problems' })[BAND_SETTINGS[b].math] },
     { k: 'Memory pairs', v: b => `${BAND_SETTINGS[b].memoryPairs}` },
   ];
-  const cell = { padding: '6px 8px', borderBottom: '1px solid #E9D5FF', verticalAlign: 'top' as const };
+  const cell = { padding: '6px 8px', borderBottom: '1px solid #E9D5FF', verticalAlign: 'top' as const, minWidth: 104 };
+  // On a phone the table scrolls sideways and its first column stays put
+  // (Grok 2026-11-27: only 2 of the 6 columns showed).
+  const first = { ...cell, position: 'sticky' as const, left: 0, zIndex: 1, background: '#FFFFFF', boxShadow: '2px 0 0 #E9D5FF', minWidth: 112 };
   return (
     <main className="min-h-screen px-4 py-8" style={{ background: '#F5F3FF', color: '#2E1065' }}>
       <div className="max-w-5xl mx-auto">
@@ -72,24 +75,26 @@ export default async function AgesReview() {
           the real age), moved a year by Family → Game level. Tap a cell to open the game as a child that age.
         </p>
 
+        <p className="mt-2 text-sm font-bold sm:hidden" data-swipe-hint>Swipe the tables sideways to see all {AGE_BANDS.length} age bands.</p>
+
         <h2 className="text-lg font-extrabold mt-6">Band settings</h2>
-        <div className="overflow-x-auto mt-2 rounded-2xl bg-white">
-          <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
-            <thead><tr><th style={cell}></th>{AGE_BANDS.map(b => <th key={b} style={cell} className="text-left">{BAND_SETTINGS[b].label}</th>)}</tr></thead>
+        <div className="overflow-x-auto mt-2 rounded-2xl bg-white" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: 720 }}>
+            <thead><tr><th style={first}></th>{AGE_BANDS.map(b => <th key={b} style={cell} className="text-left">{BAND_SETTINGS[b].label}</th>)}</tr></thead>
             <tbody>{rows.map(r => (
-              <tr key={r.k}><th style={cell} className="text-left whitespace-nowrap">{r.k}</th>{AGE_BANDS.map(b => <td key={b} style={cell}>{r.v(b)}</td>)}</tr>
+              <tr key={r.k}><th style={first} className="text-left whitespace-nowrap">{r.k}</th>{AGE_BANDS.map(b => <td key={b} style={cell}>{r.v(b)}</td>)}</tr>
             ))}</tbody>
           </table>
         </div>
 
         <h2 className="text-lg font-extrabold mt-6">Where each game starts</h2>
         <p className="text-sm">For a typical child in each band (on track). Level, then what it asks; ✓ just right, ↓ easy start, ↑ hard.</p>
-        <div className="overflow-x-auto mt-2 rounded-2xl bg-white">
-          <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
-            <thead><tr><th style={cell} className="text-left">Game</th>{AGE_BANDS.map(b => <th key={b} style={cell} className="text-left">{BAND_SETTINGS[b].label} ({years(SAMPLE[b])})</th>)}</tr></thead>
+        <div className="overflow-x-auto mt-2 rounded-2xl bg-white" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: 720 }}>
+            <thead><tr><th style={first} className="text-left">Game</th>{AGE_BANDS.map(b => <th key={b} style={cell} className="text-left">{BAND_SETTINGS[b].label} ({years(SAMPLE[b])})</th>)}</tr></thead>
             <tbody>{FIT_GAMES.map(g => (
               <tr key={g.id}>
-                <th style={cell} className="text-left">{g.title}<span className="block text-xs font-normal">{g.skill}</span></th>
+                <th style={first} className="text-left">{g.title}<span className="block text-xs font-normal">{g.skill}</span></th>
                 {AGE_BANDS.map(b => {
                   const m = SAMPLE[b];
                   const L = fitStartLevel(g.id, m);
@@ -98,10 +103,10 @@ export default async function AgesReview() {
                   const route = ROUTE[g.id] ?? g.id;
                   return (
                     <td key={b} style={cell}>
-                      <a href={`/go/game/${route}?age=${years(m).replace('½', '.5')}`} className="underline" style={{ color: '#6D28D9' }}>
+                      <a href={`/go/game/${route}?age=${years(m).replace('½', '.5')}`} className="inline-block underline" style={{ color: '#6D28D9' }}>
                         {g.leveled ? `L${L}` : 'bag'} {v === 'good' ? '✓' : v === 'easy' ? '↓' : '↑'}
                       </a>
-                      {note && <span className="block text-xs">{note}</span>}
+                      {note && <span className="block mt-1 text-xs">{note}</span>}
                     </td>
                   );
                 })}

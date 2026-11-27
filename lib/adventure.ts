@@ -2,6 +2,7 @@
 // One place that defines the six lands, which mini-games (quests) live in
 // each land, and how the child's progress is saved on this device.
 
+import { FREE } from '../src/config/pricing';
 import { scopedKey } from './family';
 
 export interface Quest {
@@ -306,11 +307,12 @@ export function maxStars(): number {
   return LANDS.reduce((sum, land) => sum + land.quests.length, 0);
 }
 
-// ── Free trial ──
-// The first quest of every land is always free, so a family can try every
-// skill domain (fine motor, math, reading, communication, sensory,
-// processing) before upgrading — never just one skill forever. Everything
-// past that first quest is premium-gated (see lib/premium.ts).
+// ── Free part ──
+// Which world-map quests are open without a plan comes from lib/pricing.ts
+// (FREE.questsPerLand). Kelvin's rule (2026-11-11): every quest is open and
+// the game LEVELS do the gating (first 5 from the child's start, see
+// isLevelFree in lib/premium.ts). Set questsPerLand to a number to go back
+// to "first quest of every land".
 export function isQuestFree(questIndex: number): boolean {
-  return questIndex === 0;
+  return FREE.questsPerLand === 'all' || questIndex < FREE.questsPerLand;
 }

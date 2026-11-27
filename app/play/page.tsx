@@ -2,7 +2,8 @@
 
 import ChildAvatar from '@/components/characters/ChildAvatar';
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, useSyncExternalStore } from 'react';
+import { subscribeTapToStart, tapToStartShowing } from '@/components/TapToStart';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
@@ -138,6 +139,8 @@ export default function AdventureMap() {
   // one pop-up per visit: if today's quests popped up, the care pet waits
   // to be tapped instead of popping up right after
   const [dailyPopped, setDailyPopped] = useState(false);
+  // today's quests wait until "Tap to start!" has been tapped away
+  const waitForStart = useSyncExternalStore(subscribeTapToStart, tapToStartShowing, () => true);
   const [rewards, setRewards] = useState<RewardsState>({ starlight: 0, gameLevels: {}, celebratedCompanions: [] });
   const [showGuide, setShowGuide] = useState(false);
   const [newCompanion, setNewCompanion] = useState<(typeof COMPANIONS)[number] | null>(null);
@@ -643,10 +646,12 @@ export default function AdventureMap() {
         })()}
 
         {/* ── Noel's guide bar ── */}
-        <div className="flex items-center gap-3 mt-2 sm:mt-4 rounded-2xl p-2.5 sm:p-3 flex-shrink-0"
+        {/* wraps in a narrow side column (phone sideways): the pet moves under
+            Noel's words instead of squeezing them to one word per line */}
+        <div className="flex flex-wrap items-center gap-3 mt-2 sm:mt-4 rounded-2xl p-2.5 sm:p-3 flex-shrink-0"
           style={{ background: theme.panelBg, border: `1.5px solid ${theme.panelBorder}` }}>
           <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-          <div data-noel-bubble className="rounded-2xl px-4 py-2 sm:py-2.5 text-base leading-snug font-semibold text-gray-800 relative"
+          <div data-noel-bubble className="flex-1 min-w-[7.5rem] rounded-2xl px-4 py-2 sm:py-2.5 text-base leading-snug font-semibold text-gray-800 relative"
             style={{ background: 'white' }}>
             <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
               style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
@@ -729,7 +734,7 @@ export default function AdventureMap() {
       )}
 
       {/* ── Today's quests popup — the main event for little ones ── */}
-      {dailyPrompt && band && (
+      {dailyPrompt && band && !waitForStart && (
         <OnTop>
         <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Today's quests"
           style={{ background: 'rgba(10,8,40,0.84)' }} onClick={dismissDaily}>

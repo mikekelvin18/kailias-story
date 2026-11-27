@@ -307,17 +307,16 @@ export default function EchoSongPage() {
 
         {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && (
           <div className="relative z-10">
+            {/* who's singing now: above the cave, so it never covers a crystal */}
+            <div className="flex justify-center pointer-events-none mb-1">
+              <span className="px-4 py-1 rounded-full text-sm font-extrabold"
+                style={{ background: 'rgba(7,20,40,0.72)', border: '1.5px solid rgba(255,255,255,0.35)', color: phase === 'echo' ? '#A5F3FC' : '#FDE047' }}>
+                {phase === 'showing' ? 'The crystals are singing…' : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
+              </span>
+            </div>
             <div data-play-field className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
               style={{ aspectRatio: '3 / 3.5', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)' }}>
               <EchoCave />
-
-              {/* who's singing now */}
-              <div className="absolute left-0 right-0 top-2 flex justify-center pointer-events-none" style={{ zIndex: 12 }}>
-                <span className="px-4 py-1 rounded-full text-sm font-extrabold"
-                  style={{ background: 'rgba(7,20,40,0.72)', border: '1.5px solid rgba(255,255,255,0.35)', color: phase === 'echo' ? '#A5F3FC' : '#FDE047' }}>
-                  {phase === 'showing' ? 'The crystals are singing…' : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
-                </span>
-              </div>
 
               {CRYSTALS.map((c, i) => {
                 const [x, y] = SPOTS[i];

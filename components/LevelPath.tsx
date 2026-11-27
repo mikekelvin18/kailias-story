@@ -7,6 +7,8 @@ import { Thing } from '@/components/art/things';
 import { useGameFit } from '@/hooks/useGameFit';
 import { PLAY_TOGETHER_NOTE } from '@/lib/ageBands';
 import { LEVELS_PER_CHAPTER, MAX_LADDER_LEVEL, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
+import { isPremium, lastFreeLevel } from '@/lib/premium';
+import { ParentGateModal } from '@/components/ParentGate';
 
 // ── Level map ──
 // A small winding path of 5 level stones (one chapter) on every leveled
@@ -37,6 +39,12 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   const [unlocked, setUnlocked] = useState(startLevel);
   const [beaten, setBeaten] = useState(0);
   const [page, setPage] = useState(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
+  // Paid levels (lib/pricing.ts): without a plan, levels past the first
+  // five from the child's start show a grown-up key instead of a number.
+  // Tapping one opens the grown-up check, then the plans page. The child
+  // never sees a price or a "locked" sad face, just the key for a grown-up.
+  const [freeTop, setFreeTop] = useState(Infinity);
+  const [planGate, setPlanGate] = useState(false);
   const fit = useGameFit(gameId);
   // grown-ups can open any level (Grok's review 2026-11-25): a sum first, so a child can't
   const [gate, setGate] = useState<null | { a: number; b: number; options: number[]; passed: boolean }>(null);
@@ -51,8 +59,14 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
     /* eslint-disable react-hooks/set-state-in-effect */
     setUnlocked(unlockedUpTo(gameId, startLevel));
     setBeaten(highestBeaten(gameId));
+    setFreeTop(isPremium() ? Infinity : lastFreeLevel(startLevel));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [gameId, startLevel]);
+
+  // a saved level past the free part (e.g. a plan ended): start on the last free one
+  useEffect(() => {
+    if (level > freeTop) onPick(freeTop);
+  }, [level, freeTop, onPick]);
 
   // follow the chosen level when the game changes it (e.g. after loading)
   useEffect(() => {
@@ -102,27 +116,29 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
         </svg>
         {levels.map((lv, i) => {
           const done = lv <= beaten;
-          const open = lv <= unlocked;
+          const reached = lv <= unlocked;
+          const needsPlan = reached && lv > freeTop;
+          const open = reached && !needsPlan;
           const chosen = lv === level;
           const s = SPOTS[i];
           const big = i === LEVELS_PER_CHAPTER - 1;   // the world's last, golden stone
           return (
             <div key={lv} className="absolute"
               style={{ left: `${(s.x / 300) * 100}%`, top: `${((s.y + 12) / 132) * 100}%`, transform: 'translate(-50%, -50%)' }}>
-              <button aria-label={open ? `Level ${lv}` : `Level ${lv}, locked`}
-                disabled={!open}
-                onClick={() => onPick(lv)}
+              <button aria-label={open ? `Level ${lv}` : needsPlan ? `Level ${lv}, for a grown-up to open` : `Level ${lv}, locked`}
+                disabled={!open && !needsPlan}
+                onClick={() => (needsPlan ? setPlanGate(true) : onPick(lv))}
                 className={`relative flex items-center justify-center rounded-full font-extrabold drop-in ${chosen ? 'lp-chosen' : ''}`}
                 style={{
                   width: big ? 54 : 48, height: big ? 54 : 48,
                   animationDelay: `${i * 60}ms`, animationFillMode: 'both',
-                  background: done ? chapter.color : open ? 'white' : 'rgba(255,255,255,0.12)',
+                  background: done && !needsPlan ? chapter.color : open ? 'white' : needsPlan ? 'rgba(253,224,71,0.22)' : 'rgba(255,255,255,0.12)',
                   color: done ? 'white' : open ? '#1E293B' : 'rgba(255,255,255,0.45)',
                   border: chosen ? '3px solid #FDE047' : big && open ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.35)',
                   boxShadow: done ? `0 0 14px ${chapter.color}` : 'none',
                   fontSize: open ? (lv > 999 ? 13 : lv > 99 ? 15 : 17) : 15,
                 }}>
-                {open ? lv : <LockIcon size={20} />}
+                {open ? lv : needsPlan ? <GrownUpKey /> : <LockIcon size={20} />}
                 {done && <span className="absolute -top-1.5 -right-1.5 sparkle" aria-hidden><StarIcon size={15} /></span>}
               </button>
               {chosen && (
@@ -139,10 +155,10 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
       )}
       {newestPage !== page && unlocked > LEVELS_PER_CHAPTER && (
         <div className="text-center pb-1">
-          <button onClick={() => { setPage(newestPage); onPick(unlocked); }}
+          <button onClick={() => { const to = Math.min(unlocked, freeTop); setPage(Math.floor((to - 1) / LEVELS_PER_CHAPTER)); onPick(to); }}
             className="px-4 py-1.5 rounded-full text-sm font-extrabold"
             style={{ background: 'rgba(255,255,255,0.9)', color: '#1E293B' }}>
-            Go to my newest level ({unlocked})
+            Go to my newest level ({Math.min(unlocked, freeTop)})
           </button>
         </div>
       )}
@@ -177,6 +193,17 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
           </div>
         )}
       </div>
+      {planGate && <ParentGateModal href="/upgrade" onClose={() => setPlanGate(false)} note="More levels open with a family plan." />}
     </div>
+  );
+}
+
+// A little golden key: "a grown-up can open this". Never a sad lock or a price.
+function GrownUpKey() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
+      <circle cx="8" cy="12" r="4.5" fill="none" stroke="#FDE047" strokeWidth="2.6" />
+      <path d="M12.5 12H21M18 12v3M21 12v2.5" fill="none" stroke="#FDE047" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
   );
 }

@@ -5,7 +5,7 @@
 // public/sounds/pets/. A pet calls when it's tapped, and games can call
 // petCall() when the pet cheers. Quiet when sound is turned down.
 
-import { soundEnabled, effectsVolume } from './accessibility';
+import { soundEnabled, effectsVolume, A11Y_EVENT } from './accessibility';
 import { COMPANIONS } from './rewards';
 
 const KINDS = ['owl', 'fox', 'parrot', 'turtle', 'dragon', 'unicorn'] as const;
@@ -36,6 +36,13 @@ export function preloadPetCall(pet: string) {
   if (kind) try { player(kind).load(); } catch { /* sound is a bonus */ }
 }
 let lastCheerAt = 0;
+
+// "Sound off" (or the sound button) stops a call that is already playing.
+if (typeof window !== 'undefined') {
+  window.addEventListener(A11Y_EVENT, () => {
+    if (!soundEnabled()) players.forEach(a => { try { a.pause(); } catch { /* ignore */ } });
+  });
+}
 
 /**
  * Play a pet's call. `pet` may be its kind ("owl"), name ("Sage") or picture path.
