@@ -43,3 +43,26 @@ test.describe('on a phone', () => {
     }
   });
 });
+
+// Item 8: the Quest Library shelves said only "Band 1"–"Band 4", and Today's
+// Quests followed whichever shelf a grown-up browsed (a 6-year-old got baby
+// quests). Every shelf names its ages; today's quests stay on the child's own.
+test('Quest Library: every shelf shows its ages and today\'s quests stay on the child\'s shelf', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72 });
+  await page.goto('/activities');
+  await expect(page.locator('[data-band-ages]')).toContainText(/years|months/);
+  const today = async () => (await page.locator('h3, p.font-extrabold').allInnerTexts()).join('|');
+  await page.getByRole('button', { name: /Peek at the whole library/ }).click();
+  const shelves = page.locator('[data-band-button]');
+  await expect(shelves).toHaveCount(4);
+  for (let i = 0; i < 4; i++) await expect(shelves.nth(i)).toContainText(/\d.*(months|years)/);
+  await expect(page.locator('[data-band-button="4"]')).toContainText(/shelf/);
+  const before = await page.locator('[data-band-ages]').innerText();
+  const quests = await today();
+  await page.locator('[data-band-button="1"]').click();
+  await expect(page.locator('[data-other-band]')).toContainText('6–18 months');
+  expect(await page.locator('[data-band-ages]').innerText()).toBe(before);
+  expect(await today()).toContain(quests.split('|').find(t => /Dragon|Cut|Delivery/.test(t)) ?? '');
+  await page.getByRole('button', { name: /Back to .* shelf/ }).click();
+  await expect(page.locator('[data-other-band]')).toHaveCount(0);
+});

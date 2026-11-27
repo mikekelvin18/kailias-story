@@ -140,14 +140,17 @@ export default function ActivityLibraryPage() {
     setPremiumState(isPremium()); setCustomTasks(loadCustomTasks());
   }, []);
 
-  const daily = useMemo(() => todaysQuests(band), [band]);
+  // Today's Quests always follow the child's own band (Muse round 7: they
+  // followed whichever band a grown-up was browsing, so a 6-year-old got baby
+  // quests); browsing another band only changes the library list below.
+  const daily = useMemo(() => todaysQuests(detectedBand), [detectedBand]);
   const dailyIds = new Set(daily.map(a => a.id));
   const library = ACTIVITIES.filter(a =>
     a.band === band && !dailyIds.has(a.id) && (domainFilter === 'all' || a.domain === domainFilter));
   const doneToday = daily.filter(a => reports[a.id] !== undefined).length;
   const allDone = doneToday === daily.length;
   const minutes = dailyMinutes(daily);
-  const info = BAND_INFO[band];
+  const info = BAND_INFO[detectedBand];
 
   function handleReport(a: ParentActivity, s: ReportScore) {
     reportActivity(a, s);
@@ -180,17 +183,17 @@ export default function ActivityLibraryPage() {
             <p className="font-extrabold text-gray-800 leading-tight">
               {state.childName ? `${state.childName} the ` : 'Your '}{info.name}
             </p>
+            <p data-band-ages className="text-xs font-extrabold text-gray-700 mt-0.5">Quests for children {info.ages}</p>
             <p className="text-xs text-gray-600 mt-0.5">{info.blurb}</p>
           </div>
         </div>
 
-        {/* Why these quests — only when the assessment itself picked this band */}
-        {detectedBand === band && (
+        {/* Why these quests: always about the child's own shelf */}
           <div className="rounded-2xl p-3 mb-4 flex items-start gap-2"
             style={{ background: 'rgba(253,224,71,0.12)', border: '1.5px solid rgba(253,224,71,0.35)' }}>
             <span className="text-xl" style={{ flexShrink: 0 }}>💡</span>
             <p className={`text-xs leading-relaxed ${bright ? 'text-amber-900' : 'text-yellow-100'}`}>
-              {band === 4 ? (
+              {detectedBand === 4 ? (
                 <><strong>Why these quests?</strong> They match {state.childName ? `${state.childName}'s` : 'your child\'s'} adventure
                 check. The map games do most of the practising at this stage; these short real-world missions
                 carry the same skills off the screen, <strong>with you</strong>.</>
@@ -202,7 +205,6 @@ export default function ActivityLibraryPage() {
               )}
             </p>
           </div>
-        )}
 
         {/* No consent yet → reports can't be saved */}
         {!consented && (
@@ -281,17 +283,34 @@ export default function ActivityLibraryPage() {
               <h2 className={`text-lg font-extrabold ${theme.title}`}>📚 The Whole Library</h2>
               <button onClick={() => setShowLibrary(false)} className={`text-xs font-bold ${theme.link}`}>Hide ▴</button>
             </div>
-            <div className="flex gap-2 mb-3 justify-center">
+            {/* each shelf names its ages (Muse round 7: "Band 1–4" told a
+                parent nothing); the child's own shelf is marked */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
               {([1, 2, 3, 4] as const).map(b => (
-                <button key={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
-                  className="px-4 py-1.5 rounded-full text-sm font-extrabold transition-all"
+                <button key={b} data-band-button={b} onClick={() => { setBand(b); setDomainFilter('all'); }}
+                  className="px-3 py-2 rounded-2xl text-left transition-all"
                   style={band === b
                     ? { background: '#FBBF24', color: '#451a03' }
                     : { background: theme.badgeBg, color: bright ? '#4338CA' : '#e9d5ff', border: `1.5px solid ${theme.panelBorder}` }}>
-                  {BAND_INFO[b].emoji} Band {b}
+                  <span className="block text-sm font-extrabold leading-tight">{BAND_INFO[b].emoji} {BAND_INFO[b].name}</span>
+                  <span className="block text-xs font-bold leading-tight mt-0.5">{BAND_INFO[b].ages.replace(/^about /, 'About ')}</span>
+                  {b === detectedBand && <span className="block text-[11px] font-extrabold uppercase tracking-wide mt-0.5">{state.childName ? `${state.childName}'s shelf` : 'Your child\'s shelf'}</span>}
                 </button>
               ))}
             </div>
+            {band !== detectedBand && (
+              <div data-other-band className="rounded-2xl p-3 mb-3 text-xs font-bold flex items-center gap-2 flex-wrap"
+                style={{ background: 'rgba(253,224,71,0.14)', border: '1.5px solid rgba(253,224,71,0.4)', color: bright ? '#78350F' : '#FEF3C7' }}>
+                <span className="flex-1 min-w-[12rem]">
+                  You are looking at quests for children {BAND_INFO[band].ages}.
+                  {state.childName ? ` ${state.childName}'s` : ' Your child\'s'} own quests are on the {BAND_INFO[detectedBand].name} shelf.
+                </span>
+                <button onClick={() => { setBand(detectedBand); setDomainFilter('all'); }}
+                  className="px-3 py-1.5 rounded-full font-extrabold" style={{ background: '#FBBF24', color: '#451a03' }}>
+                  Back to {state.childName ? `${state.childName}'s` : 'my child\'s'} shelf
+                </button>
+              </div>
+            )}
             <div className="flex gap-1.5 flex-wrap mb-3">
               <button onClick={() => setDomainFilter('all')}
                 className="px-3 py-1 rounded-full text-xs font-extrabold"

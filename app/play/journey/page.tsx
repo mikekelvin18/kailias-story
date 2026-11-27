@@ -48,8 +48,19 @@ import {
 // encounter, cheers each catch, wobbles "oops" on a miss, and after two
 // tries bounces to point out the glowing answer.
 
-const W = 16, H = 20;            // map size, tiles — bigger now the whole screen is the world
-const TILE = 44;                 // px per tile
+// map size, tiles. Upright screens get a tall 16×20 world; a computer or a
+// tablet held sideways gets a wide one shaped like its screen (Muse round 7:
+// on a 1919px screen the tall world was a strip in the middle, with the path
+// in its left third). Set by sizeWorld() just before a world is built.
+let W = 16, H = 20;
+function sizeWorld(screenW: number, screenH: number) {
+  if (screenW >= 900 && screenH >= 560 && screenW > screenH) {
+    H = 13;
+    const room = (screenH - 72 - 150) / (H * TILE);          // how tall a tile can be
+    W = Math.max(18, Math.min(30, Math.round(screenW / (room * TILE))));
+  } else { W = 16; H = 20; }
+}
+const TILE = 44;                 // px per tile (before zoom)
 
 type TileType = 'grass' | 'path' | 'tallgrass' | 'tree' | 'water' | 'flower' | 'flag';
 
@@ -328,6 +339,8 @@ export default function JourneyPage() {
   useEffect(() => { setLevel(openingLevel('journey', fit.startLevel)); }, [fit.startLevel]);
 
   const beginWorld = useCallback((starter?: (typeof STARTERS)[number]) => {
+    const vp = viewportRef.current;
+    sizeWorld(vp?.clientWidth || window.innerWidth, vp?.clientHeight || window.innerHeight);
     const w = buildWorld(tier, level, fit.fitMonths);
     worldRef.current = w;
     playerRef.current = w.start;
@@ -536,19 +549,25 @@ export default function JourneyPage() {
   // The floating dialog/hint bar (plus the D-pad above it) occupies the
   // bottom of the screen — bias the camera so Kailia stays visible above
   // that reserved strip instead of centered dead-in-the-middle.
-  const BOTTOM_UI_RESERVE = 190;
+  // a computer screen: the D-pad sits in the bottom bar beside Noel's words
+  // (Muse round 7: it was alone in the far bottom-right corner)
+  const TOP_UI_RESERVE = 72;
+  const wide = screenSize.w >= 900 && screenSize.h >= 560 && screenSize.w > screenSize.h;
+  const BOTTOM_UI_RESERVE = wide ? 150 : 190;
   // On a wide screen (a computer) the map grows to fill the width, up to
   // MAP_MAX_W, keeping its shape, and sits in the middle (Grok 2026-11-27:
   // it was pinned left with empty green on the right). Phones keep 1:1.
   const MAP_MAX_W = 1400;
-  const zoom = screenSize.w > W * TILE ? Math.min(screenSize.w, MAP_MAX_W) / (W * TILE) : 1;
+  // a wide world fills the screen's width and fits its height (between the bars)
+  const zoom = wide
+    ? Math.max(1, Math.min(screenSize.w / (W * TILE), (screenSize.h - TOP_UI_RESERVE - BOTTOM_UI_RESERVE) / (H * TILE)))
+    : screenSize.w > W * TILE ? Math.min(screenSize.w, MAP_MAX_W) / (W * TILE) : 1;
   const T = TILE * zoom;   // one tile on screen, in px
   const mapLeft = Math.max(0, (screenSize.w - W * T) / 2);
   const maxOffX = Math.max(0, W * T - screenSize.w);
   const maxOffY = Math.max(0, H * T - screenSize.h + BOTTOM_UI_RESERVE);
   const offsetX = Math.max(0, Math.min(maxOffX, player.x * T - screenSize.w / 2 + T / 2));
   // …and past the top row too, so the flag up there never hides under the header
-  const TOP_UI_RESERVE = 72;
   const offsetY = Math.max(-TOP_UI_RESERVE, Math.min(maxOffY, player.y * T - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + T / 2));
 
   // the still drawing of the map only changes when the world does
@@ -697,7 +716,7 @@ export default function JourneyPage() {
           </div>
 
           {/* ── Floating mini D-pad, inside the screen (tap-to-walk still works everywhere else) ── */}
-          {phase === 'walking' && (
+          {phase === 'walking' && !wide && (
             <div className="absolute z-[60]" style={{ right: 10, bottom: 196 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 42px)', gridTemplateRows: 'repeat(3, 42px)', gap: 3 }}>
                 {([[null], [0, -1, 0], [null], [-1, 0, 270], [null], [1, 0, 90], [null], [0, 1, 180], [null]] as (number | null)[][]).map((d, i) => (
@@ -726,6 +745,7 @@ export default function JourneyPage() {
                     style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                   {dialog}
                 </div>
+                {wide && <DPad move={move} />}
               </div>
               <p className="text-center text-base font-extrabold text-white mt-2 drop-shadow-lg">
                 Tap anywhere to walk there!
@@ -992,6 +1012,26 @@ function BattleBackdrop({ biome }: { biome: Biome }) {
           <ellipse cx="32" cy="92" rx="27.5" ry="4.4" fill={biome.path} />
         </g>
       </svg>
+    </div>
+  );
+}
+
+// The walking arrows. On a phone they float above Noel's bar; on a computer
+// they sit in the bar, right beside what Noel says.
+function DPad({ move }: { move: (dx: number, dy: number) => void }) {
+  return (
+    <div data-dpad className="flex-none" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 40px)', gridTemplateRows: 'repeat(3, 40px)', gap: 3 }}>
+      {([[null], [0, -1, 0], [null], [-1, 0, 270], [null], [1, 0, 90], [null], [0, 1, 180], [null]] as (number | null)[][]).map((d, i) => (
+        d[0] === null ? <div key={i} /> : (
+          <button key={i} onClick={() => move(d[0]!, d[1]!)} aria-label={['up', 'left', 'right', 'down'][[1, 3, 5, 7].indexOf(i)]}
+            className="rounded-xl flex items-center justify-center active:scale-90 transition-transform"
+            style={{ background: 'rgba(15,23,42,0.7)', border: '1.5px solid rgba(255,255,255,0.55)' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" style={{ transform: `rotate(${d[2]}deg)` }} aria-hidden="true">
+              <path d="M4 13 L10 6 L16 13" stroke="#FFFFFF" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )
+      ))}
     </div>
   );
 }
