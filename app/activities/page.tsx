@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
-import { developmentalBand, libraryBand, BAND_INFO, type LibraryBand } from '@/lib/difficulty';
+import { developmentalBand, libraryBand, BAND_INFO, bandAgeFits, type LibraryBand } from '@/lib/difficulty';
 import { hasActiveConsent } from '@/lib/family';
 import {
   ACTIVITIES, DOMAIN_META, ParentActivity, ActivityDomain, ReportScore,
@@ -183,7 +183,7 @@ export default function ActivityLibraryPage() {
             <p className="font-extrabold text-gray-800 leading-tight">
               {state.childName ? `${state.childName} the ` : 'Your '}{info.name}
             </p>
-            <p data-band-ages className="text-xs font-extrabold text-gray-700 mt-0.5">Quests for children {info.ages}</p>
+            {bandAgeFits(detectedBand, chronoMonths) && <p data-band-ages className="text-xs font-extrabold text-gray-700 mt-0.5">Quests for children {info.ages}</p>}
             <p className="text-xs text-gray-600 mt-0.5">{info.blurb}</p>
           </div>
         </div>
