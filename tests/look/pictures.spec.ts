@@ -50,6 +50,9 @@ async function tickUntil(page: Page, ready: () => Promise<boolean>, what: string
 }
 
 async function open(page: Page, path: string) {
+  // a picture or sound the server couldn't send shows up in the check's log
+  page.on('response', r => { if (r.status() >= 400) console.log(`[pictures] ${path}: ${r.status()} for ${r.url().replace(/^https?:\/\/[^/]+/, '')}`); });
+  page.on('requestfailed', r => console.log(`[pictures] ${path}: failed ${r.url().replace(/^https?:\/\/[^/]+/, '')} (${r.failure()?.errorText})`));
   await page.goto(path);
   const tap = page.getByRole('dialog', { name: 'Tap to start' });
   // pages with "Tap to start!" show it once they're live; the others are
@@ -69,6 +72,8 @@ async function settle(page: Page) {
   // (checked from here, not in the page: the page's own timers are frozen)
   for (let i = 0; i < 60 && !(await page.evaluate(() => [...document.images].every(im => { const r = im.getBoundingClientRect(); const seen = r.width > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; return !seen || !im.src || (im.complete && im.naturalWidth > 0); }))); i++)
     await page.waitForTimeout(250);
+  const missing = await page.evaluate(() => [...document.images].filter(im => { const r = im.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight && im.src && !(im.complete && im.naturalWidth > 0); }).map(im => im.src.replace(location.origin, '')));
+  if (missing.length) console.log(`[pictures] ${page.url()}: pictures that never arrived: ${missing.join(', ')}`);
   // fonts can stay "loading" on a busy check machine with the page clock frozen:
   // move the clock along until they're ready, but never wait more than ~10 s
   for (let i = 0; i < 40 && !(await page.evaluate(() => document.fonts.status === 'loaded')); i++) {
