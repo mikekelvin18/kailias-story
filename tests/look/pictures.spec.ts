@@ -7,10 +7,13 @@ import { GAMES, SIZES, prepare, openJump, openGame } from './helpers';
 // changes how a screen looks, this check fails and shows the difference
 // (expected / actual / diff) in the report, so nothing changes by accident.
 //
-// When a change is MEANT to change the look (and has been checked by eye on
-// a phone): update the approved pictures with
-//   npx playwright test --project=phone tests/look/pictures.spec.ts --update-snapshots
-// and look at every changed picture before committing it.
+// The approved pictures are taken on GitHub's check machine (fonts and
+// drawing differ slightly between computers). When a change is MEANT to
+// change the look (and has been checked by eye on a phone), push it with
+// [update pictures] in the commit message: the check machine retakes the
+// pictures and saves them to the branch. Look at every changed picture in
+// that commit before merging. (Locally, --update-snapshots makes pictures
+// for trying things out; don't commit those.)
 
 const SCREENS: [string, string][] = [
   ['front-page', '/go/home'], ['story', '/go/story'], ['setup', '/go/setup'], ['try', '/go/try'],

@@ -72,7 +72,9 @@ jobs:
     name: Look at every screen (art, speed, voice)
     if: github.event_name != 'deployment_status' && !(github.event_name == 'workflow_dispatch' && inputs.base_url != '')
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      contents: write # only used to save new approved pictures, when a commit asks
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -84,6 +86,23 @@ jobs:
         run: npm run build
       - name: Install the robot's browser
         run: npx playwright install --with-deps chromium
+      # Approved pictures are made on this machine (its fonts and drawing
+      # differ a little from other computers). A push whose commit message
+      # says [update pictures] retakes them here and saves them to the branch;
+      # look at every changed picture in that commit before merging.
+      - name: Retake the approved pictures (only when a commit asks)
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[update pictures]')
+        run: |
+          (KAILIA_JUMP_LINKS=on npx next start -p 3200 > /tmp/pictures-server.log 2>&1 &)
+          npx --yes wait-on -t 120000 http://localhost:3200
+          BASE_URL=http://localhost:3200 npx playwright test --project=phone tests/look/pictures.spec.ts --update-snapshots=all || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add tests/look/pictures
+          git commit -m "Approved pictures retaken on the check machine" || exit 0
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+        env:
+          CI: '1'
       - name: Noel's lines all recorded and played to the end
         run: |
           (KAILIA_JUMP_LINKS=on npx next start -p 3300 > /tmp/voice-server.log 2>&1 &)
