@@ -64,6 +64,13 @@ const FROZEN_AT = new Date('2026-11-26T16:00:00Z');
 // pushed the whole map down: map-sideways, 2026-11-27).
 const BUDGET = 4000;
 const moved = new WeakMap<Page, number>();
+/** Installs the page's clock and holds it still: an installed clock still runs
+ *  at real speed, so on a slow check machine (39 s per screen) the map's Noel
+ *  had already moved on to his next line. Now only tick() moves it. */
+async function freeze(page: Page) {
+  await page.clock.install({ time: FROZEN_AT });
+  await page.clock.pauseAt(FROZEN_AT);
+}
 async function tick(page: Page, ms: number) {
   moved.set(page, (moved.get(page) ?? 0) + ms);
   await page.clock.runFor(ms);
@@ -125,7 +132,7 @@ async function settle(page: Page) {
 for (const [name, path] of SCREENS) {
   test(`picture: ${name}`, async ({ page }) => {
     await prepare(page, { steadyRandom: true, still: true });
-    await page.clock.install({ time: FROZEN_AT });
+    await freeze(page);
     for (const size of SIZES) {
       await page.setViewportSize(size);
       await open(page, path);
@@ -139,7 +146,7 @@ for (const game of GAMES) {
   test(`picture: ${game} (opening and playing)`, async ({ page }) => {
     test.setTimeout(120_000);
     await prepare(page, { steadyRandom: true, still: true });
-    await page.clock.install({ time: FROZEN_AT });
+    await freeze(page);
     const intro = page.getByTestId('game-intro');
     for (const size of SIZES) {
       await page.setViewportSize(size);
