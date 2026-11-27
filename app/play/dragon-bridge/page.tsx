@@ -58,12 +58,12 @@ const FAR_Y = 44;      // feet on the far bank
 const PLATE_Y = 43;    // the baby dragons' berry plates
 const STONE_Y = 59;    // stepping stones in the river
 const TRAY_Y = 81;     // the stone choices
-const BANK_Y = 80;     // the friend's spot on the near bank when it points at a baby
-const BASKET = { x: 52, y: 87 };
+const BANK_Y = 76;     // the friend's spot on the near bank when it points at a baby
+const BASKET = { x: 50, y: 84 };   // middle of the things heaped in the basket
 const GROUND = 99;
 const BABY_TINT = ['none', 'hue-rotate(150deg) saturate(1.1)', 'hue-rotate(245deg)', 'hue-rotate(40deg) saturate(1.4) brightness(1.08)', 'hue-rotate(195deg)'];
 const nestX = (i: number, k: number) => 8 + ((i + 0.5) / k) * 78;
-const stoneX = (j: number, n: number) => 6 + ((j + 0.5) / n) * 88;
+const stoneX = (j: number, n: number) => 4 + ((j + 0.5) / n) * 88;
 const optX = (i: number, n: number) => (n === 2 ? [38, 62] : [32, 54, 76])[i];
 
 function playNotes(notes: { f: number; t: number; d: number }[]) {
@@ -169,7 +169,7 @@ export default function DragonBridgePage() {
       const given = r.start.reduce((a, b) => a + b, 0);
       setCounts([...r.start]);
       setBasket(r.babies * r.each + r.extra - given);
-      setKailia({ x: 16, y: GROUND });
+      setKailia({ x: 11, y: GROUND });
       m.current.maxBerries = Math.max(m.current.maxBerries, r.babies * r.each + r.extra);
       // the round's little story, then what to do
       say(`${r.story.line} ${r.twist === 'headstart'
@@ -447,7 +447,7 @@ export default function DragonBridgePage() {
   const inFlightTo = (i: number) => flyers.filter(f => f.nest === i && !f.back).length;
   const petX = pat
     ? (hintOpt >= 0 ? optX(hintOpt, pat.options[bi].length) : 90)
-    : (hintNest >= 0 ? nestX(hintNest, k) : 80);
+    : (hintNest >= 0 ? nestX(hintNest, k) : 89);
   // pointing at a baby, the friend waits on the riverbank right under it;
   // pointing at a stone, it stands just below that stone in the tray
   const petY = share && hintNest >= 0 ? BANK_Y : GROUND - 0.5;
@@ -473,7 +473,7 @@ export default function DragonBridgePage() {
 
         <div ref={areaRef} data-play-field
           className="relative w-full rounded-[28px] overflow-hidden select-none"
-          style={{ aspectRatio: '3 / 4.2', touchAction: 'manipulation', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
+          style={{ aspectRatio: '3 / 4.2', containerType: 'inline-size', touchAction: 'manipulation', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
 
           {/* each level the cave glows in its own colors (the background only) */}
           <div className="absolute inset-0" style={{ filter: look.filter }}><CrystalCave /></div>
@@ -501,13 +501,13 @@ export default function DragonBridgePage() {
                   style={{ transformOrigin: '50% 100%', filter: share.story.who === 'dragon' ? BABY_TINT[i % BABY_TINT.length] : undefined, animationDelay: `${-i * 0.4}s` }}>
                   <WhoArt who={share.story.who} h={babyH} />
                 </span>
-                <Plate n={Math.max(0, shown)} k={share.story.thing} />
+                <Plate n={Math.max(0, shown)} k={share.story.thing} col={Math.min(30, 80 / k)} each={share.each} />
               </button>
             );
           })}
 
           {share && (
-            <div className="absolute pointer-events-none" style={{ left: `${BASKET.x}%`, top: `${BASKET.y}%`, width: '27%', transform: 'translate(-50%, -50%)', zIndex: 7 }}>
+            <div className="absolute pointer-events-none" data-basket style={{ left: `${BASKET.x}%`, bottom: '1.5%', width: `${BASKET_W}%`, transform: 'translateX(-50%)', zIndex: 7 }}>
               <Basket n={basket} k={share.story.thing} />
             </div>
           )}
@@ -519,7 +519,7 @@ export default function DragonBridgePage() {
             return (
               <span key={f.id} className="absolute pointer-events-none db-fly"
                 style={{ left: `${x}%`, top: `${y}%`, zIndex: 9, ['--dx' as string]: `${f.dx}px`, ['--dy' as string]: `${f.dy}px` } as CSSProperties}>
-                <ThingIcon k={share.story.thing} size={20} />
+                <ThingIcon k={share.story.thing} size={28} />
               </span>
             );
           })}
@@ -531,7 +531,7 @@ export default function DragonBridgePage() {
             const isBlank = blankAt >= 0;
             const tok = isBlank ? filled[blankAt] : t;
             const active = isBlank && blankAt === bi && !filled[blankAt];
-            const size = Math.min(15.5, 84 / n);
+            const size = Math.min(15.5, 88 / n);
             return (
               <div key={`st-${ri}-${j}`} className="absolute drop-in" data-stone={j}
                 style={{ left: `${stoneX(j, n)}%`, top: `${STONE_Y}%`, width: `${size}%`, transform: 'translate(-50%, -50%)', zIndex: 4, animationDelay: `${j * 70}ms`, animationFillMode: 'both' }}>
@@ -539,9 +539,8 @@ export default function DragonBridgePage() {
                   <Stone />
                   <div className="absolute inset-x-0 flex justify-center" style={{ top: '-6%' }}>
                     {tok
-                      ? <span key={isBlank ? 'in' : 'base'} className={isBlank ? 'bounce-in inline-block' : 'inline-block'}><TokenView t={tok} size={pat.numbers ? 0.8 : 0.72} /></span>
-                      : <span className={`${active ? 'soft-pulse' : ''} flex items-center justify-center rounded-full font-extrabold`}
-                          style={{ width: '70%', aspectRatio: '1', border: `3px dashed ${active ? '#FDE68A' : 'rgba(253,230,138,0.5)'}`, color: '#FDE68A', fontSize: 'clamp(14px, 4.5vw, 22px)', background: 'rgba(30,27,75,0.35)' }}>?</span>}
+                      ? <span key={isBlank ? 'in' : 'base'} className={isBlank ? 'bounce-in inline-block' : 'inline-block'}><TokenView t={tok} size={0.92} /></span>
+                      : <BlankSpot active={active} size={0.92} />}
                   </div>
                 </div>
               </div>
@@ -658,17 +657,40 @@ function TokenView({ t, size }: { t: Tok; size: number }) {
       </svg>
     </span>
   );
-  if (t.n !== undefined) return (
-    <span className="flex items-center justify-center rounded-full font-extrabold"
-      style={{ width: `${size * 100}%`, aspectRatio: '1', background: '#FFF4D6', border: `3px solid ${SK}`, color: SK,
-        fontSize: `clamp(13px, ${t.n >= 100 ? 3.4 : 4.6}vw, ${t.n >= 100 ? 18 : 24}px)`, boxShadow: '0 0 10px rgba(253,230,138,0.7)' }}>
-      {t.n}
-    </span>
-  );
+  if (t.n !== undefined) {
+    // drawn as one picture so the disc stays perfectly round and the number
+    // fills it on every phone (an HTML circle was squeezed into a thin oval
+    // on iPhones, Kelvin 2026-11-27); three digits get a wider pill
+    const txt = String(t.n);
+    const wide = txt.length >= 3;
+    const W = wide ? 52 : 40;
+    return (
+      <span className="block" style={{ width: `${size * 100 * (wide ? 1.15 : 1)}%`, flexShrink: 0 }}>
+        <svg viewBox={`0 0 ${W} 40`} width="100%" aria-hidden style={{ display: 'block', overflow: 'visible', filter: 'drop-shadow(0 0 4px rgba(253,230,138,0.75))' }}>
+          <rect x="1.5" y="1.5" width={W - 3} height="37" rx="18.5" fill="#FFF4D6" stroke={SK} strokeWidth="3" />
+          <text x={W / 2} y="21" textAnchor="middle" dominantBaseline="central" fill={SK}
+            style={{ fontSize: wide ? 19 : 23, fontWeight: 900, fontFamily: 'inherit', letterSpacing: wide ? -0.5 : 0 }}>{txt}</text>
+        </svg>
+      </span>
+    );
+  }
   return (
     <span className="block" style={{ width: `${size * 100}%` }}>
       <svg viewBox="0 0 40 40" width="100%" aria-hidden style={{ display: 'block', overflow: 'visible', filter: `drop-shadow(0 0 2px #FFF8E1) drop-shadow(0 0 6px ${GEMS[t.c].hex}aa)` }}>
         <g filter="url(#kp-brush)"><GemShape t={t} /></g>
+      </svg>
+    </span>
+  );
+}
+
+// the empty spot on the bridge, waiting for a stone (a picture too, so it
+// stays a round ring on every phone)
+function BlankSpot({ active, size }: { active: boolean; size: number }) {
+  return (
+    <span className={`${active ? 'soft-pulse' : ''} block`} style={{ width: `${size * 100}%`, flexShrink: 0 }}>
+      <svg viewBox="0 0 40 40" width="100%" aria-hidden style={{ display: 'block', overflow: 'visible' }}>
+        <circle cx="20" cy="20" r="18" fill="rgba(30,27,75,0.45)" stroke={active ? '#FDE68A' : 'rgba(253,230,138,0.55)'} strokeWidth="3" strokeDasharray="6 4.5" />
+        <text x="20" y="21" textAnchor="middle" dominantBaseline="central" fill="#FDE68A" style={{ fontSize: 22, fontWeight: 900, fontFamily: 'inherit' }}>?</text>
       </svg>
     </span>
   );
@@ -708,23 +730,57 @@ function planPreview(level: number): { who: Who; thing?: Thing }[] {
   return out;
 }
 
-// a leaf plate under each friend, things in neat rows of three so the
-// amounts are easy to compare at a glance
-function Plate({ n, k }: { n: number; k: Thing }) {
-  const rows = Math.ceil(n / 3);
+// Lays n things out in neat rows inside a box (w × h, any units) so each
+// one is as big as it can be: the bigger the things, the easier to count.
+// Rows of five win whenever they cost little, since fives count fastest.
+function fitGrid(n: number, w: number, h: number, maxCell = Infinity): { cols: number; rows: number; cell: number } {
+  if (n <= 0) return { cols: 1, rows: 1, cell: Math.min(w, h, maxCell) };
+  let best = { cols: 1, rows: n, cell: 0 };
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const cell = Math.min(w / cols, h / rows, maxCell);
+    // on a tie (things already at their biggest) the wider, lower layout
+    // wins: three apples side by side, not stacked in a tower
+    if (cell >= best.cell - 1e-9) best = { cols, rows, cell };
+  }
+  for (const cols of [5, 10]) {
+    if (cols >= n || cols === best.cols) continue;
+    const rows = Math.ceil(n / cols);
+    const cell = Math.min(w / cols, h / rows, maxCell);
+    if (cell >= best.cell * 0.9) return { cols, rows, cell };
+  }
+  return best;
+}
+
+// how wide the basket is (percent of the play field)
+const BASKET_W = 58;
+
+// a leaf plate under each friend, things in neat rows (every plate in a
+// round uses the same rows, so the amounts are easy to compare at a
+// glance). Sizes are in cqw (percent of the play field's width).
+function Plate({ n, k, col, each }: { n: number; k: Thing; col: number; each: number }) {
+  const P = Math.min(col * 0.94, 24);           // plate width
+  const H = P * 1.25;                           // room for things above it
+  const usual = fitGrid(Math.max(each, 1), P, H, P / 2.2);
+  const g = n <= usual.cols * usual.rows ? usual : fitGrid(n, P, H, P / 2.2);
+  const size = g.cell * 0.94;
+  const rows = Math.ceil(n / g.cols);
+  const leafH = P * 0.36;
   return (
-    <span className="relative block" style={{ width: 62, height: 30 + Math.max(0, rows - 2) * 11, marginTop: -8 }}>
-      <svg viewBox="0 0 62 22" width="62" height="22" className="absolute bottom-0 left-0" aria-hidden style={{ overflow: 'visible' }}>
+    <span className="relative block" style={{ width: `${P}cqw`, height: `calc(${leafH}cqw + ${Math.max(0, rows) * g.cell}cqw - ${P * 0.14}cqw)`, marginTop: '-1.5cqw' }}>
+      <svg viewBox="0 0 62 22" width="100%" className="absolute bottom-0 left-0" aria-hidden style={{ overflow: 'visible' }}>
         <g filter="url(#kp-brush)">
           <ellipse cx="31" cy="12" rx="29" ry="9" fill="#4ADE80" stroke={SK} strokeWidth="1.6" />
           <path d="M6 12 H56 M18 12 L12 6 M30 12 L26 5 M42 12 L40 5" stroke="#15803D" strokeWidth="1.1" fill="none" />
         </g>
       </svg>
       {Array.from({ length: n }, (_, i) => {
-        const row = Math.floor(i / 3), col = i % 3;
+        const row = Math.floor(i / g.cols), col2 = i % g.cols;
+        const inRow = Math.min(g.cols, n - row * g.cols);
+        const left = (P - inRow * g.cell) / 2 + col2 * g.cell + (g.cell - size) / 2;
         return (
-          <span key={i} className="absolute drop-in" style={{ left: 12 + col * 13, bottom: 7 + row * 11 }}>
-            <ThingIcon k={k} size={15} />
+          <span key={i} className="absolute drop-in" data-plate-thing style={{ left: `${left}cqw`, bottom: `${P * 0.2 + row * g.cell}cqw`, width: `${size}cqw` }}>
+            <ThingArt k={k} />
           </span>
         );
       })}
@@ -732,31 +788,44 @@ function Plate({ n, k }: { n: number; k: Thing }) {
   );
 }
 
-function Basket({ n, k }: { n: number; k: Thing }) {
-  const shown = Math.min(n, 24);
+// one thing drawn to fill its box
+function ThingArt({ k }: { k: Thing }) {
   return (
-    <div className="relative w-full" style={{ aspectRatio: '100 / 70' }}>
-      <svg viewBox="0 0 100 70" width="100%" className="absolute inset-0" aria-hidden style={{ overflow: 'visible' }}>
-        <g filter="url(#kp-brush)" stroke={SK} strokeLinejoin="round">
-          <path d="M18 30 Q50 -8 82 30" fill="none" strokeWidth="5" stroke="#8A5A32" />
-          <path d="M18 30 Q50 -8 82 30" fill="none" strokeWidth="1.5" />
-        </g>
-      </svg>
-      {/* the things heaped inside */}
+    <svg viewBox="0 0 20 20" width="100%" aria-hidden style={{ display: 'block', overflow: 'visible', filter: 'drop-shadow(0 0 1.5px #FFFFFF)' }}>
+      <ThingShape k={k} />
+    </svg>
+  );
+}
+
+// Kailia's basket: everything still to share stands in neat rows on top,
+// as big as fits, so a child can count every one (they used to be a tiny
+// heap of 16px carrots, Kelvin 2026-11-27).
+function Basket({ n, k }: { n: number; k: Thing }) {
+  const shown = Math.min(n, 40);
+  // box above the rim, in units of the basket's width
+  const GW = 0.94, GH = 0.5;
+  const g = fitGrid(shown, GW, GH, 0.16);
+  const size = g.cell * 0.94;
+  const rimAt = GH / (GH + 0.17);              // rim height, share of the whole block
+  return (
+    <div className="relative w-full" style={{ aspectRatio: `1 / ${GH + 0.17}` }}>
       {Array.from({ length: shown }, (_, i) => {
-        const row = Math.floor(i / 6), col = i % 6;
+        const row = Math.floor(i / g.cols), col = i % g.cols;
+        const inRow = Math.min(g.cols, shown - row * g.cols);
+        const left = (1 - inRow * g.cell) / 2 + col * g.cell + (g.cell - size) / 2;
         return (
-          <span key={i} className="absolute" style={{ left: `${12 + col * 12.5 + (row % 2) * 6}%`, bottom: `${54 + row * 12}%` }}>
-            <ThingIcon k={k} size={16} />
+          <span key={i} className="absolute" data-basket-thing
+            style={{ left: `${left * 100}%`, bottom: `${(1 - rimAt) * 100 + (row * g.cell / (GH + 0.17)) * 100 - 1}%`, width: `${size * 100}%` }}>
+            <ThingArt k={k} />
           </span>
         );
       })}
-      <svg viewBox="0 0 100 70" width="100%" className="absolute inset-0" aria-hidden style={{ overflow: 'visible' }}>
+      <svg viewBox="0 0 100 17" width="100%" className="absolute bottom-0 left-0" preserveAspectRatio="none" aria-hidden style={{ overflow: 'visible' }}>
         <g filter="url(#kp-brush)" stroke={SK} strokeLinejoin="round">
-          <path d="M8 34 H92 L82 68 H18z" fill="#C98B4E" strokeWidth="2.2" />
-          <path d="M12 45 H88 M15 56 H85" stroke="#8A5A32" strokeWidth="1.6" />
-          <path d="M30 34 L33 68 M50 34 V68 M70 34 L67 68" stroke="#8A5A32" strokeWidth="1.4" />
-          <rect x="5" y="30" width="90" height="7" rx="3.5" fill="#E0A96A" strokeWidth="2" />
+          <path d="M4 2 H96 L89 16.5 H11z" fill="#C98B4E" strokeWidth="1.6" />
+          <path d="M8 8 H92 M10 12.5 H90" stroke="#8A5A32" strokeWidth="1.1" />
+          <path d="M28 3 L30 16.5 M50 3 V16.5 M72 3 L70 16.5" stroke="#8A5A32" strokeWidth="1" />
+          <rect x="1.5" y="0" width="97" height="4" rx="2" fill="#E0A96A" strokeWidth="1.4" />
         </g>
       </svg>
     </div>
