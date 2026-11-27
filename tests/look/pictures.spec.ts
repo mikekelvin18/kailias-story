@@ -63,7 +63,8 @@ async function open(page: Page, path: string) {
 }
 
 async function settle(page: Page) {
-  await page.waitForLoadState('networkidle').catch(() => {});
+  // a sound or music file can keep the network busy; don't wait on it forever
+  await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
   await page.evaluate(() => document.fonts.ready);
   await tick(page, 1500);
   await page.waitForTimeout(300);
