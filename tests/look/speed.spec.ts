@@ -40,14 +40,20 @@ async function slowDown(page: Page) {
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: SLOWDOWN });
 }
 
-/** frames drawn in `ms`, and how many took more than 50 ms */
+/** frames drawn in `ms`, and the share that froze: took over 50 ms AND over
+ *  2.5× the usual frame. A machine that draws everything steadily but slowly
+ *  (every frame ~60 ms) isn't stuttering; the fps floor catches that instead. */
 function frames(page: Page, ms: number) {
   return page.evaluate(ms => new Promise<{ fps: number; slow: number }>(done => {
-    let n = 0, slow = 0, last = performance.now();
+    const gaps: number[] = [];
+    let last = performance.now();
     const t0 = last;
     const step = (now: number) => {
-      n++; if (now - last > 50) slow++; last = now;
-      if (now - t0 < ms) requestAnimationFrame(step); else done({ fps: (n * 1000) / (now - t0), slow: slow / n });
+      gaps.push(now - last); last = now;
+      if (now - t0 < ms) { requestAnimationFrame(step); return; }
+      const usual = [...gaps].sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+      const slow = gaps.filter(g => g > 50 && g > usual * 2.5).length;
+      done({ fps: (gaps.length * 1000) / (now - t0), slow: slow / gaps.length });
     };
     requestAnimationFrame(step);
   }), ms);
@@ -120,7 +126,7 @@ for (const game of GAMES) {
       test.skip(ref.slow > 0.25, `check machine too weak to judge smoothness (the test scene froze ${(ref.slow * 100).toFixed(0)}% of frames)`);
     }
     expect(fps, `${game}: ${fps.toFixed(0)} frames a second`).toBeGreaterThan(MIN_FPS);
-    expect(slow, `${game}: ${(slow * 100).toFixed(0)}% of frames froze (over 50 ms)`).toBeLessThan(MAX_FROZEN);
+    expect(slow, `${game}: ${(slow * 100).toFixed(0)}% of frames froze (a hitch over 50 ms)`).toBeLessThan(MAX_FROZEN);
     expect(gl, `${game}: ${gl} moving-picture canvases at once`).toBeLessThanOrEqual(MAX_DRAWING_CANVASES);
   });
 }
