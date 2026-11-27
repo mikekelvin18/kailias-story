@@ -56,6 +56,18 @@ export function libraryBand(devBand: DevBand, devMonths: number | null | undefin
   return 4;
 }
 
+/** Real-age span (months) each shelf's age label covers, matching BAND_INFO[b].ages. */
+export const BAND_MONTHS: Record<LibraryBand, [number, number]> = { 1: [6, 18], 2: [18, 30], 3: [30, 48], 4: [48, 96] };
+
+/** Kelvin 2026-11-27: the top card of the Quest Library may show its shelf's
+ *  age range only when the child's real age falls inside it (a child placed on
+ *  a younger shelf, or a 9-year-old on the 4–8 shelf, sees the name only). */
+export function bandAgeFits(band: LibraryBand, chronoMonths: number | null | undefined): boolean {
+  if (chronoMonths == null) return false;
+  const [lo, hi] = BAND_MONTHS[band];
+  return chronoMonths >= lo && chronoMonths <= hi;
+}
+
 export const BAND_INFO: Record<LibraryBand, { name: string; emoji: string; ages: string; blurb: string }> = {
   1: { name: 'Little Sprout', emoji: '🌱', ages: 'about 6–18 months',
        blurb: 'Baby learns from your face, your hands, and real objects — you play together off the screen, then tap what you noticed.' },

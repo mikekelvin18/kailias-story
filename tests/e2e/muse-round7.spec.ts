@@ -67,6 +67,15 @@ test('Quest Library: every shelf shows its ages and today\'s quests stay on the 
   await expect(page.locator('[data-other-band]')).toHaveCount(0);
 });
 
+// Kelvin 2026-11-27: the top card may show its shelf's ages only when the
+// child's real age is inside them; other shelves' ages stay in the library fold.
+test('Quest Library: the top card\'s ages always include the child\'s real age', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 9 * 12 }); // a 9-year-old lands on the 4–8 shelf
+  await page.goto('/activities');
+  await expect(page.getByText(/Big Adventurer/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-band-ages]')).toHaveCount(0);
+});
+
 // Item 9: on a 1919px screen the Journey world was a ~1000px strip with the
 // path in its left third and the arrows alone in the far corner.
 test.describe('on a big computer screen', () => {
