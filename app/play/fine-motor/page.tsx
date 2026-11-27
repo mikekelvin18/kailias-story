@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { roundEase } from '@/lib/ageBands';
 import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { useTestTapMode } from '@/hooks/useTestTapMode';
 import { mazeCorridor } from '@/lib/gameCurves';
 import type { DifficultyTier } from '@/lib/difficulty';
 import { usePlayCount } from '@/hooks/usePlayCount';
@@ -327,6 +328,7 @@ function mazeFor(level: number, tier: DifficultyTier, months?: number | null) {
 
 export default function MazeRunnerPage() {
   const fit = useGameFit('fine-motor');
+  const tapMode = useTestTapMode();   // reviewers only: tap along the path (lib/testMode.ts)
   const router = useRouter();
   const { increment } = usePlayCount();
 
@@ -730,7 +732,28 @@ export default function MazeRunnerPage() {
     if (!drawing || doneRef.current) return;
     e.preventDefault();
     const p=getPos(e); if(!p) return;
+    stepTo(p);
+  };
 
+  // Test mode (/go/test-mode, preview only): a tap walks Kailia along the
+  // path to the nearest point ahead of her, as if traced perfectly, so a
+  // tester without a steady finger can reach every level's flag.
+  const tapStep = (e: React.MouseEvent|React.TouchEvent) => {
+    const p=getPos(e); if(!p || doneRef.current) return;
+    const path=pathRef.current; if(!path.length) return;
+    e.preventDefault();
+    let target=0, best=Infinity;
+    path.forEach((q,i)=>{ const d=Math.hypot(q.x-p.x,q.y-p.y); if(d<best){best=d;target=i;} });
+    let from=0;
+    if (charRef.current) { let bd=Infinity; path.forEach((q,i)=>{ const d=Math.hypot(q.x-charRef.current!.x,q.y-charRef.current!.y); if(d<bd){bd=d;from=i;} }); }
+    if (target<=from && charRef.current) return;
+    if (!started) setNoelLine('Nice and steady! Grab the stars on the way.');
+    setStarted(true);
+    if (!charRef.current) { charRef.current=path[0]; }
+    for (let i=from; i<=target && !doneRef.current; i++) stepTo(path[i]);
+  };
+
+  const stepTo = (p: Pt) => {
     const dist=closestOnPath(p,pathRef.current);
     const ok=dist<=corridorRef.current;
     if (ok) {
@@ -926,8 +949,10 @@ export default function MazeRunnerPage() {
         {/* Canvas, with the friend and the sparkles laid over it */}
         <div ref={wrapRef} data-play-field data-wide className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
           style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
-          onMouseDown={onStart} onMouseMove={onMove} onMouseUp={onStop} onMouseLeave={onStop}
-          onTouchStart={onStart} onTouchMove={onMove} onTouchEnd={onStop}>
+          {...(tapMode
+            ? { onMouseDown: tapStep, onTouchStart: tapStep }
+            : { onMouseDown: onStart, onMouseMove: onMove, onMouseUp: onStop, onMouseLeave: onStop, onTouchStart: onStart, onTouchMove: onMove, onTouchEnd: onStop })}
+          {...(tapMode ? { 'data-test-tap-mode': '' } : {})}>
           <canvas ref={canvasRef} width={W} height={H}
             style={{width:'100%',height:'auto',display:'block',cursor:'crosshair'}}/>
           {/* a warm light rim keeps the friend visible on the dark mazes; it

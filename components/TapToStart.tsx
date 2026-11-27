@@ -42,6 +42,15 @@ function isFresh() {
 }
 const noop = () => () => {};
 
+// Other pop-ups that must wait until "Tap to start!" is gone (the "Your
+// turn!" talking moment, Grok 2026-11-27: it hid underneath the overlay).
+const startListeners = new Set<() => void>();
+export const subscribeTapToStart = (l: () => void) => { startListeners.add(l); return () => { startListeners.delete(l); }; };
+/** True while "Tap to start!" is (or is about to be) on screen. */
+export function tapToStartShowing(): boolean {
+  try { return isFresh() && wantsStart(location.pathname); } catch { return false; }
+}
+
 function Note({ color, d }: { color: string; d: string }) {
   return (
     <svg width="22" height="24" viewBox="0 0 18 20" aria-hidden="true">
@@ -61,6 +70,7 @@ export default function TapToStart() {
     if (closing) return;
     freshVisit = false;
     try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* fine */ }
+    startListeners.forEach(l => l());
     setClosing(true);
     // On the front page, Noel says hi right away (this tap lets him talk).
     if (path === '/') say(HELLO);

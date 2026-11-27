@@ -16,6 +16,7 @@
 import { CHILD_DATA_KEYS } from './family';
 import { LANDS } from './adventure';
 import { COMPANIONS } from './rewards';
+import { TEST_TAP_KEY } from './testMode';
 
 export const JUMP_CHILD_ID = 'child-jump';
 /** sessionStorage hints a jump link leaves for the screen it opens */
@@ -25,8 +26,64 @@ export const JUMP_BREAK_KEY = 'kailia_jump_break';
 /** The outside reviewers' test child (/go/review): made once, then reused by
  *  every jump link that doesn't need a different made-up state, so a reviewer
  *  never loses progress by following a link (reviewer 2026-11-25). */
-export const REVIEW_CHILD_ID = 'child-review';
+// ONE test child, always (Grok 2026-11-27: every "starts fresh" link made
+// another Robin). Reviewers and every other link share this fixed id; a
+// "starts fresh" link sets the same Robin up from scratch and tucks the
+// reviewer's progress away (REVIEW_BACKUP) until the next ordinary link.
+export const REVIEW_CHILD_ID = JUMP_CHILD_ID;
+/** the id older builds gave the reviewers' Robin: folded into the one Robin on load */
+const OLD_REVIEW_CHILD_ID = 'child-review';
 const REVIEW_MARK = 'kailia_review_profile_v1'; // on this device: a reviewer started at /go/review
+const REVIEW_BACKUP = 'kailia_review_backup_v1'; // the reviewer's Robin, while a "starts fresh" link borrows it
+const ROBIN_ENTRY = '__robin';
+
+type Fam = { id?: string; children?: { id: string; nickname?: string }[]; consent?: unknown; activeChildId?: string | null };
+
+/** Every made-up Robin on this device other than the one fixed test child:
+ *  the old reviewer id, and Robins that jump links made in a family they
+ *  created themselves ('fam-preview'). A real family's own child called Robin
+ *  is never touched. */
+function strayRobins(fam: Fam | null): string[] {
+  if (!fam?.children) return [];
+  const preview = fam.id === 'fam-preview';
+  const seen = new Set<string>();
+  const stray: string[] = [];
+  for (const c of fam.children) {
+    if (c.id === JUMP_CHILD_ID) { if (seen.has(c.id)) stray.push(c.id); seen.add(c.id); continue; }
+    if (c.id === OLD_REVIEW_CHILD_ID || (preview && c.nickname === 'Robin')) stray.push(c.id);
+  }
+  return stray;
+}
+
+/** Folds duplicate test Robins into one (runs on every jump link, and on the
+ *  /review page). The old reviewer Robin's progress moves to the one Robin. */
+export function cleanUpTestRobins(): void {
+  const ls = localStorage;
+  let fam: Fam | null = null;
+  try { fam = JSON.parse(ls.getItem('kailia_family_v1') ?? 'null'); } catch { return; }
+  const stray = strayRobins(fam);
+  if (!fam || !stray.length) return;
+  const keep = (fam.children ?? []).some(c => c.id === JUMP_CHILD_ID);
+  if (stray.includes(OLD_REVIEW_CHILD_ID) && !keep) {
+    CHILD_DATA_KEYS.forEach(b => {
+      const v = ls.getItem(`${b}::${OLD_REVIEW_CHILD_ID}`);
+      if (v !== null) ls.setItem(`${b}::${JUMP_CHILD_ID}`, v);
+    });
+  }
+  for (const id of stray) if (id !== JUMP_CHILD_ID) CHILD_DATA_KEYS.forEach(b => ls.removeItem(`${b}::${id}`));
+  const children: { id: string; nickname?: string }[] = [];
+  let hasOne = false;
+  for (const c of fam.children ?? []) {
+    if (c.id === JUMP_CHILD_ID) { if (hasOne) continue; hasOne = true; children.push(c); continue; }
+    if (stray.includes(c.id)) {
+      if (c.id === OLD_REVIEW_CHILD_ID && !keep && !hasOne) { hasOne = true; children.push({ ...c, id: JUMP_CHILD_ID }); }
+      continue;
+    }
+    children.push(c);
+  }
+  const active = fam.activeChildId && stray.includes(fam.activeChildId) ? (hasOne ? JUMP_CHILD_ID : children[0]?.id ?? null) : fam.activeChildId;
+  ls.setItem('kailia_family_v1', JSON.stringify({ ...fam, children, activeChildId: active }));
+}
 
 // Game route folder → the id the game saves its level under.
 const GAME_IDS: Record<string, string> = {
@@ -93,6 +150,7 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
     { href: '/go/upgrade?plus=0', label: 'Plans page, family without a plan' },
     { href: '/go/game/moonlight-match?level=5&plus=0', label: 'Level map without a plan (gold keys on 6+)' },
     { href: '/go/about', label: 'About page' },
+    { href: '/go/terms', label: 'Terms of Use (draft)' },
     { href: '/go/privacy', label: 'Privacy page' },
   ]},
   { group: 'Start of the app', items: [
@@ -159,7 +217,7 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     dailyPopup: false, newFriend: false, landDone: false, openLand: null,
     plus: q.plus === '1' ? true : q.plus === '0' ? false : null,
     calm: q.calm === '1' ? true : q.calm === '0' ? false : null,
-    session: {},
+    session: q.test === 'tap' ? { [TEST_TAP_KEY]: '1' } : q.test === 'off' ? { [TEST_TAP_KEY]: '0' } : {},
     review: what === 'review', scratch: years > 0 || (what === 'map' && !(q.all === '1' || q.all === 'yes')),
   };
   const petQ = (q.pet ?? '').toLowerCase();
@@ -167,7 +225,7 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     map: '/play', home: '/', story: '/story', results: '/results', progress: '/progress',
     family: '/family', 'parent-zone': '/family', activities: '/activities', printables: '/printables',
     upgrade: '/upgrade', plus: '/upgrade', garden: '/play/garden',
-    about: '/about', privacy: '/privacy', retention: '/retention',
+    about: '/about', terms: '/terms', privacy: '/privacy', retention: '/retention',
   };
   if (simple[what]) {
     plan.path = simple[what];
@@ -197,6 +255,11 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     plan.session[JUMP_FEELINGS_KEY] = land;
   } else if (what === 'break') { plan.session[JUMP_BREAK_KEY] = 'break'; }
   else if (what === 'done-today') { plan.session[JUMP_BREAK_KEY] = 'done'; }
+  else if (what === 'test-mode') {
+    // reviewers: tap instead of drag in Garden, Maze Runner and Potion Sort
+    // (lib/testMode.ts); ?on=0 switches it off again. Back to the guide.
+    plan.path = '/review'; plan.session[TEST_TAP_KEY] = q.on === '0' ? '0' : '1';
+  }
   else if (what === 'senses' || what === 'play-settings') { plan.path = '/family#senses'; }
   else if (what === 'talk-cards') { plan.path = '/printables/talk-practice'; }
   else if (what === 'land') {
@@ -239,17 +302,41 @@ export function applyJump(plan: JumpPlan) {
   const at = new Date().toISOString();
   try { sessionStorage.removeItem('kailia_launch_land'); sessionStorage.removeItem('kailia_demo_session'); } catch { /* fine */ }
 
-  let fam: { children?: { id: string }[]; consent?: unknown; activeChildId?: string | null } | null = null;
+  cleanUpTestRobins();
+  let fam: Fam | null = null;
   try { fam = JSON.parse(ls.getItem('kailia_family_v1') ?? 'null'); } catch { fam = null; }
 
   // A reviewer (started at /go/review) keeps one profile across every link
   // that doesn't need a made-up state of its own: their progress stays.
+  const wasReviewer = ls.getItem(REVIEW_MARK) === '1';
   if (plan.review) ls.setItem(REVIEW_MARK, '1');
-  const reviewing = !plan.scratch && (plan.review || ls.getItem(REVIEW_MARK) === '1');
-  const childId = reviewing ? REVIEW_CHILD_ID : JUMP_CHILD_ID;
+  const reviewing = !plan.scratch && (plan.review || wasReviewer);
+  const childId = JUMP_CHILD_ID;
   const key = (base: string) => `${base}::${childId}`;
-  const hasProfile = (fam?.children ?? []).some(c => c.id === childId) && !!ls.getItem(key('kailia_assessment_v1'));
-  if (reviewing && hasProfile && fam) { reuseReviewProfile(plan, fam, key); return; }
+  const robinThere = (fam?.children ?? []).some(c => c.id === childId);
+  if (plan.scratch && wasReviewer && robinThere && !ls.getItem(REVIEW_BACKUP)) {
+    // a "starts fresh" link borrows Robin: keep the reviewer's progress safe
+    const saved: Record<string, string> = {};
+    CHILD_DATA_KEYS.forEach(b => { const v = ls.getItem(key(b)); if (v !== null) saved[b] = v; });
+    // and who Robin was (age, buddy), since a fresh link may change them
+    saved[ROBIN_ENTRY] = JSON.stringify((fam?.children ?? []).find(c => c.id === childId));
+    ls.setItem(REVIEW_BACKUP, JSON.stringify(saved));
+  }
+  if (reviewing && ls.getItem(REVIEW_BACKUP)) {
+    // back from a "starts fresh" link: Robin gets the reviewer's progress back
+    let saved: Record<string, string> = {};
+    try { saved = JSON.parse(ls.getItem(REVIEW_BACKUP) ?? '{}') ?? {}; } catch { saved = {}; }
+    CHILD_DATA_KEYS.forEach(b => { if (saved[b] != null) ls.setItem(key(b), saved[b]); else ls.removeItem(key(b)); });
+    ls.removeItem(REVIEW_BACKUP);
+    let entry: { id: string } | null = null;
+    try { entry = saved[ROBIN_ENTRY] ? JSON.parse(saved[ROBIN_ENTRY]) : null; } catch { entry = null; }
+    if (entry && fam?.children) {
+      fam = { ...fam, children: fam.children.map(c => (c.id === childId ? entry! : c)) };
+      ls.setItem('kailia_family_v1', JSON.stringify(fam));
+    }
+  }
+  const hasProfile = robinThere && !!ls.getItem(key('kailia_assessment_v1'));
+  if (reviewing && wasReviewer && hasProfile && fam) { reuseReviewProfile(plan, fam, key); return; }
 
   // the test child starts clean
   CHILD_DATA_KEYS.forEach(b => ls.removeItem(key(b)));
@@ -358,7 +445,7 @@ const REVIEW_LEVELS = 30;
  *  land's quest sheet). */
 function reuseReviewProfile(plan: JumpPlan, fam: object, key: (b: string) => string) {
   const ls = localStorage;
-  ls.setItem('kailia_family_v1', JSON.stringify({ ...fam, activeChildId: REVIEW_CHILD_ID }));
+  ls.setItem('kailia_family_v1', JSON.stringify({ ...fam, activeChildId: JUMP_CHILD_ID }));
   // a game link opens on the level it names (progress is kept)
   if (Object.keys(plan.levels).length) {
     let r: { reviewNext?: Record<string, number> } = {};

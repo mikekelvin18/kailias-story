@@ -15,7 +15,7 @@ export default function WeeklySummary({ childName }: { childName: string }) {
 
   const top = week.lines[0];
   return (
-    <section aria-label="This week" className="rounded-3xl p-5 mb-4 bg-white">
+    <section aria-label="This week" data-weekly-summary className="rounded-3xl p-5 mb-4 bg-white">
       <p className="text-sm font-extrabold uppercase tracking-wide text-violet-700 mb-1">This week</p>
       {week.total === 0 && week.petDays === 0 ? (
         <p className="text-base text-slate-700">
@@ -25,7 +25,7 @@ export default function WeeklySummary({ childName }: { childName: string }) {
         <>
           {top && (
             <p className="text-lg font-extrabold text-slate-800 leading-snug">
-              {childName} practiced {top.words} {top.times === 1 ? 'once' : `${top.times} times`}!
+              This week {childName} practiced {top.words} {top.times === 1 ? 'once' : `${top.times} times`}!
             </p>
           )}
           {week.lines.length > 1 && (

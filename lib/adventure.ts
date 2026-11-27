@@ -2,7 +2,7 @@
 // One place that defines the six lands, which mini-games (quests) live in
 // each land, and how the child's progress is saved on this device.
 
-import { FREE } from './pricing';
+import { FREE } from '../src/config/pricing';
 import { scopedKey } from './family';
 
 export interface Quest {

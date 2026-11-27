@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import TestModeState from '@/components/TestModeState';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { jumpLinksEnabled } from '@/lib/jumpGate';
@@ -60,6 +61,7 @@ const GROWN_UPS: Item[] = [
   { href: '/go/printables', label: 'Printable worksheets' },
   { href: '/go/upgrade', label: 'Plans page', note: 'Free, Family Premium and Pro side by side, behind the grown-up check (hold 3 seconds, then a times-table sum).' },
   { href: '/go/about', label: 'About page', note: 'Who it is built with, what each game practises, not-a-diagnosis note.' },
+  { href: '/go/terms', label: 'Terms of Use (draft)', note: 'Plain-language draft marked for lawyer review; placeholders in [brackets].' },
   { href: '/go/map?age=2', label: 'The map for a 2-year-old (starts fresh)' },
   { href: '/go/daily-quests', label: "Today's grown-up quests, 2-year-old (starts fresh)" },
 ];
@@ -98,8 +100,9 @@ export default async function ReviewGuide() {
         <p className="mt-2 text-base" style={{ color: '#4C1D95' }}>
           <b>No account or email needed.</b> Every link below makes a made-up test child called Robin on your own
           device and opens straight on that screen. Nothing is sent to a server. After you press Start, Robin keeps
-          their progress as you follow the links (every level of every game is open). Only the few links marked
-          &ldquo;starts fresh&rdquo; make a separate brand-new test child for that one screen.
+          their progress as you follow the links (every level of every game is open). The few links marked
+          &ldquo;starts fresh&rdquo; set the same Robin up from scratch for that one screen; the next ordinary
+          link gives Robin their progress back. There is only ever one Robin.
         </p>
 
         {/* full page load on purpose: the test child is set up (once) */}
@@ -108,6 +111,25 @@ export default async function ReviewGuide() {
           style={{ background: '#6D28D9', color: 'white' }}>
           Start playing →
         </a>
+
+        {/* reviewers' test mode (lib/testMode.ts): tap instead of drag */}
+        <section className="mt-8 rounded-2xl px-4 py-4 bg-white" data-test-mode>
+          <h2 className="text-lg font-extrabold">Test mode: tap instead of drag</h2>
+          <p className="text-sm mt-1" style={{ color: '#5B21B6' }}>
+            For testers only (this build). Garden, Maze Runner and Potion Sort use a steady drag. Test mode turns on the
+            tap-to-move the youngest children get: in Maze Runner tap further along the path and Kailia walks there; in
+            Potion Sort tap a potion, then its cauldron; in the Garden tap a thing, then where it goes. It lasts until
+            this browser tab is closed.
+          </p>
+          <TestModeState />
+          <LinkList items={[
+            { href: '/go/test-mode', label: 'Turn test mode on' },
+            { href: '/go/garden?test=tap', label: "Kailia's Garden, test mode" },
+            { href: '/go/game/fine-motor?level=1&test=tap', label: 'Maze Runner, test mode' },
+            { href: '/go/game/potion-sort?level=1&test=tap', label: 'Potion Sort, test mode' },
+            { href: '/go/test-mode?on=0', label: 'Turn test mode off' },
+          ]} />
+        </section>
 
         <section className="mt-8">
           <h2 className="text-lg font-extrabold">Start of the app</h2>

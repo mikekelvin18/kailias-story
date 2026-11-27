@@ -8,7 +8,7 @@
 // so the free/paid gating can be built and tested before real billing
 // (Stripe / App Store / Play Store subscriptions) is connected — see /upgrade.
 
-import { FREE, childLimit } from './pricing';
+import { FREE, childLimit } from '../src/config/pricing';
 
 const KEY = 'kailia_premium_v1';
 

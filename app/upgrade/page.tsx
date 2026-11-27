@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import { isPremium, setPremium, redeemCode, isPaywallOn } from '@/lib/premium';
-import { PLANS, PRICE_SOON, type Plan } from '@/lib/pricing';
+import { PLANS, PRICE_SOON, type Plan } from '@/src/config/pricing';
 import BottomNav from '@/components/BottomNav';
 import BackButton from '@/components/ui/BackButton';
 import { ParentGatePage } from '@/components/ParentGate';
@@ -96,7 +96,7 @@ function UpgradeContent() {
 
   return (
     <main className="min-h-screen kp-nav-pad" style={{ background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%)' }}>
-      <div className="max-w-md lg:max-w-5xl mx-auto px-4 pt-6">
+      <div className="max-w-md md:max-w-5xl mx-auto px-4 pt-6">
         <BackButton href="/family" label="Family" />
 
         <div className="text-center mt-4 mb-5">
@@ -111,21 +111,26 @@ function UpgradeContent() {
           )}
         </div>
 
-        {premium && paywallOn && (
-          <div className="rounded-3xl p-4 mb-4 text-center" style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.5)' }}>
-            <p className="text-yellow-200 font-extrabold text-lg">Your family has Family Premium</p>
+        {/* Already Premium: say so, and still show the side-by-side comparison
+            below (Grok 2026-11-27), so a family can see what each plan holds */}
+        {premium && (
+          <div data-premium-banner className="rounded-3xl p-4 mb-4 text-center" style={{ background: 'rgba(253,224,71,0.15)', border: '2px solid rgba(253,224,71,0.5)' }}>
+            <p className="text-yellow-200 font-extrabold text-xl">You&apos;re Premium!</p>
+            <p className="text-indigo-100 text-base mt-1">Your family has Family Premium. Here is how the plans compare.</p>
             <button onClick={resetDemo} className="mt-2 min-h-[48px] px-3 text-sm font-bold text-indigo-200 underline underline-offset-2">
               (Demo) Reset to free
             </button>
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-3 mb-5">
+        <p className="md:hidden text-center text-sm font-bold text-indigo-200 mb-2">Swipe sideways to compare all {PLANS.length} plans</p>
+        {/* side by side: three columns on a computer or tablet, swipe sideways on a phone */}
+        <div data-plan-compare className="flex md:grid md:grid-cols-3 gap-3 md:gap-4 mb-5 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0 pb-2">
           {PLANS.map(plan => {
             const featured = plan.id === 'family';
             return (
               <section key={plan.id} aria-label={plan.name}
-                className="rounded-3xl p-5 flex flex-col"
+                className="rounded-3xl p-5 flex flex-col snap-center flex-none w-[82%] md:w-auto"
                 style={{
                   background: featured ? 'rgba(253,224,71,0.10)' : 'rgba(255,255,255,0.07)',
                   border: featured ? '2px solid rgba(253,224,71,0.6)' : '1.5px solid rgba(255,255,255,0.18)',
@@ -143,7 +148,10 @@ function UpgradeContent() {
                     </li>
                   ))}
                 </ul>
-                {plan.id === 'family' && !(premium && paywallOn) && (
+                {plan.id === 'family' && premium && (
+                  <p className="mt-auto pt-4 text-center text-base font-extrabold text-yellow-200">Your plan</p>
+                )}
+                {plan.id === 'family' && !premium && (
                   <div className="mt-auto pt-4">
                     <button onClick={unlockDemo}
                       className="w-full min-h-[52px] rounded-full font-extrabold text-lg text-indigo-950 shadow-xl"

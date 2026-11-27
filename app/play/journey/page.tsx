@@ -442,9 +442,9 @@ export default function JourneyPage() {
     // tickling the friend is play, not a walk order
     if ((e.target as HTMLElement).closest?.('[data-pet]')) return;
     const rect = viewportRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left + offsetX;
+    const clickX = e.clientX - rect.left - mapLeft + offsetX;
     const clickY = e.clientY - rect.top + offsetY;
-    walkTo(Math.floor(clickX / TILE), Math.floor(clickY / TILE));
+    walkTo(Math.floor(clickX / T), Math.floor(clickY / T));
   }
 
   useEffect(() => {
@@ -505,12 +505,19 @@ export default function JourneyPage() {
   // bottom of the screen — bias the camera so Kailia stays visible above
   // that reserved strip instead of centered dead-in-the-middle.
   const BOTTOM_UI_RESERVE = 190;
-  const maxOffX = Math.max(0, W * TILE - screenSize.w);
-  const maxOffY = Math.max(0, H * TILE - screenSize.h + BOTTOM_UI_RESERVE);
-  const offsetX = Math.max(0, Math.min(maxOffX, player.x * TILE - screenSize.w / 2 + TILE / 2));
+  // On a wide screen (a computer) the map grows to fill the width, up to
+  // MAP_MAX_W, keeping its shape, and sits in the middle (Grok 2026-11-27:
+  // it was pinned left with empty green on the right). Phones keep 1:1.
+  const MAP_MAX_W = 1400;
+  const zoom = screenSize.w > W * TILE ? Math.min(screenSize.w, MAP_MAX_W) / (W * TILE) : 1;
+  const T = TILE * zoom;   // one tile on screen, in px
+  const mapLeft = Math.max(0, (screenSize.w - W * T) / 2);
+  const maxOffX = Math.max(0, W * T - screenSize.w);
+  const maxOffY = Math.max(0, H * T - screenSize.h + BOTTOM_UI_RESERVE);
+  const offsetX = Math.max(0, Math.min(maxOffX, player.x * T - screenSize.w / 2 + T / 2));
   // …and past the top row too, so the flag up there never hides under the header
   const TOP_UI_RESERVE = 72;
-  const offsetY = Math.max(-TOP_UI_RESERVE, Math.min(maxOffY, player.y * TILE - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + TILE / 2));
+  const offsetY = Math.max(-TOP_UI_RESERVE, Math.min(maxOffY, player.y * T - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + T / 2));
 
   // the still drawing of the map only changes when the world does
   const mapArt = useMemo(() => {
@@ -601,7 +608,7 @@ export default function JourneyPage() {
           <div ref={viewportRef} onClick={phase === 'walking' ? onViewportClick : undefined}
             className="absolute inset-0 select-none"
             style={{ background: world.biome.ground, cursor: phase === 'walking' ? 'pointer' : 'default' }}>
-            <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px)`, transition: 'transform 150ms linear' }}>
+            <div className="absolute" data-journey-map="" style={{ left: 0, top: 0, width: W * TILE, height: H * TILE, transformOrigin: '0 0', transform: `translate(${mapLeft - offsetX}px, ${-offsetY}px) scale(${zoom})`, transition: 'transform 150ms linear' }}>
               {mapArt}
               {/* the moving bits: pond ripples, swaying tall grass, the flag */}
               {world.grid.map((row, y) => row.map((t, x) => {

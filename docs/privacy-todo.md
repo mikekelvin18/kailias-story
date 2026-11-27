@@ -44,3 +44,5 @@ call in `app/`, `components/`, `lib/`, and every child-reachable input.
 6. **Privacy policy link in the stores.** Both stores need a public privacy-policy URL; `/privacy` will be it once reviewed.
 7. **Health claims.** The About page and results pages say the app practises skills and does not diagnose or treat. Keep marketing (store text, website) to the same wording.
 8. **Worksheet photos** stay off. Turning them on needs its own lawyer review (rule 4 in CLAUDE.md).
+9. **Terms of Use draft** (`/terms`, `app/terms/page.tsx`, 2026-11-27) is plain language for the lawyer to rewrite. Placeholders to fill: `[BUSINESS NAME]`, `[CONTACT EMAIL]`, `[STATE/COUNTRY]` (governing law). Also check the free-trial, refund and "not medical" wording against App Store / Google Play rules.
+10. **Outside links.** Every link that leaves the app goes through `GatedLink` / `ParentGateModal` (`components/ParentGate.tsx`). Today the only one is the CDC milestones link on `/about`.

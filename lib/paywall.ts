@@ -4,7 +4,7 @@
 // is open while the paywall is off (PAYWALL_ENABLED in lib/premium.ts).
 // Where each check is used: docs/monetization.md.
 
-import { FREE } from './pricing';
+import { FREE } from '../src/config/pricing';
 import { isPremium } from './premium';
 import { WORKSHEETS } from './worksheets';
 

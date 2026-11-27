@@ -10,7 +10,7 @@
 // hand in Grown-ups > Display & accessibility (saved on this device only,
 // like the other display settings; it is not child data).
 
-import { loadA11y, voiceVolume, narrationOn, narrationSpeed } from './accessibility';
+import { loadA11y, voiceVolume, narrationOn, narrationSpeed, soundEnabled, A11Y_EVENT } from './accessibility';
 import { deviceNames } from './nameSounds';
 
 /* Voices we know sound warm and friendly, best first. Matching is by
@@ -356,10 +356,23 @@ let lineOwner: string | null = null;
 /** a story card's line waiting to be read just after the first tap (see unlockVoice) */
 let replay: { text: string; opts: SayOptions } | null = null;
 
+/** Stop whatever is being said right now (recorded clip and device voice). */
+function silenceNow() {
+  generation++; stopClip();
+  try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+  setTalking(false);
+}
+// Turning on Sound off (or read-aloud off, or the sound button) mid-sentence
+// stops the voice at once, not at the end of the line.
+if (typeof window !== 'undefined') {
+  window.addEventListener(A11Y_EVENT, () => { if (!soundEnabled() || !narrationOn()) silenceNow(); });
+}
+
 export function say(text: string, opts: SayOptions = {}) {
   if (typeof window === 'undefined') return;
   // grown-ups can switch read-aloud off (Parent Zone): nothing is spoken
-  if (!narrationOn()) { generation++; stopClip(); try { window.speechSynthesis?.cancel(); } catch { /* ignore */ } setTalking(false); return; }
+  // and "Sound off" (or the sound button) silences every voice, recorded or device
+  if (!narrationOn() || !soundEnabled()) { silenceNow(); return; }
   setPaused(false);
   lastLine = { text, opts };
   lineOwner = opts.owner ?? null;

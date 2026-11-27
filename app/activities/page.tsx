@@ -16,7 +16,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useHubTheme } from '@/hooks/useHubTheme';
 import LivingSky from '@/components/scenery/LivingSky';
 import { isPremium } from '@/lib/premium';
-import { FREE } from '@/lib/pricing';
+import { FREE } from '@/src/config/pricing';
 import { loadCustomTasks, customTaskAsActivity } from '@/lib/customTasks';
 import BackButton from '@/components/ui/BackButton';
 

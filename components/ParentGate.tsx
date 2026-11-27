@@ -169,3 +169,21 @@ export function ParentGatePage({ children, note }: { children: React.ReactNode; 
     </main>
   );
 }
+
+/** A link that leaves the app (any http(s) address): the grown-up check
+ *  comes first, then it opens in a new tab. Use this for EVERY outside link
+ *  (Apple Kids / Google Play Families rule, CLAUDE.md "Plans & paywall"). */
+export function GatedLink({ href, children, className, note = 'This link leaves the app.' }: { href: string; children: React.ReactNode; className?: string; note?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <a href={href} className={className} data-gated-link=""
+        onClick={e => {
+          e.preventDefault();
+          if (grownUpPassed()) window.open(href, '_blank', 'noopener,noreferrer');
+          else setOpen(true);
+        }}>{children}</a>
+      {open && <ParentGateModal href={href} note={note} onClose={() => setOpen(false)} />}
+    </>
+  );
+}

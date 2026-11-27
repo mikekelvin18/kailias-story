@@ -2,6 +2,7 @@ import Link from 'next/link';
 import BackButton from '@/components/ui/BackButton';
 import { LANDS } from '@/lib/adventure';
 import { SKILL_INFO } from '@/lib/skillInfo';
+import { GatedLink } from '@/components/ParentGate';
 
 export const metadata = { title: 'About Kailia\'s Story' };
 
@@ -38,7 +39,7 @@ export default function AboutPage() {
         </p>
 
         <section className="rounded-2xl p-4 mb-6" style={{ background: '#EEF2FF', border: '2px solid #C7D2FE' }}>
-          <h2 className="text-lg font-extrabold text-indigo-950 mb-1">What this app is not</h2>
+          <h2 className="text-lg font-extrabold text-indigo-950 mb-1">Not a diagnosis or treatment</h2>
           <p className="text-base text-indigo-950 leading-relaxed">
             Kailia&apos;s Story does not diagnose, treat or cure any condition, and it is not a medical or
             developmental assessment. The skills check-up gives a rough guide for choosing games and activities.
@@ -58,8 +59,10 @@ export default function AboutPage() {
             ))}
           </ul>
           <p className="text-sm text-gray-500 mt-2">
-            The check-up questions are adapted from public milestone guides, such as the CDC&apos;s &quot;Learn the
-            Signs. Act Early.&quot; milestones. They are not copied from paid clinical tests.
+            The check-up questions are adapted from public milestone guides, such as the CDC&apos;s{' '}
+            <GatedLink href="https://www.cdc.gov/ncbddd/actearly/milestones/index.html" className="underline font-semibold text-violet-700">
+              &quot;Learn the Signs. Act Early.&quot; milestones
+            </GatedLink>. They are not copied from paid clinical tests.
           </p>
         </section>
 
@@ -107,6 +110,7 @@ export default function AboutPage() {
         <p className="text-sm text-gray-500 mt-8">
           <Link href="/privacy" className="underline">Privacy Policy</Link> ·{' '}
           <Link href="/retention" className="underline">Data Retention</Link> ·{' '}
+          <Link href="/terms" className="underline">Terms of Use (draft)</Link> ·{' '}
           <Link href="/family" className="underline">Family page</Link>
         </p>
       </div>

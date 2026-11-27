@@ -4,9 +4,9 @@ Last updated 2026-11-25. Real payment is **not** connected. The paywall is
 **off** (`PAYWALL_ENABLED = false` in `lib/premium.ts`), so today every family
 gets everything.
 
-## The one file to edit: `lib/pricing.ts`
+## The one file to edit: `src/config/pricing.ts`
 
-| What you want to change | Where in `lib/pricing.ts` |
+| What you want to change | Where in `src/config/pricing.ts` |
 | --- | --- |
 | A price | `PLANS[...].prices.monthly` / `.yearly`, as text like `'$9.99'`. Empty (`null`) shows "Price coming soon". |
 | Free trial length | `PLANS[...].prices.trialDays` (a number of days) |

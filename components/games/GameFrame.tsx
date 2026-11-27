@@ -207,6 +207,18 @@ export function PlayButton({ onClick, children, theme, href }: { onClick?: () =>
     : <button type="button" onClick={onClick} className="gf-cta" style={style}>{inner}</button>;
 }
 
+/** The start button under a game's opening card. Every game intro uses this
+    one component so they all behave the same: it sits in the normal page flow
+    below the level picker (never floating over it), with 20px above it and
+    the phone's safe area below it. */
+export function IntroStart({ onStart, theme, children }: { onStart: () => void; theme: Omit<Theme, 'bg'>; children: ReactNode }) {
+  return (
+    <div className="gf-cta-dock" data-intro-start="">
+      <div className="gf-rise-in" style={{ animationDelay: '0.16s' }}><PlayButton onClick={onStart} theme={theme}>{children}</PlayButton></div>
+    </div>
+  );
+}
+
 interface IntroProps {
   title: string;
   theme: Theme;
@@ -233,8 +245,11 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
       <GameBackdrop />
       <StarDust />
       <div className="relative max-w-sm w-full mx-auto px-4 pt-3 pb-8 text-center">
-        <div className="flex justify-start">
+        {/* "← Map" on the left; the sound button docks in the slot on the right
+            (components/GameMusic.tsx), inside this screen so nothing covers it */}
+        <div className="flex items-center justify-between">
           <Link href={backHref} className="gf-back">← Map</Link>
+          <span data-sound-slot="" className="inline-flex items-center" />
         </div>
         <Title text={title} accent={theme.accent} />
         <Gang pet={pet} accent={theme.accent} />
@@ -246,11 +261,7 @@ export function GameIntro({ title, theme, pet, story, extras, levels, startLabel
         {readAloud && <div className="gf-rise-in mt-3" style={{ animationDelay: '0.11s' }}><ReadAloudControls tone="dark" /></div>}
         {extras && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.12s' }}>{extras}</div>}
         {levels && <div className="gf-rise-in mt-4" style={{ animationDelay: '0.14s' }}>{levels}</div>}
-        {onStart && (
-          <div className="gf-cta-dock mt-5">
-            <div className="gf-rise-in" style={{ animationDelay: '0.16s' }}><PlayButton onClick={onStart} theme={theme}>{startLabel}</PlayButton></div>
-          </div>
-        )}
+        {onStart && <IntroStart onStart={onStart} theme={theme}>{startLabel}</IntroStart>}
         {footer && <div className="mt-4">{footer}</div>}
       </div>
     </main>

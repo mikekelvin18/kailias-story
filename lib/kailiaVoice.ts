@@ -6,7 +6,7 @@
 // public/audio/kailia/. Until they're made she stays quiet here (a robot
 // voice would spoil a cheer). Never while Noel is talking.
 
-import { soundEnabled, voiceVolume, narrationOn } from './accessibility';
+import { soundEnabled, voiceVolume, narrationOn, A11Y_EVENT } from './accessibility';
 import { isTalking, voiceKey } from './voice';
 
 /** Keep in sync with voice/kailia-lines.json (the recording list). */
@@ -32,6 +32,12 @@ if (typeof window !== 'undefined') {
 }
 
 let player: HTMLAudioElement | null = null;
+// "Sound off" (or read-aloud off) stops a cheer that is already playing.
+if (typeof window !== 'undefined') {
+  window.addEventListener(A11Y_EVENT, () => {
+    if ((!soundEnabled() || !narrationOn()) && player) { try { player.pause(); } catch { /* ignore */ } }
+  });
+}
 let lastAt = 0;
 let lastLine = '';
 

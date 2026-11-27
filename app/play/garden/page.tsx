@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import GardenGame from '@/components/world/garden/GardenGame';
 import { applyA11y, loadA11y, saveA11y } from '@/lib/accessibility';
 import { awardStarlight, COMPANIONS, getFocusCompanion, loadRewards, unlockedCompanions } from '@/lib/rewards';
+import { useTestTapMode } from '@/hooks/useTestTapMode';
 import { demandsFor, type ChallengeChoice, type GrownUpSettings, type HintChoice } from '@/lib/world/demands';
 import type { Demands, PetInfo, WorldEvent } from '@/lib/world/events';
 import { createObserver } from '@/lib/world/observe';
@@ -52,7 +53,9 @@ export default function GardenPage() {
   }, []);
 
   const grownUp = loaded?.save.grownUp;
-  const demands: Demands | null = useMemo(() => (grownUp ? demandsFor(tier, grownUp) : null), [tier, grownUp]);
+  // reviewers' test mode (/go/test-mode, preview only): tap instead of drag
+  const tapTest = useTestTapMode();
+  const demands: Demands | null = useMemo(() => (grownUp ? demandsFor(tier, tapTest ? { ...grownUp, tapToMove: true } : grownUp) : null), [tier, grownUp, tapTest]);
 
   // starlight for finishing: full the first time, a smaller thank-you after
   const reward = loaded?.save.garden.finished ? QUEST.reward.replayStarlight : QUEST.reward.starlight;
