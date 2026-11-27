@@ -162,6 +162,7 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
     const scrollsY = (n: Element) => { const st = getComputedStyle(n); return /(auto|scroll)/.test(st.overflowY) && n.scrollHeight > n.clientHeight + 4; };
     const scrolls = document.documentElement.scrollHeight > H + 4 || [...document.querySelectorAll('body *')].some(scrollsY);
     const barOk = (e: Element) => scrolls && !atEnd && !!e.closest('nav, [role="navigation"]');
+    const scrollsX = (n: Element) => { const s = getComputedStyle(n); return /(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1; };
     /** Really seen: nothing else is drawn over the middle of its visible part. */
     const seen = (e: Element) => {
       const r = e.getBoundingClientRect();
@@ -195,6 +196,18 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
       if (over.closest('[data-actor]')) continue; // a character walking past is checked elsewhere
       if (e.closest('[data-play-field]') && over.closest('[data-play-field]')) continue; // hiding things is part of some games
       if (barOk(over)) continue;
+      // Vercel's own comment toolbar on preview sites isn't part of the app
+      if (over.closest('vercel-live-feedback, #vercel-live-feedback, [data-vercel-toolbar]')) continue;
+      // a table's first column that stays put while the table slides sideways
+      // is meant to pass over the other cells
+      let pinned = false;
+      for (let n: Element | null = over; n && n !== document.body; n = n.parentElement) {
+        if (getComputedStyle(n).position === 'sticky') {
+          for (let p = n.parentElement; p && p !== document.body; p = p.parentElement) if (scrollsX(p)) { pinned = p.contains(e); break; }
+          break;
+        }
+      }
+      if (pinned) continue;
       let layer = false;
       for (let n: Element | null = over; n && n !== document.body; n = n.parentElement) {
         if (getComputedStyle(n).position !== 'fixed') continue;
@@ -206,7 +219,6 @@ export async function lookOver(page: Page, where: string, opts: { atEnd?: boolea
     }
 
     // ── cut off ──
-    const scrollsX = (n: Element) => { const s = getComputedStyle(n); return /(auto|scroll)/.test(s.overflowX) && n.scrollWidth > n.clientWidth + 1; };
     const clips = (n: Element) => { const s = getComputedStyle(n); return /(hidden|clip)/.test(s.overflowX) || /(hidden|clip)/.test(s.overflow); };
     const leaves = [...document.querySelectorAll<HTMLElement>('body *')].filter(e =>
       inScope(e) && [...e.childNodes].some(c => c.nodeType === 3 && (c.textContent || '').trim().length > 0));
