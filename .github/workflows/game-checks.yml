@@ -91,6 +91,7 @@ jobs:
           node scripts/voice-miss-check.mjs http://localhost:3300
           node scripts/voice-check.mjs http://localhost:3300
       - name: Art, framing and voice on a phone (upright and sideways)
+        if: success() || failure()
         run: npx playwright test --project=phone --grep-invert "speed:"
         env:
           CI: '1'
