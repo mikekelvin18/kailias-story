@@ -8,6 +8,8 @@
 // so the free/paid gating can be built and tested before real billing
 // (Stripe / App Store / Play Store subscriptions) is connected — see /upgrade.
 
+import { FREE, childLimit } from './pricing';
+
 const KEY = 'kailia_premium_v1';
 
 // ── Launch mode ──
@@ -18,8 +20,21 @@ const KEY = 'kailia_premium_v1';
 // visiting the real site is ever gated behind them.
 const PAYWALL_ENABLED = false;
 
+/** True once real charging is switched on (PAYWALL_ENABLED). */
+export function isPaywallOn(): boolean {
+  return PAYWALL_ENABLED || paywallPreview();
+}
+
+// Preview builds only: a /go link with ?plus=0 sets this so a reviewer can
+// see the free part with the paywall "on" (lib/jump.ts). Jump links don't
+// exist on the real site, and the flag can only ever lock MORE, never less.
+function paywallPreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  try { return localStorage.getItem('kailia_paywall_preview_v1') === 'on'; } catch { return false; }
+}
+
 export function isPremium(): boolean {
-  if (!PAYWALL_ENABLED) return true;
+  if (!isPaywallOn()) return true;
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(KEY) === 'true';
 }
@@ -42,4 +57,25 @@ export function redeemCode(code: string): boolean {
   const ok = PROMO_CODES.includes(code.trim().toUpperCase());
   if (ok) setPremium(true);
   return ok;
+}
+
+// ── The free part, read from lib/pricing.ts ──
+
+/** A level is free when it sits within the first FREE.levelsPerGame levels
+ *  from where this child starts the game (startLevel = 1 unless the game
+ *  places older children further up the ladder). Levels below the start
+ *  are always open too: going back down is never locked. */
+export function isLevelFree(level: number, startLevel = 1): boolean {
+  return level < Math.max(1, startLevel) + FREE.levelsPerGame;
+}
+
+/** Highest level a family without a plan can play in a game. */
+export function lastFreeLevel(startLevel = 1): number {
+  return Math.max(1, startLevel) + FREE.levelsPerGame - 1;
+}
+
+/** Whether one more child profile fits this family's plan. */
+export function canAddChild(currentCount: number): boolean {
+  if (!isPaywallOn()) return true;
+  return currentCount < childLimit(isPremium());
 }

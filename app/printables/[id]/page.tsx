@@ -11,6 +11,7 @@ import { hasActiveConsent, hasPhotoConsent, recordPhotoConsent, activeChild } fr
 import { savePhoto, getPhoto, deletePhoto } from '@/lib/photos';
 import { awardStarlight } from '@/lib/rewards';
 import BackButton from '@/components/ui/BackButton';
+import { canOpenPrintable } from '@/lib/paywall';
 
 // ─── One printable worksheet: print it, do it, mark it done ──────────────────
 // Photo verification is the ONE narrow photo exception in this app — see
@@ -47,6 +48,25 @@ export default function PrintableDetailPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worksheet]);
+
+  // a sheet past the free sample, opened by its address: back to the list,
+  // where a grown-up can open the plans page (lib/pricing.ts)
+  const [needsPlan, setNeedsPlan] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the plan lives in this device's storage
+    if (worksheet) setNeedsPlan(!canOpenPrintable(worksheet.id));
+  }, [worksheet]);
+
+  if (needsPlan) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4" style={{ background: '#1e1b4b' }}>
+        <div className="text-center">
+          <p className="text-white text-lg font-bold mb-3">This sheet opens with Family Premium.</p>
+          <Link href="/printables" className="inline-block min-h-[48px] leading-[48px] px-4 text-base text-purple-200 underline">Back to Printables</Link>
+        </div>
+      </main>
+    );
+  }
 
   if (!worksheet) {
     return (

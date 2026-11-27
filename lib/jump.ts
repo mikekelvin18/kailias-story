@@ -89,7 +89,11 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
     { href: '/go/family', label: 'Parent Zone' },
     { href: '/go/activities', label: 'Parent & Baby quests' },
     { href: '/go/printables', label: 'Printables' },
-    { href: '/go/upgrade', label: 'Plus plan page' },
+    { href: '/go/upgrade', label: 'Plans page (grown-up check first)' },
+    { href: '/go/upgrade?plus=0', label: 'Plans page, family without a plan' },
+    { href: '/go/game/moonlight-match?level=5&plus=0', label: 'Level map without a plan (gold keys on 6+)' },
+    { href: '/go/about', label: 'About page' },
+    { href: '/go/privacy', label: 'Privacy page' },
   ]},
   { group: 'Start of the app', items: [
     { href: '/review', label: 'Reviewer guide (no sign-up, for outside reviewers)' },
@@ -163,6 +167,7 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     map: '/play', home: '/', story: '/story', results: '/results', progress: '/progress',
     family: '/family', 'parent-zone': '/family', activities: '/activities', printables: '/printables',
     upgrade: '/upgrade', plus: '/upgrade', garden: '/play/garden',
+    about: '/about', privacy: '/privacy', retention: '/retention',
   };
   if (simple[what]) {
     plan.path = simple[what];
@@ -332,6 +337,10 @@ export function applyJump(plan: JumpPlan) {
   }));
 
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
+  // ?plus=0 also previews the paywall as if it were switched on (lib/premium.ts),
+  // so a reviewer can see the free part; any other plan choice turns that off
+  if (plan.plus === false) ls.setItem('kailia_paywall_preview_v1', 'on');
+  else if (plan.plus === true) ls.removeItem('kailia_paywall_preview_v1');
   setCalm(ls, plan.calm);
   setSessionHints(plan);
 
@@ -375,6 +384,10 @@ function reuseReviewProfile(plan: JumpPlan, fam: object, key: (b: string) => str
     }));
   }
   if (plan.plus !== null) ls.setItem('kailia_premium_v1', plan.plus ? 'true' : 'false');
+  // ?plus=0 also previews the paywall as if it were switched on (lib/premium.ts),
+  // so a reviewer can see the free part; any other plan choice turns that off
+  if (plan.plus === false) ls.setItem('kailia_paywall_preview_v1', 'on');
+  else if (plan.plus === true) ls.removeItem('kailia_paywall_preview_v1');
   setCalm(ls, plan.calm);
   setSessionHints(plan);
   try {

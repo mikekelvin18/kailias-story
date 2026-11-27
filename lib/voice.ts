@@ -43,13 +43,16 @@ export function voiceScore(v: SpeechSynthesisVoice): number {
   if (NEVER.some(n => name.includes(n))) return -100;
   const lang = v.lang.toLowerCase().replace('_', '-');
   if (!lang.startsWith('en')) return -50;
+  // Privacy: online voices (Chrome "Google …", Edge "Online (Natural)") send
+  // the spoken text, which can include the child's nickname, to Google or
+  // Microsoft. Only voices that run on the device may be used.
+  if (!v.localService) return -60;
   let s = 0;
   const fav = FAVOURITES.findIndex(f => name.includes(f));
   if (fav >= 0) s += 200 - fav * 3;
   if (NATURAL.test(v.name)) s += 60;
   if (lang === 'en-us') s += 15;
   else if (lang === 'en-gb' || lang === 'en-au' || lang === 'en-ca') s += 8;
-  if (v.localService) s += 2; // works offline, starts instantly
   return s;
 }
 
@@ -71,7 +74,7 @@ export function chosenVoice(): SpeechSynthesisVoice | null {
   const picked = loadA11y().voiceName;
   if (picked) {
     const v = voices.find(x => x.name === picked);
-    if (v) return v;
+    if (v && v.localService) return v;
   }
   const best = [...voices].sort((a, b) => voiceScore(b) - voiceScore(a))[0];
   return best && voiceScore(best) > -50 ? best : null;
@@ -504,6 +507,12 @@ function speakParts(parts: string[], files: (string | null)[], base: string, gen
     whenVoicesReady(() => {
       if (gen !== generation) return;
       const voice = kind === 'noel' || kind === 'boy' ? manVoice() : chosenVoice();
+      if (!voice) {
+        // no on-device voice: never fall back to the browser's default (it
+        // may be an online one); keep the highlight moving at reading pace
+        setTimeout(() => { if (gen === generation && !pausedNow) next(); }, 500 + words * 300 / narrationSpeed());
+        return;
+      }
       const natural = isNaturalVoice(voice);
       const wantPitch = kind === 'noel' ? (opts.pitch ?? 0.95) : (opts.pitch ?? 1.08);
       // Lifelike voices already sound warm; pushing their pitch far makes

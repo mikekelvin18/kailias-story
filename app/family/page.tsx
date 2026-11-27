@@ -24,6 +24,9 @@ import PlaySettings from '@/components/family/PlaySettings';
 import FocusPicker from '@/components/FocusPicker';
 import AvatarPicker from '@/components/ui/AvatarPicker';
 import ChildAvatar from '@/components/characters/ChildAvatar';
+import { canAddChild } from '@/lib/premium';
+import WeeklySummary from '@/components/WeeklySummary';
+import { ParentGatePage } from '@/components/ParentGate';
 import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 // Developer-only tools show up only in `npm run dev`, never in a deployed build.
@@ -48,7 +51,18 @@ const COLLECTED = [
   ['☀️', 'Your one-tap reports on daily activities (did it / tried with help / not yet).'],
 ];
 
+// The Parent Zone holds child profiles, deletion and settings, so it sits
+// behind the grown-up check (Kelvin, 2026-11-25): a child tapping "Family"
+// in the bottom bar meets "Grown-ups only", never the forms.
 export default function ParentZonePage() {
+  return (
+    <ParentGatePage note="The Family page is for grown-ups.">
+      <ParentZone />
+    </ParentGatePage>
+  );
+}
+
+function ParentZone() {
   const [family, setFamily] = useState<FamilyAccount | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [agreeChecked, setAgreeChecked] = useState(false);
@@ -248,14 +262,25 @@ export default function ParentZonePage() {
                   <ChildAvatar avatar={c.avatar} size={26} /> {c.nickname}
                 </button>
               ))}
-              <button onClick={() => setShowAddChild(true)}
-                className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
-                style={{ border: '1.5px dashed #CBD5E1' }}>
-                + Add a child
-              </button>
+              {canAddChild(family.children.length) ? (
+                <button onClick={() => setShowAddChild(true)}
+                  className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-slate-600"
+                  style={{ border: '1.5px dashed #CBD5E1' }}>
+                  + Add a child
+                </button>
+              ) : (
+                <Link href="/upgrade"
+                  className="flex items-center gap-1 min-h-[40px] px-3 rounded-full text-sm font-bold text-violet-700"
+                  style={{ border: '1.5px dashed #C4B5FD' }}>
+                  More children with Family Premium
+                </Link>
+              )}
             </div>
           </div>
         )}
+
+        {/* This week, in plain words (on-device only, components/WeeklySummary.tsx) */}
+        {consented && child && <WeeklySummary childName={child.nickname} />}
 
         {/* ── STEP 2: Add child profile (always for the first child; a
             toggled form for adding a sibling afterward) ── */}
