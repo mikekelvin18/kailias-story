@@ -154,7 +154,7 @@ export default function GameMusic() {
 
   const docked = !!slot && slot.isConnected;
   const button = (
-    <div className={docked ? 'flex' : 'fixed z-[60]'}
+    <div className={docked ? 'flex' : 'fixed z-[60]'} data-sound-float={docked ? undefined : ''}
       style={docked ? undefined : {
         right: 'max(14px, env(safe-area-inset-right))',
         bottom: 'max(14px, env(safe-area-inset-bottom))',
