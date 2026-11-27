@@ -28,7 +28,7 @@ const SCREENS: [string, string][] = [
 
 // games whose targets fly, swim or fall on their own clock: their play field
 // is covered in the picture (the framing and smoothness checks watch it live)
-// cargo-count: the boat bobs on the water, so its play area differs a little each take
+// cargo-count: its cargo floats and puffs smoke as it moves, so its play area differs a little each take
 const MOVING = new Set(['firefly-catch', 'reef-explorer', 'potion-sort', 'sensory', 'cargo-count']);
 
 // The page's clock is frozen on one afternoon and only moves when the robot
