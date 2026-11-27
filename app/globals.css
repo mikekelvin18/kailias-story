@@ -1043,6 +1043,10 @@ button:active {
 .pm-enter { animation: pm-enter 0.7s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
 @keyframes pm-card { from { transform: translateY(24px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
 .pm-card { animation: pm-card 0.35s cubic-bezier(.3,1.3,.5,1) both; }
+/* pet pop-up on a sideways phone: pet and words on the left, the task on the right */
+.pm-side-task { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); align-items: center; column-gap: 16px; }
+.pm-side-task > :first-child { grid-row: 1 / span 9; }
+.pm-side-task > :not(:first-child) { grid-column: 2; margin-top: 0; }
 @keyframes pm-bubble { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
 .pm-bubble { animation: pm-bubble 0.35s cubic-bezier(.3,1.4,.5,1) both; transform-origin: 50% 100%; }
 @keyframes pm-chomp { 0%,100% { transform: none; } 20% { transform: scale(1.12, 0.86); } 40% { transform: scale(0.94, 1.08); } 60% { transform: scale(1.08, 0.9); } 80% { transform: scale(0.98, 1.03); } }
