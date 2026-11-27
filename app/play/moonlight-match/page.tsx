@@ -434,7 +434,7 @@ export default function MoonlightMatchPage() {
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 <div data-read-aloud data-speech-panel className="px-3 py-2 text-lg font-bold text-gray-900 overflow-y-auto overscroll-contain"
-                  style={{ maxHeight: 'min(22vh, 7.5rem)' }}>
+                  style={{ maxHeight: 'max(26vh, 8.5rem)' }}>
                   {noelLine}
                 </div>
               </div>
