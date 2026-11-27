@@ -1198,6 +1198,9 @@ html:has([data-play-field]), html:has([data-play-field]) body { overscroll-behav
     column-gap: 18px; align-items: start; max-width: 64rem !important; width: 100% !important;
     padding-left: max(12px, env(safe-area-inset-left)) !important; padding-right: max(12px, env(safe-area-inset-right)) !important;
   }
+  /* while the round sound button floats in the corner (48px, 14px in), the
+     right side leaves room for it so it never covers a stone or box to tap */
+  html:has([data-sound-float]) [data-play-col]:has([data-play-field]) { padding-right: calc(68px + env(safe-area-inset-right, 0px)) !important; }
   /* a wrapper around the play area (and its sign or wish) steps aside, so
      its pieces join the two columns too */
   [data-play-col] > :has([data-play-field]):not([data-play-field]) { display: contents; }

@@ -503,7 +503,7 @@ export default function CargoCountPage() {
 // ── Dots in ten-frames (rows of five), so a pre-reader can count ──
 function TenFrames({ n, color }: { n: number; color: string }) {
   const frames = Math.max(1, Math.ceil(n / 10));
-  const dot = frames > 3 ? 5 : frames > 1 ? 6 : 8;
+  const dot = frames > 3 ? 6 : frames > 2 ? 7 : frames > 1 ? 9 : 11;
   return (
     <div className="flex flex-wrap justify-center gap-1 mt-1" aria-hidden="true">
       {Array.from({ length: frames }, (_, f) => (
@@ -542,12 +542,13 @@ function PodArt({ value, size, showNumber = false, still = false }: { value: num
         <rect x="3" y="9" width="34" height="3.5" fill={c.band} opacity="0.75" />
         <rect x="3" y="30" width="34" height="3" fill={c.band} opacity="0.6" />
         <path d="M8 13 Q9 9 13 9" stroke="#FFFFFF" strokeWidth="1.6" fill="none" opacity="0.7" strokeLinecap="round" />
-        {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={value === 10 ? 2 : value === 1 ? 5 : value === 2 ? 4 : 3} fill={c.dot} />)}
+        {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={value === 10 ? 2.3 : value === 1 ? 5 : value === 2 ? 4 : 3} fill={c.dot} />)}
       </g>
       {showNumber && (
         <g>
-          <circle cx="35" cy="6" r="6.5" fill="#FFFFFF" stroke={sk} strokeWidth="1.4" />
-          <text x="35" y="9" textAnchor="middle" fontSize={value >= 10 ? 7 : 9} fontWeight="900" fill={sk}>{value}</text>
+          {/* big enough to read at a glance on a phone (it was a 12px dot, Kelvin 2026-11-27) */}
+          <circle cx="34" cy="7" r="10" fill="#FFFFFF" stroke={sk} strokeWidth="2" />
+          <text x="34" y="7.5" textAnchor="middle" dominantBaseline="central" fontSize={value >= 10 ? 12.5 : 15} fontWeight="900" fill={sk} letterSpacing={value >= 10 ? -0.6 : 0}>{value}</text>
         </g>
       )}
     </svg>
