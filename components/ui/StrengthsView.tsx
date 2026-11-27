@@ -117,15 +117,14 @@ export function ParentNotes({ tone = 'dark' }: { tone?: Tone }) {
         <ul className="space-y-1 mb-4">{talk.map(t => <li key={t} className={`text-sm ${body}`}>{t}</li>)}</ul>
       ) : (
         <p className={`text-sm mb-4 ${body}`}>
-          When Kailia says &ldquo;Your turn!&rdquo; in the story and talking games, tap the small Grown-up button to note
-          how it went (Said it, Tried, Not yet). Your notes show up here. Nothing is ever recorded.
+          When Kailia says &ldquo;Your turn!&rdquo;, tap the Grown-up button to note how it went. Nothing is recorded.
         </p>
       )}
       <Heading tone={tone} color="#60A5FA">Feelings</Heading>
       {feel.length ? (
         <ul className="space-y-1">{feel.map(t => <li key={t} className={`text-sm ${body}`}>{t}</li>)}</ul>
       ) : (
-        <p className={`text-sm ${body}`}>After each land, Kailia shares how she felt and asks how your child feels. Their answers show up here.</p>
+        <p className={`text-sm ${body}`}>After each land, Kailia asks how your child feels. Answers show up here.</p>
       )}
     </section>
   );

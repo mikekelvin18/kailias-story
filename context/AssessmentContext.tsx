@@ -75,6 +75,8 @@ interface AssessmentContextType {
   chronoMonths: number | null;
   /** Range estimate per area, null for checks done before the milestone ladders existed. */
   estimates: Partial<Record<MilestoneDomain, AgeEstimate>>;
+  /** The overall range parents read (low/high in months), null before the milestone ladders. */
+  overallEstimate: AgeEstimate | null;
   /** Midpoint of the overall estimate, in months — drives game difficulty and the Quest Library band. */
   devMonths: number | null;
   /** "about 2½ to 3½ years" for one area, falling back to the older score bands. */
@@ -376,6 +378,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       domainAge: (score) => getDomainAge(score, state.ageGroup),
       chronoMonths,
       estimates,
+      overallEstimate: overall,
       devMonths,
       domainRange,
       domainComparison,

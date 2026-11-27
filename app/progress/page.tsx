@@ -12,6 +12,7 @@ import BackButton from '@/components/ui/BackButton';
 import { COMPARISON_TEXT, type MilestoneDomain } from '@/lib/milestones';
 import PlayLog from '@/components/ui/PlayLog';
 import StrengthsView, { ParentNotes } from '@/components/ui/StrengthsView';
+import AgeCard from '@/components/ui/AgeCard';
 import { gameSummaries, type GameSummary } from '@/lib/gameSummary';
 
 // ─── Progress Report ───────────────────────────────────────────────────────
@@ -68,28 +69,18 @@ export default function ProgressReportPage() {
           </p>
         </div>
 
-        <ResultsDisclaimer tone="light" />
-        <p className="text-xs text-slate-600 -mt-6 mb-6 px-1">
-          Share freely with an occupational therapist, speech-language pathologist, physical therapist,
-          teacher, or pediatrician for context on what {child ? child.nickname : 'your child'} has been practicing at home.
-        </p>
+        <p className="text-center text-xs text-slate-500 -mt-4 mb-5">Made to share with a therapist, teacher or pediatrician.</p>
 
-        {/* Strengths first (Kelvin, 2026-11-25); the rough age ranges are under Details */}
+        {/* Strengths first (Kelvin, 2026-11-25), then the rough age range,
+            always showing (Kelvin, 2026-11-27); only the skill-by-skill
+            breakdown is folded (it opens by itself when printed). */}
         <StrengthsView tone="light" name={child?.nickname} />
-        <ParentNotes tone="light" />
 
         {/* Developmental snapshot from the initial assessment: a rough
             estimate, closed under Details (opens by itself when printed) */}
         {state.childName && (
-          <details data-testid="age-details" className="mb-6 rounded-2xl bg-white border border-slate-200 group" open={printing}>
-            <summary className="flex items-center gap-2 p-3 min-h-[48px] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-              <span className="flex-1">
-                <span className="block text-sm font-extrabold text-slate-700">Details: rough age estimates (from the check-up)</span>
-                <span className="block text-[11px] text-slate-500">A rough estimate from a short set of milestones, not a measurement.</span>
-              </span>
-              <span className="text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
-            </summary>
-          <section className="px-3 pb-3">
+          <AgeCard tone="light" open={printing}>
+          <section>
             <p className="text-[11px] text-slate-500 mb-2">
               Each range is the likeliest 8 in 10 developmental ages, worked out from age-tagged milestones
               (CDC 2022 checklists under 5, OT norms for hand skills and pencil grasp, end-of-grade standards for
@@ -98,11 +89,11 @@ export default function ProgressReportPage() {
             </p>
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {([
-                ['📖 Early Books & Sounds · Signposts', 'reading'],
-                ['✍️ Hand Skills · Firefly Forest', 'writing'],
-                ['🗣️ Talking & Listening · Story Keepers', 'communication'],
-                ['🔢 Counting & Sorting · Dragon\'s Cave', 'math'],
-                ['🦉 Thinking & Remembering · Owl\'s Tower', 'processing'],
+                ['Early Books & Sounds · Signposts', 'reading'],
+                ['Hand Skills · Firefly Forest', 'writing'],
+                ['Talking & Listening · Story Keepers', 'communication'],
+                ['Counting & Sorting · Dragon\'s Cave', 'math'],
+                ['Thinking & Remembering · Owl\'s Tower', 'processing'],
               ] as [string, MilestoneDomain][]).filter(([, key]) => key !== 'processing' || domainRange(key) !== 'not checked yet').map(([label, key]) => {
                 const cmp = domainComparison(key);
                 return (
@@ -118,7 +109,7 @@ export default function ProgressReportPage() {
               {/* Senses: a style from the grown-up's answers (like standard
                   sensory questionnaires), never an age. */}
               <div className="px-3 py-2 bg-white">
-                <span className="text-sm font-semibold text-slate-700">👀 Senses · Echo Caves: </span>
+                <span className="text-sm font-semibold text-slate-700">Senses · Echo Caves: </span>
                 {state.sensoryCompleted && primarySensoryPattern ? (
                   <>
                     <span className="text-sm font-bold text-slate-500">{primarySensoryPattern}</span>
@@ -130,15 +121,17 @@ export default function ProgressReportPage() {
               </div>
             </div>
           </section>
-          </details>
+          </AgeCard>
         )}
+
+        <ParentNotes tone="light" />
 
         {/* What the child actually played in the app's games */}
         <section className="mb-6">
           <h2 className="text-sm font-extrabold text-slate-700 mb-2">Games Played</h2>
           <PlayLog tone="light" />
           {games.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No games finished yet. Each game your child finishes will show up here.</p>
+            <p className="text-sm text-slate-400">Finished games show up here.</p>
           ) : (
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {games.map(g => (
@@ -161,9 +154,8 @@ export default function ProgressReportPage() {
         <section className="mb-6">
           <h2 className="text-sm font-extrabold text-slate-700 mb-2">At-Home Practice Summary</h2>
           {summaries.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">
-              This part is for the real-world quests you do together away from the screen. When you mark one
-              &ldquo;Did it&rdquo; in the <a href="/activities" className="underline font-semibold text-violet-600 not-italic">Quest Library</a>, it shows up here.
+            <p className="text-sm text-slate-400">
+              Quests you mark &ldquo;Did it&rdquo; in the <a href="/activities" className="underline font-semibold text-violet-600">Quest Library</a> show up here.
             </p>
           ) : (
             <div className="space-y-2">
@@ -201,11 +193,11 @@ export default function ProgressReportPage() {
           </section>
         )}
 
-        {/* Recent log */}
-        <section className="mb-6">
+        {/* Recent log (hidden until there is one) */}
+        {recent.length > 0 && <section className="mb-6">
           <h2 className="text-sm font-extrabold text-slate-700 mb-2">Recent At-Home Quests</h2>
           {recent.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">No at-home quest reports yet. Games played in the app are listed under Games Played above.</p>
+            <p className="text-sm text-slate-400">None yet.</p>
           ) : (
             <div className="rounded-2xl overflow-hidden border border-slate-200">
               {recent.map((e, i) => (
@@ -222,8 +214,9 @@ export default function ProgressReportPage() {
               ))}
             </div>
           )}
-        </section>
+        </section>}
 
+        <ResultsDisclaimer tone="light" />
         <p className="text-center text-[11px] text-slate-400 mb-4">
           Kailia's Story · a screening and play-guidance tool, not a diagnosis.
         </p>

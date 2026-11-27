@@ -118,11 +118,28 @@ export interface JumpPlan {
   plus: boolean | null;    // null = leave as it is
   calm: boolean | null;    // ?calm=1|0: calm mode on or off (null = leave as it is)
   review: boolean;         // /go/review: the reviewers' profile, every level open
+  /** /go/results and /go/progress: a real milestone check-up (answers per skill), so the age card shows its range bar */
+  checkup?: boolean;
   /** one-time hints for the screen it opens (sessionStorage key → value), e.g. show a talking moment straight away */
   session: Record<string, string>;
   /** a link that needs its own made-up state (day one, a 2-year-old, a fresh
    *  sign-up...): it always uses the scratch test child, never the reviewer's */
   scratch: boolean;
+}
+
+/** A made-up check-up for the results/progress links: yes to milestones up
+ *  to about the child's age, "sometimes" just past it, "not yet" beyond.
+ *  Reading a little ahead and counting a little behind, so the strengths
+ *  and the skill-by-skill list both have something to show. */
+function sampleCheckup(m: number) {
+  const shift: Record<string, number> = { reading: 6, writing: 0, communication: 0, math: -6, processing: 0 };
+  const out: Record<string, { id: string; months: number; r: number; kind: 'choice3' }[]> = {};
+  for (const [d, k] of Object.entries(shift)) {
+    out[d] = [-30, -24, -18, -12, -6, 0, 6, 12, 18].map((o, i) => ({
+      id: `${d}-jump-${i}`, months: Math.max(6, m + o), r: o <= k ? 1 : o <= k + 6 ? 0.5 : 0, kind: 'choice3',
+    }));
+  }
+  return out;
 }
 
 /** Works out what to set up from the link. Returns null for an unknown link. */
@@ -147,7 +164,10 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     family: '/family', 'parent-zone': '/family', activities: '/activities', printables: '/printables',
     upgrade: '/upgrade', plus: '/upgrade', garden: '/play/garden',
   };
-  if (simple[what]) plan.path = simple[what];
+  if (simple[what]) {
+    plan.path = simple[what];
+    if (what === 'results' || what === 'progress') plan.checkup = true;
+  }
   else if (what === 'pet-popup' || what === 'pet') {
     plan.pet = (['egg', 'baby', 'little', 'grown'] as const).find(s => s === petQ) ?? 'egg';
     const t = (q.task ?? '').toLowerCase();
@@ -258,7 +278,8 @@ export function applyJump(plan: JumpPlan) {
       assessmentType: 'checklist', assessmentCompleted: true, sensoryCompleted: true,
       scores: { reading: s, writing: s, communication: s, math: s },
       sensoryScores: { lowRegistration: 0, seeking: 0, sensitive: 0, avoiding: 0 },
-      fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null, evidence: {},
+      fineMotorInputMethod: null, graspPattern: null, fineMotorSubScores: null,
+      evidence: plan.checkup ? sampleCheckup(m) : {},
     }));
   }
 
