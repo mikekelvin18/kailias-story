@@ -199,6 +199,9 @@ export function PlayButton({ onClick, children, theme, href }: { onClick?: () =>
   const style: CSSProperties = {
     background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2 ?? theme.accent})`,
     color: theme.ink ?? '#FFFFFF',
+    // white words on a light gradient get a dark brown edge so they read
+    // (well over 3:1 against the button's lightest part; contrast check)
+    ...(theme.ink ? {} : { textShadow: '0 2px 0 rgba(59,36,22,0.75), 0 0 3px rgba(59,36,22,0.85), 0 0 10px rgba(0,0,0,0.3)' }),
     ['--gf-accent' as string]: theme.accent,
   } as CSSProperties;
   const inner = <><span className="gf-shine" aria-hidden="true" /><span className="relative whitespace-nowrap">{children}</span></>;

@@ -23,7 +23,7 @@ export default function StepGuide({ step, tone = 'light', className = '' }: {
 }) {
   const dark = tone === 'dark';
   const ink = dark ? '#FFFFFF' : '#1E293B';
-  const soft = dark ? 'rgba(255,255,255,0.78)' : '#475569';
+  const soft = dark ? 'rgba(255,255,255,0.92)' : '#475569';
   const track = dark ? 'rgba(255,255,255,0.28)' : 'rgba(15,23,42,0.12)';
   const fill = dark ? '#FFFFFF' : '#7C3AED';
   const current = SETUP_STEPS[step - 1];

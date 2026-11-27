@@ -112,7 +112,8 @@ export default function LandingPage() {
         )}
 
         {/* Footer: privacy links (parent-facing) */}
-        <p className="mt-8 text-sm text-white flex flex-wrap justify-center gap-x-5 gap-y-2">
+        {/* bottom room so the floating sound button never sits on a link */}
+        <p className="mt-8 text-sm text-white flex flex-wrap justify-center gap-x-5 gap-y-2" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}>
           <Link href="/family" className="underline underline-offset-4 py-1">Parent Zone</Link>
           <Link href="/privacy" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Privacy Policy</Link>
           <Link href="/retention" className="underline underline-offset-4 py-1" style={{ opacity: 0.85 }}>Data Retention</Link>

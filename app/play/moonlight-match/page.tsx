@@ -328,8 +328,10 @@ export default function MoonlightMatchPage() {
         <div className="flex items-center justify-between gap-2 pb-2 px-1 relative z-10" style={{ paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
           <Link href="/play" className="kp-back h-12 px-4 inline-flex items-center rounded-full text-base font-bold text-white flex-none whitespace-nowrap"
             style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
-          <h1 className="min-w-0 truncate text-center text-xl font-extrabold text-white drop-shadow" style={{ fontSize: 'min(1.25rem, 5.2vw)' }}>
-            Moonlight Match <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+          {/* the title may shorten on a small phone; the level badge never does */}
+          <h1 className="min-w-0 flex items-center justify-center gap-1 text-xl font-extrabold text-white drop-shadow" style={{ fontSize: 'min(1.25rem, 5.2vw)' }}>
+            <span className="min-w-0 truncate">Moonlight Match</span>
+            <span className="flex-none whitespace-nowrap text-xs font-bold text-yellow-300 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
           <span className="w-14 flex-none flex items-center justify-end gap-0.5 text-sm font-extrabold text-yellow-300">
             {streak >= 2 && phase === 'playing' && <><Flame size={22} />×{streak}</>}

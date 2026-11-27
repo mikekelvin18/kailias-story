@@ -1,7 +1,7 @@
 'use client';
 
 import { levelStory } from '@/lib/variety';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { roundEase } from '@/lib/ageBands';
@@ -211,7 +211,14 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const W=600, H=320, HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+// The maze box in canvas units. On an upright phone the same maze is turned
+// to run top to bottom in a taller box (600 x 680), so the tracing area
+// fills about half the screen instead of a thin strip (the look check
+// wants at least 30%). Corridors keep the same on-screen width. Set by
+// the page before each level (one maze page at a time).
+const WIDE_W=600, WIDE_H=320, TALL_H=680;
+let W=WIDE_W, H=WIDE_H;
+const HIT_CD=650, COLLECT_R=26, GOAL_R=22;
 // The trace has to really follow the path: it starts on GO, picks up near
 // where Kailia stands after a lift, and only counts progress that moves
 // along the path a little at a time (no tapping the flag, no shortcuts
@@ -223,6 +230,14 @@ const TOUCH_LINE=()=>typeof window!=='undefined'&&'ontouchstart' in window
   : 'Press on GO and drag along the glowing path to the flag!';
 type Phase='intro'|'playing'|'levelcomplete';
 
+// an upright phone (portrait, narrow): the maze turns to run top to bottom
+const UPRIGHT_Q = '(orientation: portrait) and (max-width: 700px)';
+function subscribeUpright(cb: () => void) {
+  const m = window.matchMedia(UPRIGHT_Q); m.addEventListener('change', cb);
+  return () => m.removeEventListener('change', cb);
+}
+function isUprightPhone() { return window.matchMedia(UPRIGHT_Q).matches; }
+
 // ─── Living background ───────────────────────────────────────────────────────
 // Drawn every frame under the maze: a soft glow, drifting mist, a row of
 // swaying trees (or crystal spires / rocks, per maze) and wandering
@@ -230,7 +245,7 @@ type Phase='intro'|'playing'|'levelcomplete';
 // grown-ups turned on Reduce motion, which freezes the scene.
 
 const FIREFLIES = Array.from({ length: 22 }, (_, i) => ({
-  x: (i * 137.5) % W, y: 20 + ((i * 89) % (H - 40)),
+  fx: ((i * 137.5) % WIDE_W) / WIDE_W, fy: ((i * 89) % (WIDE_H - 40)) / (WIDE_H - 40),
   ax: 18 + (i % 5) * 7, ay: 10 + (i % 4) * 6, sp: 0.00025 + (i % 7) * 0.00006, ph: i * 1.7,
 }));
 
@@ -285,8 +300,9 @@ function drawScenery(ctx: CanvasRenderingContext2D, lv: Level, t: number) {
 
   // fireflies
   FIREFLIES.forEach((f, i) => {
-    const x = f.x + Math.sin(t * f.sp + f.ph) * f.ax;
-    const y = f.y + Math.cos(t * f.sp * 1.3 + f.ph) * f.ay;
+    const fxBase = f.fx * W, fyBase = 20 + f.fy * (H - 40);
+    const x = fxBase + Math.sin(t * f.sp + f.ph) * f.ax;
+    const y = fyBase + Math.cos(t * f.sp * 1.3 + f.ph) * f.ay;
     const a = 0.35 + 0.35 * Math.sin(t * 0.002 + i);
     const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
     g.addColorStop(0, `rgba(253,230,138,${a.toFixed(3)})`); g.addColorStop(1, 'rgba(253,230,138,0)');
@@ -329,6 +345,9 @@ function mazeFor(level: number, tier: DifficultyTier, months?: number | null) {
 export default function MazeRunnerPage() {
   const fit = useGameFit('fine-motor');
   const tapMode = useTestTapMode();   // reviewers only: tap along the path (lib/testMode.ts)
+  const upright = useSyncExternalStore(subscribeUpright, isUprightPhone, () => false);
+  // eslint-disable-next-line react-hooks/globals -- one maze page at a time; see W/H above
+  W = WIDE_W; H = upright ? TALL_H : WIDE_H;
   const router = useRouter();
   const { increment } = usePlayCount();
 
@@ -558,7 +577,9 @@ export default function MazeRunnerPage() {
   const initLevelRefs = useCallback(() => {
     cancelAnimationFrame(animRef.current);
     const lv   = levelRef.current;
-    const raw  = lv.path(W,H);
+    // upright phone: the same maze turned to run from top to bottom
+    // (a little room above GO so Kailia, drawn standing on it, stays whole)
+    const raw  = upright ? lv.path(H,W).map(p => ({ x: p.y, y: 56 + p.x * (H - 72) / H })) : lv.path(W,H);
     const path = mirror ? raw.map(p => ({ x: W - p.x, y: p.y })) : raw;
     pathRef.current    = path;
     starPosRef.current = lv.starFracs.map(f => {
@@ -583,7 +604,7 @@ export default function MazeRunnerPage() {
     hopAtRef.current     = -1e9;
     testHook('maze', { path, w: W, h: H, corridor: corridorRef.current });
     setTimeout(drawCanvas, 30);
-  }, [drawCanvas, mirror]);
+  }, [drawCanvas, mirror, upright]);
 
   useEffect(() => {
     if (phase === 'playing') {
@@ -947,7 +968,7 @@ export default function MazeRunnerPage() {
         </div>
 
         {/* Canvas, with the friend and the sparkles laid over it */}
-        <div ref={wrapRef} data-play-field data-wide className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
+        <div ref={wrapRef} data-play-field data-wide={upright ? undefined : ''} data-maze-upright={upright ? '' : undefined} className="relative rounded-3xl overflow-hidden shadow-2xl mb-3"
           style={{['--kp-ar' as string]:`${W}/${H}`,border:`2px solid ${lv.accent}40`,touchAction:'none',boxShadow:`0 0 40px ${lv.accent}18`}}
           {...(tapMode
             ? { onMouseDown: tapStep, onTouchStart: tapStep }
