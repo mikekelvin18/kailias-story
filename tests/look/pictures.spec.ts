@@ -1,5 +1,34 @@
 import { test, expect, type Page } from '@playwright/test';
 import { GAMES, SIZES, prepare } from './helpers';
+import sharp from 'sharp';
+
+// When a picture differs, the check's log gets a small copy of what the
+// robot saw and a map of where it differs (the full report can't always be
+// opened), so a difference that only shows up on some check machines can be
+// seen and fixed.
+test.afterEach(async ({}, info) => {
+  if (info.status === info.expectedStatus) return;
+  for (const a of info.attachments) {
+    if (!a.path || !a.name.endsWith('-actual.png')) continue;
+    const exp = info.attachments.find(b => b.name === a.name.replace('-actual', '-expected'))?.path;
+    const small = await sharp(a.path).resize({ width: 300 }).jpeg({ quality: 45 }).toBuffer();
+    console.log(`[pictures-seen] ${a.name} ${small.toString('base64')}`);
+    if (!exp) continue;
+    const W = 24, H = 12;
+    const grid = async (f: string) => (await sharp(f).resize(W, H, { fit: 'fill' }).removeAlpha().raw().toBuffer());
+    const [x, y] = [await grid(a.path), await grid(exp)];
+    const rows: string[] = [];
+    for (let r = 0; r < H; r++) {
+      let line = '';
+      for (let c = 0; c < W; c++) {
+        const i = (r * W + c) * 3, d = Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]);
+        line += d > 90 ? '#' : d > 30 ? '+' : '.';
+      }
+      rows.push(line);
+    }
+    console.log(`[pictures-where] ${a.name} (# = very different, + = a little)\n${rows.join('\n')}`);
+  }
+});
 
 // ── Art check: every screen still looks the way Kelvin approved it ──
 // Each screen is photographed on a phone held upright and turned sideways and
