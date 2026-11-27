@@ -1,6 +1,6 @@
 // ── Family account (parent-first, COPPA-aligned) ──
 // Parents own the account and create child profiles. A child profile holds
-// the ABSOLUTE MINIMUM: nickname, birth month/year, avatar emoji. Nothing
+// the ABSOLUTE MINIMUM: nickname, birth month/year, avatar pick. Nothing
 // else — no photos, no email, no location, no last name.
 //
 // Everything lives on this device (localStorage). When cloud sync is added
@@ -9,6 +9,7 @@
 // verification via the payment system) plugs in.
 
 import { deleteAllPhotos, deletePhotosForChild } from './photos';
+import { CHILD_AVATARS } from '@/components/characters/characters.config';
 
 export interface ParentConsent {
   agreedAt: string;               // ISO timestamp of active agreement
@@ -21,8 +22,12 @@ export interface ChildProfile {
   nickname: string;               // first name or nickname ONLY
   birthYear: number;              // for developmental-age comparison
   birthMonth: number;             // 1–12
-  avatar: string;                 // emoji chosen by the parent
+  avatar: string;                 // buddy id chosen by the parent (older profiles: an emoji)
   createdAt: string;
+  /** Grown-up's "Game level" choice (lib/ageBands.ts): let the app adjust, or a year easier/harder. */
+  gameLevel?: 'auto' | 'easier' | 'harder';
+  /** Grown-up's "Big Kid look": fewer sparkles, smaller characters (unset = the age band decides). */
+  bigKidLook?: boolean;
 }
 
 // A separate, narrower consent from the general child-data consent
@@ -61,6 +66,12 @@ export const CHILD_DATA_KEYS = [
   'kailia_worksheet_progress_v1', // printable worksheet completion records
   'kailia_custom_tasks_v1',    // parent-authored custom quest goals
   'kailia_daily_history_v1',   // no-repeat rotation history for daily quests
+  'kailia_pet_v1',             // daily care pet: growth, today's task, difficulty steps
+  'kailia_walletpet_v1',       // wallet lab (experiment): the pet card's device key + card number
+  'kailia_world_v1',           // adventure world: quest steps, discoveries, grown-up task settings
+  'kailia_talk_v1',            // "Your turn to talk": a grown-up's Said it / Tried / Not yet taps (no audio, no text)
+  'kailia_feelings_v1',        // feelings check-in after each land: which face was tapped
+  'kailia_playtime_v1',        // minutes played today, for break reminders and "Done for today"
 ];
 
 // One-time migration for accounts created before multi-child support:
@@ -196,6 +207,19 @@ export function setActiveChild(childId: string): FamilyAccount | null {
   return f;
 }
 
+// Grown-up game settings for one child (Family page). Not personal info:
+// just how the games behave for this child.
+export const CHILD_PREFS_CHANGED_EVENT = 'kailia-child-prefs-changed';
+export function setChildGamePrefs(childId: string, patch: Pick<Partial<ChildProfile>, 'gameLevel' | 'bigKidLook'>): FamilyAccount | null {
+  const f = loadFamily();
+  const c = f?.children.find(k => k.id === childId);
+  if (!f || !c) return null;
+  Object.assign(c, patch);
+  save(f);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CHILD_PREFS_CHANGED_EVENT));
+  return f;
+}
+
 export function childAgeYears(c: ChildProfile): number {
   const now = new Date();
   const months = (now.getFullYear() - c.birthYear) * 12 + (now.getMonth() + 1 - c.birthMonth);
@@ -215,6 +239,7 @@ export async function deleteChildAndData(childId: string) {
   f.children = f.children.filter(c => c.id !== childId);
   if (f.activeChildId === childId) f.activeChildId = f.children[0]?.id ?? null;
   save(f);
+  await releaseWalletCards([childId]);
   CHILD_DATA_KEYS.forEach(base => {
     localStorage.removeItem(`${base}::${childId}`);
     // also clear the un-namespaced legacy key — it only ever held data
@@ -227,10 +252,29 @@ export async function deleteChildAndData(childId: string) {
 
 export async function deleteEverything() {
   const f = loadFamily();
+  await releaseWalletCards(f?.children.map(c => c.id) ?? []);
   f?.children.forEach(c => CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(`${base}::${c.id}`)));
   CHILD_DATA_KEYS.forEach(base => localStorage.removeItem(base));
   localStorage.removeItem(FAMILY_KEY);
+  // and every other app setting on this device (sound, theme, plan status,
+  // grown-up check pass…), so "delete everything" really leaves nothing
+  for (const store of [localStorage, sessionStorage]) {
+    for (const k of Object.keys(store)) if (k.startsWith('kailia_')) store.removeItem(k);
+  }
   await deleteAllPhotos();
+}
+
+// Wallet lab (experiment): a child's pet card also exists on a test
+// blockchain and its card server, so deleting asks the server to delete
+// the card too. Loaded only when a card exists, so the wallet code never
+// ships to families who don't use it.
+async function releaseWalletCards(childIds: string[]) {
+  const has = childIds.some(id => localStorage.getItem(`kailia_walletpet_v1::${id}`) !== null);
+  if (!has) return;
+  try {
+    const { releaseWalletCard } = await import('./walletLab/device');
+    await Promise.all(childIds.map(id => releaseWalletCard(id)));
+  } catch { /* keys are still removed below */ }
 }
 
 // ── "View my child's data" — everything stored, in readable form ──
@@ -240,7 +284,9 @@ export interface DataSection { label: string; items: string[]; }
 export function childDataInventory(): DataSection[] {
   if (typeof window === 'undefined') return [];
   const sections: DataSection[] = [];
-  const read = (k: string) => { try { return JSON.parse(localStorage.getItem(k) ?? 'null'); } catch { return null; } };
+  // every child-data key is stored per child (scopedKey), so read the
+  // active child's copy, not the old shared one
+  const read = (k: string) => { try { return JSON.parse(localStorage.getItem(scopedKey(k)) ?? 'null'); } catch { return null; } };
 
   const fam = loadFamily();
   const child = activeChild(fam);
@@ -248,7 +294,7 @@ export function childDataInventory(): DataSection[] {
     sections.push({ label: '👤 Profile', items: [
       `Nickname: ${child.nickname}`,
       `Born: ${String(child.birthMonth).padStart(2, '0')}/${child.birthYear}`,
-      `Avatar: ${child.avatar}`,
+      `Avatar: ${CHILD_AVATARS.find(a => a.id === child.avatar)?.name ?? child.avatar}`,
       `Profile created: ${new Date(child.createdAt).toLocaleDateString()}`,
     ]});
   }
@@ -278,11 +324,55 @@ export function childDataInventory(): DataSection[] {
   }
 
   const rewards = read('kailia_rewards_v1');
-  if (rewards?.starlight) {
+  if (rewards?.starlight || rewards?.focusCompanion) {
     sections.push({ label: '✨ Rewards', items: [
-      `Starlight collected: ${rewards.starlight}`,
+      `Starlight collected: ${rewards.starlight ?? 0}`,
+      ...(rewards.focusCompanion ? [`Practice focus: ${rewards.focusCompanion}`] : []),
       ...Object.entries(rewards.gameLevels ?? {}).map(([g, l]) => `${g}: reached level ${l}`),
     ]});
+  }
+
+  const card = read('kailia_walletpet_v1');
+  if (card?.v === 1) {
+    sections.push({ label: '🪪 Wallet pet card (test)', items: [
+      `Card number ${card.tokenId} on test network ${card.chainId}`,
+      `Made: ${String(card.madeAt).slice(0, 10)}`,
+      'Stored on the card: pet kind, growth stage, happy days, hellos. Nothing about your child.',
+      'This device also keeps the card\'s private key, which proves the card is yours.',
+    ]});
+  }
+
+  const pet = read('kailia_pet_v1');
+  if (pet?.v === 1) {
+    sections.push({ label: '🥚 Daily care pet', items: [
+      `Happy days so far: ${pet.happyDays ?? 0}`,
+      `Started: ${pet.startedDay}`,
+      `Difficulty steps (1–6): feed ${pet.steps?.feed}, play ${pet.steps?.play}, care ${pet.steps?.care}`,
+      ...((pet.history ?? []) as { day: string; need: string; step: number; outcome: string }[]).slice(-14)
+        .map(h => `${h.day} — ${h.need} at step ${h.step}: ${h.outcome === 'win' ? 'easy win' : h.outcome === 'help' ? 'with help' : 'not yet'}`),
+    ]});
+  }
+
+  const talk = read('kailia_talk_v1');
+  if (Array.isArray(talk) && talk.length) {
+    const word: Record<string, string> = { said: 'said it', tried: 'tried', notyet: 'not yet' };
+    sections.push({ label: '🗣️ Your turn to talk (grown-up taps)', items:
+      (talk as { ts: number; place: string; prompt: string; rating: string }[]).slice(-25)
+        .map(t => `${new Date(t.ts).toLocaleDateString()} — ${t.place}, ${t.prompt}: ${word[t.rating] ?? t.rating}`),
+    });
+  }
+
+  const feelings = read('kailia_feelings_v1');
+  if (Array.isArray(feelings) && feelings.length) {
+    sections.push({ label: '💛 Feelings check-ins', items:
+      (feelings as { ts: number; land: string; feeling: string; breathed: boolean }[]).slice(-25)
+        .map(f => `${new Date(f.ts).toLocaleDateString()} — after ${f.land}: ${f.feeling}${f.breathed ? ' (breathing bubble)' : ''}`),
+    });
+  }
+
+  const playtime = read('kailia_playtime_v1');
+  if (playtime?.day) {
+    sections.push({ label: '⏱️ Play time', items: [`${playtime.day}: about ${Math.round((playtime.ms ?? 0) / 60000)} minutes`] });
   }
 
   const daily = read('kailia_daily_v1');
@@ -308,6 +398,32 @@ export function childDataInventory(): DataSection[] {
       (customTasks as { text: string; domain: string }[]).map(t => `"${t.text}" (${t.domain})`),
     });
   }
+
+  const world = read('kailia_world_v1');
+  if (world?.garden) {
+    const g = world.garden;
+    sections.push({ label: '🏡 Adventure world', items: [
+      `Kailia's Garden quest: ${g.quest?.complete ? 'finished' : g.quest?.done?.length ? `${g.quest.done.length} step(s) done` : 'not started'}${g.finished ? ` (finished ${g.finished} time(s))` : ''}`,
+      `Ladybugs found: ${g.ladybugs?.length ?? 0}, stickers: ${(g.stickers ?? []).join(', ') || 'none'}`,
+      `Grown-up settings: challenge ${world.grownUp?.challenge ?? 'auto'}, hints ${world.grownUp?.hints ?? 'auto'}, tap to move ${world.grownUp?.tapToMove ? 'on' : 'off'}`,
+    ]});
+  }
+
+  // Small bookkeeping records (which daily pop-up was shown, quest
+  // rotation history, a play counter). Listed too, so "everything
+  // stored" really is everything.
+  const SMALL: Record<string, string> = {
+    kailia_daily_seen_v1: "Day the daily quests pop-up was last shown",
+    kailias_play_count: 'Number of games played',
+    kailia_daily_history_v1: 'Recently suggested daily quests (so they don\'t repeat)',
+  };
+  const small = Object.entries(SMALL).flatMap(([k, label]) => {
+    const raw = localStorage.getItem(scopedKey(k));
+    if (raw == null) return [];
+    const v = raw.length > 80 ? `${raw.slice(0, 80)}…` : raw;
+    return [`${label}: ${v}`];
+  });
+  if (small.length) sections.push({ label: '🗂️ Small app records', items: small });
 
   if (!sections.length) sections.push({ label: 'Nothing yet', items: ['No data has been stored on this device.'] });
   return sections;

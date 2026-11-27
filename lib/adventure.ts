@@ -2,11 +2,13 @@
 // One place that defines the six lands, which mini-games (quests) live in
 // each land, and how the child's progress is saved on this device.
 
+import { FREE } from '../src/config/pricing';
 import { scopedKey } from './family';
 
 export interface Quest {
   href: string;      // route of an existing mini-game
-  emoji: string;
+  emoji: string;     // kept for old text; the screen shows `icon`
+  icon?: string;     // a drawn picture from components/art/things.tsx (never an emoji on screen)
   title: string;
   desc: string;
 }
@@ -19,6 +21,9 @@ export interface Land {
                            // never wraps into and overlaps the land below it
   domain: string;          // developmental domain (internal)
   emoji: string;
+  icon?: string;           // drawn picture for a land with no painted art yet
+  art?: string;            // Kelvin's painted island picture (public/art/lands/),
+                           // shown on the map instead of the emoji
   color: string;           // main theme color
   glow: string;            // glow / accent
   sky: string;             // chip background on the map
@@ -36,6 +41,7 @@ export interface Land {
 export const LANDS: Land[] = [
   {
     id: 'firefly-forest',
+    art: '/art/lands/firefly-forest.webp',
     name: 'Firefly Forest',
     domain: 'fine motor',
     emoji: '🌲',
@@ -45,13 +51,14 @@ export const LANDS: Land[] = [
     tagline: 'Glowing paths and busy little hands',
     noelIntro: "Ooh, the fireflies lost their way! Can you help Kailia trace the glowing trails? Steady hands, here we go!",
     quests: [
-      { href: '/play/fine-motor', emoji: '✨', title: 'Maze Runner', desc: 'Guide Kailia through 5 magical mazes without touching the walls!' },
-      { href: '/play/firefly-catch', emoji: '🏮', title: 'Firefly Catch', desc: "Catch the glowing fireflies and light Kailia's lantern!" },
-      { href: '/play/firefly-trails', emoji: '🪰', title: 'Firefly Trails', desc: 'Trace the firefly\'s glowing sky pictures — on tricky nights the trail fades and you draw from memory!' },
+      { href: '/play/fine-motor', icon: 'tree', emoji: '✨', title: 'Maze Runner', desc: 'Guide Kailia through 5 magical mazes without touching the walls!' },
+      { href: '/play/firefly-catch', icon: 'bulb', emoji: '🏮', title: 'Firefly Catch', desc: "Catch the glowing fireflies and light Kailia's lantern!" },
+      { href: '/play/firefly-trails', icon: 'sparkle', emoji: '🪰', title: 'Firefly Trails', desc: 'Trace the firefly\'s glowing sky pictures — on tricky nights the trail fades and you draw from memory!' },
     ],
   },
   {
     id: 'dragons-cave',
+    art: '/art/lands/dragons-cave.webp',
     name: "Dragon's Treasure Cave",
     mapLabel: "Dragon's Cave",
     domain: 'math',
@@ -62,11 +69,13 @@ export const LANDS: Land[] = [
     tagline: 'Count the gems, feed the dragons',
     noelIntro: "A dragon guards this cave! Don't worry — she's friendly. She just LOVES counting cookies. Can you help Kailia count?",
     quests: [
-      { href: '/play/snack-quest', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
+      { href: '/play/snack-quest', icon: 'dragon', emoji: '🐲', title: 'Snack Quest', desc: 'Play as Kailia or Noel — gather snacks and feed the baby dragon exactly what she asks for!' },
+      { href: '/play/dragon-bridge', icon: 'gem-blue', emoji: '💎', title: 'Dragon Bridge', desc: 'Share berries fairly with the baby dragons and finish the stepping-stone patterns to reach the treasure!' },
     ],
   },
   {
     id: 'whispering-signposts',
+    art: '/art/lands/whispering-signposts.webp',
     name: 'Whispering Signposts',
     mapLabel: 'Signposts',
     domain: 'reading',
@@ -77,13 +86,14 @@ export const LANDS: Land[] = [
     tagline: 'Words that light the way',
     noelIntro: "These old signposts whisper words! Match the right word and the path lights up. Kailia can't read them alone — help her!",
     quests: [
-      { href: '/play/reading', emoji: '📖', title: 'Word Wizard', desc: 'Match words to pictures and unlock magical spells!' },
-      { href: '/play/journey', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
-      { href: '/play/trail-walk', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
+      { href: '/play/reading', icon: 'book', emoji: '📖', title: 'Word Wizard', desc: 'The signpost words floated away as balloons! Pop the right word to bring it home.' },
+      { href: '/play/journey', icon: 'backpack', emoji: '🗺️', title: "Kailia's Journey", desc: 'A whole RPG-style world to explore! Walk through tall grass, meet wild creatures, and catch them by solving their riddle!' },
+      { href: '/play/trail-walk', icon: 'kite', emoji: '🥾', title: "Kailia's Trail", desc: 'A relaxed walk with Kailia — meet creatures along the way, solve their riddles, and collect a party of friends all the way to the flag!' },
     ],
   },
   {
     id: 'story-keepers',
+    art: '/art/lands/story-keepers.webp',
     name: 'Village of the Story Keepers',
     mapLabel: 'Story Keepers',
     domain: 'communication',
@@ -94,11 +104,12 @@ export const LANDS: Land[] = [
     tagline: 'Every door opens with a story',
     noelIntro: "The Story Keepers mixed up all their tales! Put Kailia's adventure back in order and the village doors will open!",
     quests: [
-      { href: '/play/story-sparks', emoji: '✨', title: 'Story Sparks', desc: 'The storybooks lost their pages! Choose what really happens next and bring each tale back to life!' },
+      { href: '/play/story-sparks', icon: 'teddy', emoji: '✨', title: 'Story Sparks', desc: 'The storybooks lost their pages! Choose what really happens next and bring each tale back to life!' },
     ],
   },
   {
     id: 'echo-caves',
+    art: '/art/lands/echo-caves.webp',
     name: 'Echo Caves',
     domain: 'sensory',
     emoji: '🔮',
@@ -108,12 +119,13 @@ export const LANDS: Land[] = [
     tagline: 'Crystals, colors and curious sounds',
     noelIntro: "Shhh… hear that? The caves echo with colors and sounds! Find the ones that match and the crystals will glow!",
     quests: [
-      { href: '/play/sensory', emoji: '🌈', title: 'Sense Explorer', desc: "Match colors, sounds and patterns deep in the glowing caves!" },
-      { href: '/play/echo-song', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
+      { href: '/play/sensory', icon: 'butterfly', emoji: '🌈', title: 'Sense Explorer', desc: "Catch the wandering things Noel asks for, and spot the crystal that's a tiny bit different!" },
+      { href: '/play/echo-song', icon: 'note', emoji: '🎶', title: 'Echo Song', desc: 'The crystals sing a little melody — listen closely and echo it back!' },
     ],
   },
   {
     id: 'owls-tower',
+    art: '/art/lands/owls-tower.webp',
     name: "Owl's Tower",
     domain: 'processing',
     emoji: '🦉',
@@ -123,21 +135,20 @@ export const LANDS: Land[] = [
     tagline: 'Riddles at the top of the world',
     noelIntro: "The wise old owl only opens her tower for sharp eyes! Find every hidden star before her hourglass runs out!",
     quests: [
-      { href: '/play/hidden-friends', emoji: '🔍', title: "Where's Noel?", desc: 'Busy storybook scenes hide a napping panda and lost treasures — search every corner!' },
-      { href: '/play/sky-mail', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
-      { href: '/play/moonlight-match', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
-      { href: '/play/potion-sort', emoji: '🧪', title: 'Potion Sort', desc: 'The owl\'s shelf is full of falling potions! Drag each one into the cauldron with the matching color before it hits the floor!' },
+      { href: '/play/hidden-friends', icon: 'flashlight', emoji: '🔍', title: "Where's Noel?", desc: 'Busy storybook scenes hide a napping panda and lost treasures — search every corner!' },
+      { href: '/play/sky-mail', icon: 'cloud', emoji: '📬', title: 'Sky Mail', desc: "The wind stole Noel's letters! Swipe each one into the right mailbox — math, silly sentences, and wind rides!" },
+      { href: '/play/moonlight-match', icon: 'moon', emoji: '🪶', title: 'Moonlight Match', desc: 'The owl hid her friends under moonlit feathers — flip, remember, and match the pairs!' },
+      { href: '/play/potion-sort', icon: 'cup-blue', emoji: '🧪', title: 'Potion Sort', desc: 'The owl\'s shelf is full of falling potions! Drag each one into the cauldron with the matching color before it hits the floor!' },
     ],
   },
 ];
 
 // ── Bonus realms ──
-// Unlocked only after all six main lands are complete. These are extra
-// depth on an existing skill (see BONUS_REALMS below for which one),
-// not a new developmental domain — Space and Underwater are new
-// SCENERY wrapped around the same measured skills, reusing existing
-// quest engines rather than building new ones (per the library
-// strategy: new content/theme on an engine, not a new engine).
+// Unlocked only after all six main lands are complete. Each realm has
+// its own game (Muse round 5): Cargo Count (making an exact amount from
+// boxes of 1, 2, 5 and 10) and Reef Explorer (spotting the matching sea
+// friend in the dark with a flashlight). They add depth to an existing
+// skill (math, senses), not a new developmental domain.
 // Positioned in a strip BELOW the main path's canvas (not woven into the
 // winding trail) so they read as standalone portals that appeared after
 // finishing the adventure, rather than two more stops that need a long
@@ -149,13 +160,14 @@ export const BONUS_LANDS: Land[] = [
     name: 'Space Outpost',
     domain: 'math',
     emoji: '🚀',
+    icon: 'rocket',
     color: '#4338CA', glow: '#A5B4FC', sky: '#EEF2FF',
-    x: 140, y: 700,
-    dx: 820, dy: 370,
+    x: 172, y: 700,
+    dx: 1095, dy: 150,
     tagline: 'Counting cargo among the stars',
     noelIntro: "A new portal made of starlight! The space crew needs help counting cargo before the next launch — ready, astronaut?",
     quests: [
-      { href: '/play/snack-quest', emoji: '🛰️', title: 'Cargo Count', desc: 'Gather space snacks and load the shuttle with exactly what the crew ordered!' },
+      { href: '/play/cargo-count', icon: 'rocket', emoji: '🛰️', title: 'Cargo Count', desc: 'Beam floating cargo boxes into the rocket until the hold matches the crew\'s order, then launch!' },
     ],
   },
   {
@@ -163,13 +175,14 @@ export const BONUS_LANDS: Land[] = [
     name: 'Coral Reef',
     domain: 'sensory',
     emoji: '🐠',
+    icon: 'fish',
     color: '#0E7490', glow: '#67E8F9', sky: '#ECFEFF',
-    x: 260, y: 700,
-    dx: 1010, dy: 370,
+    x: 292, y: 700,
+    dx: 1095, dy: 330,
     tagline: 'Colors, textures, and curious creatures',
     noelIntro: "Bubbles everywhere! A whole reef of colors and textures is waiting to be explored — can you help Kailia match what she finds?",
     quests: [
-      { href: '/play/sensory', emoji: '🐚', title: 'Reef Explorer', desc: 'Match colors, sounds and patterns among the coral and curious sea creatures!' },
+      { href: '/play/reef-explorer', icon: 'fish', emoji: '🐚', title: 'Reef Explorer', desc: 'Shine your light through the dark reef and find the sea friend that looks exactly like the one on the card!' },
     ],
   },
 ];
@@ -178,6 +191,15 @@ export const BONUS_LANDS: Land[] = [
 // mid-journey content, it's what's waiting after the main adventure.
 export function isBonusLandUnlocked(p: AdventureProgress): boolean {
   return LANDS.every(land => isLandComplete(p, land));
+}
+
+// The bonus realms (Space Outpost, Coral Reef) open once a quest has been
+// finished in every one of the six lands. Muse finished games in all six
+// and found them still locked with no idea why (2026-11-18); needing every
+// quest of every land was a long, invisible wall. Friends' adventures still
+// wait for all six lands to be complete.
+export function areRealmsOpen(p: AdventureProgress): boolean {
+  return LANDS.every(land => landStars(p, land) >= 1);
 }
 
 // ── Progress (saved on this device) ──
@@ -221,6 +243,27 @@ export function recordQuestPlay(landId: string, href: string): AdventureProgress
   return p;
 }
 
+// ── A quest counts once it is finished, not when it is opened ──
+// The map remembers which land a quest was started from (for this visit
+// only), so a game shared by two lands (e.g. Snack Quest in Dragon's Cave
+// and the Space Outpost) lights up the land the child actually came from.
+const LAUNCH_KEY = 'kailia_launch_land';
+
+export function rememberLaunchLand(landId: string) {
+  try { sessionStorage.setItem(LAUNCH_KEY, landId); } catch { /* fine without */ }
+}
+
+/** Call when a quest's level (or round) is finished. Effort counts, not score. */
+export function recordQuestWin(href: string): AdventureProgress | null {
+  if (typeof window === 'undefined') return null;
+  let landId: string | null = null;
+  try { landId = sessionStorage.getItem(LAUNCH_KEY); } catch { /* ignore */ }
+  const all = [...LANDS, ...BONUS_LANDS];
+  const launched = all.find(l => l.id === landId && l.quests.some(q => q.href === href));
+  const land = launched ?? LANDS.find(l => l.quests.some(q => q.href === href));
+  return land ? recordQuestPlay(land.id, href) : null;
+}
+
 export function markCelebrated(landId: string): AdventureProgress {
   const p = loadProgress();
   if (!p.celebrated.includes(landId)) p.celebrated = [...p.celebrated, landId];
@@ -228,8 +271,12 @@ export function markCelebrated(landId: string): AdventureProgress {
   return p;
 }
 
+// One star per quest of this land that has been played. Counts only the
+// land's current quests, so an old or renamed quest saved in progress can
+// never make the stars and the "2/3" badge disagree.
 export function landStars(p: AdventureProgress, land: Land): number {
-  return (p.played[land.id] ?? []).length;
+  const played = p.played[land.id] ?? [];
+  return land.quests.filter(q => played.includes(q.href)).length;
 }
 
 export function isLandComplete(p: AdventureProgress, land: Land): boolean {
@@ -260,11 +307,12 @@ export function maxStars(): number {
   return LANDS.reduce((sum, land) => sum + land.quests.length, 0);
 }
 
-// ── Free trial ──
-// The first quest of every land is always free, so a family can try every
-// skill domain (fine motor, math, reading, communication, sensory,
-// processing) before upgrading — never just one skill forever. Everything
-// past that first quest is premium-gated (see lib/premium.ts).
+// ── Free part ──
+// Which world-map quests are open without a plan comes from lib/pricing.ts
+// (FREE.questsPerLand). Kelvin's rule (2026-11-11): every quest is open and
+// the game LEVELS do the gating (first 5 from the child's start, see
+// isLevelFree in lib/premium.ts). Set questsPerLand to a number to go back
+// to "first quest of every land".
 export function isQuestFree(questIndex: number): boolean {
-  return questIndex === 0;
+  return FREE.questsPerLand === 'all' || questIndex < FREE.questsPerLand;
 }

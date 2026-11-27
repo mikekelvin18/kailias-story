@@ -1,62 +1,108 @@
 'use client';
 
+import { buzzGood } from '@/lib/haptics';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import KailiaSprite from '@/components/characters/KailiaSprite';
+import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { useAssessment } from '@/context/AssessmentContext';
-import { difficultyTier, DifficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { DifficultyTier } from '@/lib/difficulty';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { soundEnabled } from '@/lib/accessibility';
+import Actor, { usePetMood } from '@/components/friends/kit/Actor';
+import { useBursts } from '@/components/friends/kit/Burst';
+import { seeded } from '@/components/friends/kit/Stage';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
+import KailiaActor from '@/components/games/KailiaActor';
+import { usePlayPet } from '@/components/games/playPet';
+import { audioCtx, sfxOut } from '@/lib/sfx';
+import { endlessRamp } from '@/lib/levels';
+import { levelStories, roundRandom, seededShuffle } from '@/lib/variety';
 
 // ─── Potion Sort ────────────────────────────────────────────────────────────
-// A fast-paced drag-to-sort game: colored potion bottles drift down from
-// the top of the owl's shelf, and the child drags each one into the
-// matching cauldron before it reaches the floor. A genuinely new
-// interaction (drag-under-time-pressure) rather than a reskinned engine —
-// this fills in the "quickly sort falling potion bottles" quest Owl's
-// Tower was always meant to have. Combo streaks + escalating speed are
-// the "just one more try" hook; a miss or wrong bin is always gentle.
+// A fast-paced drag-to-sort game in the owl's potion room: colored potion
+// bottles tumble off the high shelf, and the child drags each one into
+// the bubbling cauldron of the same color before it lands. Kailia stands
+// at the cauldrons and hops to stir every potion that goes in; the friend
+// cheers, wobbles when one slips by, and after two slips runs to the
+// right cauldron to show the way. A genuinely new interaction
+// (drag-under-time-pressure) rather than a reskinned engine. Combo
+// streaks + escalating speed are the "just one more try" hook; a miss or
+// wrong cauldron is always gentle.
 
-interface Bottle { id: number; color: string; x: number; y: number; dragging: boolean; }
+// ms: how long its current fall takes (a released bottle falls the rest of the way)
+interface Bottle { id: number; color: string; x: number; y: number; dragging: boolean; ms?: number }
 
 const COLORS = [
-  { key: 'red',    hex: '#EF4444', dark: '#B91C1C', emoji: '🔴' },
-  { key: 'blue',   hex: '#3B82F6', dark: '#1D4ED8', emoji: '🔵' },
-  { key: 'green',  hex: '#22C55E', dark: '#15803D', emoji: '🟢' },
-  { key: 'purple', hex: '#A855F7', dark: '#7E22CE', emoji: '🟣' },
+  { key: 'red',    hex: '#EF4444', dark: '#B91C1C' },
+  { key: 'blue',   hex: '#3B82F6', dark: '#1D4ED8' },
+  { key: 'green',  hex: '#22C55E', dark: '#15803D' },
+  { key: 'purple', hex: '#A855F7', dark: '#7E22CE' },
+  { key: 'yellow', hex: '#FACC15', dark: '#A16207' },
+  { key: 'orange', hex: '#F97316', dark: '#C2410C' },
 ];
 
-interface RoundCfg { colorCount: number; fallMs: number; spawnMs: number; bottles: number; noel: string; }
+interface RoundCfg { colors: string[]; fallMs: number; spawnMs: number; bottles: number; noel: string; done: string; who: StoryWho }
 
-const ROUNDS: RoundCfg[] = [
-  { colorCount: 2, fallMs: 5200, spawnMs: 1500, bottles: 6,  noel: 'Drag each potion into the cauldron with the SAME color!' },
-  { colorCount: 3, fallMs: 4400, spawnMs: 1250, bottles: 8,  noel: 'A third color joined the shelf — keep those cauldrons matching!' },
-  { colorCount: 3, fallMs: 3600, spawnMs: 1050, bottles: 9,  noel: 'Faster potions! Quick hands, matching colors!' },
-  { colorCount: 4, fallMs: 3200, spawnMs: 950,  bottles: 10, noel: 'All four colors now — the owl believes in you!' },
+// ── Who the potions are for: a little story every round ──
+// (Kelvin 2026-11-23: every round its own story.) Dealt fairly from this
+// deck (lib/variety.ts): all are brewed once before any comes back.
+// Every order names a friend who really stands in the tower while you brew
+// (Kelvin 2026-11-23: a story's friend must be on screen), see StoryGuest.
+const ORDERS: { line: string; done: string; who: StoryWho }[] = [
+  { line: 'The koala has the hiccups! Let\'s brew a hiccup cure.', done: 'Hic... all better! The koala says thank you.', who: 'koala' },
+  { line: 'The bee\'s flowers are thirsty. Let\'s make a growing potion!', done: 'The flowers are growing tall!', who: 'bee' },
+  { line: 'A baby dragon caught a sniffly cold. Time for a warm-up potion!', done: 'Achoo! The baby dragon feels cozy now.', who: 'dragon' },
+  { line: 'The butterfly\'s wings lost their sparkle. Let\'s brew a shiny potion!', done: 'Her wings are sparkling again!', who: 'butterfly' },
+  { line: 'The frog wants to jump higher. Let\'s make a bouncy potion!', done: 'Boing! The frog jumps over the tower!', who: 'frog' },
+  { line: 'The bunny is too sleepy to play. Let\'s mix a wake-up potion!', done: 'The bunny is hopping around again!', who: 'rabbit' },
+  { line: 'The peacock\'s feathers lost their colors. Let\'s sort a rainbow potion!', done: 'Her feathers are bright again!', who: 'peacock' },
+  { line: 'The squirrel\'s tail lost its fluff. Let\'s brew a fluffy potion!', done: 'What a fluffy tail!', who: 'squirrel' },
+  { line: 'The parrots are having a party! Let\'s make a bubble potion.', done: 'Bubbles everywhere! What a party.', who: 'parrot' },
+  { line: 'The raccoon\'s books flew off the shelf. Let\'s make a tidy-up potion!', done: 'Every book is back on its shelf!', who: 'raccoon' },
+  { line: 'The deer wants to see in the dark. Let\'s brew a glow potion!', done: 'The deer is glowing like a star!', who: 'deer' },
+  { line: 'The hedgehog is too hot in the sun. Quick, a cool-down potion!', done: 'Brrr! The hedgehog feels cool again.', who: 'hedgehog' },
+  { line: 'The bees are too tired to make honey. Let\'s mix a buzzy potion!', done: 'Buzz, buzz! The bees are busy again.', who: 'bee' },
+  { line: 'The swan lost her singing voice. Let\'s brew a song potion!', done: 'La la la! The swan is singing again.', who: 'swan' },
+  { line: 'The koala wants to be extra cuddly. Let\'s make a cuddly potion!', done: 'Aww! The softest hug ever.', who: 'koala' },
+  { line: 'The rabbit wants to fly like a bird. Let\'s brew a flying potion!', done: 'Whoosh! The rabbit is floating!', who: 'rabbit' },
 ];
 
-const COMBO_LINES = ['Nice!', 'Great!', 'Fantastic!', 'Amazing!', "You're ON FIRE! 🔥"];
+// The level curve: more bottles, faster falls and more colors each
+// level, with every round of a level a little busier than the last. Which
+// colors show up (and the order of the cauldrons) changes level to level.
+function planRounds(level: number, maxChoices = 4, tapToMove = false): RoundCfg[] {
+  const L = Math.max(1, level);
+  const n = L <= 2 ? 3 : 4;
+  const stories = levelStories(ORDERS, 'potion-sort', L, 4);
+  const palette = seededShuffle(COLORS.map(c => c.key), roundRandom('potion-sort:colors', L));
+  const pace = endlessRamp(L, 1, 0.5, 14);           // 1 → slower, 0.5 → twice as fast
+  // never more cauldrons than the age band's choices (under 3: 2, 3–4: 3)
+  const maxColors = Math.min(Math.max(2, maxChoices), L <= 6 ? 3 : 4);
+  const counts = Array.from({ length: n }, (_, r) => Math.min(maxColors, 2 + Math.floor((L - 1) / 4) + (r >= Math.max(1, n - 2) ? 1 : 0)));
+  return Array.from({ length: n }, (_, r) => {
+    const colorCount = counts[r];
+    const f = pace * (1 - r * 0.07);
+    const instr = r === 0 ? (tapToMove ? 'Tap a potion, then tap the cauldron with the SAME color!' : 'Drag each potion into the cauldron with the SAME color!')
+      : colorCount > counts[r - 1] ? 'A new color joined the shelf. Keep those cauldrons matching!'
+        : r === n - 1 ? 'Last batch! Quick hands, matching colors!' : 'Faster potions! Quick hands, matching colors!';
+    return {
+      colors: palette.slice(0, colorCount),
+      fallMs: Math.round(5200 * f),
+      spawnMs: Math.round(1500 * f),
+      bottles: Math.min(18, 6 + Math.floor((L - 1) / 2) + r),
+      noel: `${stories[r].line} ${instr}`,
+      done: stories[r].done,
+      who: stories[r].who,
+    };
+  });
+}
 
-// Fixed (not random-per-render) so the twinkle field never reshuffles
-// mid-game and never causes a hydration mismatch.
-const STARS = [
-  { x: 6, y: 14, s: 12 }, { x: 22, y: 28, s: 9 }, { x: 88, y: 22, s: 11 },
-  { x: 70, y: 40, s: 8 }, { x: 15, y: 55, s: 10 }, { x: 92, y: 60, s: 9 },
-  { x: 40, y: 18, s: 8 }, { x: 60, y: 12, s: 10 }, { x: 30, y: 70, s: 9 },
-  { x: 80, y: 78, s: 11 },
-];
-
-const RISE_BUBBLES = [
-  { x: 12, s: 8,  c: '#C4B5FD', dur: 6,   delay: 0 },
-  { x: 28, s: 6,  c: '#93C5FD', dur: 7.5, delay: 1.2 },
-  { x: 46, s: 9,  c: '#F9A8D4', dur: 5.5, delay: 2.4 },
-  { x: 62, s: 7,  c: '#FDE68A', dur: 8,   delay: 0.6 },
-  { x: 78, s: 8,  c: '#86EFAC', dur: 6.5, delay: 3.1 },
-  { x: 90, s: 6,  c: '#C4B5FD', dur: 7,   delay: 1.8 },
-];
+const COMBO_LINES = ['Nice!', 'Great!', 'Fantastic!', 'Amazing!', "You're on a roll!"];
 
 const TIER_TUNING: Record<DifficultyTier, { fall: number; spawn: number }> = {
   tiny:  { fall: 1.65, spawn: 1.55 },
@@ -64,71 +110,123 @@ const TIER_TUNING: Record<DifficultyTier, { fall: number; spawn: number }> = {
   big:   { fall: 1, spawn: 1 },
 };
 
+// The room, in % of the play area's height: potions land on the cauldron
+// rims, the cauldrons stand on a stone hearth, and Kailia and the friend
+// stand on the floor in front of it.
+const LAND_Y = 0.63;     // where a falling bottle's middle reaches the rims
+const DROP_Y = 0.5;      // let go anywhere below this to drop into a cauldron
+const GROUND = 98;       // feet of Kailia and the friend
+
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = 'triangle'; o.frequency.value = f;
       g.gain.setValueAtTime(0.12, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
+      o.connect(g).connect(sfxOut(ctx)); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
     });
   } catch { /* sound is a bonus */ }
 }
 const sfx = {
-  correct: () => playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.07, d: 0.16 }]),
+  correct: () => { buzzGood(); playNotes([{ f: 784, t: 0, d: 0.1 }, { f: 1047, t: 0.07, d: 0.16 }]); },
   wrong:   () => playNotes([{ f: 330, t: 0, d: 0.14 }]),
   round:   () => playNotes([{ f: 659, t: 0, d: 0.12 }, { f: 880, t: 0.1, d: 0.2 }]),
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 
 export default function PotionSortPage() {
-  const { state, totalScore } = useAssessment();
-  const tuning = TIER_TUNING[difficultyTier(state.ageGroup, totalScore)];
+  const fit = useGameFit('potion-sort');
+  // falls slower for younger age bands, a little quicker from 9 (lib/ageBands.ts)
+  const bandPace = Math.min(2.2, 1 / fit.look.speed);
+  const tuning = { fall: Math.max(TIER_TUNING[fit.tier].fall, bandPace), spawn: Math.max(TIER_TUNING[fit.tier].spawn, bandPace) };
+  if (fit.band === 'older') { tuning.fall = bandPace; tuning.spawn = bandPace; }
   const [phase, setPhase] = useState<'intro' | 'playing' | 'roundDone' | 'done'>('intro');
   const [level, setLevel] = useState(1);
-  useEffect(() => { setLevel(nextGameLevel('potion-sort')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('potion-sort', fit.startLevel)); }, [fit.startLevel]);
 
   const [roundIdx, setRoundIdx] = useState(0);
+  const [ROUNDS, setRounds] = useState<RoundCfg[]>(() => planRounds(1));
   const [bottles, setBottles] = useState<Bottle[]>([]);
-  const [sorted, setSorted] = useState(0);
   const [combo, setCombo] = useState(0);
   const [comboLine, setComboLine] = useState('');
   const [noelLine, setNoelLine] = useState(ROUNDS[0].noel);
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
-  const [flashZone, setFlashZone] = useState<string | null>(null);
+  const [earned, setEarned] = useState(0);
+
+  // Kailia, the friend and the cauldrons
+  const pet = usePlayPet();
+  const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
+  const [kailiaX, setKailiaX] = useState(30);
+  const [kailiaHop, setKailiaHop] = useState(0);
+  const [petX, setPetX] = useState(62);
+  const [hintColor, setHintColor] = useState<string | null>(null);
+  const hintAtRef = useRef(-Infinity);
+  // the last cauldron that got a potion (jelly gulp) or a wrong one (wobble)
+  const [potFx, setPotFx] = useState<{ idx: number; n: number; kind: 'gulp' | 'wobble' }>({ idx: -1, n: 0, kind: 'gulp' });
+  const { layer: burstLayer, fire } = useBursts();
 
   const areaRef = useRef<HTMLDivElement>(null);
   const sizeRef = useRef({ w: 360, h: 480 });
   const idRef = useRef(0);
   const spawnedRef = useRef(0);
   const roundMissesRef = useRef(0);
+  const slipStreakRef = useRef(0);   // slips (fallen or wrong cauldron) since the last good sort
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const dragRef = useRef<{ id: number; startedAt: number } | null>(null);
+  const bottlesRef = useRef<Bottle[]>([]);
+  useEffect(() => { bottlesRef.current = bottles; }, [bottles]);
   const metricsRef = useRef({ correct: 0, wrong: 0, missed: 0, sortMs: [] as number[], bestCombo: 0, startedAt: 0 });
 
-  const activeColors = () => COLORS.slice(0, ROUNDS[roundIdx].colorCount);
+  const activeColors = () => ROUNDS[roundIdx].colors.map(k => COLORS.find(c => c.key === k)!);
+  const zoneCenter = (i: number, n: number) => ((i + 0.5) / n) * 100;
 
-  const startRound = useCallback((idx: number) => {
+  const startRound = useCallback((idx: number, rs: RoundCfg[]) => {
     roundMissesRef.current = 0;
+    slipStreakRef.current = 0;
+    hintAtRef.current = -Infinity;
     spawnedRef.current = 0;
     setBottles([]);
+    setHintColor(null);
     setRoundIdx(idx);
-    setNoelLine(ROUNDS[idx].noel);
+    setNoelLine(rs[idx].noel);
     setNoelMood('excited');
     setPhase('playing');
   }, []);
 
   function startGame() {
     metricsRef.current = { correct: 0, wrong: 0, missed: 0, sortMs: [], bestCombo: 0, startedAt: Date.now() };
-    setSorted(0);
     setCombo(0);
+    setKailiaX(30); setPetX(62);
     sfx.round();
-    startRound(0);
+    const rs = planRounds(level, fit.look.maxChoices, fit.look.tapToMove);
+    setRounds(rs);
+    startRound(0, rs);
   }
+
+  // after two slips the friend runs to the cauldron the next potion
+  // belongs in, and that cauldron starts to glow
+  const slip = useCallback((landedId?: number) => {
+    setPetMood('oops');
+    slipStreakRef.current += 1;
+    // a hint stays put long enough for Noel to say it to the end (Kelvin
+    // 2026-11-26: no cut-off voices; each slip used to restart the line)
+    if (slipStreakRef.current >= 2 && performance.now() - hintAtRef.current > 4500) {
+      hintAtRef.current = performance.now();
+      const left = bottlesRef.current.filter(b => b.id !== landedId);
+      const next = left.find(b => b.dragging) ?? left[0];
+      if (next) {
+        setHintColor(next.color);
+        setNoelLine(`Look, ${pet.name} is at the ${next.color} cauldron. Drop the ${next.color} potion there!`);
+        setNoelMood('thinking');
+      }
+    }
+  }, [pet.name, setPetMood]);
 
   // ── Spawn bottles on a timer, capped at this round's total ──
   useEffect(() => {
@@ -150,19 +248,40 @@ export default function PotionSortPage() {
       idRef.current += 1;
       // Spawn just below the shelf (not at y:0) so the bottle's own height
       // never clips against the container's overflow:hidden top edge.
-      const bottle: Bottle = { id: idRef.current, color, x, y: 48, dragging: false };
+      const bottle: Bottle = { id: idRef.current, color, x, y: 56, dragging: false };
       setBottles(prev => [...prev, bottle]);
-      // schedule its fall-to-floor (miss) unless caught first
+      // schedule its fall onto the cauldron rims (a slip) unless caught first
       const bottleId = bottle.id;
-      const startedAt = Date.now();
       const fallMs = cfg.fallMs * tuning.fall;
-      // One frame after mount, move the target to the floor — the CSS
+      // One frame after mount, move the target down — the CSS
       // `transition: top` on the bottle animates this into the actual
       // falling motion (without this second step it never moves at all).
       requestAnimationFrame(() => {
-        setBottles(prev => prev.map(b => (b.id === bottleId && !b.dragging) ? { ...b, y: h - 55 } : b));
+        setBottles(prev => prev.map(b => (b.id === bottleId && !b.dragging) ? { ...b, y: h * LAND_Y } : b));
       });
+      scheduleLanding(bottleId, fallMs);
+    }, spawnMs);
+    return () => { if (spawnTimerRef.current) clearInterval(spawnTimerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, roundIdx]);
+
+  // when a bottle reaches the cauldron rims without being caught
+  // only the newest landing timer of a bottle counts: a bottle caught and
+  // let go again falls anew, and its first timer must not knock it out mid-air
+  const landingRef = useRef<Record<number, number>>({});
+  function scheduleLanding(bottleId: number, ms: number) {
+      const token = (landingRef.current[bottleId] ?? 0) + 1;
+      landingRef.current[bottleId] = token;
       setTimeout(() => {
+        if (landingRef.current[bottleId] !== token) return;
+        const { w } = sizeRef.current;
+        const landed = bottlesRef.current.find(b => b.id === bottleId);
+        if (landed && !landed.dragging) {
+          // it lands with a little splash of its own color, never a "fail"
+          const hex = COLORS.find(c => c.key === landed.color)!.hex;
+          fire((landed.x / w) * 100, LAND_Y * 100, [hex, '#FFFFFF'], 6, 26);
+          slip(bottleId);
+        }
         setBottles(prev => {
           const still = prev.find(b => b.id === bottleId);
           if (!still || still.dragging) return prev;
@@ -172,12 +291,8 @@ export default function PotionSortPage() {
           setCombo(0);
           return prev.filter(b => b.id !== bottleId);
         });
-      }, fallMs);
-      void startedAt;
-    }, spawnMs);
-    return () => { if (spawnTimerRef.current) clearInterval(spawnTimerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, roundIdx]);
+      }, ms);
+  }
 
   // ── Round completion: every spawned bottle has left the board ──
   useEffect(() => {
@@ -185,14 +300,17 @@ export default function PotionSortPage() {
     if (spawnedRef.current >= ROUNDS[roundIdx].bottles && bottles.length === 0) {
       setPhase('roundDone');
       setNoelMood('celebrating');
+      setHintColor(null);
+      setPetMood('cheer');
+      setNoelLine(ROUNDS[roundIdx].done);
     }
-  }, [bottles, phase, roundIdx]);
+  }, [bottles, phase, roundIdx, setPetMood, ROUNDS]);
 
   useEffect(() => {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < ROUNDS.length) {
       sfx.round();
-      const t = setTimeout(() => startRound(roundIdx + 1), 1600);
+      const t = setTimeout(() => startRound(roundIdx + 1, ROUNDS), 2200);
       return () => clearTimeout(t);
     }
     sfx.fanfare();
@@ -206,8 +324,10 @@ export default function PotionSortPage() {
       bestCombo: m.bestCombo,
       totalMs: Date.now() - m.startedAt,
     });
-    awardStarlight(Math.max(12, 16 + level * 3 - m.missed * 2));
-    recordGameLevel('potion-sort', level);
+    const light = levelStarlight(level, m.missed);
+    awardStarlight(light);
+    setEarned(light);
+    recordGameLevel('potion-sort', level, roundEase(m.missed + m.wrong, m.correct + m.missed + m.wrong));
     const t = setTimeout(() => setPhase('done'), 1600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -222,7 +342,12 @@ export default function PotionSortPage() {
   function onDragStart(e: React.PointerEvent, id: number) {
     e.preventDefault();
     dragRef.current = { id, startedAt: Date.now() };
-    setBottles(prev => prev.map(b => b.id === id ? { ...b, dragging: true } : b));
+    // hold it where it is right now (it was mid-fall)
+    const el = e.currentTarget as HTMLElement;
+    const rect = areaRef.current?.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const y = rect ? r.top + r.height / 2 - rect.top : undefined;
+    setBottles(prev => prev.map(b => b.id === id ? { ...b, dragging: true, y: y ?? b.y } : b));
   }
 
   function onDragMove(e: React.PointerEvent) {
@@ -239,21 +364,21 @@ export default function PotionSortPage() {
     const { w, h } = sizeRef.current;
     const zoneCount = activeColors().length;
     const zoneW = w / zoneCount;
-    const inZoneY = p.y > h - 90;
+    const inZoneY = p.y > h * DROP_Y;
     const zoneIdx = Math.min(zoneCount - 1, Math.max(0, Math.floor(p.x / zoneW)));
     const bottle = bottles.find(b => b.id === drag.id);
     if (!bottle) return;
+    // little ones (age bands under 5, lib/ageBands.ts): tap a potion, then tap
+    // its cauldron; a tap up high keeps holding the potion, no dragging needed
+    if (fit.look.tapToMove && !inZoneY) { dragRef.current = drag; return; }
 
     if (inZoneY) {
       const targetColor = activeColors()[zoneIdx].key;
       const ok = targetColor === bottle.color;
-      setFlashZone(`${zoneIdx}-${ok ? 'ok' : 'no'}`);
-      setTimeout(() => setFlashZone(null), 350);
       if (ok) {
         sfx.correct();
         metricsRef.current.correct += 1;
         metricsRef.current.sortMs.push(Date.now() - drag.startedAt);
-        setSorted(s => s + 1);
         setCombo(c => {
           const next = c + 1;
           metricsRef.current.bestCombo = Math.max(metricsRef.current.bestCombo, next);
@@ -261,165 +386,308 @@ export default function PotionSortPage() {
           return next;
         });
         setBottles(prev => prev.filter(b => b.id !== drag.id));
+        // Kailia runs to that cauldron and hops to stir it in; the friend
+        // cheers beside her; the brew bubbles up in sparkles
+        const cx = zoneCenter(zoneIdx, zoneCount);
+        setKailiaX(cx);
+        setKailiaHop(n => n + 1);
+        setPetX(px => besideKailia(px, cx));
+        setPetMood('cheer');
+        setPotFx(f => ({ idx: zoneIdx, n: f.n + 1, kind: 'gulp' }));
+        fire(cx, 66, ['#FFE066', '#FFFFFF', COLORS.find(c => c.key === bottle.color)!.hex], 12, 56);
+        slipStreakRef.current = 0;
+        hintAtRef.current = -Infinity;
+        setHintColor(null);
+        setNoelLine(['Splash! Perfect match!', 'Into the pot it goes!', 'Bubble bubble!', 'Just right!'][metricsRef.current.correct % 4]);
+        setNoelMood('excited');
         return;
       }
       sfx.wrong();
       metricsRef.current.wrong += 1;
       setCombo(0);
-      setNoelLine("Close! Try matching the COLOR — you've got this!");
+      setPotFx(f => ({ idx: zoneIdx, n: f.n + 1, kind: 'wobble' }));
+      setNoelLine("Close! Try matching the COLOR, you've got this!");
       setNoelMood('thinking');
+      slip();
     }
-    // released outside any zone, or in the wrong one — snap back to a
-    // fresh falling position rather than vanishing, never a dead end
-    setBottles(prev => prev.map(b => b.id === drag.id ? { ...b, dragging: false } : b));
+    // released outside any zone, or in the wrong one — let it carry on
+    // falling from where it was let go, never a dead end
+    const fallTo = h * LAND_Y;
+    const from = Math.min(p.y, fallTo - 30);
+    const ms = Math.max(600, ROUNDS[roundIdx].fallMs * tuning.fall * (fallTo - from) / (fallTo - 56));
+    setBottles(prev => prev.map(b => b.id === drag.id ? { ...b, dragging: false, y: from, ms } : b));
+    requestAnimationFrame(() => {
+      setBottles(prev => prev.map(b => (b.id === drag.id && !b.dragging) ? { ...b, y: fallTo } : b));
+    });
+    scheduleLanding(drag.id, ms + 30);
   }
 
-  const lv = ROUNDS[roundIdx];
-  const totalNeeded = ROUNDS.reduce((s, r) => s + r.bottles, 0);
+  function tickle() {
+    setPetMood('dance');
+    setTimeout(() => setPetMood('idle'), 1300);
+  }
+
+  const colorsNow = activeColors();
+  const hintIdx = hintColor ? colorsNow.findIndex(c => c.key === hintColor) : -1;
+  // during a hint the friend stands right under the cauldron to use and
+  // Kailia steps aside for it
+  const petAt = hintIdx >= 0 ? zoneCenter(hintIdx, colorsNow.length) : besideKailia(petX, kailiaX);
+  const kailiaAt = hintIdx >= 0 ? besideKailia(kailiaX, petAt) : kailiaX;
+
+  const theme = { bg: 'radial-gradient(120% 80% at 50% 0%, #4c3a9e 0%, #2a1f6b 45%, #160f3d 100%)', accent: '#A855F7', accent2: '#7C3AED' };
 
   if (phase === 'intro') return (
-    <main className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
-      <div className="max-w-sm w-full text-center">
-        <div className="flex items-end justify-center gap-2 mb-4">
-          <PandaSprite size={120} expression="excited" className="float" />
-          <KailiaSprite size={92} expression="excited" className="float" style={{ animationDelay: '0.2s' }} />
-        </div>
-        <h1 className="text-3xl font-extrabold text-white mb-2" style={{ textShadow: '0 0 20px #A855F7' }}>🧪 Potion Sort</h1>
-        <p className="text-purple-200 text-sm mb-5">
-          The owl&apos;s shelf is full of falling potions! Drag each one into the cauldron with the
-          matching color before it reaches the floor.
-        </p>
-        <div className="flex justify-center gap-3 mb-6">
-          {COLORS.map(c => (
-            <span key={c.key} className="w-9 h-9 rounded-full" style={{ background: c.hex, border: `3px solid ${c.dark}` }} />
+    <GameIntro
+      title="Potion Sort"
+      theme={theme}
+      pet={pet}
+      story={<p>The owl&apos;s potions are tumbling off the shelf! Drag each one into the cauldron with the
+        <strong> same color</strong> before it lands. Kailia will stir them in!</p>}
+      extras={
+        <div className="flex justify-center items-end gap-3">
+          {planRounds(level, fit.look.maxChoices, fit.look.tapToMove).at(-1)!.colors.map(k => COLORS.find(c => c.key === k)!).map((c, i) => (
+            <span key={c.key} className="float inline-block" style={{ animationDelay: `${i * 0.25}s` }}><PotionBottle color={c.hex} size={38} /></span>
           ))}
         </div>
-        <button onClick={() => { setPhase('playing'); startGame(); }}
-          className="px-10 py-4 rounded-full font-extrabold text-white text-xl transition-transform hover:scale-105"
-          style={{ background: 'linear-gradient(135deg,#A855F7,#7C3AED)', boxShadow: '0 0 30px rgba(168,85,247,0.4)' }}>
-          Start Sorting! 🧪
-        </button>
-        <div className="mt-4">
-          <Link href="/play" className="text-purple-300 text-sm hover:text-white">← Back to the map</Link>
-        </div>
-        <SkillIntro gameId="potion-sort" />
-      </div>
-    </main>
+      }
+      levels={<LevelPath gameId="potion-sort" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
+      startLabel={<>Play level {level}</>}
+      onStart={() => { setPhase('playing'); startGame(); }}
+      footer={<SkillIntro gameId="potion-sort" />}
+    />
   );
 
-  if (phase === 'done') {
-    const pct = sorted / totalNeeded;
-    const [title, medal] = pct >= 0.9 ? ['Potion Master!', '🏆'] : pct >= 0.6 ? ['Great Sorting!', '🌟'] : ['Nice Try!', '🧪'];
-    return (
-      <main className="min-h-screen flex items-center justify-center px-4"
-        style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
-        <div className="max-w-sm w-full text-center">
-          <div className="text-7xl mb-3">{medal}</div>
-          <h1 className="text-3xl font-extrabold text-white mb-1">{title}</h1>
-          <p className="text-purple-200 text-sm mb-5">{sorted} of {totalNeeded} potions sorted correctly!</p>
-          <div className="flex gap-3 justify-center">
-            <Link href="/play" className="px-5 py-3 rounded-full font-bold text-purple-300 text-sm"
-              style={{ border: '2px solid rgba(168,85,247,0.4)' }}>← All Games</Link>
-            <button onClick={() => { setPhase('intro'); }}
-              className="px-6 py-3 rounded-full font-extrabold text-white text-sm"
-              style={{ background: 'linear-gradient(135deg,#A855F7,#7C3AED)' }}>Play Again 🔄</button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  if (phase === 'done') return (
+    <GameFinish
+      title={`Level ${level} complete!`}
+      theme={theme}
+      pet={pet}
+      trophy={<span className="inline-flex items-end gap-2">{COLORS.map(c => <PotionBottle key={c.key} color={c.hex} size={34} />)}</span>}
+      message={<>Every cauldron is bubbling. {pet.name} is doing a potion dance!</>}
+      earned={earned}
+      actions={<>
+        <PlayButton theme={GOLD} onClick={() => { setLevel(levelAfter('potion-sort', level)); setPhase('intro'); }}>{nextLabel('potion-sort', level)} <GoArrow /></PlayButton>
+        <SoftButton href="/play">Back to the map</SoftButton>
+      </>}
+    />
+  );
+
+  const fallMs = ROUNDS[roundIdx].fallMs * tuning.fall;
 
   return (
-    <main className="min-h-screen px-4 py-5" style={{ background: 'linear-gradient(135deg,#1e1b4b,#312e81)' }}>
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-3">
-          <Link href="/play" className="font-bold text-sm text-purple-300">← Games</Link>
-          <span className="text-xs font-bold px-3 py-1 rounded-full text-purple-100" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            Round {roundIdx + 1}/{ROUNDS.length}
+    <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg,#1e1b4b,#312e81)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
+      <div data-play-col className="max-w-md mx-auto px-3">
+        <div className="flex items-center justify-between pt-4 pb-2 px-1">
+          <Link href="/play" className="kp-back font-bold text-sm text-purple-200">← Map</Link>
+          <h1 className="text-xl font-extrabold text-white drop-shadow">
+            Potion Sort <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+          </h1>
+          <span className="flex justify-end gap-1 w-16" aria-hidden>
+            {ROUNDS.map((_, i) => (
+              <span key={i} className="inline-block w-2.5 h-2.5 rounded-full"
+                style={{ background: '#FDE047', boxShadow: '0 0 8px #FDE047', opacity: i < roundIdx || (i === roundIdx && phase === 'roundDone') ? 1 : 0.25 }} />
+            ))}
           </span>
         </div>
 
-        <div className="flex items-center justify-between mb-3 rounded-2xl px-4 py-2.5" style={{ background: 'rgba(0,0,0,0.35)' }}>
-          <div className="flex items-center gap-2">
-            <PandaSprite size={40} expression={noelMood} />
-            <p className="text-xs font-semibold text-purple-100 max-w-[160px]">{noelLine}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-white font-extrabold text-lg leading-none">🧪 {sorted}/{totalNeeded}</p>
-            {combo >= 2 && <p className="text-yellow-300 text-xs font-bold mt-0.5 sparkle">{comboLine} x{combo}</p>}
-          </div>
-        </div>
+        <div ref={areaRef} data-play-field onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerLeave={onDragEnd}
+          className="relative w-full rounded-[28px] overflow-hidden select-none"
+          style={{ aspectRatio: '3 / 4.2', touchAction: 'none', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.3), 0 10px 0 rgba(0,0,0,0.25)' }}>
 
-        <div ref={areaRef} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerLeave={onDragEnd}
-          className="relative w-full rounded-3xl overflow-hidden shadow-2xl select-none"
-          style={{ height: 420, background: 'radial-gradient(ellipse at 50% 20%, #2e2a6b 0%, #1e1b4b 45%, #0f0a2e 100%)', border: '2px solid rgba(168,85,247,0.3)', touchAction: 'none' }}>
+          <PotionRoom />
 
-          {/* Background dressing — the owl's starlit shelf, not a flat gradient */}
-          <div className="absolute inset-0 pointer-events-none">
-            {STARS.map((s, i) => (
-              <span key={i} className="absolute sparkle" style={{ left: `${s.x}%`, top: `${s.y}%`, fontSize: s.s, animationDelay: `${i * 0.4}s`, opacity: 0.8 }}>✨</span>
-            ))}
-            <span className="absolute float" style={{ left: '8%', top: '6%', fontSize: 30, opacity: 0.55 }}>🌙</span>
-            <span className="absolute float" style={{ right: '10%', top: '10%', fontSize: 22, opacity: 0.5, animationDelay: '0.6s' }}>⭐</span>
-            {/* rising magic motes — continuous movement so the background
-                never feels static, even between potion drops */}
-            {RISE_BUBBLES.map((r, i) => (
-              <span key={i} className="absolute rise-fade" style={{
-                left: `${r.x}%`, bottom: '6%', width: r.s, height: r.s, borderRadius: '50%',
-                background: r.c, boxShadow: `0 0 8px ${r.c}`,
-                animationDuration: `${r.dur}s`, animationDelay: `${r.delay}s`,
-              }} />
-            ))}
-            {/* the shelf the potions tumble off of */}
-            <div className="absolute left-0 right-0 top-0" style={{ height: 14, background: 'linear-gradient(180deg,#78350F,#451A03)', borderBottom: '3px solid #1a1108', boxShadow: '0 4px 10px rgba(0,0,0,0.4)' }} />
-            <span className="absolute" style={{ left: '6%', top: 2, fontSize: 20 }}>🦉</span>
-            <span className="absolute" style={{ right: '6%', top: 2, fontSize: 18 }}>📚</span>
-          </div>
-
-          {bottles.map(b => {
-            const c = COLORS.find(x => x.key === b.color)!;
+          {/* the cauldrons on the hearth, one per color */}
+          {colorsNow.map((c, i) => {
+            const n = colorsNow.length;
+            const wPct = Math.min(30, 92 / n);
             return (
-              <div key={b.id} onPointerDown={e => onDragStart(e, b.id)}
-                className="absolute cursor-grab active:cursor-grabbing"
-                style={{
-                  left: b.x, top: b.y, transform: 'translate(-50%, -50%)',
-                  transition: b.dragging ? 'none' : `top ${(ROUNDS[roundIdx].fallMs * tuning.fall)}ms linear`,
-                  zIndex: b.dragging ? 10 : 1,
-                }}>
-                <div style={{ width: 72, height: 90, position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 26, width: 20, height: 18, background: '#92400E', borderRadius: 4, border: '2.5px solid #1a1108' }} />
-                  <div style={{
-                    position: 'absolute', top: 15, left: 0, width: 72, height: 74, borderRadius: '20px 20px 32px 32px',
-                    background: c.hex, border: `3.5px solid ${c.dark}`, boxShadow: `0 0 22px ${c.hex}dd, 0 0 40px ${c.hex}66`,
-                  }}>
-                    <div style={{ position: 'absolute', top: 7, left: 9, width: 12, height: 20, borderRadius: 6, background: 'rgba(255,255,255,0.45)' }} />
-                  </div>
+              <div key={`${c.key}-${n}`} data-pot={c.key} className="absolute pointer-events-none" style={{
+                left: `${zoneCenter(i, n)}%`, top: '83.5%', width: `${wPct}%`, transform: 'translate(-50%, -100%)', zIndex: 3,
+              }}>
+                <div key={potFx.idx === i ? potFx.n : 'still'}
+                  className={`${potFx.idx === i ? (potFx.kind === 'wobble' ? 'soft-wobble' : 'kp-jelly') : ''} ${hintIdx === i ? 'hint-glow' : ''}`}
+                  style={{ transformOrigin: '50% 100%' }}>
+                  <Cauldron color={c.hex} dark={c.dark} seed={i} />
                 </div>
               </div>
             );
           })}
 
-          {/* Cauldrons */}
-          <div className="absolute left-0 right-0 bottom-0 flex" style={{ height: 84 }}>
-            {activeColors().map((c, i) => (
-              <div key={c.key} className="flex-1 flex items-end justify-center pb-2 relative">
-                <div className="absolute inset-x-1 top-0 bottom-0 rounded-t-2xl transition-all"
-                  style={{
-                    background: flashZone === `${i}-ok` ? `${c.hex}55` : flashZone === `${i}-no` ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.04)',
-                    border: `2.5px dashed ${c.hex}88`,
-                  }} />
-                <span className="relative text-3xl" style={{ filter: `drop-shadow(0 0 8px ${c.hex})` }}>🍯</span>
-                <span className="absolute bottom-1 w-7 h-7 rounded-full" style={{ background: c.hex, border: `2px solid ${c.dark}`, opacity: 0.9 }} />
+          {/* bottles tumbling off the shelf */}
+          {bottles.map(b => {
+            const c = COLORS.find(x => x.key === b.color)!;
+            return (
+              <div key={b.id} onPointerDown={e => onDragStart(e, b.id)} data-bottle={b.color}
+                className="absolute cursor-grab active:cursor-grabbing flex items-center justify-center"
+                style={{
+                  left: b.x, top: b.y, width: 76, height: 92, transform: 'translate(-50%, -50%)',
+                  transition: b.dragging ? 'none' : `top ${b.ms ?? fallMs}ms linear`,
+                  zIndex: b.dragging ? 20 : 10, touchAction: 'none',
+                }}>
+                <div className={b.dragging ? '' : 'wiggle'} style={{ transform: b.dragging ? 'scale(1.12) rotate(-8deg)' : undefined, transition: 'transform 0.15s' }}>
+                  <PotionBottle color={c.hex} size={50} />
+                </div>
               </div>
-            ))}
+            );
+          })}
+
+          <StoryGuest who={ROUNDS[roundIdx]?.who} x={92} y={GROUND} size={46} z={11} cheer={phase === 'roundDone'} />
+          <KailiaActor x={kailiaAt} y={GROUND} h={68} hop={kailiaHop} z={12} />
+          <div data-pet>
+            <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 0.5} h={50}
+              mood={hintIdx >= 0 ? 'talk' : petMood} moodKey={petMoodKey} moveMs={800}
+              flip={petAt < kailiaAt} onTap={tickle} z={13} />
           </div>
+          {burstLayer}
+
+          {phase === 'roundDone' && roundIdx + 1 < ROUNDS.length && (
+            <div className="absolute inset-x-0 top-[24%] flex justify-center pointer-events-none" style={{ zIndex: 40 }}>
+              <p className="bounce-in px-5 py-2 rounded-full text-xl font-extrabold text-purple-950" style={{ background: '#FFF8E7', border: '3px solid #3b2416' }}>
+                Round {roundIdx + 2} next!
+              </p>
+            </div>
+          )}
         </div>
 
-        <p className="text-center text-xs mt-3 text-purple-300">
-          Drag a potion into the cauldron with the matching color!
-        </p>
+        {/* Noel's guide bar */}
+        <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
+          style={{ background: 'rgba(255,255,255,0.1)', border: '1.5px solid rgba(255,255,255,0.18)' }}>
+          <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
+          <div data-read-aloud className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white">
+            {noelLine}
+            {combo >= 2 && <span key={combo} className="block text-base text-purple-700 bounce-in">{comboLine}</span>}
+          </div>
+        </div>
       </div>
     </main>
+  );
+}
+
+// the friend stands beside Kailia on the floor, never on top of her
+function besideKailia(petX: number, kx: number) {
+  const x = Math.abs(petX - kx) >= 18 ? petX : kx + (kx > 50 ? -19 : 19);
+  return Math.max(9, Math.min(91, x));
+}
+
+// ── A painted potion bottle ──
+// Round flask, cork, bright brew with a light rim, so every color reads
+// on the dark tower room.
+function PotionBottle({ color, size }: { color: string; size: number }) {
+  const sk = '#3b2416';
+  return (
+    <svg viewBox="0 0 40 50" width={size} height={size * 1.25} aria-hidden="true"
+      style={{ overflow: 'visible', filter: `drop-shadow(0 0 2px #FFF8E1) drop-shadow(0 0 8px ${color}aa)` }}>
+      <g filter="url(#kp-brush)" strokeLinejoin="round">
+        <rect x="14.5" y="2" width="11" height="8" rx="2" fill="#B07A45" stroke={sk} strokeWidth="1.8" />
+        <path d="M15 10 H25 V17 Q35 21 35 32 A15 15 0 0 1 5 32 Q5 21 15 17z" fill="#EAF6FF" stroke={sk} strokeWidth="2" />
+        <path d="M7 30 Q20 25 33 30 A13 13 0 0 1 7 30z" fill={color} />
+        <path d="M7.4 32 A13 13 0 0 0 32.6 32" fill={color} />
+        <circle cx="16" cy="36" r="2" fill="#FFFFFF" opacity="0.6" /><circle cx="24" cy="39" r="1.3" fill="#FFFFFF" opacity="0.6" />
+        <path d="M11 22 Q8 27 9 31" stroke="#FFFFFF" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.8" />
+        <path d="M15 10 H25 V17 Q35 21 35 32 A15 15 0 0 1 5 32 Q5 21 15 17z" fill="none" stroke={sk} strokeWidth="2" />
+      </g>
+    </svg>
+  );
+}
+
+// ── A bubbling cauldron ──
+// Warm copper (not black) so it stands out on the dark room, with the
+// brew's color on top and little bubbles rising out of it.
+function Cauldron({ color, dark, seed }: { color: string; dark: string; seed: number }) {
+  const sk = '#3b2416';
+  return (
+    <div className="relative w-full">
+      {[0, 1, 2].map(i => (
+        <span key={i} className="fg-rise absolute rounded-full" style={{
+          left: `${30 + i * 18 + seeded(seed, i) * 6}%`, top: '14%', width: 8 + i * 2, height: 8 + i * 2,
+          background: color, border: '1.5px solid rgba(255,255,255,0.8)',
+          animationDuration: `${1.8 + seeded(seed, i + 3) * 1.2}s`, animationDelay: `${-seeded(seed, i + 6) * 2}s`,
+          ['--rise' as string]: '30px', ['--sway' as string]: `${(seeded(seed, i + 9) - 0.5) * 12}px`,
+        } as CSSProperties} />
+      ))}
+      <svg viewBox="0 0 80 60" width="100%" aria-hidden="true" style={{ display: 'block', overflow: 'visible' }}>
+        <ellipse cx="40" cy="12" rx="36" ry="10" fill={color} opacity="0.35" className="fg-glow" />
+        <g filter="url(#kp-brush)" stroke={sk} strokeLinejoin="round">
+          <path d="M14 52 L10 59 M66 52 L70 59" strokeWidth="4" strokeLinecap="round" />
+          <path d="M6 14 Q4 50 40 54 Q76 50 74 14z" fill="#C27C4A" strokeWidth="2.2" />
+          <path d="M14 22 Q14 42 30 48" stroke="#E8A774" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <ellipse cx="40" cy="14" rx="36" ry="9" fill="#8F5532" strokeWidth="2.2" />
+          <ellipse cx="40" cy="14.5" rx="31" ry="6.5" fill={color} stroke={dark} strokeWidth="1.2" />
+          <ellipse cx="30" cy="13" rx="7" ry="2" fill="#FFFFFF" opacity="0.45" stroke="none" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// ── The owl's potion room ──
+// Purple stone walls, a round window with the moon and twinkling stars,
+// the high shelf of books and jars the potions tumble from, candles, a
+// stone hearth for the cauldrons and a wooden floor.
+function PotionRoom() {
+  const sk = '#3b2416';
+  return (
+    <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 140" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="pr-wall" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#2A2466" /><stop offset="1" stopColor="#3D2F7E" />
+          </linearGradient>
+          <radialGradient id="pr-candle"><stop offset="0" stopColor="#FFD86B" stopOpacity="0.55" /><stop offset="1" stopColor="#FFD86B" stopOpacity="0" /></radialGradient>
+          <radialGradient id="pr-sky"><stop offset="0" stopColor="#3B4AA0" /><stop offset="1" stopColor="#151A4A" /></radialGradient>
+        </defs>
+        <rect width="100" height="140" fill="url(#pr-wall)" />
+        {/* stone blocks */}
+        <g stroke="#221D55" strokeWidth="0.5" fill="none" opacity="0.8">
+          {Array.from({ length: 10 }, (_, r) => (
+            <g key={r}>
+              <path d={`M0 ${16 + r * 10} H100`} />
+              {Array.from({ length: 5 }, (_, c) => <path key={c} d={`M${(c * 22 + (r % 2) * 11) % 100} ${16 + r * 10} v10`} />)}
+            </g>
+          ))}
+        </g>
+        <g filter="url(#kp-brush)">
+          {/* round window with the moon */}
+          <circle cx="74" cy="42" r="13" fill="url(#pr-sky)" stroke={sk} strokeWidth="1.2" />
+          <circle cx="78" cy="38" r="4.5" fill="#FFF1B8" stroke={sk} strokeWidth="0.5" />
+          <path d="M61 42 H87 M74 29 V55" stroke="#6B4A2E" strokeWidth="1.4" />
+          <circle cx="74" cy="42" r="13" fill="none" stroke="#8A6239" strokeWidth="2" />
+          {/* the high shelf with books and jars */}
+          <rect x="0" y="9" width="100" height="3.2" fill="#8A5A32" stroke={sk} strokeWidth="0.6" />
+          {[[3, 5.5, '#E57373'], [7.5, 6.5, '#64B5F6'], [11.5, 5, '#FFD54F'], [15, 6, '#81C784']].map(([x, hgt, col], i) => (
+            <rect key={i} x={x as number} y={9 - (hgt as number)} width="3.6" height={hgt as number} rx="0.5" fill={col as string} stroke={sk} strokeWidth="0.5" />
+          ))}
+          <path d="M84 9 v-4 q0 -1.5 2 -1.5 h3 q2 0 2 1.5 v4z" fill="#B39DDB" stroke={sk} strokeWidth="0.5" />
+          <path d="M93 9 v-5 h4 v5z" fill="#80CBC4" stroke={sk} strokeWidth="0.5" />
+          {/* candles */}
+          <rect x="6" y="52" width="3" height="8" fill="#FFF3E0" stroke={sk} strokeWidth="0.4" />
+          <path d="M7.5 52 q-1.4 -2 0 -4 q1.4 2 0 4z" fill="#FFB74D" />
+          {/* the stone hearth the cauldrons stand on */}
+          <rect x="0" y="116.5" width="100" height="8" fill="#5B4A86" stroke={sk} strokeWidth="0.6" />
+          <path d="M0 116.5 H100" stroke="#8F7BC4" strokeWidth="0.8" />
+          {/* wooden floor */}
+          <rect x="0" y="124.5" width="100" height="15.5" fill="#6B4A2E" />
+          <path d="M0 129 H100 M0 134 H100 M18 124.5 v4.5 M52 124.5 v4.5 M80 124.5 v4.5 M34 129 v5 M68 129 v5" stroke="#4E341F" strokeWidth="0.5" />
+        </g>
+        <circle cx="7.5" cy="49" r="7" fill="url(#pr-candle)" className="fg-glow" />
+      </svg>
+      {/* twinkling stars across the window */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 140" preserveAspectRatio="none">
+        {[[68, 36], [70, 47], [80, 49], [66, 41]].map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="0.6" fill="#FFFFFF" className="fg-twinkle" style={{ animationDelay: `${-i * 0.7}s` }} />
+        ))}
+      </svg>
+      {/* magic motes drifting up */}
+      {Array.from({ length: 7 }, (_, i) => (
+        <span key={i} className="fg-rise absolute rounded-full" style={{
+          left: `${6 + seeded(i, 50) * 88}%`, bottom: `${30 + seeded(i, 51) * 20}%`, width: 6, height: 6,
+          background: `radial-gradient(circle, #FFFFFF 0%, ${['#C4B5FD', '#F9A8D4', '#FDE68A', '#86EFAC'][i % 4]} 50%, transparent 75%)`,
+          animationDuration: `${6 + seeded(i, 52) * 5}s`, animationDelay: `${-seeded(i, 53) * 8}s`,
+          ['--rise' as string]: `${120 + seeded(i, 54) * 120}px`, ['--sway' as string]: `${(seeded(i, 55) - 0.5) * 30}px`,
+        } as CSSProperties} />
+      ))}
+    </div>
   );
 }

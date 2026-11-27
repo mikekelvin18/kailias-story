@@ -3,6 +3,11 @@ import { Baloo_2 } from 'next/font/google';
 import './globals.css';
 import { AssessmentProvider } from '@/context/AssessmentContext';
 import AccessibilityProvider from '@/components/AccessibilityProvider';
+import PaintKit from '@/components/art/PaintKit';
+import BigKidLook from '@/components/BigKidLook';
+import SoundStart from '@/components/SoundStart';
+import GameMusic from '@/components/GameMusic';
+import TapToStart from '@/components/TapToStart';
 
 // A big, round, bouncy display font — reads as a kids' storybook/game
 // instead of a generic system font, for every bit of on-screen text.
@@ -22,9 +27,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`h-full ${baloo.variable}`}>
       <body className="min-h-full flex flex-col">
         <AccessibilityProvider />
+        <PaintKit />
+        <BigKidLook />
+        <SoundStart />
         <AssessmentProvider>
           {children}
         </AssessmentProvider>
+        <GameMusic />
+        <TapToStart />
       </body>
     </html>
   );

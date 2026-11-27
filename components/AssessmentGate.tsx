@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { DEMO_GAME_PATH, isDemoActive } from '@/lib/demo';
 import { useAssessment } from '@/context/AssessmentContext';
 import KailiaSprite from '@/components/characters/KailiaSprite';
 
@@ -20,12 +22,33 @@ import KailiaSprite from '@/components/characters/KailiaSprite';
 export default function AssessmentGate({ children }: { children: React.ReactNode }) {
   const { state, loaded } = useAssessment();
   const router = useRouter();
+  const pathname = usePathname();
+  // Try-before-sign-up: a family that tapped "Try one game first" on the
+  // front page may play the one demo game. Nothing is saved (every store
+  // is consent-gated and there is no consent yet); any other page sends
+  // them back to the "liked it?" screen instead of the setup steps.
+  const demo = loaded && !state.assessmentCompleted && isDemoActive();
+  const demoAllowed = demo && pathname === DEMO_GAME_PATH;
 
   useEffect(() => {
-    if (loaded && !state.assessmentCompleted) {
-      router.replace('/setup');
+    if (loaded && !state.assessmentCompleted && !demoAllowed) {
+      router.replace(demo ? '/try' : '/setup');
     }
-  }, [loaded, state.assessmentCompleted, router]);
+  }, [loaded, state.assessmentCompleted, router, demo, demoAllowed]);
+
+  if (demoAllowed) {
+    return (
+      <>
+        {children}
+        <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-full pl-4 pr-1.5 py-1.5 shadow-lg text-sm font-bold whitespace-nowrap"
+          style={{ background: 'rgba(255,255,255,0.96)', color: '#3B0764' }}>
+          <span>Trying it out · nothing is saved</span>
+          <Link href="/try" className="rounded-full px-3 py-1 text-white" style={{ background: '#7C3AED' }}>Done</Link>
+        </div>
+        <div className="kp-paper" aria-hidden="true" />
+      </>
+    );
+  }
 
   if (!loaded || !state.assessmentCompleted) {
     return (
@@ -36,5 +59,11 @@ export default function AssessmentGate({ children }: { children: React.ReactNode
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {/* hand-painted paper grain over every child-facing screen (globals.css) */}
+      <div className="kp-paper" aria-hidden="true" />
+    </>
+  );
 }

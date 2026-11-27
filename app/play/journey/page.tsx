@@ -1,17 +1,35 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
+import { buzzGood } from '@/lib/haptics';
+import { levelStory } from '@/lib/variety';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
+import { useEffect, useRef, useState, useCallback, useMemo, type CSSProperties } from 'react';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
 import OverworldSprite, { type Facing } from '@/components/characters/OverworldSprite';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import LevelPath from '@/components/LevelPath';
+import { GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
-import { makeChallenge, DOMAIN, type Challenge } from '@/lib/creatureChallenges';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter } from '@/lib/rewards';
+import { makeChallenge, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
+import MissingFriend from '@/components/games/MissingFriend';
 import { Critter } from '@/components/characters/CritterSprite';
+import { COMPANIONS } from '@/lib/rewards';
+import KailiaActor from '@/components/games/KailiaActor';
+import StarIcon from '@/components/games/StarIcon';
+import { usePlayPet, type PlayPet } from '@/components/games/playPet';
+import Actor, { usePetMood } from '@/components/friends/kit/Actor';
+import { useBursts } from '@/components/friends/kit/Burst';
+import { seeded } from '@/components/friends/kit/Stage';
+import LiveArt from '@/components/characters/LiveArt';
+import { petWidth } from '@/lib/companionTrails';
+import {
+  MapArt, PondRipple, TallGrass, Flag, Satchel, PaintBlob, FeelingFace, FeelingScene, COLOR_OF,
+  type Obstacle, type Decor, type MapPiece,
+} from './art';
 
 // ─── Kailia's Journey ─────────────────────────────────────────────────────────
 // An old-school, Game-Boy-style top-down overworld: a tile grid, a camera
@@ -21,9 +39,28 @@ import { Critter } from '@/components/characters/CritterSprite';
 // capture animation. Every creature poses a different mini challenge
 // (counting, memory, color matching, feelings, words) tied to its own
 // skill domain. Four biomes cycle level to level — a real world to walk.
+//
+// The world is painted (trees, ponds, cacti, ice, the winding trail, tall
+// grass that sways, a waving flag) and alive: cloud shadows drift over it
+// and each biome has its own petals, sand glints, snow or falling leaves.
+// The child's friend (the starter partner on a first journey) trots one
+// step behind Kailia like a real partner, stands beside her in every
+// encounter, cheers each catch, wobbles "oops" on a miss, and after two
+// tries bounces to point out the glowing answer.
 
-const W = 16, H = 20;            // map size, tiles — bigger now the whole screen is the world
-const TILE = 44;                 // px per tile
+// map size, tiles. Upright screens get a tall 16×20 world; a computer or a
+// tablet held sideways gets a wide one shaped like its screen (Muse round 7:
+// on a 1919px screen the tall world was a strip in the middle, with the path
+// in its left third). Set by sizeWorld() just before a world is built.
+let W = 16, H = 20;
+function sizeWorld(screenW: number, screenH: number) {
+  if (screenW >= 900 && screenH >= 560 && screenW > screenH) {
+    H = 13;
+    const room = (screenH - 72 - 150) / (H * TILE);          // how tall a tile can be
+    W = Math.max(18, Math.min(30, Math.round(screenW / (room * TILE))));
+  } else { W = 16; H = 20; }
+}
+const TILE = 44;                 // px per tile (before zoom)
 
 type TileType = 'grass' | 'path' | 'tallgrass' | 'tree' | 'water' | 'flower' | 'flag';
 
@@ -31,46 +68,51 @@ interface Pt { x: number; y: number; }
 interface Encounter { challenge: Challenge; solved: boolean; }
 
 interface Biome {
-  name: string; sky: string; ground: string; path: string;
-  obstacles: string[]; decor: string[]; tallgrassBg: string;
+  name: string; sky: string; ground: string; path: string; tuft: string;
+  obstacles: [Obstacle, Obstacle]; decor: Decor[]; grass: string;
+  weather: 'petals' | 'glints' | 'snow' | 'leaves';
 }
 const BIOMES: Biome[] = [
-  { name: 'Sunny Meadow', sky: 'linear-gradient(180deg,#7dd3fc,#bef264 65%)', ground: '#86efac', path: '#e0c88f', obstacles: ['🌳', '💧'], decor: ['🌸', '🍀'], tallgrassBg: '#4ade80' },
-  { name: 'Golden Dunes', sky: 'linear-gradient(180deg,#fde68a,#fbbf24 65%)', ground: '#fcd34d', path: '#eab676', obstacles: ['🌵', '🪨'], decor: ['🪨', '🌾'], tallgrassBg: '#f0b429' },
-  { name: 'Frosty Hills', sky: 'linear-gradient(180deg,#bfdbfe,#e0e7ff 65%)', ground: '#e0f2fe', path: '#cbd5e1', obstacles: ['🌲', '🧊'], decor: ['❄️', '⛄'], tallgrassBg: '#93c5fd' },
-  { name: 'Autumn Grove', sky: 'linear-gradient(180deg,#fdba74,#fb923c 65%)', ground: '#fed7aa', path: '#d4a373', obstacles: ['🍁', '🪵'], decor: ['🍂', '🍄'], tallgrassBg: '#f59e42' },
+  { name: 'Sunny Meadow', sky: 'linear-gradient(180deg,#7dd3fc,#bef264 65%)', ground: '#9BE59A', path: '#E8D29C', tuft: '#5FB062', obstacles: ['tree', 'pond'], decor: ['flower', 'clover'], grass: '#3FA34D', weather: 'petals' },
+  { name: 'Golden Dunes', sky: 'linear-gradient(180deg,#fde68a,#fbbf24 65%)', ground: '#F7D774', path: '#EDC27F', tuft: '#D9A93F', obstacles: ['cactus', 'boulder'], decor: ['pebbles', 'drygrass'], grass: '#B8862F', weather: 'glints' },
+  { name: 'Frosty Hills', sky: 'linear-gradient(180deg,#bfdbfe,#e0e7ff 65%)', ground: '#E3F1FB', path: '#C9D6E6', tuft: '#A9C6E0', obstacles: ['pine', 'iceblock'], decor: ['snowmound', 'crystal'], grass: '#5E9BD1', weather: 'snow' },
+  { name: 'Autumn Grove', sky: 'linear-gradient(180deg,#fdba74,#fb923c 65%)', ground: '#F9D3A2', path: '#D9AA74', tuft: '#E39B57', obstacles: ['maple', 'log'], decor: ['leaves', 'mushroom'], grass: '#C9661E', weather: 'leaves' },
 ];
 
 // The three starter partners offered on a brand-new journey — same names
 // as the companions unlocked by starlight, tying the two systems together.
 const STARTERS = [
-  { emoji: '🐢', name: 'Shelly', blurb: 'Slow and steady — never rattled.' },
-  { emoji: '🦊', name: 'Flick', blurb: 'Quick, clever, always curious.' },
-  { emoji: '🦉', name: 'Sage', blurb: 'Wise eyes that notice everything.' },
-];
+  { name: 'Shelly', blurb: 'Slow and steady — never rattled.' },
+  { name: 'Flick', blurb: 'Quick, clever, always curious.' },
+  { name: 'Sage', blurb: 'Wise eyes that notice everything.' },
+].map(s => ({ ...s, pet: COMPANIONS.find(c => c.name === s.name)! }));
+// a starter partner travels in the party as "pet:<name>"
+const PET_TAG = 'pet:';
 
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 
 import { soundEnabled } from '@/lib/accessibility';
-function playNotes(notes: { f: number; t: number; d: number }[]) {
+import { audioCtx, sfxOut } from '@/lib/sfx';
+function playNotes(notes: { f: number; t: number; d: number }[], wave: OscillatorType = 'square') {
   if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     notes.forEach(({ f, t, d }) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type = 'square'; o.frequency.value = f;
+      o.type = wave; o.frequency.value = f;
       g.gain.setValueAtTime(0.06, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + d);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
+      o.connect(g).connect(sfxOut(ctx)); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + d);
     });
   } catch { /* optional */ }
 }
 const sfx = {
   step: () => playNotes([{ f: 220, t: 0, d: 0.03 }]),
   encounter: () => playNotes([{ f: 220, t: 0, d: 0.1 }, { f: 175, t: 0.1, d: 0.1 }, { f: 220, t: 0.2, d: 0.1 }, { f: 330, t: 0.3, d: 0.2 }]),
-  wrong: () => playNotes([{ f: 220, t: 0, d: 0.12 }, { f: 196, t: 0.1, d: 0.16 }]),
-  catch_: () => playNotes([{ f: 392, t: 0, d: 0.08 }, { f: 392, t: 0.15, d: 0.08 }, { f: 392, t: 0.3, d: 0.08 }, { f: 659, t: 0.5, d: 0.15 }, { f: 880, t: 0.62, d: 0.3 }]),
+  // soft and rising (sine, not the retro square): a miss is "let's try again", never a buzzer
+  wrong: () => playNotes([{ f: 392, t: 0, d: 0.1 }, { f: 440, t: 0.09, d: 0.14 }], 'sine'),
+  catch_: () => { buzzGood(); playNotes([{ f: 392, t: 0, d: 0.08 }, { f: 392, t: 0.15, d: 0.08 }, { f: 392, t: 0.3, d: 0.08 }, { f: 659, t: 0.5, d: 0.15 }, { f: 880, t: 0.62, d: 0.3 }]); },
   fanfare: () => playNotes([{ f: 523, t: 0, d: 0.15 }, { f: 659, t: 0.12, d: 0.15 }, { f: 784, t: 0.24, d: 0.15 }, { f: 1047, t: 0.36, d: 0.45 }]),
 };
 
@@ -106,7 +148,12 @@ function buildPath(): Pt[] {
   return pts;
 }
 
-function buildWorld(tier: string, level: number) {
+/** How many wild friends a level asks for (the intro says it before the map exists). */
+function friendsWanted(tier: string, level: number) {
+  return Math.min(6, (tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4) + Math.floor((level - 1) / 3));
+}
+
+function buildWorld(tier: string, level: number, months?: number | null) {
   const biome = BIOMES[(level - 1) % BIOMES.length];
   const path = buildPath();
   const key = (p: Pt) => `${p.x},${p.y}`;
@@ -114,17 +161,22 @@ function buildWorld(tier: string, level: number) {
   const pathKeys = new Set(path.map(key));
   path.forEach(p => { grid[p.y][p.x] = 'path'; });
 
-  const required = Math.min(6, (tier === 'tiny' ? 2 : tier === 'small' ? 3 : 4) + Math.floor((level - 1) / 3));
+  const wanted = friendsWanted(tier, level);
   const encounterIdx: number[] = [];
-  for (let i = 0; i < required; i++) {
-    const idx = Math.max(1, Math.min(path.length - 2, Math.round((i + 1) * (path.length - 1) / (required + 1))));
+  for (let i = 0; i < wanted; i++) {
+    let idx = Math.max(1, Math.min(path.length - 2, Math.round((i + 1) * (path.length - 1) / (wanted + 1))));
+    // never two friends on one tile, so the count the intro promised holds
+    while (encounterIdx.includes(idx) && idx < path.length - 2) idx++;
     if (!encounterIdx.includes(idx)) encounterIdx.push(idx);
   }
+  // the friends to find are exactly the patches of tall grass made (Muse
+  // round 7: the intro, the party box and Noel must all say one number)
+  const required = encounterIdx.length;
   const encounters: Record<string, Encounter> = {};
   encounterIdx.forEach((idx, i) => {
     const p = path[idx];
     grid[p.y][p.x] = 'tallgrass';
-    encounters[key(p)] = { challenge: makeChallenge(i, tier), solved: false };
+    encounters[key(p)] = { challenge: makeChallenge(i + level, tier, level, months), solved: false };
   });
 
   const goal = path[path.length - 1];
@@ -143,21 +195,20 @@ function buildWorld(tier: string, level: number) {
     grid[y][x] = Math.random() < 0.6 ? 'tree' : 'water';
     placed++;
   }
-  // decorEmoji is picked once here (not per-render) so each flower tile
-  // keeps the same emoji instead of re-rolling — a re-roll on every
-  // render read as flowers "flickering"/switching between renders.
-  const decorEmoji: Record<string, string> = {};
+  // each decoration is picked once here (not per-render) so a flower
+  // tile keeps the same drawing instead of re-rolling every render
+  const decorKind: Record<string, Decor> = {};
   let decor = 0; guard = 0;
   while (decor < decorTarget && guard++ < decorTarget * 30) {
     const x = 1 + Math.floor(Math.random() * (W - 2)), y = 1 + Math.floor(Math.random() * (H - 2));
     const p = { x, y };
     if (pathKeys.has(key(p)) || grid[y][x] !== 'grass') continue;
     grid[y][x] = 'flower';
-    decorEmoji[key(p)] = pick(biome.decor);
+    decorKind[key(p)] = pick(biome.decor);
     decor++;
   }
 
-  return { biome, grid, encounters, required, start: path[0], decorEmoji };
+  return { biome, grid, encounters, required, start: path[0], decorKind, path };
 }
 
 const BLOCKED: TileType[] = ['tree', 'water'];
@@ -199,9 +250,25 @@ function bfsPath(start: Pt, goal: Pt, grid: TileType[][]): Pt[] | null {
   return path;
 }
 
+
+// ── Why Kailia is walking today: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+const JOURNEYS = [
+  'The wild friends are gathering for a big parade at the flag!',
+  'A storm is coming, and the wild friends need a safe place to stay.',
+  'The flag marks a secret picnic spot. Let\'s bring friends!',
+  'The wild friends want to see the fireworks from the flag.',
+  'Kailia is building a team for the big friendship race.',
+  'The flag is where the treasure map ends!',
+  'The wild friends are lost after a windy night. Let\'s bring them home!',
+  'Tonight is the campfire story party at the flag.',
+  'The wild friends want to make a giant sandcastle together.',
+  'A new baby animal was born at the flag. Let\'s say hello!',
+];
+
 export default function JourneyPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const fit = useGameFit('journey');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
   const [phase, setPhase] = useState<'intro' | 'starter' | 'walking' | 'rustle' | 'memoryShow' | 'battle' | 'capturing' | 'done'>('intro');
@@ -211,11 +278,26 @@ export default function JourneyPage() {
   const [isWalking, setIsWalking] = useState(false);
   const [party, setParty] = useState<string[]>([]);
   const [activeTile, setActiveTile] = useState<string | null>(null);
-  const [dialog, setDialog] = useState('Walk into the tall grass 🌾 to meet a wild friend!');
+  const [dialog, setDialog] = useState('Walk into the tall grass to meet a wild friend!');
   const [shakeBox, setShakeBox] = useState(false);
   const [caughtCreature, setCaughtCreature] = useState<string | null>(null);
   const [showParty, setShowParty] = useState(false);
   const [pendingTile, setPendingTile] = useState<string | null>(null);
+  const [earned, setEarned] = useState(0);
+
+  // The friend travels one step behind Kailia: the partner picked on a
+  // first journey, else the child's play friend
+  const playPet = usePlayPet();
+  const [starterPet, setStarterPet] = useState<PlayPet | null>(null);
+  const partner = starterPet ?? playPet;
+  const [petTile, setPetTile] = useState<Pt>({ x: 1, y: H - 1 });
+  const [petLeft, setPetLeft] = useState(false);
+  const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
+  const [kailiaHop, setKailiaHop] = useState(0);
+  const [battleMisses, setBattleMisses] = useState(0);
+  // the child tapped the friend for help on this riddle (Muse round 7)
+  const [askedHelp, setAskedHelp] = useState(false);
+  const { layer: burstLayer, fire } = useBursts();
 
   const movingRef = useRef(false);
   const wrongRef = useRef(0);
@@ -234,6 +316,11 @@ export default function JourneyPage() {
   const [screenSize, setScreenSize] = useState({ w: 360, h: 640 });
 
   useEffect(() => { playerRef.current = player; }, [player]);
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => {
+    testHook('journey', { phase, level, player, path: world?.path, required: world?.required,
+      met: party.filter(p => !p.startsWith(PET_TAG)).length, unsolved: world ? Object.values(world.encounters).filter(e => !e.solved).length : 0 });
+  });
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { worldRef.current = world; }, [world]);
 
@@ -247,42 +334,56 @@ export default function JourneyPage() {
     return () => ro.disconnect();
   }, [phase]);
 
-  useEffect(() => { setLevel(nextGameLevel('journey')); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('journey', fit.startLevel)); }, [fit.startLevel]);
 
-  const beginWorld = useCallback((starter?: string) => {
-    const w = buildWorld(tier, level);
+  const beginWorld = useCallback((starter?: (typeof STARTERS)[number]) => {
+    const vp = viewportRef.current;
+    sizeWorld(vp?.clientWidth || window.innerWidth, vp?.clientHeight || window.innerHeight);
+    const w = buildWorld(tier, level, fit.fitMonths);
     worldRef.current = w;
     playerRef.current = w.start;
     pathQueueRef.current = [];
     movingRef.current = false;
     setWorld(w);
     setPlayer(w.start);
-    setParty(starter ? [starter] : []);
+    setPetTile({ x: w.start.x, y: Math.min(H - 1, w.start.y + 1) });
+    setStarterPet(starter ? starter.pet : null);
+    setParty(starter ? [PET_TAG + starter.name] : []);
     setActiveTile(null);
     setCaughtCreature(null);
     wrongRef.current = 0; stepsRef.current = 0; startedRef.current = Date.now();
-    setDialog(`Welcome to the ${w.biome.name}! Walk into the tall grass 🌾 to meet a wild friend!`);
+    setDialog(`Welcome to the ${w.biome.name}! Walk into the tall grass to meet a wild friend!`);
     setPhase('walking');
-  }, [tier, level]);
+  }, [tier, level, fit.fitMonths]);
 
   const startLevel = useCallback(() => {
     if (level === 1) setPhase('starter');
     else beginWorld();
   }, [level, beginWorld]);
 
-  const tryFinish = useCallback((x: number, y: number) => {
+  const tryFinish = useCallback(() => {
     if (!world) return;
-    if (party.length >= world.required) {
+    // only the wild friends met count (the partner picked on the first
+    // journey travels along but was never "met"; the robot check caught
+    // the flag opening one friend early on level 1)
+    const met = party.filter(p => !p.startsWith(PET_TAG)).length;
+    if (met >= world.required) {
       const totalMs = Date.now() - startedRef.current;
       logQuestMetric('processing', 'journey', { level, friends: world.required, wrongAnswers: wrongRef.current, steps: stepsRef.current, totalMs });
-      awardStarlight(Math.max(10, 16 + level * 2 - wrongRef.current * 2));
-      recordGameLevel('journey', level);
+      const stars = levelStarlight(level, wrongRef.current);
+      awardStarlight(stars);
+      recordGameLevel('journey', level, roundEase(wrongRef.current, world.required));
+      setEarned(stars);
       sfx.fanfare();
+      setPetMood('cheer');
+      setKailiaHop(n => n + 1);
       setPhase('done');
     } else {
-      setDialog(`The flag needs more friends! ${world.required - party.length} still hiding in the tall grass 🌾…`);
+      setDialog(`The flag needs ${world.required} friends! ${met} found, ${world.required - met} still hiding in the tall grass…`);
     }
-  }, [world, party.length, level]);
+  }, [world, party, level, setPetMood]);
 
   const tryFinishRef = useRef(tryFinish);
   useEffect(() => { tryFinishRef.current = tryFinish; }, [tryFinish]);
@@ -302,6 +403,9 @@ export default function JourneyPage() {
     sfx.step();
     playerRef.current = { x: nx, y: ny };
     setPlayer({ x: nx, y: ny });
+    // the friend steps into the spot Kailia just left
+    setPetTile(cur);
+    if (dx) setPetLeft(dx < 0);
     setFacing(dx < 0 ? 'left' : dx > 0 ? 'right' : dy < 0 ? 'back' : 'front');
     setIsWalking(true);
     setTimeout(() => {
@@ -315,19 +419,21 @@ export default function JourneyPage() {
         setPhase('rustle');
         setTimeout(() => {
           setActiveTile(k);
+          setBattleMisses(0);
+          setAskedHelp(false);
           sfx.encounter();
           const ch = w.encounters[k].challenge;
-          setDialog(`A wild ${ch.creature} appeared!`);
+          setDialog(`A wild ${creatureName(ch.creature)} appeared!`);
           if (ch.type === 'memory') {
             setPhase('memoryShow');
-            setTimeout(() => setPhase('battle'), 2400);
+            setTimeout(() => setPhase('battle'), 3200);
           } else {
             setPhase('battle');
           }
         }, 650);
       } else if (t === 'flag') {
         pathQueueRef.current = [];
-        tryFinishRef.current(nx, ny);
+        tryFinishRef.current();
       }
     }, 150);
   }, []);
@@ -353,12 +459,33 @@ export default function JourneyPage() {
     stepQueue();
   }, [stepQueue]);
 
+  // Tapping the friend asks for help (Muse round 7: it only danced, so a
+  // child couldn't tell what it was for). In a riddle it bounces by the right
+  // answer (and a memory riddle shows the missing friend's shadow); on the
+  // map it says where the friends are.
+  function tickle() {
+    if (phase === 'battle' && activeEncounter) {
+      setAskedHelp(true);
+      setPetMood('talk');
+      setDialog(`${partner.name} is bouncing by the glowing one. Try that one!`);
+      return;
+    }
+    setPetMood('dance');
+    if (phase === 'walking' && world) {
+      const met = party.filter(p => !p.startsWith(PET_TAG)).length;
+      setDialog(met >= world.required ? `${partner.name} says: everyone's here, head for the flag!` : `${partner.name} says: friends hide in the tall grass along the path!`);
+    }
+    setTimeout(() => setPetMood('idle'), 1300);
+  }
+
   function onViewportClick(e: React.MouseEvent<HTMLDivElement>) {
     if (!viewportRef.current) return;
+    // tickling the friend is play, not a walk order
+    if ((e.target as HTMLElement).closest?.('[data-pet]')) return;
     const rect = viewportRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left + offsetX;
+    const clickX = e.clientX - rect.left - mapLeft + offsetX;
     const clickY = e.clientY - rect.top + offsetY;
-    walkTo(Math.floor(clickX / TILE), Math.floor(clickY / TILE));
+    walkTo(Math.floor(clickX / T), Math.floor(clickY / T));
   }
 
   useEffect(() => {
@@ -381,6 +508,10 @@ export default function JourneyPage() {
       sfx.catch_();
       setPhase('capturing');
       setCaughtCreature(challenge.creature);
+      setKailiaHop(n => n + 1);
+      setPetMood('cheer');
+      fire(72, 34, ['#FFE066', '#FFFFFF', '#FF9EC7', '#8BE3FF'], 14, 80);
+      setTimeout(() => fire(72, 40, ['#FFE066', '#FFFFFF'], 10, 50), 650);
       setTimeout(() => {
         world.encounters[activeTile].solved = true;
         setParty(p => [...p, challenge.creature]);
@@ -390,7 +521,12 @@ export default function JourneyPage() {
         })) });
         setActiveTile(null);
         setCaughtCreature(null);
-        setDialog(party.length + 1 >= world.required ? 'That was the last friend — head for the flag! 🚩' : 'Onward! More friends may be hiding in the grass…');
+        {
+          const met = party.filter(p => !p.startsWith(PET_TAG)).length + 1;
+          setDialog(met >= world.required ? `That's all ${world.required} friends — head for the flag!`
+            : `${met} of ${world.required} friends found! ${world.required - met} still hiding in the grass…`);
+        }
+        setPetMood('cheer');
         setPhase('walking');
       }, 1500);
     } else {
@@ -398,11 +534,14 @@ export default function JourneyPage() {
       sfx.wrong();
       setShakeBox(true);
       setTimeout(() => setShakeBox(false), 400);
+      setPetMood('oops');
+      const misses = battleMisses + 1;
+      setBattleMisses(misses);
       const hint = challenge.type === 'count' ? 'Count one by one with your finger, then try again!'
-        : challenge.type === 'memory' ? 'Try to remember who was missing… look again!'
+        : challenge.type === 'memory' ? 'Look at the shadow in the empty spot. Who has that shape?'
         : challenge.type === 'word' ? 'Sound it out slowly… try again!'
         : 'Look closely and try again!';
-      setDialog(hint);
+      setDialog(misses >= 2 ? `${partner.name} is bouncing by the glowing one. Try that one!` : hint);
     }
   }
 
@@ -410,11 +549,44 @@ export default function JourneyPage() {
   // The floating dialog/hint bar (plus the D-pad above it) occupies the
   // bottom of the screen — bias the camera so Kailia stays visible above
   // that reserved strip instead of centered dead-in-the-middle.
-  const BOTTOM_UI_RESERVE = 190;
-  const maxOffX = Math.max(0, W * TILE - screenSize.w);
-  const maxOffY = Math.max(0, H * TILE - screenSize.h);
-  const offsetX = Math.max(0, Math.min(maxOffX, player.x * TILE - screenSize.w / 2 + TILE / 2));
-  const offsetY = Math.max(0, Math.min(maxOffY, player.y * TILE - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + TILE / 2));
+  // a computer screen: the D-pad sits in the bottom bar beside Noel's words
+  // (Muse round 7: it was alone in the far bottom-right corner)
+  const TOP_UI_RESERVE = 72;
+  const wide = screenSize.w >= 900 && screenSize.h >= 560 && screenSize.w > screenSize.h;
+  const BOTTOM_UI_RESERVE = wide ? 150 : 190;
+  // On a wide screen (a computer) the map grows to fill the width, up to
+  // MAP_MAX_W, keeping its shape, and sits in the middle (Grok 2026-11-27:
+  // it was pinned left with empty green on the right). Phones keep 1:1.
+  const MAP_MAX_W = 1400;
+  // a wide world fills the screen's width and fits its height (between the bars)
+  const zoom = wide
+    ? Math.max(1, Math.min(screenSize.w / (W * TILE), (screenSize.h - TOP_UI_RESERVE - BOTTOM_UI_RESERVE) / (H * TILE)))
+    : screenSize.w > W * TILE ? Math.min(screenSize.w, MAP_MAX_W) / (W * TILE) : 1;
+  const T = TILE * zoom;   // one tile on screen, in px
+  const mapLeft = Math.max(0, (screenSize.w - W * T) / 2);
+  const maxOffX = Math.max(0, W * T - screenSize.w);
+  const maxOffY = Math.max(0, H * T - screenSize.h + BOTTOM_UI_RESERVE);
+  const offsetX = Math.max(0, Math.min(maxOffX, player.x * T - screenSize.w / 2 + T / 2));
+  // …and past the top row too, so the flag up there never hides under the header
+  const offsetY = Math.max(-TOP_UI_RESERVE, Math.min(maxOffY, player.y * T - (screenSize.h - BOTTOM_UI_RESERVE) / 2 + T / 2));
+
+  // the still drawing of the map only changes when the world does
+  const mapArt = useMemo(() => {
+    if (!world) return null;
+    const pieces: MapPiece[] = [];
+    world.grid.forEach((row, y) => row.forEach((t, x) => {
+      if (t === 'tree') pieces.push({ x, y, kind: world.biome.obstacles[0] });
+      else if (t === 'water') pieces.push({ x, y, kind: world.biome.obstacles[1] });
+      else if (t === 'flower') pieces.push({ x, y, kind: world.decorKind[`${x},${y}`] ?? world.biome.decor[0] });
+    }));
+    return (
+      <MapArt cols={W} rows={H} tile={TILE} path={world.path} pieces={pieces}
+        ground={world.biome.ground} trail={world.biome.path} tuft={world.biome.tuft} />
+    );
+  }, [world]);
+
+  const challengeHint = (battleMisses >= 2 || askedHelp) && phase === 'battle';
+  const partyPets = party.filter(p => p.startsWith(PET_TAG)).length;
 
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: '#0f172a' }}>
@@ -427,30 +599,32 @@ export default function JourneyPage() {
         <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-4">
           <div className="w-full max-w-sm">
             {phase === 'intro' && (
-              <div className="text-center bounce-in">
-                <div className="flex items-end justify-center gap-1 mb-4">
-                  <PandaSprite size={128} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-                  <KailiaSprite size={96} expression="excited" className="float" />
-                </div>
-                <div className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide mb-3"
-                  style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
-                  ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
-                </div>
-                <div className="rounded-3xl p-6 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-                  <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">A brand-new world stretches ahead! 🗺️</p>
-                  <p className="text-gray-900 text-2xl font-bold leading-snug">
-                    Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
-                    anywhere on the map to walk there! Step into patches of <strong>tall grass 🌾</strong> to meet
-                    wild creatures — solve their riddle to catch them, then lead your new friends to the flag! 🚩
-                  </p>
-                </div>
-                <button onClick={startLevel}
-                  className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-                  style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                  Enter the world! 🌍
-                </button>
-                <SkillIntro gameId="journey" />
-                <Link href="/play" className="block mt-4 text-sm font-bold text-slate-400">← Back to the map</Link>
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                <GameIntro
+                  title="Journey"
+                  theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #334155 0%, #1e293b 50%, #0f172a 100%)', accent: '#38BDF8', accent2: '#0284C7' }}
+                  pet={playPet}
+                  story={<>
+                    <p>A brand-new world stretches ahead! {levelStory(JOURNEYS, 'journey', level)}</p>
+                    <p>
+                      Walk Kailia through <strong>{BIOMES[(level - 1) % BIOMES.length].name}</strong> — just tap
+                      anywhere on the map to walk there! Step into patches of <strong>tall grass</strong> to meet
+                      wild creatures — solve their riddle to catch them, then lead
+                      your <strong data-journey-goal>{friendsWanted(tier, level)} new friends</strong> to the flag!
+                    </p>
+                  </>}
+                  extras={<div className="flex items-center justify-center gap-3">
+                    <Flag size={40} ready={false} />
+                    <span className="inline-block px-4 py-1 rounded-full text-xs font-extrabold tracking-wide"
+                      style={{ background: '#1a1a2e', color: '#FDE047', border: '2px solid #FDE047' }}>
+                      ⟨ REGION {level} ⟩ {BIOMES[(level - 1) % BIOMES.length].name.toUpperCase()}
+                    </span>
+                  </div>}
+                  levels={<LevelPath gameId="journey" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
+                  startLabel={<>Enter the world!</>}
+                  onStart={startLevel}
+                  footer={<SkillIntro gameId="journey" />}
+                />
               </div>
             )}
 
@@ -463,12 +637,14 @@ export default function JourneyPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   {STARTERS.map(s => (
-                    <button key={s.name} onClick={() => beginWorld(s.emoji)}
+                    <button key={s.name} onClick={() => beginWorld(s)}
                       className="rounded-2xl p-3 shadow-xl transition-transform hover:scale-105 active:scale-95"
                       style={{ background: 'rgba(255,255,255,0.95)', border: '3px solid #1a1a2e' }}>
-                      <div className="flex justify-center mb-1"><Critter emoji={s.emoji} size={48} /></div>
+                      <div className="flex justify-center items-end mb-1" style={{ height: 64 }}>
+                        <LiveArt src={s.pet.art} alt={s.name} size={petWidth(s.pet.art, 60)} kind="pet" pokeable={false} />
+                      </div>
                       <span className="block text-sm font-extrabold text-slate-900">{s.name}</span>
-                      <span className="block text-[10px] text-slate-500 leading-snug mt-1">{s.blurb}</span>
+                      <span className="block text-[11px] text-slate-600 leading-snug mt-1">{s.blurb}</span>
                     </button>
                   ))}
                 </div>
@@ -483,81 +659,96 @@ export default function JourneyPage() {
         <>
           <div ref={viewportRef} onClick={phase === 'walking' ? onViewportClick : undefined}
             className="absolute inset-0 select-none"
-            style={{ background: world.biome.sky, cursor: phase === 'walking' ? 'pointer' : 'default' }}>
-            <div className="absolute" style={{ width: W * TILE, height: H * TILE, transform: `translate(${-offsetX}px, ${-offsetY}px)`, transition: 'transform 150ms linear' }}>
+            style={{ background: world.biome.ground, cursor: phase === 'walking' ? 'pointer' : 'default' }}>
+            <div className="absolute" data-journey-map="" style={{ left: 0, top: 0, width: W * TILE, height: H * TILE, transformOrigin: '0 0', transform: `translate(${mapLeft - offsetX}px, ${-offsetY}px) scale(${zoom})`, transition: 'transform 150ms linear' }}>
+              {mapArt}
+              {/* the moving bits: pond ripples, swaying tall grass, the flag */}
               {world.grid.map((row, y) => row.map((t, x) => {
-                const isEnc = world.encounters[`${x},${y}`];
-                let bg = world.biome.ground;
-                if (t === 'path') bg = world.biome.path;
-                if (t === 'tallgrass') bg = world.biome.tallgrassBg;
-                if (t === 'flag') bg = world.biome.path;
-                let emoji = '';
-                if (t === 'tree' || t === 'water') emoji = t === 'tree' ? world.biome.obstacles[0] : world.biome.obstacles[1];
-                if (t === 'flower') emoji = world.decorEmoji[`${x},${y}`] ?? world.biome.decor[0];
-                if (t === 'tallgrass' && isEnc && !isEnc.solved) emoji = '🌾';
-                if (t === 'flag') emoji = '🚩';
-                return (
-                  <div key={`${x}-${y}`} className="absolute flex items-center justify-center"
-                    style={{ left: x * TILE, top: y * TILE, width: TILE, height: TILE, background: bg,
-                      outline: '1px solid rgba(0,0,0,0.04)', fontSize: TILE * 0.62 }}>
-                    {emoji}
-                  </div>
-                );
+                if (t === 'water' && world.biome.obstacles[1] === 'pond') return <PondRipple key={`${x}-${y}`} x={x} y={y} tile={TILE} />;
+                if (t === 'tallgrass' && world.encounters[`${x},${y}`] && !world.encounters[`${x},${y}`].solved) {
+                  return <TallGrass key={`${x}-${y}`} size={TILE} color={world.biome.grass}
+                    style={{ position: 'absolute', left: x * TILE, top: y * TILE - 6, pointerEvents: 'none' }} />;
+                }
+                if (t === 'flag') {
+                  return <Flag key={`${x}-${y}`} size={TILE * 0.9} ready={party.length - partyPets >= world.required}
+                    style={{ position: 'absolute', left: x * TILE + TILE * 0.2, top: y * TILE - TILE * 0.55, pointerEvents: 'none', zIndex: 3 + y }} />;
+                }
+                return null;
               }))}
               <div className="absolute flex items-center justify-center" style={{
                 left: player.x * TILE, top: player.y * TILE, width: TILE, height: TILE,
-                transition: 'left 150ms linear, top 150ms linear', zIndex: 5,
+                transition: 'left 150ms linear, top 150ms linear', zIndex: 30 + player.y * 2,
               }}>
-                <div style={{ transform: 'translateY(-6px)' }}>
+                <div key={kailiaHop} className={kailiaHop ? 'kp-hop' : undefined} style={{ transform: 'translateY(-6px)' }}>
                   <OverworldSprite character="kailia" facing={facing} walking={isWalking} size={TILE * 1.15} />
                 </div>
               </div>
+              {/* the friend, one step behind */}
+              <div data-pet>
+                <Actor art={partner.art} name={partner.name}
+                  x={((petTile.x + 0.5) / W) * 100} y={((petTile.y + 0.92) / H) * 100} h={38}
+                  mood={petMood} moodKey={petMoodKey} moveMs={230} flip={petLeft}
+                  onTap={tickle} z={30 + petTile.y * 2 + (petTile.y > player.y ? 1 : -1)} tapLabel={`Ask ${partner.name} for a hint`} />
+              </div>
             </div>
+            <Weather kind={world.biome.weather} />
           </div>
 
           {/* ── Floating header, on top of the world ── */}
-          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 pt-3 pb-6 pointer-events-none"
+          <div className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-between px-3 pt-3 pb-6 pointer-events-none"
             style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.55), transparent)' }}>
-            <Link href="/play" className="text-sm font-bold text-white drop-shadow pointer-events-auto">← Map</Link>
+            <Link href="/play" className="kp-back h-10 px-3 inline-flex items-center rounded-full text-sm font-bold text-white pointer-events-auto"
+              style={{ background: 'rgba(15,23,42,0.45)' }}>← Map</Link>
             <h1 className="text-lg font-extrabold text-white drop-shadow">
-              🗺️ Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.2)', border: '1px solid rgba(253,224,71,0.5)' }}>Lv {level}</span>
+              Kailia&apos;s Journey <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.2)', border: '1px solid rgba(253,224,71,0.5)' }}>Lv {level}</span>
             </h1>
-            <button onClick={() => setShowParty(true)} className="text-xs font-bold text-emerald-300 drop-shadow pointer-events-auto">
-              🎒 {party.length}/{world.required}
+            <button onClick={() => setShowParty(true)} aria-label="Your friends"
+              className="h-10 px-2.5 inline-flex items-center gap-1.5 rounded-full pointer-events-auto"
+              style={{ background: 'rgba(15,23,42,0.45)' }}>
+              <Satchel size={22} />
+              <span className="flex flex-wrap gap-1 max-w-[46px]">
+                {Array.from({ length: world.required }, (_, i) => (
+                  <span key={i} className="inline-block w-2 h-2 rounded-full"
+                    style={{ background: '#FDE047', boxShadow: i < party.length - partyPets ? '0 0 6px #FDE047' : 'none', opacity: i < party.length - partyPets ? 1 : 0.3 }} />
+                ))}
+              </span>
             </button>
           </div>
 
           {/* ── Floating mini D-pad, inside the screen (tap-to-walk still works everywhere else) ── */}
-          {phase === 'walking' && (
-            <div className="absolute z-10" style={{ right: 12, bottom: 200 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 36px)', gridTemplateRows: 'repeat(3, 36px)', gap: 3 }}>
-                <div />
-                <button onClick={() => move(0, -1)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬆️</button>
-                <div />
-                <button onClick={() => move(-1, 0)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬅️</button>
-                <div />
-                <button onClick={() => move(1, 0)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>➡️</button>
-                <div />
-                <button onClick={() => move(0, 1)} className="rounded-lg text-base font-extrabold text-white active:scale-90 transition-transform" style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.3)' }}>⬇️</button>
-                <div />
+          {phase === 'walking' && !wide && (
+            <div className="absolute z-[60]" style={{ right: 10, bottom: 196 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 42px)', gridTemplateRows: 'repeat(3, 42px)', gap: 3 }}>
+                {([[null], [0, -1, 0], [null], [-1, 0, 270], [null], [1, 0, 90], [null], [0, 1, 180], [null]] as (number | null)[][]).map((d, i) => (
+                  d[0] === null ? <div key={i} /> : (
+                    <button key={i} onClick={() => move(d[0]!, d[1]!)} aria-label={['up', 'left', 'right', 'down'][[1, 3, 5, 7].indexOf(i)]}
+                      className="rounded-xl flex items-center justify-center active:scale-90 transition-transform"
+                      style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.45)' }}>
+                      <svg width="20" height="20" viewBox="0 0 20 20" style={{ transform: `rotate(${d[2]}deg)` }} aria-hidden="true">
+                        <path d="M4 13 L10 6 L16 13" stroke="#FFFFFF" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )
+                ))}
               </div>
             </div>
           )}
 
           {/* ── Floating Noel dialog + tap hint, pinned to the bottom of the world ── */}
           {phase === 'walking' && (
-            <div className="absolute bottom-0 left-0 right-0 z-10 px-3 pb-3 pt-8"
+            <div className="absolute bottom-0 left-0 right-0 z-[60] px-3 pb-3 pt-8"
               style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.6), transparent)' }}>
               <div className="flex items-center gap-3">
                 <PandaSprite size={50} expression="happy" style={{ flexShrink: 0 }} />
-                <div className="rounded-2xl px-4 py-3 text-lg font-extrabold leading-snug text-gray-900 bg-white relative shadow-lg">
+                <div data-read-aloud className="rounded-2xl px-4 py-3 text-lg font-extrabold leading-snug text-gray-900 bg-white relative shadow-lg">
                   <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                     style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '10px solid white' }} />
                   {dialog}
                 </div>
+                {wide && <DPad move={move} />}
               </div>
               <p className="text-center text-base font-extrabold text-white mt-2 drop-shadow-lg">
-                👆 Tap anywhere to walk there!
+                Tap anywhere to walk there!
               </p>
             </div>
           )}
@@ -565,11 +756,11 @@ export default function JourneyPage() {
       )}
 
       {/* ── Grass-rustle transition ── */}
-      {phase === 'rustle' && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: '#1a1a2e' }}>
+      {phase === 'rustle' && world && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: '#1a1a2e' }}>
           <div className="text-center">
-            <span className="block text-6xl shake" style={{ animationIterationCount: 'infinite' }}>🌾</span>
-            <p className="mt-3 font-extrabold text-lg" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
+            <TallGrass size={120} color={world.biome.grass} sparkle={false} className="shake mx-auto block" style={{ animationIterationCount: 'infinite' }} />
+            <p className="mt-3 font-extrabold text-lg" style={{ color: '#FDE047' }}>
               The grass rustles…
             </p>
           </div>
@@ -578,12 +769,12 @@ export default function JourneyPage() {
 
       {/* ── Memory reveal: show the full lineup before one disappears ── */}
       {phase === 'memoryShow' && activeEncounter && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: '#1a1a2e' }}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: '#1a1a2e' }}>
           <div className="text-center px-6">
-            <p className="font-extrabold text-lg mb-4" style={{ color: '#FDE047', fontFamily: '"Courier New", monospace' }}>
-              👀 Look closely — remember everyone here!
+            <p className="font-extrabold text-lg mb-4" style={{ color: '#FDE047' }}>
+              Look closely — remember everyone here!
             </p>
-            <div className="bounce-in flex gap-3 justify-center flex-wrap">
+            <div className="bounce-in flex gap-3 justify-center flex-wrap rounded-3xl p-4" style={{ background: 'rgba(255,255,255,0.92)' }}>
               {activeEncounter.challenge.memoryFull?.map((c, i) => (
                 <Critter key={i} emoji={c} size={64} />
               ))}
@@ -592,130 +783,255 @@ export default function JourneyPage() {
         </div>
       )}
 
-      {/* ── Party / Pokédex viewer ── */}
+      {/* ── Party viewer ── */}
       {showParty && world && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowParty(false)}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setShowParty(false)}>
           <div className="w-full max-w-sm rounded-2xl p-5 bounce-in" style={{ background: '#fdfdf8', border: '4px solid #1a1a2e' }} onClick={e => e.stopPropagation()}>
-            <p className="font-extrabold text-lg mb-1" style={{ color: '#1a1a2e', fontFamily: '"Courier New", monospace' }}>🎒 Your Party</p>
-            <p className="text-xs text-slate-500 mb-3">{party.length} of {world.required} friends caught in {world.biome.name}</p>
-            {party.length === 0 ? (
-              <p className="text-sm text-slate-400 italic">No friends yet — find them in the tall grass 🌾!</p>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {party.map((p, i) => (
-                  <div key={i} className="rounded-xl flex items-center justify-center" style={{ aspectRatio: '1', background: '#f1f5f9', border: '2px solid #1a1a2e' }}>
-                    <Critter emoji={p} size={40} />
-                  </div>
-                ))}
-                {Array.from({ length: Math.max(0, world.required - party.length) }).map((_, i) => (
-                  <div key={`e${i}`} className="rounded-xl flex items-center justify-center text-2xl text-slate-300" style={{ aspectRatio: '1', background: '#f8fafc', border: '2px dashed #cbd5e1' }}>?</div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setShowParty(false)} className="mt-4 w-full py-2.5 rounded-full font-bold text-sm text-slate-500" style={{ border: '2px solid #cbd5e1' }}>
+            <p className="font-extrabold text-lg mb-1 flex items-center gap-2" style={{ color: '#1a1a2e' }}><Satchel size={24} /> Your Party</p>
+            <p className="text-xs text-slate-600 mb-3">{party.length - partyPets} of {world.required} friends met in {world.biome.name}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {party.map((p, i) => (
+                <div key={i} className="rounded-xl flex items-center justify-center" style={{ aspectRatio: '1', background: '#f1f5f9', border: '2px solid #1a1a2e' }}>
+                  <PartyMember p={p} size={40} />
+                </div>
+              ))}
+              {Array.from({ length: Math.max(0, world.required - (party.length - partyPets)) }).map((_, i) => (
+                <div key={`e${i}`} className="rounded-xl flex items-center justify-center" style={{ aspectRatio: '1', background: '#f8fafc', border: '2px dashed #94a3b8' }}>
+                  <TallGrass size={30} color={world.biome.grass} sparkle={false} />
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setShowParty(false)} className="mt-4 w-full py-2.5 rounded-full font-bold text-sm text-slate-600" style={{ border: '2px solid #cbd5e1' }}>
               Close
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Retro battle overlay ── */}
+      {/* ── Battle: Kailia and the friend meet the wild creature ── */}
       {(phase === 'battle' || phase === 'capturing') && activeEncounter && world && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end" style={{ background: world.biome.sky }}>
-          {/* battle stage */}
-          <div className="flex-1 relative">
-            <div className="absolute" style={{ right: '14%', top: '18%' }}>
+        <div className="fixed inset-0 z-[70] flex flex-col" style={{ background: world.biome.ground }}>
+          {/* battle stage: a fixed height, so it never jumps when the riddle box changes size */}
+          <div className="relative overflow-hidden flex-none" style={{ height: 'max(250px, calc(100dvh - 440px))', background: world.biome.sky }}>
+            <BattleBackdrop biome={world.biome} />
+            <div className="absolute" style={{ left: '72%', top: '40%', transform: 'translate(-50%, -100%)', zIndex: 4 }}>
               <div className={phase === 'capturing' ? '' : 'float'}
                 style={{ animation: phase === 'capturing' ? 'kshrink 0.5s ease-in forwards, kwiggle 0.4s ease-in-out 0.5s 3' : undefined }}>
                 <Critter emoji={activeEncounter.challenge.creature} size={96} />
               </div>
             </div>
-            <div className="absolute" style={{ left: '10%', bottom: '8%' }}>
-              <KailiaSprite size={70} expression={phase === 'capturing' ? 'celebrating' : 'thinking'} />
+            <KailiaActor x={24} y={93} h={112} hop={kailiaHop} />
+            <div data-pet>
+              <Actor art={partner.art} name={partner.name} x={45} y={93} h={64}
+                mood={challengeHint ? 'talk' : petMood} moodKey={petMoodKey} moveMs={500}
+                onTap={tickle} z={7} tapLabel={`Ask ${partner.name} for a hint`} />
             </div>
             {phase === 'capturing' && (
-              <div className="absolute text-center" style={{ right: '18%', top: '30%' }}>
-                <span className="block text-3xl pop">✨ Gotcha!</span>
+              <div className="absolute text-center" style={{ left: '72%', top: '12%', transform: 'translateX(-50%)', zIndex: 20 }}>
+                <span className="bounce-in inline-flex items-center gap-1 px-3 py-1 rounded-full text-2xl font-extrabold text-slate-900"
+                  style={{ background: '#FFFFFF', border: '3px solid #1a1a2e' }}><StarIcon size={24} /> Gotcha!</span>
               </div>
             )}
+            {burstLayer}
           </div>
 
-          {/* Game-Boy-style dialog box */}
-          <div className={`mx-3 mb-3 rounded-lg p-4 ${shakeBox ? 'shake' : ''}`}
-            style={{ background: '#fdfdf8', border: '4px solid #1a1a2e', boxShadow: '0 -4px 0 rgba(0,0,0,0.15) inset' }}>
-            <p style={{ fontFamily: '"Courier New", monospace', fontSize: 19, fontWeight: 800, color: '#1a1a2e', lineHeight: 1.5 }}>
+          {/* the story box: what Noel says, and the riddle with its answer tiles */}
+          <div className={`mt-auto mx-3 sm:mx-auto sm:w-[calc(100%-1.5rem)] sm:max-w-2xl mb-16 rounded-3xl p-4 ${shakeBox ? 'shake' : ''}`}
+            style={{ background: 'rgba(255,255,255,0.96)', border: '3px solid #3b2416', boxShadow: '0 6px 0 rgba(59,36,22,0.2)' }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', lineHeight: 1.4 }}>
               {phase === 'capturing'
-                ? `Gotcha! ${activeEncounter.challenge.creature} was caught!`
+                ? `Gotcha! The ${creatureName(activeEncounter.challenge.creature)} joined your party!`
                 : dialog}
             </p>
 
             {phase === 'battle' && (
-              <>
-                {activeEncounter.challenge.memoryCast && (
+              <div>
+                {activeEncounter.challenge.memoryFull && activeEncounter.challenge.memoryGap != null && (
                   <>
-                    <p className="text-center text-xs font-bold" style={{ color: '#64748b', fontFamily: '"Courier New", monospace' }}>Still here:</p>
-                    <div className="flex gap-2 justify-center my-1 flex-wrap">
-                      {activeEncounter.challenge.memoryCast.map((c, i) => (
-                        <Critter key={i} emoji={c} size={40} />
-                      ))}
-                    </div>
+                    <p className="text-center text-sm font-bold" style={{ color: '#475569' }}>{battleMisses > 0 || askedHelp ? 'Who left this shadow?' : 'Who was standing in the empty spot?'}</p>
+                    <MissingFriend full={activeEncounter.challenge.memoryFull} gap={activeEncounter.challenge.memoryGap} size={40} shadow={battleMisses > 0 || askedHelp} />
                   </>
                 )}
                 {activeEncounter.challenge.display && (
-                  <p className="text-center my-2 font-extrabold" style={{ fontSize: 30, color: '#1a1a2e', fontFamily: '"Courier New", monospace' }}>
-                    {activeEncounter.challenge.display}
-                  </p>
+                  <div className="flex justify-center my-2">
+                    <ChallengeDisplay ch={activeEncounter.challenge} />
+                  </div>
                 )}
-                <p style={{ fontFamily: '"Courier New", monospace', fontSize: 15, fontWeight: 700, color: '#334155', marginTop: 6, marginBottom: 4 }}>{activeEncounter.challenge.ask}</p>
-                <div className="rounded-md overflow-hidden mt-1" style={{ border: '3px solid #1a1a2e' }}>
+                <p style={{ fontSize: 17, fontWeight: 700, color: '#334155', marginTop: 6, marginBottom: 6 }}>{askText(activeEncounter.challenge)}</p>
+                {/* answers as big side-by-side picture tiles: easy to tap,
+                    and readable for children who can't read yet */}
+                <div className="grid gap-2 mt-1" style={{ gridTemplateColumns: `repeat(${activeEncounter.challenge.options.length}, minmax(0, 1fr))` }}>
                   {activeEncounter.challenge.options.map((o, i) => (
                     <button key={i} data-correct={o.correct} onClick={() => answer(o, activeEncounter.challenge)}
-                      className="w-full text-left px-3 py-2 transition-colors hover:bg-slate-100 active:bg-slate-200 flex items-center gap-2"
-                      style={{ fontFamily: '"Courier New", monospace', fontSize: 16, fontWeight: 700, color: '#1a1a2e',
-                        borderBottom: i < activeEncounter.challenge.options.length - 1 ? '2px solid #1a1a2e' : 'none', background: '#fdfdf8' }}>
-                      <span>▶</span>
-                      {(activeEncounter.challenge.type === 'memory' || activeEncounter.challenge.type === 'word')
-                        ? <Critter emoji={o.label} size={58} animate={false} />
-                        : <span>{o.label}</span>}
+                      aria-label={optionLabel(activeEncounter.challenge, o.label)}
+                      className={`rounded-2xl px-2 py-2 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 ${challengeHint && o.correct ? 'hint-glow' : ''}`}
+                      style={{ fontSize: 22, fontWeight: 800, color: '#1a1a2e', minHeight: 76,
+                        border: '3px solid #3b2416', boxShadow: '0 4px 0 rgba(59,36,22,0.25)',
+                        background: challengeHint && o.correct ? '#FEF9C3' : '#FFFFFF' }}>
+                      <OptionArt ch={activeEncounter.challenge} label={o.label} />
                     </button>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
       )}
 
       {phase === 'done' && world && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #0f172aee, #334155ee)' }}>
-          <div className="text-center bounce-in">
-            <span className="block text-7xl mb-3 star-burst">🚩</span>
-            <div className="flex items-end justify-center gap-2 mb-2">
-              <PandaSprite size={145} expression="celebrating" className="float" />
-              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-            </div>
-            <div className="flex gap-2 justify-center flex-wrap mb-2">
-              {party.map((p, i) => <Critter key={i} emoji={p} size={44} />)}
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">You crossed {world.biome.name}!</h2>
-            <p className="text-slate-200 font-semibold mb-1">{party.length} new friends joined your journey! 🐾</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{Math.max(10, 16 + level * 2 - wrongRef.current * 2)} starlight</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); setPhase('intro'); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-slate-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                Next world ▶
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-slate-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                Back to the map 🗺️
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-[90] overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #0f172a, #334155)', accent: '#38BDF8', accent2: '#0284C7' }}
+            pet={partner}
+            trophy={<div className="flex flex-col items-center gap-2">
+              <Flag size={56} ready glow={false} />
+              <div className="inline-flex gap-2 justify-center flex-wrap px-3 py-2 rounded-2xl" style={{ background: 'rgba(255,255,255,0.92)', border: '3px solid #3b2416' }}>
+                {party.filter(p => !p.startsWith(PET_TAG)).map((p, i) => <Critter key={i} emoji={p} size={40} />)}
+              </div>
+            </div>}
+            message={<>You crossed {world.biome.name}! {party.length - partyPets} new friends joined your journey.</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('journey', level); setLevel(nl); setPhase('intro'); }}>Next world <GoArrow /></PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>
+  );
+}
+
+// ── Helpers for the riddles: names and drawn pictures instead of emoji ──
+
+function creatureName(c: string) { return CREATURE_NAME[c] ?? 'friend'; }
+
+function askText(ch: Challenge) {
+  // the count question names the creature in words; its picture is right above
+  if (ch.type === 'count') return `How many ${creatureName(ch.creature)}s do you see?`;
+  return ch.ask;
+}
+
+function optionLabel(ch: Challenge, label: string) {
+  if (ch.type === 'color') return COLOR_OF[label]?.name ?? label;
+  if (ch.type === 'feeling') return label === '😊' ? 'happy' : 'sad';
+  if (ch.type === 'memory' || ch.type === 'word') return creatureName(label);
+  return label;
+}
+
+function ChallengeDisplay({ ch }: { ch: Challenge }) {
+  if (ch.type === 'count') {
+    const n = ch.display.split(ch.creature).length - 1;
+    return (
+      <div className="flex flex-wrap justify-center gap-1" style={{ maxWidth: 280 }}>
+        {Array.from({ length: n }, (_, i) => <Critter key={i} emoji={ch.creature} size={n > 12 ? 30 : n > 6 ? 36 : 44} animate={false} />)}
+      </div>
+    );
+  }
+  if (ch.type === 'color') return <PaintBlob hex={COLOR_OF[ch.display]?.hex ?? '#999'} size={64} />;
+  if (ch.type === 'feeling') return <FeelingScene k={ch.display} height={62} />;
+  return <span style={{ fontSize: 30 }}>{ch.display}</span>;
+}
+
+function OptionArt({ ch, label }: { ch: Challenge; label: string }) {
+  if (ch.type === 'memory' || ch.type === 'word') return <Critter emoji={label} size={58} animate={false} />;
+  if (ch.type === 'color') return <PaintBlob hex={COLOR_OF[label]?.hex ?? '#999'} size={40} />;
+  if (ch.type === 'feeling') return <FeelingFace happy={label === '😊'} size={40} />;
+  return <span style={{ fontSize: 26 }}>{label}</span>;
+}
+
+function PartyMember({ p, size }: { p: string; size: number }) {
+  if (p.startsWith(PET_TAG)) {
+    const pet = COMPANIONS.find(c => c.name === p.slice(PET_TAG.length));
+    if (pet) return <LiveArt src={pet.art} alt={pet.name} size={petWidth(pet.art, size)} kind="pet" pokeable={false} />;
+  }
+  return <Critter emoji={p} size={size} />;
+}
+
+// ── The world's weather: drifting cloud shadows plus each biome's own
+// petals, sand glints, snow or falling leaves. Decoration only. ──
+function Weather({ kind }: { kind: Biome['weather'] }) {
+  const n = kind === 'snow' ? 22 : 10;
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 50 }} aria-hidden="true">
+      {[0, 1, 2].map(i => (
+        <div key={i} className="fg-drift absolute left-0" style={{ top: `${12 + i * 28}%`, animationDuration: `${55 + i * 18}s`, animationDelay: `${-i * 20}s` }}>
+          <div style={{ width: 220 - i * 40, height: 110 - i * 20, borderRadius: '50%', background: 'rgba(30,41,59,0.13)', filter: 'blur(14px)' }} />
+        </div>
+      ))}
+      {Array.from({ length: n }, (_, i) => {
+        if (kind === 'glints') {
+          return (
+            <span key={i} className="fg-rise absolute rounded-full" style={{
+              left: `${seeded(i, 91) * 96}%`, bottom: `${seeded(i, 92) * 60}%`, width: 7, height: 7,
+              background: 'radial-gradient(circle, #FFFFFF 0%, #FFF3B0 50%, #FFF3B000 75%)',
+              animationDuration: `${4 + seeded(i, 93) * 4}s`, animationDelay: `${-seeded(i, 94) * 8}s`,
+              ['--rise' as string]: '120px', ['--sway' as string]: `${(seeded(i, 95) - 0.5) * 50}px`,
+            } as CSSProperties} />
+          );
+        }
+        return (
+          <span key={i} className="fg-fall absolute top-[-4%]" style={{
+            left: `${seeded(i, 96) * 96}%`,
+            animationDuration: `${(kind === 'snow' ? 9 : 11) + seeded(i, 97) * 7}s`, animationDelay: `${-seeded(i, 98) * 16}s`,
+            ['--sway' as string]: `${(seeded(i, 99) - 0.5) * 80}px`, ['--fall' as string]: '900px',
+          } as CSSProperties}>
+            {kind === 'snow' && <span className="block rounded-full" style={{ width: 7, height: 7, background: '#FFFFFF', boxShadow: '0 0 0 1.5px #8DB3D9' }} />}
+            {kind === 'petals' && (
+              <svg width="12" height="9" viewBox="0 0 12 9"><ellipse cx="6" cy="4.5" rx="5.4" ry="3.6" fill={i % 2 ? '#FF9EC7' : '#FFFFFF'} stroke="#3b2416" strokeWidth="0.8" /></svg>
+            )}
+            {kind === 'leaves' && (
+              <svg width="16" height="12" viewBox="0 0 16 12"><path d="M1 6 Q8 -2 15 6 Q8 14 1 6z" fill={['#F08A3C', '#E25D3A', '#F7B267'][i % 3]} stroke="#3b2416" strokeWidth="0.8" /><path d="M2 6 H13" stroke="#3b2416" strokeWidth="0.6" opacity="0.6" /></svg>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Where the encounter happens: the biome's sky, rolling hills, and two
+// grassy platforms (the wild friend's far one and Kailia's near one) ──
+function BattleBackdrop({ biome }: { biome: Biome }) {
+  const sk = '#3b2416';
+  return (
+    <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      {[0, 1].map(i => (
+        <div key={i} className="fg-drift absolute left-0" style={{ top: `${6 + i * 12}%`, animationDuration: `${50 + i * 22}s`, animationDelay: `${-i * 25}s`, opacity: 0.85 }}>
+          <svg viewBox="0 0 100 50" width={90 - i * 24}><g filter="url(#kp-brush)" fill="#FFFFFF"><ellipse cx="30" cy="32" rx="22" ry="14" /><ellipse cx="55" cy="24" rx="24" ry="18" /><ellipse cx="76" cy="33" rx="17" ry="12" /></g></svg>
+        </div>
+      ))}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <g filter="url(#kp-edge)">
+          <path d="M0 58 Q20 48 40 56 T80 52 T100 54 V100 H0z" fill={biome.tuft} opacity="0.55" />
+          <path d="M0 70 Q30 62 60 70 T100 66 V100 H0z" fill={biome.ground} />
+          <ellipse cx="72" cy="41" rx="22" ry="5" fill={biome.tuft} stroke={sk} strokeWidth="0.4" />
+          <ellipse cx="72" cy="40" rx="20" ry="3.6" fill={biome.path} />
+          <ellipse cx="32" cy="93" rx="30" ry="6" fill={biome.tuft} stroke={sk} strokeWidth="0.4" />
+          <ellipse cx="32" cy="92" rx="27.5" ry="4.4" fill={biome.path} />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// The walking arrows. On a phone they float above Noel's bar; on a computer
+// they sit in the bar, right beside what Noel says.
+function DPad({ move }: { move: (dx: number, dy: number) => void }) {
+  return (
+    <div data-dpad className="flex-none" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 40px)', gridTemplateRows: 'repeat(3, 40px)', gap: 3 }}>
+      {([[null], [0, -1, 0], [null], [-1, 0, 270], [null], [1, 0, 90], [null], [0, 1, 180], [null]] as (number | null)[][]).map((d, i) => (
+        d[0] === null ? <div key={i} /> : (
+          <button key={i} onClick={() => move(d[0]!, d[1]!)} aria-label={['up', 'left', 'right', 'down'][[1, 3, 5, 7].indexOf(i)]}
+            className="rounded-xl flex items-center justify-center active:scale-90 transition-transform"
+            style={{ background: 'rgba(15,23,42,0.7)', border: '1.5px solid rgba(255,255,255,0.55)' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" style={{ transform: `rotate(${d[2]}deg)` }} aria-hidden="true">
+              <path d="M4 13 L10 6 L16 13" stroke="#FFFFFF" strokeWidth="3.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )
+      ))}
+    </div>
   );
 }

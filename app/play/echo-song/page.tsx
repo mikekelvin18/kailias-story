@@ -1,101 +1,210 @@
 'use client';
 
+import { testHook } from '@/lib/testHooks';
+import { useTalkMoment } from '@/components/TalkMoment';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAssessment } from '@/context/AssessmentContext';
-import KailiaSprite from '@/components/characters/KailiaSprite';
+import { useEffect, useRef, useState, useCallback, type CSSProperties } from 'react';
+import { roundEase } from '@/lib/ageBands';
+import { useGameFit, openingLevel } from '@/hooks/useGameFit';
+import { echoSeqLen } from '@/lib/gameCurves';
 import PandaSprite from '@/components/characters/PandaSprite';
 import SkillIntro from '@/components/SkillIntro';
+import { GameBackdrop, GameFinish, GameIntro, GOLD, PlayButton, SoftButton, GoArrow } from '@/components/games/GameFrame';
+import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
-import { difficultyTier } from '@/lib/difficulty';
-import { awardStarlight, recordGameLevel, nextGameLevel } from '@/lib/rewards';
+import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
+import { endlessRamp } from '@/lib/levels';
+import { levelStory } from '@/lib/variety';
+import { soundEnabled } from '@/lib/accessibility';
+import StoryGuest, { type StoryWho } from '@/components/games/StoryGuest';
+import KailiaActor from '@/components/games/KailiaActor';
+import { usePlayPet } from '@/components/games/playPet';
+import Actor, { usePetMood } from '@/components/friends/kit/Actor';
+import { useBursts } from '@/components/friends/kit/Burst';
+import { seeded } from '@/components/friends/kit/Stage';
+import styles from './game.module.css';
+import { audioCtx, sfxOut } from '@/lib/sfx';
 
 // ─── Echo Song ────────────────────────────────────────────────────────────────
 // Simon-style sequence memory in Echo Caves: the crystals sing a little
 // melody (light + tone), the child echoes it back by tapping. Levels grow
 // the melody; misses just replay it — never a failure state.
 // Measures auditory-visual sequence memory span (processing domain).
+//
+// The song happens inside a painted cave: four crystals sit on rock
+// ledges and pillars, each rings out with sound waves and floating notes.
+// Kailia runs under each crystal the child taps and sings along; the
+// child's friend sits on the cave floor, wobbles "oops" with her when the
+// echo slips, and after two slips runs to the crystal the song starts on.
 
 const CRYSTALS = [
-  { emoji: '🔷', tone: 262, glow: '#60A5FA' },
-  { emoji: '💚', tone: 330, glow: '#4ADE80' },
-  { emoji: '💜', tone: 392, glow: '#C084FC' },
-  { emoji: '🧡', tone: 523, glow: '#FB923C' },
+  { tone: 262, color: '#60A5FA', light: '#B3D6FE', name: 'blue' },
+  { tone: 330, color: '#4ADE80', light: '#A7F3C4', name: 'green' },
+  { tone: 392, color: '#C084FC', light: '#E2C6FE', name: 'purple' },
+  { tone: 523, color: '#FB923C', light: '#FEC79C', name: 'orange' },
 ];
+// where each crystal stands in the cave (centre x and base y, % of the scene):
+// two on ledges up high, two on rock pillars below
+const SPOTS: [number, number][] = [[27, 40], [73, 40], [27, 72], [73, 72]];
+const FLOOR = 97;          // Kailia's and the friend's feet
+const CRYSTAL_W = 92;      // px, drawn size (the button is a little bigger)
 
 function tone(f: number, d = 0.32) {
+  if (!soundEnabled()) return;
   try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    const ctx = audioCtx();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine'; osc.frequency.value = f;
     gain.gain.setValueAtTime(0.14, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d);
-    osc.connect(gain).connect(ctx.destination);
+    osc.connect(gain).connect(sfxOut(ctx));
     osc.start(); osc.stop(ctx.currentTime + d);
   } catch { /* sound optional */ }
 }
 
+// where the friend sits to point at x without standing on Kailia (at k):
+// right under it, or just beside her on the side nearer to it
+function besideSpot(x: number, k: number, gap = 17) {
+  if (Math.abs(x - k) >= gap) return x;
+  const left = k - gap, right = k + gap;
+  if (left < 6) return right;
+  if (right > 94) return left;
+  return Math.abs(left - x) < Math.abs(right - x) ? left : right;
+}
+
+// ── Who the song is for: a new little story every level ──
+// (Kelvin 2026-11-23.) Dealt fairly from this deck (lib/variety.ts).
+// Whoever the song is for stands in the cave while you sing (StoryGuest);
+// a story with no animal is about the crystals you can see.
+const SONGS: { line: string; done: string; who: StoryWho | null }[] = [
+  { line: 'The sleepy hedgehog wants a lullaby. Let\'s sing it back to him!', done: 'The hedgehog is snoozing in a little ball.', who: 'hedgehog' },
+  { line: 'A baby crystal wants to learn the grown-up song!', done: 'The baby crystal is glowing with pride!', who: null },
+  { line: 'The frogs are having a singing contest in the cave!', done: 'Ribbit! You won the singing contest!', who: 'frog' },
+  { line: 'Grandma Deer forgot her favorite tune. Let\'s remind her!', done: 'Grandma Deer is humming along!', who: 'deer' },
+  { line: 'The butterflies want a song to dance to!', done: 'The butterflies are twirling and dancing!', who: 'butterfly' },
+  { line: 'The bunny is lost in the cave. Let\'s sing so she can find us!', done: 'The bunny followed the song and found us!', who: 'rabbit' },
+  { line: 'The koala is saying good night to the cave. Let\'s sing it back!', done: 'Good night, sleepy koala!', who: 'koala' },
+  { line: 'The crystals are practicing for the big cave concert!', done: 'The crystals are ready for the concert!', who: null },
+  { line: 'A shy little squirrel wants to hear a happy song.', done: 'The squirrel is smiling!', who: 'squirrel' },
+  { line: 'The parrots want to learn a brand-new song!', done: 'The parrots are singing it back!', who: 'parrot' },
+  { line: 'The swan wants a song for her swim party!', done: 'Splash! The swan is swimming in circles!', who: 'swan' },
+  { line: 'The raccoon is starting a cave band. Let\'s play along!', done: 'What a band! The raccoon is drumming along.', who: 'raccoon' },
+];
+
 const fanfare = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.3), i * 120));
 
 export default function EchoSongPage() {
-  const { state, totalScore } = useAssessment();
-  const tier = difficultyTier(state.ageGroup, totalScore);
+  const talk = useTalkMoment('echo-song');
+  const fit = useGameFit('echo-song');
+  const tier = fit.tier;
 
   const [level, setLevel] = useState(1);
-  const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'levelDone'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'showing' | 'echo' | 'cheer' | 'levelDone'>('intro');
   const [seq, setSeq] = useState<number[]>([]);
   const [lit, setLit] = useState<number | null>(null);
+  // bumps every time a crystal sings, so its rings and notes restart
+  const [ringKey, setRingKey] = useState(0);
   const [progress, setProgress] = useState(0);
   const [noelLine, setNoelLine] = useState('Listen to the crystal song — then sing it back with your taps!');
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
+  const [earned, setEarned] = useState(0);
+  const [slips, setSlips] = useState(0);   // echo slips this level (for the friend's hint)
+  const [hintOn, setHintOn] = useState(false);
+
+  // Kailia and the friend on the cave floor
+  const pet = usePlayPet();
+  const [petMood, petMoodKey, setPetMood] = usePetMood('idle');
+  const [kailiaX, setKailiaX] = useState(42);
+  const [petX, setPetX] = useState(62);
+  const [kailiaHop, setKailiaHop] = useState(0);
+  const { layer: burstLayer, fire } = useBursts();
 
   const posRef = useRef(0);
+  // what the robot player in tests/ needs to know (does nothing for real players)
+  useEffect(() => { testHook('echo', { phase, level, seq, progress }); });
   const statsRef = useRef({ attempts: 0, replays: 0, startedAt: 0 });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  useEffect(() => { setLevel(nextGameLevel('echo-song')); return () => timersRef.current.forEach(clearTimeout); }, []);
+  // a new player starts on their own level (hooks/useGameFit.ts)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the saved level is only readable after mount
+  useEffect(() => { setLevel(openingLevel('echo-song', fit.startLevel)); }, [fit.startLevel]);
+  useEffect(() => { const timers = timersRef; return () => timers.current.forEach(clearTimeout); }, []);
 
-  const seqLen = useCallback((lvl: number) => {
-    const base = tier === 'tiny' ? 2 : tier === 'small' ? 2 : 3;
-    return Math.min(base + (lvl - 1), 8);
-  }, [tier]);
+  // the song grows a note every three levels (capped near what the child's
+  // stage can remember: lib/gameCurves.ts), and the crystals sing a little
+  // faster every level, so levels keep getting harder after the song is long
+  const seqLen = useCallback((lvl: number) => echoSeqLen(lvl, tier), [tier]);
+  const story = levelStory(SONGS, 'echo-song', level);
 
-  const playSeq = useCallback((s: number[]) => {
+  const sing = useCallback((c: number, d?: number) => {
+    setLit(c); setRingKey(k => k + 1); tone(CRYSTALS[c].tone, d);
+  }, []);
+
+  // `keep` = notes already sung right: they stay lit and the child carries
+  // on from the next one after hearing the song again (Muse round 7: after a
+  // slip the song quietly started over at note 1, so a tap meant as the
+  // second note was judged as the first and every colour "failed")
+  const playSeq = useCallback((s: number[], keep = 0) => {
     setPhase('showing');
-    setProgress(0);
-    posRef.current = 0;
+    setProgress(keep);
+    posRef.current = keep;
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
-    const gap = tier === 'big' ? 620 : 780;
+    // Kailia and the friend step back to the middle of the floor to listen
+    setKailiaX(42); setPetX(60);
+    // younger age bands hear the song a little slower (lib/ageBands.ts speed)
+    const gap = Math.round(endlessRamp(level, tier === 'big' ? 620 : 780, tier === 'tiny' ? 600 : 400, 14) * (1 + (1 - fit.look.speed) * 0.6));
     s.forEach((c, i) => {
-      timersRef.current.push(setTimeout(() => { setLit(c); tone(CRYSTALS[c].tone); }, 500 + i * gap));
+      timersRef.current.push(setTimeout(() => sing(c), 500 + i * gap));
       timersRef.current.push(setTimeout(() => setLit(null), 500 + i * gap + gap * 0.6));
     });
     timersRef.current.push(setTimeout(() => {
       setPhase('echo');
-      setNoelLine('Your turn — echo the song!');
+      setNoelLine(keep > 0 ? `Your turn! Carry on from note ${keep + 1}.` : 'Your turn — echo the song!');
       setNoelMood('excited');
     }, 500 + s.length * gap + 200));
-  }, [tier]);
+  }, [tier, sing, level, fit.look.speed]);
 
   const startLevel = useCallback((lvl: number) => {
-    const s = Array.from({ length: seqLen(lvl) }, () => Math.floor(Math.random() * 4));
+    // a fresh song: never the same crystal three times in a row
+    const s: number[] = [];
+    while (s.length < seqLen(lvl)) {
+      const c = Math.floor(Math.random() * 4);
+      if (s.length >= 2 && s[s.length - 1] === c && s[s.length - 2] === c) continue;
+      s.push(c);
+    }
     statsRef.current = { attempts: 0, replays: 0, startedAt: Date.now() };
     setSeq(s);
+    setSlips(0); setHintOn(false);
     setNoelLine('Shhh… listen to the crystals sing!');
     setNoelMood('happy');
     playSeq(s);
   }, [seqLen, playSeq]);
 
+  // Kailia runs under the crystal she is singing to; the friend sits
+  // beside her (on the inner side, so it never stands on top of her)
+  function runTo(c: number) {
+    const x = SPOTS[c][0];
+    setKailiaX(x);
+    setPetX(x < 50 ? x + 19 : x - 19);
+  }
+
   function tap(c: number) {
-    if (phase !== 'echo') return;
-    setLit(c); tone(CRYSTALS[c].tone, 0.25);
-    setTimeout(() => setLit(null), 220);
+    // a fast second tap can land before the 'cheer' screen renders; the
+    // song is already finished then, so it must not count as a slip
+    if (phase !== 'echo' || posRef.current >= seq.length) return;
+    sing(c, 0.25);
+    timersRef.current.push(setTimeout(() => setLit(null), 260));
+    runTo(c);
+    const [sx, sy] = SPOTS[c];
     if (c === seq[posRef.current]) {
       posRef.current += 1;
       setProgress(posRef.current);
+      setHintOn(false);
+      if (posRef.current < seq.length) { setNoelLine(posRef.current === 1 ? 'Yes! Keep singing!' : 'Lovely! What comes next?'); setNoelMood('excited'); }
+      fire(sx, sy - 14, ['#FFFFFF', CRYSTALS[c].light, CRYSTALS[c].color], 7, 42);
       if (posRef.current === seq.length) {
         // level cleared!
         const s = statsRef.current;
@@ -103,89 +212,195 @@ export default function EchoSongPage() {
           level, sequenceLength: seq.length, wrongTaps: s.attempts,
           replays: s.replays, totalMs: Date.now() - s.startedAt,
         });
-        awardStarlight(Math.max(8, 10 + seq.length * 2 - s.attempts * 2));
-        recordGameLevel('echo-song', level);
-        fanfare();
+        const stars = levelStarlight(level, s.attempts);
+        awardStarlight(stars);
+        recordGameLevel('echo-song', level, roundEase(s.attempts, seq.length));
+        setEarned(stars);
+        setPhase('cheer');
+        setNoelLine(`You sang the whole song! ${story.done}`);
         setNoelMood('celebrating');
-        setPhase('levelDone');
+        setKailiaHop(n => n + 1);
+        setPetMood('cheer');
+        timersRef.current.push(setTimeout(() => {
+          fanfare();
+          SPOTS.forEach(([x, y], i) => fire(x, y - 14, ['#FFE066', '#FFFFFF', CRYSTALS[i].color], 10, 60));
+        }, 280));
+        // every other song, Kailia pauses before the party: "Your turn!"
+        timersRef.current.push(setTimeout(() => {
+          if (level % 2 === 1) talk.maybe(() => setPhase('levelDone'), `level-${level}`);
+          else setPhase('levelDone');
+        }, 1800));
       }
     } else {
       statsRef.current.attempts += 1;
       statsRef.current.replays += 1;
-      setNoelLine('Oops, the echo slipped! Listen once more — you almost have it!');
+      const n = slips + 1;
+      setSlips(n);
+      setPetMood('oops');
+      setNoelLine(n >= 2
+        ? `The echo slipped! Listen once more. ${pet.name} will sit by the crystal that sings next.`
+        : 'Oops, the echo slipped! Listen once more — you almost have it!');
       setNoelMood('thinking');
-      setTimeout(() => playSeq(seq), 900);
+      setPhase('showing');
+      const keep = posRef.current;
+      timersRef.current.push(setTimeout(() => {
+        playSeq(seq, keep);
+        // after two slips the friend runs to the crystal that comes next
+        if (n >= 2) timersRef.current.push(setTimeout(() => {
+          setHintOn(true);
+          setNoelLine(`Your turn! ${pet.name} is sitting by the crystal that sings next.`);
+        }, 500 + seq.length * (tier === 'big' ? 620 : 780) + 250));
+      }, 900));
     }
   }
 
-  return (
-    <main className="min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 80%, #155e75 130%)' }}>
-      <div className="max-w-md mx-auto px-3 relative">
-        {['🔮', '💠', '✨', '🪨'].map((e, i) => (
-          <span key={i} className="absolute sparkle" style={{ left: `${[8, 80, 50, 15][i]}%`, top: [70, 40, 8, 160][i], fontSize: [24, 18, 14, 26][i], opacity: 0.5, animationDelay: `${i * 0.6}s`, pointerEvents: 'none' }}>{e}</span>
-        ))}
+  // Tapping the friend asks for help (Muse round 7: it only danced): on your
+  // turn it runs to the crystal that sings next; while the song plays it
+  // asks you to listen first.
+  function tickle() {
+    if (phase === 'echo') {
+      statsRef.current.replays += 1; // counted like a replay: help was used
+      setHintOn(true);
+      setNoelLine(`${pet.name} is sitting by the crystal that sings next!`);
+      return;
+    }
+    setPetMood('dance');
+    if (phase === 'showing') setNoelLine(`Shhh… ${pet.name} is listening too. Your turn is next!`);
+    timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300));
+  }
 
+  // Hear the song again, any time it's your turn (Muse round 7: there was no
+  // way to re-hear it). The notes already sung stay lit.
+  function replay() {
+    if (phase !== 'echo') return;
+    statsRef.current.replays += 1;
+    setNoelLine('Listen…');
+    playSeq(seq, posRef.current);
+  }
+
+  // the friend's spot: by the hinted crystal (the next note), else beside Kailia
+  const hintCrystal = hintOn && phase === 'echo' ? seq[progress] ?? null : null;
+  let petSpot = petX;
+  if (hintCrystal !== null) {
+    const hx = SPOTS[hintCrystal][0];
+    petSpot = besideSpot(hx, kailiaX, 19);
+  }
+
+  return (
+    <main className="relative overflow-hidden min-h-screen pb-6" style={{ background: 'linear-gradient(180deg, #082f49 0%, #0e7490 80%, #155e75 130%)', isolation: 'isolate' }}>
+      <GameBackdrop mode="play" />
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
-          <Link href="/play" className="text-sm font-bold text-cyan-200">← Map</Link>
+          <Link href="/play" className="kp-back h-11 px-3 inline-flex items-center rounded-full text-sm font-bold text-white"
+            style={{ background: 'rgba(255,255,255,0.15)' }}>← Map</Link>
           <h1 className="text-xl font-extrabold text-white drop-shadow">
-            🎶 Echo Song <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
+            Echo Song <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="text-xs font-bold text-cyan-200 w-14 text-right">
-            {phase === 'echo' || phase === 'showing' ? `${progress}/${seq.length}` : ''}
+          {/* one little light per note of the song, lit as the child echoes it */}
+          <span className="flex justify-end flex-wrap gap-1 w-16" aria-hidden="true">
+            {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && seq.map((_, i) => (
+              <span key={i} className="inline-block w-2.5 h-2.5 rounded-full"
+                style={i < progress ? { background: '#FDE047', boxShadow: '0 0 8px #FDE047' } : { border: '2px solid #FDE68A' }} />
+            ))}
           </span>
         </div>
 
         {phase === 'intro' && (
-          <div className="text-center mt-8 bounce-in relative z-10">
-            <div className="flex items-end justify-center gap-1 mb-4">
-              <PandaSprite size={128} expression="happy" className="float" style={{ animationDelay: '0.2s' }} />
-              <KailiaSprite size={96} expression="excited" className="float" />
-            </div>
-            <div className="rounded-3xl p-6 mx-2 text-left" style={{ background: 'rgba(255,255,255,0.95)' }}>
-              <p className="text-gray-900 text-2xl font-bold leading-snug mb-3">
-                Deep in Echo Caves, the <strong>crystals sing</strong>! 🎶
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <GameIntro
+              title="Echo Song"
+              theme={{ bg: 'radial-gradient(130% 85% at 50% 0%, #0e7490 0%, #164e63 50%, #082f49 100%)', accent: '#22D3EE', accent2: '#0891B2' }}
+              pet={pet}
+              story={<><p>
+                Deep in Echo Caves, the <strong>crystals sing</strong>! {story.line}
               </p>
-              <p className="text-gray-900 text-2xl font-bold leading-snug">
+              <p>
                 Listen to their little song… then <strong>echo it back</strong> by tapping the
                 crystals in the same order!
-              </p>
-            </div>
-            <button onClick={() => startLevel(level)}
-              className="mt-6 px-12 py-4 rounded-full text-xl font-extrabold text-cyan-950 shadow-xl transition-transform hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-              Level {level} — listen! 🎶
-            </button>
-            <SkillIntro gameId="echo-song" />
+              </p></>}
+              extras={<div className="flex items-end justify-center gap-3"><svg viewBox="0 0 100 120" width={54} height={65} aria-hidden="true" style={{ overflow: 'visible' }}>
+                <Crystal c={0} lit={false} />
+              </svg></div>}
+              levels={<LevelPath gameId="echo-song" level={level} onPick={setLevel} startLevel={fit.startLevel} />}
+              startLabel={<>Level {level} — listen!</>}
+              onStart={() => startLevel(level)}
+              footer={<SkillIntro gameId="echo-song" />}
+            />
           </div>
         )}
 
-        {(phase === 'showing' || phase === 'echo') && (
+        {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && (
           <div className="relative z-10">
-            <p className="text-center text-sm font-extrabold mb-3 mt-2"
-              style={{ color: phase === 'showing' ? '#FDE047' : '#A5F3FC' }}>
-              {phase === 'showing' ? '🎵 The crystals are singing…' : '👆 Your turn — echo the song!'}
-            </p>
-            <div className="grid grid-cols-2 gap-4 px-6">
-              {CRYSTALS.map((c, i) => (
-                <button key={i} data-crystal={i} onClick={() => tap(i)}
-                  className="rounded-3xl flex items-center justify-center transition-all"
-                  style={{
-                    aspectRatio: '1', fontSize: 54,
-                    background: lit === i ? c.glow : 'rgba(255,255,255,0.1)',
-                    border: `3px solid ${lit === i ? 'white' : c.glow + '66'}`,
-                    boxShadow: lit === i ? `0 0 34px ${c.glow}` : 'none',
-                    transform: lit === i ? 'scale(1.08)' : 'scale(1)',
-                    cursor: phase === 'echo' ? 'pointer' : 'default',
-                    opacity: phase === 'showing' && lit !== i ? 0.75 : 1,
-                  }}>
-                  {c.emoji}
+            {/* who's singing now: above the cave, so it never covers a crystal */}
+            <div className="flex justify-center items-center gap-2 mb-1" style={{ minHeight: 44 }}>
+              <span className="px-4 py-1 rounded-full text-sm font-extrabold pointer-events-none"
+                style={{ background: 'rgba(7,20,40,0.72)', border: '1.5px solid rgba(255,255,255,0.35)', color: phase === 'echo' ? '#A5F3FC' : '#FDE047' }}>
+                {phase === 'showing' ? 'The crystals are singing…' : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
+              </span>
+              {phase === 'echo' && (
+                <button data-replay-song onClick={replay} aria-label="Hear the song again"
+                  className="h-11 pl-2.5 pr-3.5 rounded-full inline-flex items-center gap-1.5 text-sm font-extrabold"
+                  style={{ background: '#FDE047', color: '#1E1B4B', border: '2px solid #3b2416', boxShadow: '0 3px 0 rgba(0,0,0,0.3)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="#1E1B4B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  Again
                 </button>
-              ))}
+              )}
             </div>
-            <div className="flex items-center gap-3 mt-4 rounded-2xl p-2.5"
+            <div data-play-field className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
+              style={{ aspectRatio: '3 / 3.5', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)' }}>
+              <EchoCave />
+
+              {CRYSTALS.map((c, i) => {
+                const [x, y] = SPOTS[i];
+                const on = lit === i || phase === 'cheer';
+                const glow = hintCrystal === i && lit !== i;
+                return (
+                  <button key={i} data-crystal={i} onClick={() => tap(i)} aria-label={`${c.name} crystal`}
+                    className="absolute"
+                    style={{
+                      left: `${x}%`, top: `${y}%`, width: CRYSTAL_W + 24, height: 132,
+                      marginLeft: -(CRYSTAL_W + 24) / 2, marginTop: -128, zIndex: 8,
+                      cursor: phase === 'echo' ? 'pointer' : 'default', background: 'none', border: 'none', padding: 0,
+                    }}>
+                    {/* sound rings and notes while it sings */}
+                    {lit === i && (
+                      <span key={`r${ringKey}`} aria-hidden="true">
+                        <span className={`${styles.ring} absolute rounded-full pointer-events-none`}
+                          style={{ left: '50%', top: '52%', width: 120, height: 120, border: `4px solid ${c.light}`, boxShadow: `0 0 18px ${c.color}` }} />
+                        <span className={`${styles.ring} absolute rounded-full pointer-events-none`}
+                          style={{ left: '50%', top: '52%', width: 120, height: 120, border: `3px solid ${c.color}`, animationDelay: '0.18s', opacity: 0 }} />
+                        <span className={`${styles.noteUp} absolute pointer-events-none`}
+                          style={{ left: i % 2 ? '18%' : '66%', top: '18%', ['--nx' as string]: i % 2 ? '-16px' : '16px' } as CSSProperties}>
+                          <Note color={c.light} />
+                        </span>
+                      </span>
+                    )}
+                    <span className={`absolute inset-0 flex items-end justify-center ${glow ? 'hint-glow' : ''}`}>
+                      <svg key={`s${lit === i ? ringKey : 0}`} viewBox="0 0 100 120" width={CRYSTAL_W} height={CRYSTAL_W * 1.2}
+                        className={lit === i ? styles.sing : undefined} aria-hidden="true" style={{ overflow: 'visible' }}>
+                        <Crystal c={i} lit={on} dim={phase === 'showing' && lit !== i} />
+                      </svg>
+                    </span>
+                  </button>
+                );
+              })}
+
+              <StoryGuest who={story.who} x={89} y={FLOOR} size={54} z={5} />
+              <KailiaActor x={kailiaX} y={FLOOR} h={80} hop={kailiaHop} />
+              <div data-pet>
+                <Actor art={pet.art} name={pet.name} x={petSpot} y={FLOOR} h={54}
+                  mood={hintCrystal !== null ? 'talk' : petMood} moodKey={petMoodKey} moveMs={900}
+                  onTap={tickle} z={9} tapLabel={`Ask ${pet.name} for a hint`} />
+              </div>
+              {burstLayer}
+            </div>
+
+            <div className="flex items-center gap-3 mt-3 rounded-2xl p-2.5"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)' }}>
               <PandaSprite size={46} expression={noelMood} style={{ flexShrink: 0 }} />
-              <div className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
+              <div
+                // Noel stays quiet while the crystals sing, so the song is easy to hear
+                data-guide data-read-aloud={phase === 'showing' ? undefined : ''} className="rounded-2xl px-3 py-2 text-lg font-bold text-gray-900 bg-white relative">
                 <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0"
                   style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '9px solid white' }} />
                 {noelLine}
@@ -196,32 +411,156 @@ export default function EchoSongPage() {
       </div>
 
       {phase === 'levelDone' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-          style={{ background: 'linear-gradient(135deg, #164e63ee, #0e7490ee)' }}>
-          <div className="text-center bounce-in">
-            <span className="block text-7xl mb-3 star-burst">🔮</span>
-            <div className="flex items-end justify-center gap-2 mb-4">
-              <PandaSprite size={145} expression="celebrating" className="float" />
-              <KailiaSprite size={104} expression="celebrating" className="float" style={{ animationDelay: '0.2s' }} />
-            </div>
-            <h2 className="text-3xl font-extrabold text-white drop-shadow-lg mb-2">Level {level} complete!</h2>
-            <p className="text-cyan-100 font-semibold mb-1">A {seq.length}-note song, echoed perfectly! The caves are ringing! 🎶</p>
-            <p className="text-yellow-300 font-extrabold text-lg mb-6">✨ +{Math.max(8, 10 + seq.length * 2 - statsRef.current.attempts * 2)} starlight</p>
-            <div className="flex gap-3 justify-center">
-              <button onClick={() => { const nl = level + 1; setLevel(nl); startLevel(nl); }}
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-cyan-900 shadow-xl transition-transform hover:scale-105"
-                style={{ background: 'white' }}>
-                Level {level + 1} ▶
-              </button>
-              <Link href="/play"
-                className="px-8 py-3.5 rounded-full text-lg font-extrabold text-cyan-950 shadow-xl transition-transform hover:scale-105 inline-block"
-                style={{ background: 'linear-gradient(135deg, #FDE047, #FBBF24)' }}>
-                Back to the map 🗺️
-              </Link>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <GameFinish
+            title={`Level ${level} complete!`}
+            theme={{ bg: 'linear-gradient(135deg, #164e63, #0e7490)', accent: '#22D3EE', accent2: '#0891B2' }}
+            pet={pet}
+            trophy={<span className="inline-flex items-end gap-1" aria-hidden="true">
+              {[0, 2, 1, 3].map(i => (
+                <svg key={i} viewBox="0 0 100 120" width={i === 2 || i === 1 ? 58 : 44} height={(i === 2 || i === 1 ? 58 : 44) * 1.2} style={{ overflow: 'visible' }}>
+                  <Crystal c={i} lit />
+                </svg>
+              ))}
+            </span>}
+            message={<>A {seq.length}-note song, echoed back! The caves are ringing and {pet.name} is dancing!</>}
+            earned={earned}
+            actions={<>
+              <PlayButton theme={GOLD} onClick={() => { const nl = levelAfter('echo-song', level); setLevel(nl); startLevel(nl); }}>{nextLabel('echo-song', level)} <GoArrow /></PlayButton>
+              <SoftButton href="/play">Back to the map</SoftButton>
+            </>}
+          />
         </div>
       )}
     </main>
+  );
+}
+
+// ── A singing crystal ──
+// A cluster of three painted shards on a little rock. Bright, light-rimmed
+// bodies so they stand out on the dark cave; when it sings it turns almost
+// lighter with a big glow in its own colour.
+function Crystal({ c, lit, dim = false }: { c: number; lit: boolean; dim?: boolean }) {
+  const { color, light } = CRYSTALS[c];
+  const sk = '#3b2416';
+  const body = lit ? light : color;
+  const shards = [
+    'M24 52 L36 64 L39 106 L20 106 L13 72 Z',
+    'M77 46 L88 66 L82 106 L62 106 L64 62 Z',
+    'M50 6 L67 40 L61 106 L39 106 L33 40 Z',
+  ];
+  return (
+    <g style={{ opacity: dim ? 0.82 : 1, transition: 'opacity 0.2s' }}>
+      <ellipse cx="50" cy="66" rx={lit ? 62 : 44} ry={lit ? 62 : 46} fill={color} opacity={lit ? 0.55 : 0.2}
+        style={{ filter: 'blur(10px)', transition: 'all 0.2s' }} />
+      <g filter="url(#kp-brush)">
+        {/* rock it grows from */}
+        <path d="M6 112 Q12 98 30 100 Q50 94 70 100 Q90 98 94 112 Q50 120 6 112z" fill="#5B6B7A" stroke={sk} strokeWidth="2.4" />
+        {/* a light rim under the dark outline keeps the edge visible on the dark cave */}
+        {shards.map((d, i) => <path key={`rim${i}`} d={d} fill="none" stroke="#FFFFFF" strokeOpacity="0.75" strokeWidth="6" strokeLinejoin="round" />)}
+        {shards.map((d, i) => (
+          <path key={i} d={d} fill={body} stroke={sk} strokeWidth="2.6" strokeLinejoin="round" style={{ transition: 'fill 0.15s' }} />
+        ))}
+        {/* facets */}
+        <path d="M50 6 L45 40 L47 104 L39 106 L33 40 Z" fill="#FFFFFF" opacity="0.45" />
+        <path d="M24 52 L22 72 L27 106 L20 106 L13 72 Z" fill="#FFFFFF" opacity="0.4" />
+        <path d="M77 46 L74 64 L72 106 L62 106 L64 62 Z" fill="#FFFFFF" opacity="0.35" />
+        <path d="M33 40 L50 46 L67 40" fill="none" stroke={sk} strokeWidth="1.4" opacity="0.5" />
+        <circle cx="45" cy="26" r="3" fill="#FFFFFF" opacity="0.9" />
+      </g>
+    </g>
+  );
+}
+
+// a painted music note
+function Note({ color }: { color: string }) {
+  return (
+    <svg width="26" height="32" viewBox="0 0 26 32" aria-hidden="true">
+      <g filter="url(#kp-edge)">
+        <path d="M10 25 V5 L23 2 V20" fill="none" stroke="#3b2416" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10 25 V5 L23 2 V20" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        <ellipse cx="6.5" cy="25.5" rx="5.5" ry="4.3" fill={color} stroke="#3b2416" strokeWidth="1.8" />
+        <ellipse cx="19.5" cy="21" rx="5.5" ry="4.3" fill={color} stroke="#3b2416" strokeWidth="1.8" />
+      </g>
+    </svg>
+  );
+}
+
+// ── Echo Caves ──
+// A painted cave: stalactites that drip, glow-worms twinkling on the
+// ceiling, rock ledges and pillars for the crystals, glowing mushrooms
+// and motes drifting up. Decoration only; it never catches taps.
+function EchoCave() {
+  const sk = '#3b2416';
+  return (
+    <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 350" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="ec-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#0A1A33" /><stop offset="0.55" stopColor="#0F3550" /><stop offset="1" stopColor="#155A66" />
+          </linearGradient>
+          <radialGradient id="ec-glow"><stop offset="0" stopColor="#7DF9FF" stopOpacity="0.5" /><stop offset="1" stopColor="#7DF9FF" stopOpacity="0" /></radialGradient>
+        </defs>
+        <rect width="300" height="350" fill="url(#ec-sky)" />
+        <circle cx="150" cy="190" r="120" fill="url(#ec-glow)" className="fg-glow" />
+        {/* glow-worms on the ceiling */}
+        {Array.from({ length: 22 }, (_, i) => (
+          <circle key={i} cx={seeded(i, 41) * 300} cy={30 + seeded(i, 42) * 90} r={0.8 + seeded(i, 43) * 1.4}
+            fill="#B8FFF6" className="fg-twinkle"
+            style={{ animationDelay: `${-seeded(i, 44) * 2.4}s`, animationDuration: `${1.8 + seeded(i, 45) * 2}s` }} />
+        ))}
+        <g filter="url(#kp-edge)">
+          {/* back walls */}
+          <path d="M0 0 H40 Q30 120 46 230 Q30 300 0 320z" fill="#0B2236" />
+          <path d="M300 0 H262 Q272 120 254 230 Q272 300 300 320z" fill="#0B2236" />
+          {/* ceiling and stalactites */}
+          <path d="M0 0 H300 V18 Q280 24 270 18 L262 46 L252 20 Q236 26 222 20 L214 38 L206 20 Q186 28 170 20 L160 56 L150 22 Q130 28 112 20 L104 40 L96 20 Q76 26 62 20 L52 50 L42 18 Q20 26 0 18z"
+            fill="#132B44" stroke={sk} strokeWidth="1.6" strokeLinejoin="round" />
+          {/* ledges for the top crystals */}
+          <path d="M0 132 Q40 128 112 138 Q120 150 100 156 Q50 160 0 154z" fill="#36506A" stroke={sk} strokeWidth="1.8" />
+          <path d="M300 132 Q260 128 188 138 Q180 150 200 156 Q250 160 300 154z" fill="#36506A" stroke={sk} strokeWidth="1.8" />
+          <path d="M8 136 Q50 132 104 140" stroke="#6E8CA8" strokeWidth="2" fill="none" opacity="0.7" />
+          <path d="M292 136 Q250 132 196 140" stroke="#6E8CA8" strokeWidth="2" fill="none" opacity="0.7" />
+          {/* pillars for the bottom crystals */}
+          <path d="M58 256 Q81 248 104 256 L110 320 H52z" fill="#2E465E" stroke={sk} strokeWidth="1.8" />
+          <path d="M196 256 Q219 248 242 256 L248 320 H190z" fill="#2E465E" stroke={sk} strokeWidth="1.8" />
+          <path d="M64 262 L60 316 M236 262 L240 316" stroke="#4F6B86" strokeWidth="3" opacity="0.7" />
+        </g>
+        <g filter="url(#kp-edge)">
+          {/* floor */}
+          <path d="M0 312 Q60 300 150 308 T300 304 V350 H0z" fill="#22404F" stroke={sk} strokeWidth="1.6" />
+          <path d="M0 318 Q70 308 150 314 T300 310" stroke="#3E6A78" strokeWidth="3" fill="none" />
+          {/* glowing mushrooms */}
+          {[[18, 318, 1], [284, 314, 0.8], [148, 312, 0.7]].map(([x, y, s], i) => (
+            <g key={i} transform={`translate(${x} ${y}) scale(${s})`}>
+              <path d="M-2 0 V-10 H2 V0z" fill="#E8F7F5" stroke={sk} strokeWidth="1" />
+              <path d="M-9 -9 Q0 -22 9 -9z" fill="#7DF9D7" stroke={sk} strokeWidth="1.2" />
+              <circle cx="-3" cy="-13" r="1.4" fill="#FFFFFF" />
+            </g>
+          ))}
+        </g>
+        {[[18, 304], [284, 302], [148, 302]].map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="16" fill="url(#ec-glow)" className="fg-glow" style={{ animationDelay: `${-i}s` }} />
+        ))}
+      </svg>
+      {/* drips falling from the stalactite tips */}
+      {[[17.3, 14.3, 0], [53.3, 16, 1.6], [87.3, 13.1, 3.1]].map(([x, y, d], i) => (
+        <span key={i} className={`${styles.drip} absolute rounded-full`}
+          style={{ left: `${x}%`, top: `${y}%`, width: 6, height: 8, marginLeft: -3, background: '#A5F3FC', boxShadow: '0 0 6px #A5F3FC',
+            animationDelay: `${-d}s`, ['--fall' as string]: '250px' } as CSSProperties} />
+      ))}
+      {/* motes drifting up */}
+      {Array.from({ length: 9 }, (_, i) => {
+        const s = 4 + seeded(i, 51) * 5;
+        return (
+          <span key={i} className="fg-rise absolute rounded-full" style={{
+            left: `${6 + seeded(i, 52) * 88}%`, bottom: `${seeded(i, 53) * 30}%`, width: s, height: s,
+            background: 'radial-gradient(circle, #FFFFFF 0%, #7DF9FF 45%, #7DF9FF00 72%)',
+            animationDuration: `${6 + seeded(i, 54) * 6}s`, animationDelay: `${-seeded(i, 55) * 10}s`,
+            ['--rise' as string]: `${200 + seeded(i, 56) * 120}px`, ['--sway' as string]: `${(seeded(i, 57) - 0.5) * 30}px`,
+          } as CSSProperties} />
+        );
+      })}
+    </div>
   );
 }

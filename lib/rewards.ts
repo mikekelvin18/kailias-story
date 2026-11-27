@@ -13,19 +13,42 @@ export interface RewardsState {
   gameLevels: Record<string, number>; // gameId -> highest level beaten
   celebratedCompanions: string[];     // companion names already revealed,
                                        // so the reveal moment fires once
+  focusCompanion?: string | null;      // the friend (= skill) a parent or
+                                       // child picked to practice; shared by
+                                       // friends' adventures and the care pet
+  /** reviewer test profile only (lib/jump.ts, /go/review): every level is
+   *  unlocked, and each game opens on the level after the last one played
+   *  (level 1 at first) instead of after the highest one unlocked */
+  reviewNext?: Record<string, number>;
+  /** the level each game opens on next, after stepping up or quietly back
+   *  (lib/ageBands.ts: 3 easy wins → one extra level, 2 struggles → one back) */
+  nextUp?: Record<string, number>;
+  /** run of easy wins (+) or struggles (−) per game */
+  streak?: Record<string, number>;
+  /** robot checks only (tests/e2e): levels go one at a time from level 1,
+   *  with no age start and no stepping up or back */
+  steady?: boolean;
 }
 
 import { scopedKey } from './family';
+import { STEP_DOWN_AFTER_STRUGGLES, STEP_UP_AFTER_EASY_WINS, type RoundEase } from './ageBands';
+import { recordQuestWin } from './adventure';
 
 const KEY = 'kailia_rewards_v1';
 const empty: RewardsState = { starlight: 0, gameLevels: {}, celebratedCompanions: [] };
 
-export const COMPANIONS: { at: number; emoji: string; name: string }[] = [
-  { at: 30,  emoji: '🐢', name: 'Shelly' },
-  { at: 80,  emoji: '🦊', name: 'Flick' },
-  { at: 150, emoji: '🦉', name: 'Sage' },
-  { at: 250, emoji: '🦄', name: 'Nova' },
-  { at: 400, emoji: '🐉', name: 'Ember' },
+// `art` = Kelvin's painted picture of each pet (public/art/pets/); `emoji`
+// stays only as a fallback and for plain-text spots. `skill` = the land
+// domain this pet owns: each pet will get its own adventures for that
+// skill (agreed with Kelvin 2026-10-21). Who each pet is (personality,
+// colors) lives in the art kit doc.
+export const COMPANIONS: { at: number; emoji: string; name: string; art: string; kind: string; skill: string }[] = [
+  { at: 30,  emoji: '🐢', name: 'Shelly', art: '/art/pets/shelly.webp', kind: 'turtle',  skill: 'sensory' },
+  { at: 80,  emoji: '🦊', name: 'Flick',  art: '/art/pets/flick.webp',  kind: 'fox',     skill: 'fine motor' },
+  { at: 150, emoji: '🦉', name: 'Sage',   art: '/art/pets/sage.webp',   kind: 'owl',     skill: 'processing' },
+  { at: 250, emoji: '🦄', name: 'Nova',   art: '/art/pets/nova.webp',   kind: 'unicorn', skill: 'reading' },
+  { at: 400, emoji: '🐉', name: 'Ember',  art: '/art/pets/ember.webp',  kind: 'dragon',  skill: 'math' },
+  { at: 550, emoji: '🦜', name: 'Kiko',   art: '/art/pets/kiko.webp',   kind: 'parrot',  skill: 'communication' },
 ];
 
 function consented(): boolean {
@@ -54,15 +77,59 @@ export function awardStarlight(amount: number): RewardsState {
 }
 
 // Remembers the highest level beaten per game; returns the updated state.
-export function recordGameLevel(gameId: string, level: number): RewardsState {
+// ── ONE starlight rule for every game ──
+// Finishing a level earns 12, plus 2 for every level number (so later
+// levels shine brighter, capped at level 40), minus 1 for each slip
+// (wrong tap, wall touch, missed potion…). Effort always pays: never
+// fewer than 10. Every game uses this, so the numbers make sense together.
+export function levelStarlight(level: number, slips = 0): number {
+  return Math.max(10, 12 + 2 * Math.min(Math.max(1, level), 40) - Math.max(0, Math.round(slips)));
+}
+
+// game id → its route on the world map, for the ones that differ
+const GAME_HREF: Record<string, string> = {
+  'word-wizard': '/play/reading',
+  'sense-explorer': '/play/sensory',
+};
+
+export function recordGameLevel(gameId: string, level: number, ease: RoundEase = 'ok'): RewardsState {
   const r = loadRewards();
   r.gameLevels[gameId] = Math.max(r.gameLevels[gameId] ?? 0, level);
+  // adapt inside the band: three easy wins in a row skip one level ahead,
+  // two struggles in a row quietly replay an easier level (never said aloud)
+  const was = r.streak?.[gameId] ?? 0;
+  if (r.steady) ease = 'ok';
+  let run = ease === 'easy' ? Math.max(0, was) + 1 : ease === 'struggle' ? Math.min(0, was) - 1 : 0;
+  let next = level + 1;
+  if (run >= STEP_UP_AFTER_EASY_WINS) { next = level + 2; run = 0; }
+  else if (run <= -STEP_DOWN_AFTER_STRUGGLES) { next = Math.max(1, level - 1); run = 0; }
+  r.streak = { ...r.streak, [gameId]: run };
+  r.nextUp = { ...r.nextUp, [gameId]: next };
+  if (r.reviewNext) r.reviewNext[gameId] = next;
   save(r);
+  // a finished level is what lights up the quest's star on the map
+  recordQuestWin(GAME_HREF[gameId] ?? `/play/${gameId}`);
   return r;
 }
 
+/** The level the "next level" button opens after finishing `level`: one up,
+ *  or where the game stepped (up after easy wins, quietly back after struggles). */
+export function levelAfter(gameId: string, level: number): number {
+  const n = loadRewards().nextUp?.[gameId];
+  return n != null && n !== level ? n : level + 1;
+}
+
+/** The next-level button's words: "Level N" going up; just "Next level" when
+ *  the game quietly steps back, so a child is never told they moved down. */
+export function nextLabel(gameId: string, level: number): string {
+  const n = levelAfter(gameId, level);
+  return n > level ? `Level ${n}` : 'Next level';
+}
+
 export function nextGameLevel(gameId: string): number {
-  return (loadRewards().gameLevels[gameId] ?? 0) + 1;
+  const r = loadRewards();
+  if (r.reviewNext) return r.reviewNext[gameId] ?? 1;
+  return r.nextUp?.[gameId] ?? (r.gameLevels[gameId] ?? 0) + 1;
 }
 
 // Explorer level 1, 2, 3… — early levels come fast, later ones slower.
@@ -85,6 +152,21 @@ export function pendingCompanionReveal(r: RewardsState) {
 export function markCompanionCelebrated(name: string): RewardsState {
   const r = loadRewards();
   if (!r.celebratedCompanions.includes(name)) r.celebratedCompanions = [...r.celebratedCompanions, name];
+  save(r);
+  return r;
+}
+
+// The friend picked as the practice focus (a COMPANIONS name), or null.
+// One source of truth: friends' adventures and the daily care pet both
+// read and write it through these two helpers.
+export function getFocusCompanion(): string | null {
+  const name = loadRewards().focusCompanion ?? null;
+  return COMPANIONS.some(c => c.name === name) ? name : null;
+}
+
+export function setFocusCompanion(name: string | null): RewardsState {
+  const r = loadRewards();
+  r.focusCompanion = name && COMPANIONS.some(c => c.name === name) ? name : null;
   save(r);
   return r;
 }

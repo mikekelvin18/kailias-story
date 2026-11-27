@@ -9,6 +9,16 @@ import { loadA11y, applyA11y } from '@/lib/accessibility';
 export default function AccessibilityProvider() {
   useEffect(() => {
     applyA11y(loadA11y());
+    // the device's "reduce motion" can change while the app is open
+    let mq: MediaQueryList | null = null;
+    try { mq = window.matchMedia('(prefers-reduced-motion: reduce)'); } catch { /* ignore */ }
+    const again = () => applyA11y(loadA11y());
+    mq?.addEventListener?.('change', again);
+    // and so can its "increase contrast" setting
+    let mc: MediaQueryList | null = null;
+    try { mc = window.matchMedia('(prefers-contrast: more)'); } catch { /* ignore */ }
+    mc?.addEventListener?.('change', again);
+    return () => { mq?.removeEventListener?.('change', again); mc?.removeEventListener?.('change', again); };
   }, []);
   return null;
 }

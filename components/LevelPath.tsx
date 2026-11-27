@@ -1,0 +1,219 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import KailiaSprite from '@/components/characters/KailiaSprite';
+import { LockIcon, StarIcon } from '@/components/scenery/SkyDecor';
+import { Thing } from '@/components/art/things';
+import { useGameFit } from '@/hooks/useGameFit';
+import { PLAY_TOGETHER_NOTE } from '@/lib/ageBands';
+import { LEVELS_PER_CHAPTER, MAX_LADDER_LEVEL, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
+import { isPremium, lastFreeLevel } from '@/lib/premium';
+import { ParentGateModal } from '@/components/ParentGate';
+import { nextGameLevel } from '@/lib/rewards';
+
+// ── Level map ──
+// A small winding path of 5 level stones (one chapter) on every leveled
+// game's intro screen. Kailia hops on the chosen stone; beaten stones
+// glow, the rest wait behind a little lock. Arrows flip between
+// chapters. The child can replay any level they have reached.
+// After the 30-level ladder the path never ends: every five levels is a
+// new Star world with its own name and color, the fifth stone of every
+// world is a golden "big level" stone, and a world the child has just
+// opened says so with a little ribbon.
+//
+// Reads saved progress after mount (localStorage), so the server render
+// and the first client paint match.
+
+interface Props {
+  gameId: string;
+  level: number;
+  onPick: (level: number) => void;
+  startLevel?: number;   // games that place older kids further up the ladder
+}
+
+// stone positions along the winding path, in a 300×120 box
+const SPOTS = [
+  { x: 30, y: 84 }, { x: 90, y: 40 }, { x: 150, y: 80 }, { x: 210, y: 36 }, { x: 270, y: 76 },
+];
+
+export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Props) {
+  const [unlocked, setUnlocked] = useState(startLevel);
+  // this game's own next level (Muse round 7: the button said "31" in every
+  // game, the reviewers' all-open total, never where THIS game was up to)
+  const [newest, setNewest] = useState(startLevel);
+  const [beaten, setBeaten] = useState(0);
+  const [page, setPage] = useState(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
+  // Paid levels (lib/pricing.ts): without a plan, levels past the first
+  // five from the child's start show a grown-up key instead of a number.
+  // Tapping one opens the grown-up check, then the plans page. The child
+  // never sees a price or a "locked" sad face, just the key for a grown-up.
+  const [freeTop, setFreeTop] = useState(Infinity);
+  const [planGate, setPlanGate] = useState(false);
+  const fit = useGameFit(gameId);
+  // grown-ups can open any level (Grok's review 2026-11-25): a sum first, so a child can't
+  const [gate, setGate] = useState<null | { a: number; b: number; options: number[]; passed: boolean }>(null);
+  const [pick, setPick] = useState(level);
+  // the grown-ups' picker follows a level chosen on the path (Muse round 7:
+  // a tap on stone 1 left the picker saying 16)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setPick(level); }, [level]);
+  function openGate() {
+    const a = 4 + Math.floor(Math.random() * 5), b = 5 + Math.floor(Math.random() * 4);
+    setGate({ a, b, options: [a + b, a + b + 2, a + b - 3].sort(() => Math.random() - 0.5), passed: false });
+    setPick(level);
+  }
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setUnlocked(unlockedUpTo(gameId, startLevel));
+    setNewest(Math.max(nextGameLevel(gameId), startLevel));
+    setBeaten(highestBeaten(gameId));
+    setFreeTop(isPremium() ? Infinity : lastFreeLevel(startLevel));
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [gameId, startLevel]);
+
+  // a saved level past the free part (e.g. a plan ended): start on the last free one
+  useEffect(() => {
+    if (level > freeTop) onPick(freeTop);
+  }, [level, freeTop, onPick]);
+
+  // follow the chosen level when the game changes it (e.g. after loading)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
+  }, [level]);
+
+  const maxPage = Math.floor((Math.max(unlocked, level) - 1) / LEVELS_PER_CHAPTER);
+  const chapter = chapterAt(page);
+  const first = page * LEVELS_PER_CHAPTER + 1;
+  const levels = Array.from({ length: LEVELS_PER_CHAPTER }, (_, i) => first + i);
+  const chapterLabel = chapterLabelFor(page * LEVELS_PER_CHAPTER + 1).label;
+  // a world the child has only just reached (its first stone is the next one to play)
+  const freshWorld = page > 0 && first === unlocked && beaten === first - 1;
+  // far up the path, a quick way back to this game's newest level
+  const newestTo = Math.min(newest, freeTop);
+  const newestPage = Math.floor((newestTo - 1) / LEVELS_PER_CHAPTER);
+
+  return (
+    <div className="mx-2 mt-4 rounded-3xl px-3 pt-3 pb-2 select-none"
+      style={{ background: 'rgba(15,23,42,0.38)', border: '1.5px solid rgba(255,255,255,0.22)' }}>
+      <div className="flex items-center justify-between">
+        <button aria-label="Previous chapter" onClick={() => setPage(p => Math.max(0, p - 1))}
+          disabled={page === 0}
+          className="w-12 h-12 rounded-full text-xl font-extrabold text-white disabled:opacity-20"
+          style={{ background: 'rgba(255,255,255,0.12)' }}>‹</button>
+        <div className="text-center" key={page}>
+          <p className="text-sm font-bold uppercase tracking-widest text-white/70">{chapterLabel}</p>
+          <p className="text-lg font-extrabold text-white slide-up inline-flex items-center gap-1.5"><Thing id={chapter.icon} size={24} />{chapter.name}</p>
+          {freshWorld && (
+            <p className="bounce-in text-sm font-extrabold uppercase tracking-wider px-2 py-0.5 mt-0.5 rounded-full inline-block"
+              style={{ background: chapter.color, color: '#1E1B4B', boxShadow: `0 0 12px ${chapter.color}` }}>
+              New world!
+            </p>
+          )}
+        </div>
+        <button aria-label="Next chapter" onClick={() => setPage(p => Math.min(maxPage, p + 1))}
+          disabled={page >= maxPage}
+          className="w-12 h-12 rounded-full text-xl font-extrabold text-white disabled:opacity-20"
+          style={{ background: 'rgba(255,255,255,0.12)' }}>›</button>
+      </div>
+
+      <div className="relative mx-auto" style={{ width: '100%', maxWidth: 320, aspectRatio: '300 / 132' }}>
+        <svg viewBox="0 0 300 132" className="absolute inset-0 w-full h-full" aria-hidden>
+          <path d="M30 96 C 60 96, 60 52, 90 52 S 120 92, 150 92 S 180 48, 210 48 S 240 88, 270 88"
+            fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="5" strokeDasharray="2 11" strokeLinecap="round"
+            className="lp-trail" />
+        </svg>
+        {levels.map((lv, i) => {
+          const done = lv <= beaten;
+          const reached = lv <= unlocked;
+          const needsPlan = reached && lv > freeTop;
+          const open = reached && !needsPlan;
+          const chosen = lv === level;
+          const s = SPOTS[i];
+          const big = i === LEVELS_PER_CHAPTER - 1;   // the world's last, golden stone
+          return (
+            <div key={lv} className="absolute"
+              style={{ left: `${(s.x / 300) * 100}%`, top: `${((s.y + 12) / 132) * 100}%`, transform: 'translate(-50%, -50%)' }}>
+              <button aria-label={open ? `Level ${lv}` : needsPlan ? `Level ${lv}, for a grown-up to open` : `Level ${lv}, locked`}
+                disabled={!open && !needsPlan}
+                onClick={() => (needsPlan ? setPlanGate(true) : onPick(lv))}
+                className={`relative flex items-center justify-center rounded-full font-extrabold drop-in ${chosen ? 'lp-chosen' : ''}`}
+                style={{
+                  width: big ? 54 : 48, height: big ? 54 : 48,
+                  animationDelay: `${i * 60}ms`, animationFillMode: 'both',
+                  background: done && !needsPlan ? chapter.color : open ? 'white' : needsPlan ? 'rgba(253,224,71,0.22)' : 'rgba(255,255,255,0.12)',
+                  color: done ? 'white' : open ? '#1E293B' : 'rgba(255,255,255,0.45)',
+                  border: chosen ? '3px solid #FDE047' : big && open ? '3px solid #FBBF24' : '2px solid rgba(255,255,255,0.35)',
+                  boxShadow: done ? `0 0 14px ${chapter.color}` : 'none',
+                  fontSize: open ? (lv > 999 ? 13 : lv > 99 ? 15 : 17) : 15,
+                }}>
+                {open ? lv : needsPlan ? <GrownUpKey /> : <LockIcon size={20} />}
+                {done && <span className="absolute -top-1.5 -right-1.5 sparkle" aria-hidden><StarIcon size={15} /></span>}
+              </button>
+              {chosen && (
+                <span className="absolute pointer-events-none" style={{ bottom: '82%', left: '50%', transform: 'translateX(-50%)' }} aria-hidden>
+                  <KailiaSprite size={40} expression="excited" />
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {fit.look.playTogether && (
+        <p className="text-center text-sm font-bold text-white/90 pb-1" data-play-together>{PLAY_TOGETHER_NOTE}</p>
+      )}
+      {newestPage !== page && newestTo > LEVELS_PER_CHAPTER && (
+        <div className="text-center pb-1">
+          <button data-newest-level onClick={() => { setPage(newestPage); onPick(newestTo); }}
+            className="px-4 py-1.5 rounded-full text-sm font-extrabold"
+            style={{ background: 'rgba(255,255,255,0.9)', color: '#1E293B' }}>
+            Go to my newest level ({newestTo})
+          </button>
+        </div>
+      )}
+      <div className="text-center pb-1 pt-1">
+        {!gate ? (
+          <button onClick={openGate} className="text-xs font-bold text-white/60 underline underline-offset-2 px-3 py-2">
+            Grown-ups: choose a level
+          </button>
+        ) : !gate.passed ? (
+          <div className="inline-flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.92)', color: '#1E293B' }}>
+            <p className="text-sm font-extrabold">Grown-ups: what is {gate.a} + {gate.b}?</p>
+            <div className="flex gap-2">
+              {gate.options.map(o => (
+                <button key={o} className="min-w-12 h-12 px-3 rounded-xl font-extrabold text-lg" style={{ background: '#E0E7FF' }}
+                  onClick={() => (o === gate.a + gate.b ? setGate({ ...gate, passed: true }) : setGate(null))}>{o}</button>
+              ))}
+              <button aria-label="Close" className="w-12 h-12 rounded-xl font-extrabold" style={{ background: '#F1F5F9' }} onClick={() => setGate(null)}>✕</button>
+            </div>
+          </div>
+        ) : (
+          <div className="inline-flex flex-col items-center gap-1.5 rounded-2xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.92)', color: '#1E293B' }}>
+            <p className="text-sm font-extrabold">Pick any level for this game</p>
+            <div className="flex items-center gap-2">
+              <button aria-label="Easier level" className="w-12 h-12 rounded-xl font-extrabold text-xl" style={{ background: '#E0E7FF' }}
+                onClick={() => setPick(p => Math.max(1, p - 1))}>−</button>
+              <span className="w-14 text-center text-2xl font-extrabold" data-override-level>{pick}</span>
+              <button aria-label="Harder level" className="w-12 h-12 rounded-xl font-extrabold text-xl" style={{ background: '#E0E7FF' }}
+                onClick={() => setPick(p => Math.min(MAX_LADDER_LEVEL + 20, p + 1))}>+</button>
+              <button className="h-12 px-4 rounded-xl font-extrabold text-white" style={{ background: '#4F46E5' }}
+                onClick={() => { setPage(Math.floor((pick - 1) / LEVELS_PER_CHAPTER)); setUnlocked(u => Math.max(u, pick)); onPick(pick); setGate(null); }}>Use it</button>
+            </div>
+          </div>
+        )}
+      </div>
+      {planGate && <ParentGateModal href="/upgrade" onClose={() => setPlanGate(false)} note="More levels open with a family plan." />}
+    </div>
+  );
+}
+
+// A little golden key: "a grown-up can open this". Never a sad lock or a price.
+function GrownUpKey() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>
+      <circle cx="8" cy="12" r="4.5" fill="none" stroke="#FDE047" strokeWidth="2.6" />
+      <path d="M12.5 12H21M18 12v3M21 12v2.5" fill="none" stroke="#FDE047" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
+}

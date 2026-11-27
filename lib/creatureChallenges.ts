@@ -6,6 +6,8 @@
 // mismatched (e.g. meeting a deer never leads to a question about the
 // sun).
 
+import { challengeSizes } from './gameCurves';
+
 export type ChType = 'count' | 'memory' | 'color' | 'feeling' | 'word';
 
 export interface Challenge {
@@ -16,6 +18,7 @@ export interface Challenge {
   options: { label: string; correct: boolean }[];
   memoryFull?: string[];       // memory only: full lineup, shown during the "watch" reveal
   memoryCast?: string[];       // memory only: lineup MINUS the missing one, shown during the question
+  memoryGap?: number;          // memory only: where the missing one stood in memoryFull (its shadow is left there)
 }
 
 export const CREATURES: Record<ChType, string[]> = {
@@ -30,6 +33,10 @@ export const CREATURE_NAME: Record<string, string> = {
   '🐢': 'turtle', '🐿️': 'squirrel', '🦔': 'hedgehog', '🐝': 'bee', '🦋': 'butterfly',
 };
 const ALL_CREATURES = Object.keys(CREATURE_NAME);
+// One picture per animal (🐉 and 🐲 are both drawn as the dragon): the
+// "who is missing?" lineup and its answers only use these, so a missing
+// dragon can never still look "here" (Muse round 7).
+const DISTINCT_CREATURES = ALL_CREATURES.filter((c, i) => ALL_CREATURES.findIndex(o => CREATURE_NAME[o] === CREATURE_NAME[c]) === i);
 
 const COLOR_SET = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
 const FEELINGS: [string, boolean][] = [['🎂🎈', true], ['💔🧸', false], ['🍦☀️', true], ['🌧️⚽', false], ['🎁🎀', true], ['🤕🩹', false]];
@@ -39,13 +46,18 @@ export const DOMAIN: Record<ChType, string> = { count: 'math', memory: 'processi
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 
-export function makeChallenge(i: number, tier: string): Challenge {
+// `level` (optional) makes the riddles grow: bigger groups to count and
+// more friends to remember as levels climb (Kelvin 2026-11-23: levels
+// must really get harder, not repeat). `months` (the child's working age)
+// keeps 3-year-olds' groups small. Sizes: lib/gameCurves.ts challengeSizes.
+export function makeChallenge(i: number, tier: string, level = 1, months?: number | null): Challenge {
+  const sizes = challengeSizes(tier, level, months);
   const types: ChType[] = tier === 'tiny' ? ['count', 'color', 'memory', 'feeling'] : ['count', 'memory', 'word', 'color', 'feeling'];
   const type = types[i % types.length];
   const creature = pick(CREATURES[type]);
 
   if (type === 'count') {
-    const max = tier === 'tiny' ? 4 : tier === 'small' ? 6 : 9;
+    const max = sizes.countMax;
     const n = 2 + Math.floor(Math.random() * (max - 1));
     let wrong = n + pick([-1, 1, 2]); if (wrong < 1 || wrong === n) wrong = n + 1;
     let wrong2 = n + pick([-2, 2, 3]); if (wrong2 < 1 || wrong2 === n || wrong2 === wrong) wrong2 = n + 3;
@@ -54,15 +66,18 @@ export function makeChallenge(i: number, tier: string): Challenge {
   }
 
   if (type === 'memory') {
-    const castSize = tier === 'big' ? 4 : 3;
-    const others = shuffle(ALL_CREATURES.filter(c => c !== creature)).slice(0, castSize - 1);
+    const castSize = sizes.castSize;
+    const others = shuffle(DISTINCT_CREATURES.filter(c => CREATURE_NAME[c] !== CREATURE_NAME[creature])).slice(0, castSize - 1);
     const full = shuffle([creature, ...others]);
-    const hiddenIdx = Math.floor(Math.random() * full.length);
+    // the one who slips away is never the friend standing right in front of
+    // Kailia (that would give the answer away, or confuse: "it's right here!")
+    const away = full.map((_, idx) => idx).filter(idx => full[idx] !== creature);
+    const hiddenIdx = away[Math.floor(Math.random() * away.length)];
     const hidden = full[hiddenIdx];
     const remaining = full.filter((_, idx) => idx !== hiddenIdx);
-    const decoys = shuffle(ALL_CREATURES.filter(c => !full.includes(c))).slice(0, 2);
+    const decoys = shuffle(DISTINCT_CREATURES.filter(c => !full.some(f => CREATURE_NAME[f] === CREATURE_NAME[c]))).slice(0, 2);
     return { type, creature, ask: 'Look closely — one friend disappeared! Which one is missing?', display: '',
-      memoryFull: full, memoryCast: remaining,
+      memoryFull: full, memoryCast: remaining, memoryGap: hiddenIdx,
       options: shuffle([{ label: hidden, correct: true }, ...decoys.map(o => ({ label: o, correct: false }))]) };
   }
 

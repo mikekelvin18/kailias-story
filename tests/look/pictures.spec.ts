@@ -1,0 +1,167 @@
+import { test, expect, type Page } from '@playwright/test';
+import { GAMES, SCREENS, SIZES, prepare } from './helpers';
+import sharp from 'sharp';
+
+// When a picture differs, the check's log gets a small copy of what the
+// robot saw and a map of where it differs (the full report can't always be
+// opened), so a difference that only shows up on some check machines can be
+// seen and fixed.
+test.afterEach(async ({}, info) => {
+  if (info.status === info.expectedStatus) return;
+  for (const a of info.attachments) {
+    if (!a.path || !a.name.endsWith('-actual.png')) continue;
+    const exp = info.attachments.find(b => b.name === a.name.replace('-actual', '-expected'))?.path;
+    const small = await sharp(a.path).resize({ width: 300 }).jpeg({ quality: 45 }).toBuffer();
+    console.log(`[pictures-seen] ${a.name} ${small.toString('base64')}`);
+    if (!exp) continue;
+    const W = 24, H = 12;
+    const grid = async (f: string) => (await sharp(f).resize(W, H, { fit: 'fill' }).removeAlpha().raw().toBuffer());
+    const [x, y] = [await grid(a.path), await grid(exp)];
+    const rows: string[] = [];
+    for (let r = 0; r < H; r++) {
+      let line = '';
+      for (let c = 0; c < W; c++) {
+        const i = (r * W + c) * 3, d = Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]);
+        line += d > 90 ? '#' : d > 30 ? '+' : '.';
+      }
+      rows.push(line);
+    }
+    console.log(`[pictures-where] ${a.name} (# = very different, + = a little)\n${rows.join('\n')}`);
+  }
+});
+
+// ── Art check: every screen still looks the way Kelvin approved it ──
+// Each screen is photographed on a phone held upright and turned sideways and
+// compared with its approved picture in tests/look/pictures/. If an update
+// changes how a screen looks, this check fails and shows the difference
+// (expected / actual / diff) in the report, so nothing changes by accident.
+//
+// The approved pictures are taken on GitHub's check machine (fonts and
+// drawing differ slightly between computers). When a change is MEANT to
+// change the look (and has been checked by eye on a phone), push it with
+// [update pictures] in the commit message: the check machine retakes the
+// pictures and saves them to the branch. Look at every changed picture in
+// that commit before merging. (Locally, --update-snapshots makes pictures
+// for trying things out; don't commit those.)
+
+
+// games whose targets fly, swim or fall on their own clock: their play field
+// is covered in the picture (the framing and smoothness checks watch it live)
+// cargo-count: its cargo floats and puffs smoke as it moves, so its play area differs a little each take
+// (the masked area shows as a pink block in the approved picture)
+const MOVING = new Set(['firefly-catch', 'reef-explorer', 'potion-sort', 'sensory', 'cargo-count']);
+
+// The page's clock is frozen on one afternoon and only moves when the robot
+// moves it, so each picture is taken at the same moment every run: the same
+// daily task, the same line from Noel, the same spot in every timer.
+const FROZEN_AT = new Date('2026-11-26T16:00:00Z');
+
+// How far the page's clock has moved since the screen was opened. Every
+// picture is taken at the same moment on the page's clock (BUDGET after
+// opening), however long a slow check machine took to get there: the map's
+// Noel changes what he says every 8 s, and a busy machine that needed more
+// small steps once caught him on another line (and the taller speech bubble
+// pushed the whole map down: map-sideways, 2026-11-27).
+const BUDGET = 4000;
+const moved = new WeakMap<Page, number>();
+/** Installs the page's clock and holds it still: an installed clock still runs
+ *  at real speed, so on a slow check machine (39 s per screen) the map's Noel
+ *  had already moved on to his next line. Now only tick() moves it. */
+async function freeze(page: Page) {
+  await page.clock.install({ time: FROZEN_AT });
+  await page.clock.pauseAt(FROZEN_AT);
+}
+async function tick(page: Page, ms: number) {
+  moved.set(page, (moved.get(page) ?? 0) + ms);
+  await page.clock.runFor(ms);
+}
+/** Moves the clock on to exactly BUDGET ms after the screen opened. */
+async function toBudget(page: Page) {
+  const done = moved.get(page) ?? 0;
+  if (done > BUDGET) console.log(`[pictures] ${page.url()}: the page's clock had to move ${done} ms (more than ${BUDGET}) before it was ready`);
+  else if (done < BUDGET) await page.clock.runFor(BUDGET - done);
+  moved.set(page, Math.max(done, BUDGET));
+}
+
+/** Moves the frozen clock in small steps until `ready()` says yes. */
+async function tickUntil(page: Page, ready: () => Promise<boolean>, what: string) {
+  for (let i = 0; i < 120; i++) {
+    if (await ready()) return;
+    await tick(page, 250);
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`never happened: ${what}`);
+}
+
+async function open(page: Page, path: string) {
+  // a picture or sound the server couldn't send shows up in the check's log
+  page.on('response', r => { if (r.status() >= 400) console.log(`[pictures] ${path}: ${r.status()} for ${r.url().replace(/^https?:\/\/[^/]+/, '')}`); });
+  page.on('requestfailed', r => console.log(`[pictures] ${path}: failed ${r.url().replace(/^https?:\/\/[^/]+/, '')} (${r.failure()?.errorText})`));
+  await page.goto(path);
+  moved.set(page, 0);
+  const tap = page.getByRole('dialog', { name: 'Tap to start' });
+  // pages with "Tap to start!" show it once they're live; the others are
+  // ready once the jump link has moved on to the real page
+  await tickUntil(page, async () => (await tap.count()) > 0 || (!page.url().includes('/go/') && (await page.evaluate(() => document.readyState)) === 'complete'), `${path} opened`);
+  await tick(page, 500);
+  if (await tap.count()) {
+    await tap.click({ force: true });
+    await tickUntil(page, async () => (await tap.count()) === 0, 'Tap to start closed');
+  }
+}
+
+async function settle(page: Page) {
+  // a sound or music file can keep the network busy; don't wait on it forever,
+  // but do wait until every picture on screen has arrived and been decoded
+  await page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
+  // (checked from here, not in the page: the page's own timers are frozen)
+  for (let i = 0; i < 60 && !(await page.evaluate(() => [...document.images].every(im => { const r = im.getBoundingClientRect(); const seen = r.width > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; return !seen || !im.src || (im.complete && im.naturalWidth > 0); }))); i++)
+    await page.waitForTimeout(250);
+  const missing = await page.evaluate(() => [...document.images].filter(im => { const r = im.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < innerHeight && im.src && !(im.complete && im.naturalWidth > 0); }).map(im => im.src.replace(location.origin, '')));
+  if (missing.length) console.log(`[pictures] ${page.url()}: pictures that never arrived: ${missing.join(', ')}`);
+  // fonts can stay "loading" on a busy check machine with the page clock frozen:
+  // move the clock along until they're ready, but never wait more than ~10 s
+  for (let i = 0; i < 40 && !(await page.evaluate(() => document.fonts.status === 'loaded')); i++) {
+    await tick(page, 250);
+    await page.waitForTimeout(250);
+  }
+  await toBudget(page);
+  await page.waitForTimeout(300);
+}
+
+for (const [name, path] of SCREENS) {
+  test(`picture: ${name}`, async ({ page }) => {
+    await prepare(page, { steadyRandom: true, still: true });
+    await freeze(page);
+    for (const size of SIZES) {
+      await page.setViewportSize(size);
+      await open(page, path);
+      await settle(page);
+      await expect(page).toHaveScreenshot(`${name}-${size.name}.png`);
+    }
+  });
+}
+
+for (const game of GAMES) {
+  test(`picture: ${game} (opening and playing)`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await prepare(page, { steadyRandom: true, still: true });
+    await freeze(page);
+    const intro = page.getByTestId('game-intro');
+    for (const size of SIZES) {
+      await page.setViewportSize(size);
+      await open(page, `/go/game/${game}?level=3`);
+      await tickUntil(page, () => intro.isVisible(), 'the game opening');
+      await settle(page);
+      await expect(page).toHaveScreenshot(`${game}-opening-${size.name}.png`);
+      // most games start with one big button; Snack Quest and Sky Mail start
+      // by picking a place or a mailbag
+      await intro.locator('.gf-cta, .gf-choice').first().click({ force: true });
+      moved.set(page, 0); // the playing picture: BUDGET ms after the tap
+      await tickUntil(page, async () => (await intro.count()) === 0, 'the game started');
+      await settle(page);
+      const mask = MOVING.has(game) ? [page.locator('[data-play-field]')] : [];
+      await expect(page).toHaveScreenshot(`${game}-playing-${size.name}.png`, { mask });
+    }
+  });
+}

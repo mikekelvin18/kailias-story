@@ -10,23 +10,78 @@ export interface SkillNote {
 }
 
 export const SKILL_INFO: Record<string, SkillNote> = {
+  'cargo-count': {
+    skills: ['Counting', 'Making numbers'],
+    builds: 'Counting out an exact amount, then making a number from parts: boxes of 2, 5 and 10 build counting on, adding and early place value. Fixing an overshoot by sending a box back builds taking away.',
+    notices: 'How often the rocket launches on the first try, how many launches each order needs, and the biggest order loaded.',
+  },
+  'reef-explorer': {
+    skills: ['Looking closely', 'Visual search'],
+    builds: 'Searching a dark, busy scene a little at a time and comparing color and pattern details: visual discrimination and steady scanning.',
+    notices: 'First-try finds, how long each search takes, and how subtle a difference your child can spot.',
+  },
+  'word-wizard': {
+    skills: ['📖 Books & sounds', '🔤 Phonics'],
+    builds: 'Climbs the reading ladder: picture words, first letters and rhymes, blending sounds, then sentence meaning and vocabulary.',
+    notices: 'Which reading chapter your child is on, first-try reads, and how long each word takes to read.',
+  },
+  'sense-explorer': {
+    skills: ['👀 Visual discrimination', '🌈 Sorting'],
+    builds: 'Spotting and sorting by color, shape and kind among moving things, and noticing small color differences.',
+    notices: 'Accuracy in each kind of round and the smallest color difference your child can spot.',
+  },
+  'night-flight': {
+    skills: ['Visual memory', 'Sequencing'],
+    builds: 'Holding a path of places in mind and repeating it in order: visual-spatial working memory.',
+    notices: 'The longest star path remembered, and how it grows over time.',
+  },
+  'vine-weave': {
+    skills: ['Hand skills', 'Planning'],
+    builds: 'Slow, controlled finger movement through narrow gaps, planning a route ahead, and hand steadiness.',
+    notices: 'How often the vine brushes a branch, and how long each vine takes.',
+  },
+  'gem-scales': {
+    skills: ['Counting', 'Early adding'],
+    builds: 'One-to-one counting, "same as" and "more or less", counting by twos with gem pairs, and putting two heaps together.',
+    notices: 'The biggest amount balanced and how many extra moves were needed.',
+  },
+  'star-letters': {
+    skills: ['Letters', 'First sounds', 'Hand skills'],
+    builds: 'Letter shapes stroke by stroke, letter names, and hearing the first sound of a word.',
+    notices: 'Stray taps while joining the stars, and whether the matching word was found.',
+  },
+  'slow-waves': {
+    skills: ['Calm', 'Body awareness'],
+    builds: 'Slow belly breathing paced by the tide, a simple calming tool for big feelings.',
+    notices: 'How closely holding and letting go matched the tide, and the breath length managed.',
+  },
+  'kiko-says': {
+    skills: ['Listening', 'Following directions'],
+    builds: 'Understanding spoken directions with describing words and remembering steps in order. Kiko only talks; nothing records your child.',
+    notices: 'How many steps were followed, and how often Kiko was asked to repeat or show the words.',
+  },
+  'dragon-bridge': {
+    skills: ['Fair sharing', 'Patterns', 'Counting on'],
+    builds: 'Sharing a set equally (early division, and what is left over), spotting and continuing patterns of color and shape, then counting on and back by 1s, 2s, 5s and 10s.',
+    notices: 'How often shares come out fair on the first go, first-try pattern stones, how long each stone takes, and the biggest amounts and numbers reached.',
+  },
   'potion-sort': {
-    skills: ['🧠 Processing', '⚡ Sorting speed'],
+    skills: ['🧠 Thinking & remembering', '⚡ Sorting speed'],
     builds: 'Sorting by category under time pressure, quick color/rule matching, and impulse control (waiting for the right bin).',
     notices: 'Sorting accuracy, average decision speed, and how many colors your child can juggle at once.',
   },
   'firefly-catch': {
-    skills: ['🤲 Fine motor', '⚡ Reaction speed'],
+    skills: ['🤲 Hand skills', '⚡ Reaction speed'],
     builds: 'Finger accuracy on moving targets, controlled dragging, and hand–eye coordination.',
     notices: 'How precisely and quickly taps land, and how steadily your child drags.',
   },
   'snack-quest': {
-    skills: ['🔢 Math', '🧠 Planning'],
+    skills: ['🔢 Counting', '🧠 Planning'],
     builds: 'Counting with one-to-one correspondence, early addition ("how many more?"), and route planning.',
     notices: 'Counting accuracy, first-try deliveries, and the biggest number handled confidently.',
   },
   'sky-mail': {
-    skills: ['🔢 Math', '📖 Reading', '🤲 Fine motor', '🗣️ Feelings', '🌈 Matching', '🧠 Impulse control'],
+    skills: ['🔢 Counting', '📖 Books & sounds', '🤲 Hand skills', '🗣️ Feelings', '🌈 Matching', '🧠 Impulse control'],
     builds: 'Each mailbag targets one skill — from comparing amounts to judging word order to resisting a misleading word.',
     notices: 'Accuracy per deck, decision speed, and how straight and confident each swipe is.',
   },
@@ -41,7 +96,7 @@ export const SKILL_INFO: Record<string, SkillNote> = {
     notices: 'The longest melody echoed correctly — a classic working-memory span.',
   },
   'story-sparks': {
-    skills: ['🗣️ Communication', '🧠 Social thinking'],
+    skills: ['🗣️ Talking & listening', '🧠 Social thinking'],
     builds: 'Predicting what sensibly happens next in a story — the root of narrative and social understanding. Read the pages aloud together!',
     notices: 'How often the sensible continuation is chosen over the silly one.',
   },
@@ -56,17 +111,17 @@ export const SKILL_INFO: Record<string, SkillNote> = {
     notices: 'How closely the traced line follows the path, smoothness, and pen lifts.',
   },
   'firefly-trails': {
-    skills: ['🤲 Fine motor', '🧠 Visual memory'],
+    skills: ['🤲 Hand skills', '🧠 Visual memory'],
     builds: 'Controlled tracing of shapes and patterns; higher levels fade the guide so your child traces from memory — pre-writing and recall in one.',
     notices: 'How closely the trail is followed, wobble from the path, and how much of a faded shape is remembered.',
   },
   'journey': {
-    skills: ['🔢 Math', '🧠 Memory', '🌈 Matching', '🗣️ Feelings', '📖 Words'],
+    skills: ['🔢 Counting', '🧠 Memory', '🌈 Matching', '🗣️ Feelings', '📖 Words'],
     builds: 'An explorable RPG-style world where every creature encountered poses a different kind of little challenge — a gentle mixed workout across skills, Pokémon-adventure style.',
     notices: 'Which challenge types are solved first-try, and which need another look.',
   },
   'trail-walk': {
-    skills: ['🔢 Math', '🧠 Memory', '🌈 Matching', '🗣️ Feelings', '📖 Words'],
+    skills: ['🔢 Counting', '🧠 Memory', '🌈 Matching', '🗣️ Feelings', '📖 Words'],
     builds: 'A relaxed walking adventure where every creature met poses a different kind of little challenge — a gentle mixed workout across skills.',
     notices: 'Which challenge types are solved first-try, and which need another look.',
   },
