@@ -88,10 +88,39 @@ test('Reef Explorer: a tap in the dark only moves the light; a look-alike gets "
   await page.waitForTimeout(200);
   const l1 = await light();
   expect(Math.hypot(l1.x - l0.x, l1.y - l0.y), 'the light moved to the tap').toBeGreaterThan(5);
-  expect(await guideLine(page), 'a tap in the dark is not judged').toBe(line0);
+  // not judged: no "look again", no find; Noel just says to tap it now it's lit (Muse round 7)
+  expect(await guideLine(page), 'a tap in the dark is not judged').toMatch(/Now you can see it/);
+  expect(await found(page)).toBe(0);
+  void line0;
   // now it is lit: tapping the look-alike is a kind "look again", not a find
   await until(() => shineAndTap(page, false), "a lit look-alike to tap");
   await until(async () => /look again|so close|check the fins|count the stripes/i.test(await guideLine(page)), 'the look-again line');
   expect(await found(page)).toBe(0);
   expect(await guideLine(page)).not.toMatch(/you found|wrong/i);
+});
+
+// Muse round 7: on level 1 a 6-year-old's taps on the visible fish "all
+// missed" (0 of 5). A tap on a fish in the dark now brings the light onto it
+// and the fish hold still, so a second, slow tap (2/3 s later) finds it; and
+// level 1's fish are big.
+test('Reef Explorer: level 1, a slow second tap on the fish finds it; fish are big', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72 });
+  await page.goto('/play/reef-explorer');
+  await page.getByRole('button', { name: 'Grown-ups: choose a level' }).waitFor();
+  await startGame(page, '/play/reef-explorer');
+  const target = page.locator('[data-fish][data-target="1"]');
+  await expect(target).toBeVisible();
+  const box = (await target.boundingBox())!;
+  expect(box.width, 'level 1 fish (with their tap room) are big').toBeGreaterThanOrEqual(100);
+  const before = await found(page);
+  for (let i = 0; i < 6 && (await found(page)) === before; i++) {
+    const f = (await fish(page)).find(q => q.target)!;
+    if (!(await onTop(page, f.x, f.y, true))) { await page.waitForTimeout(300); continue; }
+    await page.mouse.click(f.x, f.y);
+    await page.waitForTimeout(650);  // slow, like a careful child (or a reviewer)
+    const g = (await fish(page)).find(q => q.target)!;
+    await page.mouse.click(g.x, g.y);
+    await page.waitForTimeout(400);
+  }
+  expect(await found(page)).toBe(before + 1);
 });

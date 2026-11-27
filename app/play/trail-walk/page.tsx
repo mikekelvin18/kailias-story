@@ -14,6 +14,7 @@ import LevelPath from '@/components/LevelPath';
 import { logQuestMetric } from '@/lib/metrics';
 import { awardStarlight, recordGameLevel, levelStarlight, levelAfter, nextLabel } from '@/lib/rewards';
 import { makeChallenge as makeChallengeBase, DOMAIN, CREATURE_NAME, type Challenge } from '@/lib/creatureChallenges';
+import MissingFriend from '@/components/games/MissingFriend';
 import { Critter } from '@/components/characters/CritterSprite';
 import RunnerSprite from '@/components/characters/RunnerSprite';
 import { usePlayPet } from '@/components/games/playPet';
@@ -108,6 +109,7 @@ export default function TrailWalkPage() {
   const [party, setParty] = useState<string[]>([]);
   const [noelLine, setNoelLine] = useState('');
   const [tries, setTries] = useState(0);        // misses on the current creature (for the hint)
+  const [askedHelp, setAskedHelp] = useState(false); // tapped the friend for help on this one (Muse round 7)
   const [wobble, setWobble] = useState<number | null>(null);
   const [hop, setHop] = useState(0);
   const [earned, setEarned] = useState(0);
@@ -198,7 +200,7 @@ export default function TrailWalkPage() {
       attemptsRef.current = 0;
       if (ch.type === 'memory') {
         setPhase('memoryShow');
-        setTimeout(() => setPhase('challenge'), 2400);
+        setTimeout(() => setPhase('challenge'), 3200);
       } else {
         setPhase('challenge');
       }
@@ -232,6 +234,7 @@ export default function TrailWalkPage() {
       fire((creatureX + 20) / sceneW * 100, ((SCENE_H - FEET - 24) / SCENE_H) * 100, ['#FFE066', '#FFFFFF', '#FF9EC7', '#8BE3FF'], 14, 70);
       setChallenge(null);
       setTries(0);
+      setAskedHelp(false);
       setStop(s => s + 1);
       setPhase('walking');
       // after the first friend joins, Kailia pauses: "Your turn!" (once a level)
@@ -247,15 +250,25 @@ export default function TrailWalkPage() {
       setNoelLine(hint
         ? `${pet.name} ran over to help. Look at the glowing one!`
         : challenge.type === 'count' ? 'Count them one by one with your finger!'
-        : challenge.type === 'memory' ? 'Try to remember who was missing… look again!'
+        : challenge.type === 'memory' ? 'Look at the shadow in the empty spot. Who has that shape?'
         : challenge.type === 'word' ? 'Sound it out slowly. What does it start with?'
         : 'Look really closely and try again!');
     }
   }
 
+  // Tapping the friend asks for help (Muse round 7: it worked only after two
+  // wrong taps, and otherwise just danced): at a riddle it runs to the right
+  // answer, which glows; while walking it cheers you on.
   function tickle() {
-    setPetMood('dance');
     chime.tap();
+    if (phase === 'challenge' && challenge) {
+      setAskedHelp(true);
+      setPetMood('talk');
+      setNoelLine(`${pet.name} ran over to help. Look at the glowing one!`);
+      return;
+    }
+    setPetMood('dance');
+    if (phase === 'walking') setNoelLine(`${pet.name} says: tap Walk to meet the next friend!`);
     setTimeout(() => setPetMood(walking.current ? 'talk' : 'idle'), 1300);
   }
 
@@ -263,7 +276,7 @@ export default function TrailWalkPage() {
   const noelLeft = Math.round(sceneW * 0.22);
   const kailiaLeft = Math.round(sceneW * 0.47);
   const creatureX = Math.round(sceneW * 0.82);  // a met creature (or the flag) stops here
-  const hintOn = phase === 'challenge' && tries >= 2;
+  const hintOn = phase === 'challenge' && (tries >= 2 || askedHelp);
   // the friend hops along just ahead of Kailia; for a hint it runs to the creature
   const petXpct = hintOn ? ((creatureX - 28) / sceneW) * 100 : ((kailiaLeft + 58 + 26) / sceneW) * 100;
 
@@ -383,7 +396,7 @@ export default function TrailWalkPage() {
               </div>
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petXpct} y={((SCENE_H - FEET + 2) / SCENE_H) * 100} h={46}
-                  mood={petMood} moodKey={petMoodKey} moveMs={hintOn ? 700 : 500} onTap={tickle} z={6} />
+                  mood={petMood} moodKey={petMoodKey} moveMs={hintOn ? 700 : 500} onTap={tickle} z={6} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
               {burstLayer}
             </div>
@@ -423,12 +436,10 @@ export default function TrailWalkPage() {
               <div className="rounded-3xl p-5 mt-3 text-center bounce-in bg-white shadow-xl">
                 <div className="flex justify-center mb-1"><Critter emoji={challenge.creature} size={64} /></div>
                 <p className="text-base font-extrabold text-sky-950 mb-2">{askText(challenge)}</p>
-                {challenge.memoryCast && (
+                {challenge.memoryFull && challenge.memoryGap != null && (
                   <>
-                    <p className="text-sm font-bold text-slate-600">Still here:</p>
-                    <div className="flex gap-2 justify-center flex-wrap mb-2">
-                      {challenge.memoryCast.map((c, i) => <Critter key={i} emoji={c} size={40} />)}
-                    </div>
+                    <p className="text-sm font-bold text-slate-600">{tries > 0 || askedHelp ? 'Who left this shadow?' : 'Who was standing in the empty spot?'}</p>
+                    <div className="mb-2"><MissingFriend full={challenge.memoryFull} gap={challenge.memoryGap} size={40} shadow={tries > 0 || askedHelp} /></div>
                   </>
                 )}
                 {challenge.display && (

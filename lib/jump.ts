@@ -146,6 +146,7 @@ export const JUMP_LINKS: { group: string; items: { href: string; label: string }
   { group: 'Grown-up pages', items: [
     { href: '/go/results', label: 'Check-up results' },
     { href: '/go/progress', label: 'Progress' },
+    { href: '/go/challenge', label: 'Challenge round (harder check-up questions)' },
     { href: '/go/family', label: 'Parent Zone' },
     { href: '/go/activities', label: 'Parent & Baby quests' },
     { href: '/go/printables', label: 'Printables' },
@@ -234,6 +235,10 @@ export function planJump(parts: string[], q: Record<string, string | undefined>)
     plan.path = simple[what];
     if (what === 'results' || what === 'progress') plan.checkup = true;
   }
+  // Muse round 7: reviewers guessed /go/challenge and got "path is hidden".
+  // It now opens the grown-ups' Challenge round (harder check-up questions)
+  // after a finished check-up, like the button on the results page.
+  else if (what === 'challenge') { plan.path = '/assessment/games?challenge=1'; plan.checkup = true; }
   else if (what === 'pet-popup' || what === 'pet') {
     plan.pet = (['egg', 'baby', 'little', 'grown'] as const).find(s => s === petQ) ?? 'egg';
     const t = (q.task ?? '').toLowerCase();

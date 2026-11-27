@@ -56,6 +56,7 @@ const GROWN_UPS: Item[] = [
   { href: '/go/senses', label: 'Parent Zone: senses, talking and breaks', note: 'Voice, effects and music volume, Gentle sounds, Low visual, vibration, talking pauses, break reminders, Done for today.' },
   { href: '/go/talk-cards', label: 'Printable Talking practice cards' },
   { href: '/go/progress', label: 'Progress over time' },
+  { href: '/go/challenge', label: 'Challenge round', note: 'Harder check-up questions a grown-up can open after the check-up.' },
   { href: '/go/family', label: 'Parent Zone', note: 'Child profiles, privacy, see and delete all data.' },
   { href: '/go/activities', label: 'Parent & Baby quests' },
   { href: '/go/printables', label: 'Printable worksheets' },

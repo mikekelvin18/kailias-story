@@ -18,6 +18,7 @@ export interface Challenge {
   options: { label: string; correct: boolean }[];
   memoryFull?: string[];       // memory only: full lineup, shown during the "watch" reveal
   memoryCast?: string[];       // memory only: lineup MINUS the missing one, shown during the question
+  memoryGap?: number;          // memory only: where the missing one stood in memoryFull (its shadow is left there)
 }
 
 export const CREATURES: Record<ChType, string[]> = {
@@ -32,6 +33,10 @@ export const CREATURE_NAME: Record<string, string> = {
   '🐢': 'turtle', '🐿️': 'squirrel', '🦔': 'hedgehog', '🐝': 'bee', '🦋': 'butterfly',
 };
 const ALL_CREATURES = Object.keys(CREATURE_NAME);
+// One picture per animal (🐉 and 🐲 are both drawn as the dragon): the
+// "who is missing?" lineup and its answers only use these, so a missing
+// dragon can never still look "here" (Muse round 7).
+const DISTINCT_CREATURES = ALL_CREATURES.filter((c, i) => ALL_CREATURES.findIndex(o => CREATURE_NAME[o] === CREATURE_NAME[c]) === i);
 
 const COLOR_SET = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
 const FEELINGS: [string, boolean][] = [['🎂🎈', true], ['💔🧸', false], ['🍦☀️', true], ['🌧️⚽', false], ['🎁🎀', true], ['🤕🩹', false]];
@@ -62,14 +67,17 @@ export function makeChallenge(i: number, tier: string, level = 1, months?: numbe
 
   if (type === 'memory') {
     const castSize = sizes.castSize;
-    const others = shuffle(ALL_CREATURES.filter(c => c !== creature)).slice(0, castSize - 1);
+    const others = shuffle(DISTINCT_CREATURES.filter(c => CREATURE_NAME[c] !== CREATURE_NAME[creature])).slice(0, castSize - 1);
     const full = shuffle([creature, ...others]);
-    const hiddenIdx = Math.floor(Math.random() * full.length);
+    // the one who slips away is never the friend standing right in front of
+    // Kailia (that would give the answer away, or confuse: "it's right here!")
+    const away = full.map((_, idx) => idx).filter(idx => full[idx] !== creature);
+    const hiddenIdx = away[Math.floor(Math.random() * away.length)];
     const hidden = full[hiddenIdx];
     const remaining = full.filter((_, idx) => idx !== hiddenIdx);
-    const decoys = shuffle(ALL_CREATURES.filter(c => !full.includes(c))).slice(0, 2);
+    const decoys = shuffle(DISTINCT_CREATURES.filter(c => !full.some(f => CREATURE_NAME[f] === CREATURE_NAME[c]))).slice(0, 2);
     return { type, creature, ask: 'Look closely — one friend disappeared! Which one is missing?', display: '',
-      memoryFull: full, memoryCast: remaining,
+      memoryFull: full, memoryCast: remaining, memoryGap: hiddenIdx,
       options: shuffle([{ label: hidden, correct: true }, ...decoys.map(o => ({ label: o, correct: false }))]) };
   }
 

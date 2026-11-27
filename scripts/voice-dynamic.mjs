@@ -35,6 +35,8 @@ const WORDS = {
   letter: ['L', 'V', 'N', 'M', 'W', 'Z', 'U', 'C', 'J', 'S', 'T', 'H', 'E', 'A', 'K'],
   level: range(1, 30),
   stars: range(2, 15),
+  small: range(1, 6),            // Journey friends to find
+  met: range(0, 6),
 };
 
 /** letter -> its words in Star Letters (components/friends/games/StarLetters.tsx) */
@@ -108,6 +110,29 @@ const TEMPLATES = [
   'Level {level} done!',
   'Watch me fly across {stars} stars!',
   "Let's draw the letter {letter}!",
+  // Muse round 7: friend-tap hints, honest friend counts, Echo Song carry-on
+  '{pet} is sitting by its twin!',
+  'Flip one feather, then tap {pet} for help finding its twin!',
+  '{pet} spotted it!',
+  '{pet} found one!',
+  '{pet} is sitting by the crystal that sings next!',
+  '{pet} is sitting by the crystal that sings next.',
+  '{pet} will sit by the crystal that sings next.',
+  '{pet} is listening too.',
+  '{pet} ran over to help.',
+  '{pet} flew over to help.',
+  'Look where {pet} is!',
+  'Ooh, look where {pet} is!',
+  '{pet} says: tap Walk to meet the next friend!',
+  '{pet} says: friends hide in the tall grass along the path!',
+  "{pet} says: everyone's here, head for the flag!",
+  'Carry on from note {few}.',
+  '{met} of {small} friends found!',
+  '{small} still hiding in the grass…',
+  "That's all {small} friends — head for the flag!",
+  'The flag needs {small} friends!',
+  '{met} found, {small} still hiding in the tall grass…',
+  '{small} more to go!',
   '{letter}!',
   'Which word starts with {letter}?',
 ];

@@ -142,10 +142,14 @@ export default function EchoSongPage() {
     setLit(c); setRingKey(k => k + 1); tone(CRYSTALS[c].tone, d);
   }, []);
 
-  const playSeq = useCallback((s: number[]) => {
+  // `keep` = notes already sung right: they stay lit and the child carries
+  // on from the next one after hearing the song again (Muse round 7: after a
+  // slip the song quietly started over at note 1, so a tap meant as the
+  // second note was judged as the first and every colour "failed")
+  const playSeq = useCallback((s: number[], keep = 0) => {
     setPhase('showing');
-    setProgress(0);
-    posRef.current = 0;
+    setProgress(keep);
+    posRef.current = keep;
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
     // Kailia and the friend step back to the middle of the floor to listen
@@ -158,7 +162,7 @@ export default function EchoSongPage() {
     });
     timersRef.current.push(setTimeout(() => {
       setPhase('echo');
-      setNoelLine('Your turn — echo the song!');
+      setNoelLine(keep > 0 ? `Your turn! Carry on from note ${keep + 1}.` : 'Your turn — echo the song!');
       setNoelMood('excited');
     }, 500 + s.length * gap + 200));
   }, [tier, sing, level, fit.look.speed]);
@@ -234,28 +238,48 @@ export default function EchoSongPage() {
       setSlips(n);
       setPetMood('oops');
       setNoelLine(n >= 2
-        ? `The echo slipped! Listen once more. ${pet.name} will sit by the crystal the song starts on.`
+        ? `The echo slipped! Listen once more. ${pet.name} will sit by the crystal that sings next.`
         : 'Oops, the echo slipped! Listen once more — you almost have it!');
       setNoelMood('thinking');
       setPhase('showing');
+      const keep = posRef.current;
       timersRef.current.push(setTimeout(() => {
-        playSeq(seq);
-        // after two slips the friend runs to the first crystal of the song
+        playSeq(seq, keep);
+        // after two slips the friend runs to the crystal that comes next
         if (n >= 2) timersRef.current.push(setTimeout(() => {
           setHintOn(true);
-          setNoelLine(`Your turn! ${pet.name} is sitting by the crystal the song starts on.`);
+          setNoelLine(`Your turn! ${pet.name} is sitting by the crystal that sings next.`);
         }, 500 + seq.length * (tier === 'big' ? 620 : 780) + 250));
       }, 900));
     }
   }
 
+  // Tapping the friend asks for help (Muse round 7: it only danced): on your
+  // turn it runs to the crystal that sings next; while the song plays it
+  // asks you to listen first.
   function tickle() {
+    if (phase === 'echo') {
+      statsRef.current.replays += 1; // counted like a replay: help was used
+      setHintOn(true);
+      setNoelLine(`${pet.name} is sitting by the crystal that sings next!`);
+      return;
+    }
     setPetMood('dance');
+    if (phase === 'showing') setNoelLine(`Shhh… ${pet.name} is listening too. Your turn is next!`);
     timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300));
   }
 
-  // the friend's spot: by the hinted crystal, else beside Kailia
-  const hintCrystal = hintOn && phase === 'echo' ? seq[0] : null;
+  // Hear the song again, any time it's your turn (Muse round 7: there was no
+  // way to re-hear it). The notes already sung stay lit.
+  function replay() {
+    if (phase !== 'echo') return;
+    statsRef.current.replays += 1;
+    setNoelLine('Listen…');
+    playSeq(seq, posRef.current);
+  }
+
+  // the friend's spot: by the hinted crystal (the next note), else beside Kailia
+  const hintCrystal = hintOn && phase === 'echo' ? seq[progress] ?? null : null;
   let petSpot = petX;
   if (hintCrystal !== null) {
     const hx = SPOTS[hintCrystal][0];
@@ -308,11 +332,19 @@ export default function EchoSongPage() {
         {(phase === 'showing' || phase === 'echo' || phase === 'cheer') && (
           <div className="relative z-10">
             {/* who's singing now: above the cave, so it never covers a crystal */}
-            <div className="flex justify-center pointer-events-none mb-1">
-              <span className="px-4 py-1 rounded-full text-sm font-extrabold"
+            <div className="flex justify-center items-center gap-2 mb-1" style={{ minHeight: 44 }}>
+              <span className="px-4 py-1 rounded-full text-sm font-extrabold pointer-events-none"
                 style={{ background: 'rgba(7,20,40,0.72)', border: '1.5px solid rgba(255,255,255,0.35)', color: phase === 'echo' ? '#A5F3FC' : '#FDE047' }}>
                 {phase === 'showing' ? 'The crystals are singing…' : phase === 'echo' ? 'Your turn — echo the song!' : 'The whole cave is ringing!'}
               </span>
+              {phase === 'echo' && (
+                <button data-replay-song onClick={replay} aria-label="Hear the song again"
+                  className="h-11 pl-2.5 pr-3.5 rounded-full inline-flex items-center gap-1.5 text-sm font-extrabold"
+                  style={{ background: '#FDE047', color: '#1E1B4B', border: '2px solid #3b2416', boxShadow: '0 3px 0 rgba(0,0,0,0.3)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="#1E1B4B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  Again
+                </button>
+              )}
             </div>
             <div data-play-field className="relative w-full overflow-hidden rounded-[28px] select-none mt-1"
               style={{ aspectRatio: '3 / 3.5', boxShadow: 'inset 0 0 0 3px rgba(255,255,255,0.35), 0 10px 0 rgba(0,0,0,0.22)' }}>
@@ -358,7 +390,7 @@ export default function EchoSongPage() {
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petSpot} y={FLOOR} h={54}
                   mood={hintCrystal !== null ? 'talk' : petMood} moodKey={petMoodKey} moveMs={900}
-                  onTap={tickle} z={9} />
+                  onTap={tickle} z={9} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
               {burstLayer}
             </div>

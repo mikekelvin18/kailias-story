@@ -35,7 +35,8 @@ test('voice: a friend\'s sound starts within 350 ms of a tap, even on a slow con
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 250, downloadThroughput: 200_000, uploadThroughput: 100_000 });
   await openGame(page, 'reef-explorer', 3, '&buddy=fox');
   await page.waitForTimeout(2500);
-  const pet = page.locator('[aria-label^="Tickle"]').first();
+  // the friend: "Tickle Flick", or "Ask Flick for a hint" in games where a tap gives a hint
+  const pet = page.locator('[data-actor] [aria-label^="Tickle"], [data-actor] [aria-label^="Ask "]').first();
   const t0 = await page.evaluate(() => performance.now());
   await pet.click({ force: true });
   await expect.poll(async () => (await clips(page)).some(c => /\/sounds\/pets\//.test(c.src) && c.ev === 'playing' && c.t > t0),

@@ -9,6 +9,7 @@ import { PLAY_TOGETHER_NOTE } from '@/lib/ageBands';
 import { LEVELS_PER_CHAPTER, MAX_LADDER_LEVEL, chapterAt, chapterLabel as chapterLabelFor, unlockedUpTo, highestBeaten } from '@/lib/levels';
 import { isPremium, lastFreeLevel } from '@/lib/premium';
 import { ParentGateModal } from '@/components/ParentGate';
+import { nextGameLevel } from '@/lib/rewards';
 
 // ── Level map ──
 // A small winding path of 5 level stones (one chapter) on every leveled
@@ -37,6 +38,9 @@ const SPOTS = [
 
 export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Props) {
   const [unlocked, setUnlocked] = useState(startLevel);
+  // this game's own next level (Muse round 7: the button said "31" in every
+  // game, the reviewers' all-open total, never where THIS game was up to)
+  const [newest, setNewest] = useState(startLevel);
   const [beaten, setBeaten] = useState(0);
   const [page, setPage] = useState(Math.floor((level - 1) / LEVELS_PER_CHAPTER));
   // Paid levels (lib/pricing.ts): without a plan, levels past the first
@@ -49,6 +53,10 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   // grown-ups can open any level (Grok's review 2026-11-25): a sum first, so a child can't
   const [gate, setGate] = useState<null | { a: number; b: number; options: number[]; passed: boolean }>(null);
   const [pick, setPick] = useState(level);
+  // the grown-ups' picker follows a level chosen on the path (Muse round 7:
+  // a tap on stone 1 left the picker saying 16)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setPick(level); }, [level]);
   function openGate() {
     const a = 4 + Math.floor(Math.random() * 5), b = 5 + Math.floor(Math.random() * 4);
     setGate({ a, b, options: [a + b, a + b + 2, a + b - 3].sort(() => Math.random() - 0.5), passed: false });
@@ -58,6 +66,7 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setUnlocked(unlockedUpTo(gameId, startLevel));
+    setNewest(Math.max(nextGameLevel(gameId), startLevel));
     setBeaten(highestBeaten(gameId));
     setFreeTop(isPremium() ? Infinity : lastFreeLevel(startLevel));
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -81,8 +90,9 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
   const chapterLabel = chapterLabelFor(page * LEVELS_PER_CHAPTER + 1).label;
   // a world the child has only just reached (its first stone is the next one to play)
   const freshWorld = page > 0 && first === unlocked && beaten === first - 1;
-  // far up the path, a quick way back to the newest level
-  const newestPage = Math.floor((unlocked - 1) / LEVELS_PER_CHAPTER);
+  // far up the path, a quick way back to this game's newest level
+  const newestTo = Math.min(newest, freeTop);
+  const newestPage = Math.floor((newestTo - 1) / LEVELS_PER_CHAPTER);
 
   return (
     <div className="mx-2 mt-4 rounded-3xl px-3 pt-3 pb-2 select-none"
@@ -153,12 +163,12 @@ export default function LevelPath({ gameId, level, onPick, startLevel = 1 }: Pro
       {fit.look.playTogether && (
         <p className="text-center text-sm font-bold text-white/90 pb-1" data-play-together>{PLAY_TOGETHER_NOTE}</p>
       )}
-      {newestPage !== page && unlocked > LEVELS_PER_CHAPTER && (
+      {newestPage !== page && newestTo > LEVELS_PER_CHAPTER && (
         <div className="text-center pb-1">
-          <button onClick={() => { const to = Math.min(unlocked, freeTop); setPage(Math.floor((to - 1) / LEVELS_PER_CHAPTER)); onPick(to); }}
+          <button data-newest-level onClick={() => { setPage(newestPage); onPick(newestTo); }}
             className="px-4 py-1.5 rounded-full text-sm font-extrabold"
             style={{ background: 'rgba(255,255,255,0.9)', color: '#1E293B' }}>
-            Go to my newest level ({Math.min(unlocked, freeTop)})
+            Go to my newest level ({newestTo})
           </button>
         </div>
       )}

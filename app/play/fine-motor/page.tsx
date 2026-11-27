@@ -218,7 +218,9 @@ function ReassessBanner({ onGo }: { onGo: () => void }) {
 // the page before each level (one maze page at a time).
 const WIDE_W=600, WIDE_H=320, TALL_H=680;
 let W=WIDE_W, H=WIDE_H;
-const HIT_CD=650, COLLECT_R=26, GOAL_R=22;
+// stars are picked up a little off the exact line (Muse round 7: a careful
+// drag down the middle of the path passed a star at the bend without it)
+const HIT_CD=650, COLLECT_R=34, GOAL_R=22;
 // The trace has to really follow the path: it starts on GO, picks up near
 // where Kailia stands after a lift, and only counts progress that moves
 // along the path a little at a time (no tapping the flag, no shortcuts
@@ -837,7 +839,7 @@ export default function MazeRunnerPage() {
     const end=pathRef.current[pathRef.current.length-1];
     const coverage = coveredRef.current.size / Math.max(1, pathRef.current.length);
     if (Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R && !doneRef.current
-        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.85)) {
+        && (progressRef.current>=lengthRef.current-FINISH_SLACK || coverage>=0.8)) {
       doneRef.current=true;
       const col=collectedRef.current.size;
       setSnapStars(col);
@@ -862,9 +864,20 @@ export default function MazeRunnerPage() {
     }
     // On the flag but a stretch of the path was skipped: say so kindly.
     const atFlag = Math.hypot(p.x-end.x,p.y-end.y)<GOAL_R;
+    // Muse round 7: "from where Kailia left it" was unclear (she was standing
+    // on the flag). Kailia now hops back to the start of the skipped part, a
+    // ring glows there, and Noel says exactly what to do.
     if (atFlag && !doneRef.current && !flagSaidRef.current) {
       flagSaidRef.current = true;
-      setNoelLine('So close! Follow the glowing path from where Kailia left it.');
+      const path = pathRef.current;
+      const gap = path.findIndex((_, i) => !coveredRef.current.has(i));
+      const back = path[Math.max(0, gap - 1)];
+      if (gap > 0 && back) {
+        charRef.current = back;
+        setDrawing(false);
+        friendHint(path[gap]);
+      }
+      setNoelLine('Almost! A little bit of path was skipped. Kailia hopped back to it: put your finger on Kailia and follow the glow to the flag!');
     } else if (!atFlag) flagSaidRef.current = false;
 
     drawCanvas();

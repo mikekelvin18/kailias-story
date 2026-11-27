@@ -199,6 +199,7 @@ export default function SenseExplorerPage() {
   const [caught, setCaught] = useState<Set<number>>(new Set());
   const [wobble, setWobble] = useState<number | null>(null);
   const [tries, setTries] = useState(0);
+  const [askedHelp, setAskedHelp] = useState(false); // tapped the friend for help this round (Muse round 7)
   const [roundDone, setRoundDone] = useState(false);
   const [noelLine, setNoelLine] = useState('');
   const [noelMood, setNoelMood] = useState<'happy' | 'excited' | 'thinking' | 'celebrating'>('happy');
@@ -247,7 +248,7 @@ export default function SenseExplorerPage() {
       rs.push({ ...r, story: stories[i].line, who: stories[i].who });
     }
     setRounds(rs); setRIdx(0);
-    setCaught(new Set()); setTries(0); setRoundDone(false); setWobble(null);
+    setCaught(new Set()); setTries(0); setAskedHelp(false); setRoundDone(false); setWobble(null);
     setKailiaX(34); setPetX(60); setLit(0);
     statsRef.current = { huntMisses: 0, oddMisses: 0, oddFirstTry: 0, startedAt: Date.now(), smallestDelta: 999 };
     setPhase('playing');
@@ -258,7 +259,7 @@ export default function SenseExplorerPage() {
     timersRef.current.push(setTimeout(() => {
       if (rIdx + 1 >= rounds.length) { finish(); return; }
       setRIdx(i => i + 1);
-      setCaught(new Set()); setTries(0); setRoundDone(false); setWobble(null);
+      setCaught(new Set()); setTries(0); setAskedHelp(false); setRoundDone(false); setWobble(null);
       announce(rounds[rIdx + 1]);
     }, 1300));
   }
@@ -293,7 +294,7 @@ export default function SenseExplorerPage() {
     if (!piece) return;
     if (piece.item.c !== round.hunt.target) { miss(id, 'hunt'); return; }
     const next = new Set(caught); next.add(id);
-    setCaught(next); setTries(0);
+    setCaught(next); setTries(0); setAskedHelp(false);
     buzzGood();
     chime([523 + next.size * 60, 784 + next.size * 60]);
     const spot = pieceSpot(piece);
@@ -345,12 +346,19 @@ export default function SenseExplorerPage() {
     setPhase('levelDone');
   }
 
+  // tapping the friend asks for help (Muse round 7): it runs to the answer
   function tickle() {
+    if (!roundDone && round) {
+      setAskedHelp(true);
+      setPetMood('talk');
+      setNoelLine(`Ooh, look where ${pet.name} is! Something is glowing!`);
+      return;
+    }
     setPetMood('dance');
     timersRef.current.push(setTimeout(() => setPetMood('idle'), 1300));
   }
 
-  const hint = tries >= 2 && !roundDone;
+  const hint = (tries >= 2 || askedHelp) && !roundDone;
   const want = round?.kind === 'hunt' ? round.pieces.filter(p => p.item.c === round.hunt.target).length : 1;
 
   // after two tries the friend runs along the cave floor to stand right
@@ -490,7 +498,7 @@ export default function SenseExplorerPage() {
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petAt} y={GROUND - 1} h={54}
                   mood={hintX !== null ? 'talk' : petMood} moodKey={petMoodKey} moveMs={900}
-                  flip={petAt < kailiaAt} onTap={tickle} z={7} />
+                  flip={petAt < kailiaAt} onTap={tickle} z={7} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
               {burstLayer}
             </div>

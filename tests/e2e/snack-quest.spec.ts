@@ -85,3 +85,12 @@ test('Snack Quest: too many snacks is never praised, the right number is', async
   await deliver(page);
   await until(async () => (await state(page))?.round === 1 || /right|perfect|happy|yum/i.test(await guideLine(page)), 'praise for the right amount');
 });
+
+// Muse round 7: level 1 was 3 wishes and 7 snacks to fetch. The first feast
+// is now 2 wishes; later levels keep 3.
+test('Snack Quest: level 1 is a short first feast (2 wishes)', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72 });
+  await startGame(page, '/play/snack-quest', '.gf-choice');
+  const s1 = await until(async () => { const v = await peek<Snack & { rounds: number }>(page, 'snack'); return v?.phase === 'playing' ? v : null; }, 'level 1');
+  expect(s1.rounds).toBe(2);
+});

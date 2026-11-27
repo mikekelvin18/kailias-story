@@ -231,6 +231,7 @@ export default function StorySparksPage() {
   const [picked, setPicked] = useState<'good' | null>(null);
   const [wobble, setWobble] = useState(false);
   const [sillyThisBeat, setSillyThisBeat] = useState(0);
+  const [askedHelp, setAskedHelp] = useState(false); // tapped the friend for help on this page
   const { layer: burstLayer, fire } = useBursts();
   const talk = useTalkMoment('story-sparks');
 
@@ -249,7 +250,7 @@ export default function StorySparksPage() {
     setBeatKey(k => k + 1);
     setStep(0);
     setPicked(null);
-    setSillyThisBeat(0);
+    setSillyThisBeat(0); setAskedHelp(false);
     setNoelLine(`"${story.title}" — page one! What happens next?`);
     setNoelMood('excited');
     setPhase('playing');
@@ -276,7 +277,7 @@ export default function StorySparksPage() {
             setFlipped(Math.random() < 0.5);
             setBeatKey(k => k + 1);
             setPicked(null);
-            setSillyThisBeat(0);
+            setSillyThisBeat(0); setAskedHelp(false);
             setNoelMood('excited');
             setNoelLine('And then…?');
           };
@@ -307,9 +308,15 @@ export default function StorySparksPage() {
     }
   }
 
+  // tapping the friend asks for help (Muse round 7): it flies to the good choice
   function tickle() {
-    setPetMood('dance');
     chime.tap();
+    if (!picked && phase === 'playing') {
+      setAskedHelp(true);
+      setNoelLine(`${pet.name} flew over to help. Look where ${pet.name} is!`);
+      return;
+    }
+    setPetMood('dance');
     setTimeout(() => setPetMood('idle'), 1300);
   }
 
@@ -319,7 +326,7 @@ export default function StorySparksPage() {
 
   // Kailia stands on the last page stone she reached; the last stone is beside the book
   const kailiaX = stoneX(step);
-  const hintOn = sillyThisBeat >= 2 && !picked;
+  const hintOn = (sillyThisBeat >= 2 || askedHelp) && !picked;
   const goodSlot = options.findIndex(o => o.kind === 'good');
   // the friend stays beside Kailia; with a hint it runs under the bubble that really happens
   const hintX = BUBBLE_X[goodSlot];
@@ -430,7 +437,7 @@ export default function StorySparksPage() {
               <KailiaActor x={kailiaX} y={95} h={80} hop={kailiaHop} moveMs={2200} />
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petX} y={95} h={58}
-                  mood={hintOn ? 'talk' : petMood} moodKey={petMoodKey} moveMs={hintOn ? 900 : 480} onTap={tickle} z={7} />
+                  mood={hintOn ? 'talk' : petMood} moodKey={petMoodKey} moveMs={hintOn ? 900 : 480} onTap={tickle} z={7} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
               {burstLayer}
             </Stage>

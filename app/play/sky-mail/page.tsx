@@ -633,11 +633,22 @@ export default function SkyMailPage() {
               pet={pet}
               story={<p>The wind stole Noel&apos;s letters over Owl&apos;s Tower! Swipe each one into the right mailbox.</p>}
               extras={<>
-                <div className="flex justify-center mb-3"><Mailbox size={52} flagUp={doneDecks.length > 0} /></div>
-                <div className="space-y-3">
+                {/* Muse round 7: on arrival a computer screen showed only Noel's words
+                    and the play controls (the mailbags faded in 1.5 s later, below
+                    the fold), so it looked like a pause screen. The mailbags now
+                    come in at once, under a clear "pick one" line that scrolls to them. */}
+                <button data-mailbag-hint type="button"
+                  onClick={() => document.querySelector('[data-mailbags]')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="mx-auto mb-3 flex items-center gap-2 px-4 py-2 rounded-full font-extrabold text-white"
+                  style={{ background: 'rgba(15,23,42,0.55)', border: '1.5px solid rgba(255,255,255,0.45)' }}>
+                  <Mailbox size={30} flagUp={doneDecks.length > 0} />
+                  Pick a mailbag: {availableDecks.length} ways to play
+                  <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" className="kp-hop"><path d="M5 8 L10 13 L15 8" stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+                <div data-mailbags className="space-y-3" style={{ scrollMarginTop: 16 }}>
                   {availableDecks.map((d, i) => (
                     <button key={d} onClick={() => startDeck(d)} className="gf-choice w-full flex items-center gap-3 text-left"
-                      style={{ background: '#FFFFFF', padding: 16, animationDelay: `${1.5 + i * 0.07}s` }}>
+                      style={{ background: '#FFFFFF', padding: 16, animationDelay: `${0.15 + i * 0.05}s` }}>
                       <span className="w-12 h-12 flex items-center justify-center shrink-0"><DeckIcon deck={d} /></span>
                       <span className="flex-1">
                         <span className="flex items-center gap-1 font-extrabold text-indigo-900">{DECKS[d].title} {doneDecks.includes(d) && <StarIcon size={18} />}</span>

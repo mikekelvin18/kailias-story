@@ -340,7 +340,7 @@ export default function FireflyCatchPage() {
     if (phase !== 'roundDone') return;
     if (roundIdx + 1 < ROUNDS.length) {
       sfx.round();
-      const t = setTimeout(() => startRound(roundIdx + 1), 1700);
+      const t = setTimeout(() => startRound(roundIdx + 1), 2400);
       return () => clearTimeout(t);
     }
     // game finished — log the quiet metrics
@@ -368,7 +368,14 @@ export default function FireflyCatchPage() {
   // them (it wants to catch one too). Fireflies are tracked in a ref so
   // this timer doesn't restart every animation frame.
   const fliesRef = useRef<Firefly[]>([]);
-  useEffect(() => { fliesRef.current = fireflies; }, [fireflies]);
+  // where each firefly was over the last half second (see the tap check)
+  const trailRef = useRef<{ at: number; pts: Map<number, { x: number; y: number }> }[]>([]);
+  useEffect(() => {
+    fliesRef.current = fireflies;
+    const at = performance.now();
+    trailRef.current = [...trailRef.current.filter(t => at - t.at <= 500),
+      { at, pts: new Map(fireflies.map(f => [f.id, { x: f.x, y: f.y }])) }];
+  }, [fireflies]);
   useEffect(() => {
     if (phase !== 'playing') return;
     const id = setInterval(() => {
@@ -418,11 +425,19 @@ export default function FireflyCatchPage() {
     setPetPos({ x: besideKailia(clampPct((best.x / w) * 100), kailiaPos.x), y: 93 });
   }
 
-  const tickle = useCallback(() => {
-    setPetMood('dance');
+  // tapping the friend asks for help (Muse round 7): it runs under a firefly
+  // and a white ring circles it
+  const tickle = () => {
     chime.tap();
+    if (phase === 'playing' && cfg.mode === 'tap') {
+      const { w, h } = sizeRef.current;
+      friendHint(w / 2, h / 2);
+      setNoelLine(`${pet.name} found one! Tap the firefly with the white ring.`);
+      return;
+    }
+    setPetMood('dance');
     setTimeout(() => setPetMood('idle'), 1300);
-  }, [setPetMood]);
+  };
 
   function pointerPos(e: React.PointerEvent): { x: number; y: number } {
     const rect = areaRef.current!.getBoundingClientRect();
@@ -455,14 +470,22 @@ export default function FireflyCatchPage() {
       return;
     }
 
-    // tap mode: forgiving halo around each firefly
+    // tap mode: forgiving halo around each firefly, and around where it was
+    // a moment ago (Muse round 7: on Lv16 a firefly moved 20–50px between
+    // being seen and the tap landing, so aimed taps missed). A finger aims at
+    // what the eye saw about a third of a second earlier.
     let best: Firefly | null = null;
     let bestDist = Infinity;
+    const recent = trailRef.current.filter(t => performance.now() - t.at <= 450);
     for (const f of fireflies) {
       if (f.caught) continue;
-      const d = Math.hypot(f.x - x, f.y - y);
-      // at least a 44px radius (an 88px circle) so fast, small ones are still fair for little fingers
-      if (d <= Math.max(44, cfg.r + 22) && d < bestDist) { best = f; bestDist = d; }
+      let d = Math.hypot(f.x - x, f.y - y);
+      for (const t of recent) {
+        const p = t.pts.get(f.id);
+        if (p) d = Math.min(d, Math.hypot(p.x - x, p.y - y));
+      }
+      // at least a 48px radius (a 96px circle) so fast, small ones are still fair for little fingers
+      if (d <= Math.max(48, cfg.r + 26) && d < bestDist) { best = f; bestDist = d; }
     }
     if (best) {
       const now = performance.now();
@@ -557,7 +580,7 @@ export default function FireflyCatchPage() {
           <h1 className="text-xl font-extrabold text-white drop-shadow">
             Firefly Catch <span className="text-xs font-bold text-yellow-300 align-middle ml-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(253,224,71,0.15)', border: '1px solid rgba(253,224,71,0.4)' }}>Lv {level}</span>
           </h1>
-          <span className="flex justify-end gap-1 w-16">
+          <span className="flex justify-end gap-1 w-16" aria-label={phase !== 'intro' ? `Part ${roundIdx + 1} of ${ROUNDS.length}` : undefined}>
             {Array.from({ length: ROUNDS.length }).map((_, i) => (
               <span key={i} className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: '#FDE047', boxShadow: '0 0 8px #FDE047', opacity: i <= roundIdx && phase !== 'intro' ? 1 : 0.25 }} />
             ))}
@@ -656,7 +679,7 @@ export default function FireflyCatchPage() {
               <div data-pet>
                 <Actor art={pet.art} name={pet.name} x={petPos.x} y={petPos.y} h={62}
                   mood={petMood} moodKey={petMoodKey} moveMs={petMood === 'fly' ? 700 : 1100}
-                  onTap={tickle} z={7} />
+                  onTap={tickle} z={7} tapLabel={`Ask ${pet.name} for a hint`} />
               </div>
 
               {/* fireflies */}
@@ -698,6 +721,17 @@ export default function FireflyCatchPage() {
                       ? <span className="inline-block kp-hop"><CritterSprite species={cfg.who} size={96} /></span>
                       : <PandaSprite size={90} expression="celebrating" />}
                     <p className="text-xl font-extrabold text-white drop-shadow mt-1">{praise}</p>
+                    {/* Muse round 7: after the first 6 a reviewer thought the level had
+                        silently restarted. Say plainly it is one part of the level. */}
+                    <p data-round-done className="text-lg font-extrabold text-yellow-200 drop-shadow mt-1">
+                      Part {roundIdx + 1} of {ROUNDS.length} done! {ROUNDS.length - roundIdx - 1 === 1 ? 'One more to go!' : `${ROUNDS.length - roundIdx - 1} more to go!`}
+                    </p>
+                    <div className="flex justify-center gap-2 mt-2" aria-hidden="true">
+                      {ROUNDS.map((_, i) => (
+                        <span key={i} className="inline-block w-4 h-4 rounded-full"
+                          style={i <= roundIdx ? { background: '#FDE047', boxShadow: '0 0 10px #FDE047' } : { border: '2px solid #FDE68A' }} />
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
