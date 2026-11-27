@@ -82,7 +82,13 @@ export async function openJump(page: Page, path: string) {
   // a jump link hops on to the real page; looking during the hop can lose track
   if (path.startsWith('/go')) await page.waitForURL(u => !u.pathname.startsWith('/go'), { timeout: 30_000 });
   const tap = page.getByRole('dialog', { name: 'Tap to start' });
-  await tap.click({ force: true, timeout: 8_000 }).catch(() => {});
+  // "Tap to start!" shows on pages with sound; a tap before the page is
+  // live does nothing, so tap again until it's gone
+  await tap.waitFor({ timeout: 5_000 }).catch(() => {});
+  for (let i = 0; i < 20 && (await tap.count()); i++) {
+    await tap.click({ force: true, timeout: 2_000 }).catch(() => {});
+    await page.waitForTimeout(500);
+  }
   await expect(tap).toHaveCount(0);
 }
 
