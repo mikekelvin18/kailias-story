@@ -116,6 +116,7 @@ for (const game of GAMES) {
       await page.waitForTimeout(1000);
       const ref = await frames(page, 3000);
       test.info().annotations.push({ type: 'test scene', description: `${ref.fps.toFixed(0)} fps, ${(ref.slow * 100).toFixed(0)}% frozen` });
+      console.log(`[speed] ${game}: ${fps.toFixed(0)} fps, ${(slow * 100).toFixed(0)}% frozen; test scene ${ref.fps.toFixed(0)} fps, ${(ref.slow * 100).toFixed(0)}% frozen`);
       test.skip(ref.slow > 0.25, `check machine too weak to judge smoothness (the test scene froze ${(ref.slow * 100).toFixed(0)}% of frames)`);
     }
     expect(fps, `${game}: ${fps.toFixed(0)} frames a second`).toBeGreaterThan(MIN_FPS);
