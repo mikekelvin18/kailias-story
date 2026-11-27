@@ -127,6 +127,7 @@ const TEMPLATES = [
   '{pet} says: friends hide in the tall grass along the path!',
   "{pet} says: everyone's here, head for the flag!",
   'Carry on from note {few}.',
+  'Step into patches of tall grass to meet wild creatures — solve their riddle to catch them, then lead your {small} new friends to the flag!',
   '{met} of {small} friends found!',
   '{small} still hiding in the grass…',
   "That's all {small} friends — head for the flag!",
