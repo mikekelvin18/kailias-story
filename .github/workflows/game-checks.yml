@@ -48,7 +48,8 @@ jobs:
           node --experimental-strip-types scripts/milestones.test.mjs
           node scripts/carepet.test.mjs
       - name: Build the app
-        run: npm run build
+        # the build fetches fonts from Google, which now and then fails for a moment
+        run: npm run build || (sleep 30 && npm run build)
       - name: Install the robot's browser
         run: npx playwright install --with-deps chromium
       - name: Age fit and name sounds
@@ -83,7 +84,8 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build the app
-        run: npm run build
+        # the build fetches fonts from Google, which now and then fails for a moment
+        run: npm run build || (sleep 30 && npm run build)
       - name: Install the robot's browser
         run: npx playwright install --with-deps chromium
       # Approved pictures are made on this machine (its fonts and drawing
