@@ -102,10 +102,10 @@ for (const game of GAMES) {
     const { fps, slow } = best;
     // if even an empty page stutters, the machine is too busy to judge
     if (fps <= MIN_FPS || slow >= MAX_FROZEN) {
-      const blank = await page.context().newPage();
-      await blank.setContent('<body></body>');
-      const idle = await frames(blank, 2000);
-      await blank.close();
+      // the game is closed first, so only the machine itself is measured
+      await page.goto('about:blank');
+      await page.setContent('<body></body>');
+      const idle = await frames(page, 2000);
       test.skip(idle.slow > 0.15, `check machine too busy to judge smoothness (an empty page froze ${(idle.slow * 100).toFixed(0)}% of frames)`);
     }
     expect(fps, `${game}: ${fps.toFixed(0)} frames a second`).toBeGreaterThan(MIN_FPS);
