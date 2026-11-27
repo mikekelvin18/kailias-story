@@ -58,3 +58,49 @@ test('Maze Runner: tapping the flag without tracing does not win', async ({ page
   await page.waitForTimeout(1500);
   await expect(page.getByTestId('game-finish')).toHaveCount(0);
 });
+
+// Muse round 7: an accurate, quick drag down the middle reached the flag but
+// only got "So close! Follow the glowing path from where Kailia left it." A
+// quick drag with few finger points (cutting the bends a little) now finishes
+// level 1; and a drag that really skips a stretch sends Kailia back to it with
+// plain words.
+test('Maze Runner: a quick drag with few points finishes level 1', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72 });
+  await startGame(page, '/play/fine-motor');
+  const maze = await hook<Maze>(page, 'maze');
+  const box = (await page.locator('canvas').first().boundingBox())!;
+  const at = (p: Pt) => ({ x: box.x + (p.x / maze.w) * box.width, y: box.y + (p.y / maze.h) * box.height });
+  await page.mouse.move(at(maze.path[0]).x, at(maze.path[0]).y);
+  await page.mouse.down();
+  const step = Math.max(3, Math.floor(maze.path.length / 6));
+  for (let i = step; i < maze.path.length + step; i += step) {
+    const q = at(maze.path[Math.min(i, maze.path.length - 1)]);
+    await page.mouse.move(q.x, q.y, { steps: 3 });
+  }
+  await page.mouse.up();
+  await expectFinish(page);
+});
+
+test('Maze Runner: skipping a stretch to the flag sends Kailia back with plain words, then finishes', async ({ page }) => {
+  await seedFamily(page, { ageMonths: 72 });
+  await startGame(page, '/play/fine-motor');
+  const maze = await hook<Maze>(page, 'maze');
+  const box = (await page.locator('canvas').first().boundingBox())!;
+  const at = (p: Pt) => ({ x: box.x + (p.x / maze.w) * box.width, y: box.y + (p.y / maze.h) * box.height });
+  const n = maze.path.length;
+  await page.mouse.move(at(maze.path[0]).x, at(maze.path[0]).y);
+  await page.mouse.down();
+  for (let i = 2; i < n * 0.4; i += 2) await page.mouse.move(at(maze.path[i]).x, at(maze.path[i]).y);
+  // straight across to the flag, skipping the rest of the path
+  await page.mouse.move(at(maze.path[n - 1]).x, at(maze.path[n - 1]).y, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('[data-read-aloud]').first()).toContainText(/Almost!.*put your finger on Kailia/i);
+  await expect(page.getByTestId('game-finish')).toHaveCount(0);
+  // the child does exactly what Noel said: from Kailia, along the glow
+  const resume = Math.max(0, Math.floor(n * 0.4) - 4);
+  await page.mouse.move(at(maze.path[resume]).x, at(maze.path[resume]).y);
+  await page.mouse.down();
+  for (let i = resume; i < n + 1; i += 2) await page.mouse.move(at(maze.path[Math.min(i, n - 1)]).x, at(maze.path[Math.min(i, n - 1)]).y);
+  await page.mouse.up();
+  await expectFinish(page);
+});

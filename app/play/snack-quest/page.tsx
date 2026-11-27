@@ -291,7 +291,7 @@ export default function SnackQuestPage() {
 
   const cfg: RoundCfg = rounds[roundIdx] ?? { want: 3, have: 0, intro: '', thing: null, walls: WALLS[0] };
   // what the robot player in tests/ needs to know (does nothing for real players)
-  useEffect(() => { testHook('snack', { phase, round: roundIdx, want: cfg.want, have: cfg.have, kept, carried, items, cols: COLS, rows: ROWS }); });
+  useEffect(() => { testHook('snack', { phase, round: roundIdx, rounds: rounds.length, want: cfg.want, have: cfg.have, kept, carried, items, cols: COLS, rows: ROWS }); });
 
   // ── Round plans, scaled to the child's developmental level ──
   // Every 3 levels the dragon's wishes grow by one (capped per tier so
@@ -324,7 +324,9 @@ export default function SnackQuestPage() {
     };
     const wishes = levelStories(WISHES, 'snack-quest', lvl, 3);
     let prevWant = 0;
-    return w.map((_, i) => {
+    // Level 1 is a short first feast: two wishes, not three (Muse round 7:
+    // 3 wishes and 7 snacks to carry felt long for a first go)
+    return w.slice(0, lvl === 1 ? 2 : w.length).map((_, i) => {
       let want = wantAt(lvl, i);
       // little ones are nudged down (never past what their age can count)
       if (lvl > 1 && want === wantAt(lvl - 1, i)) want = tier !== 'big' && want - 1 >= h[i] + 1 ? want - 1 : want < cap ? want + 1 : want - 1;
