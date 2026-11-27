@@ -86,8 +86,24 @@ function useArtAspect(src: string): number {
   return aspect;
 }
 
+/** A phone turned sideways: too short to stack the words above the pet, so
+ *  the pop-up puts them side by side (Kelvin's sideways screenshots,
+ *  2026-11-26: only the top of the pet showed until you scrolled). */
+function useShortSideways() {
+  const [short, setShort] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape) and (max-height: 520px)');
+    const on = () => setShort(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return short;
+}
+
 export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boolean }) {
   const router = useRouter();
+  const sideways = useShortSideways();
   const { state: assessment, totalScore, devMonths, loaded } = useAssessment();
   const [pet, setPet] = useState<CarePetState | null>(null);
   const [friend, setFriend] = useState<PlayPet>(COMPANIONS[1]);
@@ -332,7 +348,9 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
   const big = 'min-h-[64px] px-10 rounded-full text-xl font-extrabold text-white shadow-lg active:scale-[0.97] transition-transform';
   const feeding = task?.kind === 'feed' && (phase === 'task' || phase === 'eat');
   const shownStage: Stage = hatching ? 'egg' : stage;
-  const petSize = feeding ? 96 : phase === 'task' ? 150 : 180;
+  // sideways, a task sits beside the pet and its words (not below them)
+  const sideTask = sideways && (phase === 'task' || phase === 'eat');
+  const petSize = feeding ? 96 : sideways ? 120 : phase === 'task' ? 150 : 180;
   const move = phase === 'task' && task && task.kind !== 'feed' && task.game?.type === 'count' && count < task.game.reps ? task.game.move : null;
   const g = growth(pet.happyDays);
 
@@ -356,7 +374,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
           {/* the page behind goes dim; tapping it closes the box */}
           <div className="absolute inset-0 fade-in" style={{ background: 'rgba(30,20,60,0.78)' }} onClick={close} />
           {/* a floating box in the middle: rounded, white rim, deep shadow */}
-          <div className="pm-card relative w-full max-w-[440px]">
+          <div className={`pm-card relative w-full ${sideways ? 'max-w-[680px]' : 'max-w-[440px]'}`}>
           <div className="relative overflow-hidden flex flex-col rounded-[32px]"
             style={{
               background: 'linear-gradient(180deg, #C9E3FF 0%, #E3EEFF 26%, #FFF1E2 52%, #FFFBF5 70%)',
@@ -376,9 +394,9 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
 
             <div className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-5" style={{ paddingBottom: 20 }}>
               {/* centred on tall screens, scrolls on short ones */}
-              <div className="min-h-full flex flex-col justify-center pb-6">
+              <div className={`min-h-full ${sideTask ? "pm-side-task" : "flex flex-col justify-center"} ${sideways ? "pb-1" : "pb-6"}`}>
               {/* the stage: sky sparkles, speech bubble, pet on its cushion */}
-              <div className="relative flex flex-col items-center pt-3">
+              <div className={`relative flex items-center ${sideways && !sideTask ? 'flex-row justify-center gap-4 pt-1' : sideTask ? 'flex-col pt-1 max-w-[300px]' : 'flex-col pt-3'}`}>
                 <Sparkle size={22} className="absolute sparkle" style={{ left: '8%', top: 30 }} />
                 <Sparkle size={14} className="absolute sparkle" style={{ right: '12%', top: 18, animationDelay: '0.7s' }} color="#FFFFFF" />
                 <Sparkle size={18} className="absolute sparkle" style={{ right: '6%', top: 120, animationDelay: '1.3s' }} />
@@ -387,13 +405,13 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
                   <div key={line} className={`pm-bubble relative max-w-[360px] rounded-[28px] text-center font-extrabold leading-snug ${phase === 'task' ? 'px-4 py-2 text-[17px] sm:text-[19px]' : 'px-5 py-3 text-[21px] sm:text-[22px]'}`}
                     style={{ background: '#FFFFFF', color: INK, boxShadow: '0 6px 18px rgba(59,47,99,0.14)' }} aria-live="polite">
                     {line}
-                    <span aria-hidden="true" className="absolute left-1/2 -bottom-[11px] -translate-x-1/2 w-6 h-6 rotate-45" style={{ background: '#FFFFFF', borderRadius: 4 }} />
+                    <span aria-hidden="true" className={`absolute w-6 h-6 rotate-45 ${sideways && !sideTask ? 'top-1/2 -right-[11px] -translate-y-1/2' : 'left-1/2 -bottom-[11px] -translate-x-1/2'}`} style={{ background: '#FFFFFF', borderRadius: 4 }} />
                   </div>
                 )}
                 {phase === 'gate' && <p className="text-2xl font-extrabold mt-2" style={{ color: INK }}>For grown-ups</p>}
 
                 {phase !== 'pick' && (
-                  <div className="relative flex items-end justify-center mt-4" style={{ height: petSize + 26, width: '100%' }}>
+                  <div className={`relative flex items-end justify-center ${sideways && !sideTask ? 'shrink-0' : 'mt-4'}`} style={{ height: petSize + 26, width: sideways && !sideTask ? Math.max(170, petSize * 1.4) : '100%' }}>
                     <span aria-hidden="true" className="pm-glow absolute rounded-full" style={{ width: petSize * 1.25, height: petSize * 1.25, bottom: 0, background: 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%)' }} />
                     <Cushion width={Math.max(150, petSize * 1.05)} />
                     <button type="button" ref={petRef} onClick={petTapped} aria-label={move ? 'I did one' : `Pat ${friend.name}`}
@@ -422,7 +440,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
 
               {/* ── Hello: one big button to start ── */}
               {phase === 'hello' && (
-                <div className="flex flex-col items-center mt-6 pm-card">
+                <div className={`flex flex-col items-center pm-card ${sideways ? 'mt-3' : 'mt-6'}`}>
                   <button className={big} style={{ background: ACCENT }} onClick={() => { chime.good(); setPhase('task'); }}>
                     {task?.kind === 'feed' ? 'Let\'s make it!' : 'Let\'s play!'}
                   </button>
@@ -441,7 +459,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
                       <p className="text-center text-base font-bold mt-3" style={{ color: '#6D5FA0' }}>Start at the green dot and follow the glow.</p>
                     </>
                   ) : (
-                    <div className="relative flex items-center justify-center w-full" style={{ height: 'calc(min(68vw, 300px) + 24px + 44px)' }}>
+                    <div className="relative flex items-center justify-center w-full" style={{ height: 'calc(min(68vw, 300px, calc(100dvh - 150px)) + 24px + 44px)' }}>
                       {/* same height as the plate + hint above, so nothing jumps */}
                       <PetFood shape={task.shape} size={200} className="pm-food relative z-10" style={{ ['--pm-fly' as string]: `${flyPx}px` }} />
                     </div>
@@ -479,7 +497,7 @@ export default function CarePet({ holdAutoOpen = false }: { holdAutoOpen?: boole
               )}
 
               {(phase === 'thanks' || phase === 'resting') && !hatching && (
-                <div className="flex flex-col items-center mt-6 pm-card">
+                <div className={`flex flex-col items-center pm-card ${sideways ? 'mt-3' : 'mt-6'}`}>
                   <button className={big} style={{ background: ACCENT }} onClick={close}>See you tomorrow!</button>
                   {stage !== 'egg' && (
                     <button className="mt-3 min-h-[44px] px-4 rounded-full text-base font-bold" style={{ color: ACCENT }}

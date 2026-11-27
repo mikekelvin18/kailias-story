@@ -610,7 +610,7 @@ export default function SkyMailPage() {
 
   return (
     <main className="min-h-screen pb-6 overflow-hidden" style={{ background: 'linear-gradient(180deg, #38BDF8 0%, #7DD3FC 45%, #FDE7D3 120%)' }}>
-      <div className="max-w-md mx-auto px-3 relative">
+      <div data-play-col className="max-w-md mx-auto px-3 relative">
 
         {/* Header */}
         <div className="flex items-center justify-between pt-4 pb-2 px-1 relative z-10">
@@ -667,7 +667,7 @@ export default function SkyMailPage() {
               ))}
             </div>
 
-            <div ref={stageRef} style={{ ['--stage-h' as string]: 'min(470px, 128vw)' } as CSSProperties}>
+            <div ref={stageRef} data-play-field data-stage style={{ ['--stage-h' as string]: 'min(470px, 128vw)' } as CSSProperties}>
               <Stage world="shelly" style={{ height: 'var(--stage-h)' }}>
                 {/* the hill, and wind gusts drifting across */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

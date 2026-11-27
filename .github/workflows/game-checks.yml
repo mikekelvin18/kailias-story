@@ -48,17 +48,85 @@ jobs:
           node --experimental-strip-types scripts/milestones.test.mjs
           node scripts/carepet.test.mjs
       - name: Build the app
-        run: npm run build
+        # the build fetches fonts from Google, which now and then fails for a moment
+        run: npm run build || (sleep 30 && npm run build)
       - name: Install the robot's browser
         run: npx playwright install --with-deps chromium
+      - name: Age fit and name sounds
+        run: |
+          node --experimental-strip-types scripts/age-fit.test.mjs
+          node scripts/name-sounds.test.mjs
       - name: Play every game
-        run: npx playwright test
+        run: npx playwright test --project=logic --project=computer
         env:
           CI: '1'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: game-check-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  look:
+    name: Look at every screen (art, speed, voice)
+    if: github.event_name != 'deployment_status' && !(github.event_name == 'workflow_dispatch' && inputs.base_url != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write # only used to save new approved pictures, when a commit asks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the app
+        # the build fetches fonts from Google, which now and then fails for a moment
+        run: npm run build || (sleep 30 && npm run build)
+      - name: Install the robot's browser
+        run: npx playwright install --with-deps chromium
+      # Approved pictures are made on this machine (its fonts and drawing
+      # differ a little from other computers). A push whose commit message
+      # says [update pictures] retakes them here and saves them to the branch;
+      # look at every changed picture in that commit before merging.
+      - name: Retake the approved pictures (only when a commit asks)
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[update pictures]')
+        run: |
+          (KAILIA_JUMP_LINKS=on npx next start -p 3200 > /tmp/pictures-server.log 2>&1 &)
+          npx --yes wait-on -t 120000 http://localhost:3200
+          BASE_URL=http://localhost:3200 npx playwright test --project=phone tests/look/pictures.spec.ts --update-snapshots=changed || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add tests/look/pictures
+          git commit -m "Approved pictures retaken on the check machine" || exit 0
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+        env:
+          CI: '1'
+      - name: Noel's lines all recorded and played to the end
+        run: |
+          (KAILIA_JUMP_LINKS=on npx next start -p 3300 > /tmp/voice-server.log 2>&1 &)
+          npx --yes wait-on -t 120000 http://localhost:3300
+          node scripts/voice-miss-check.mjs http://localhost:3300
+          node scripts/voice-check.mjs http://localhost:3300
+      - name: Art, framing and voice on a phone (upright and sideways)
+        if: success() || failure()
+        run: npx playwright test --project=phone --grep-invert "speed:"
+        env:
+          CI: '1'
+      # speed is timed alone, one screen at a time, so other robots running
+      # beside it can't make the app look slower than it is
+      - name: Speed on a phone (load, taps, smoothness)
+        if: success() || failure()
+        run: npx playwright test --project=phone --grep "speed:" --workers=1
+        env:
+          CI: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: look-check-report
           path: |
             playwright-report/
             test-results/
@@ -83,8 +151,8 @@ jobs:
       - run: npm ci
       - name: Install the robot's browser
         run: npx playwright install --with-deps chromium
-      - name: Play every game on the preview
-        run: npx playwright test --project=computer
+      - name: Play every game and look at every screen on the preview
+        run: npx playwright test --project=computer --project=phone --grep-invert "picture:|speed:"
         env:
           CI: '1'
           BASE_URL: ${{ inputs.base_url || github.event.deployment_status.target_url }}

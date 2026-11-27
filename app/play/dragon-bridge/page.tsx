@@ -64,7 +64,9 @@ const GROUND = 99;
 const BABY_TINT = ['none', 'hue-rotate(150deg) saturate(1.1)', 'hue-rotate(245deg)', 'hue-rotate(40deg) saturate(1.4) brightness(1.08)', 'hue-rotate(195deg)'];
 const nestX = (i: number, k: number) => 8 + ((i + 0.5) / k) * 78;
 const stoneX = (j: number, n: number) => 4 + ((j + 0.5) / n) * 88;
-const optX = (i: number, n: number) => (n === 2 ? [38, 62] : [32, 54, 76])[i];
+// the three choices sit a little left of centre so the friend, waiting on
+// the right, never stands on the last one (a sideways phone, 2026-11-27)
+const optX = (i: number, n: number) => (n === 2 ? [38, 62] : [29, 50, 71])[i];
 
 function playNotes(notes: { f: number; t: number; d: number }[]) {
   if (!soundEnabled()) return;
@@ -446,7 +448,7 @@ export default function DragonBridgePage() {
   const k = share?.babies ?? 0;
   const inFlightTo = (i: number) => flyers.filter(f => f.nest === i && !f.back).length;
   const petX = pat
-    ? (hintOpt >= 0 ? optX(hintOpt, pat.options[bi].length) : 90)
+    ? (hintOpt >= 0 ? optX(hintOpt, pat.options[bi].length) : 91)
     : (hintNest >= 0 ? nestX(hintNest, k) : 89);
   // pointing at a baby, the friend waits on the riverbank right under it;
   // pointing at a stone, it stands just below that stone in the tray

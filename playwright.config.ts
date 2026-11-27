@@ -11,7 +11,8 @@ const baseURL = process.env.BASE_URL || 'http://localhost:3100';
 export default defineConfig({
   testDir: './tests',
   timeout: 120_000,
-  expect: { timeout: 15_000 },
+  expect: { timeout: 15_000, toHaveScreenshot: { maxDiffPixelRatio: 0.02, threshold: 0.25, animations: 'disabled', caret: 'hide' } },
+  snapshotPathTemplate: '{testDir}/look/pictures/{arg}{ext}',
   fullyParallel: true,
   workers: process.env.CI ? 3 : undefined,
   retries: process.env.CI ? 1 : 0,
@@ -28,9 +29,16 @@ export default defineConfig({
   projects: [
     { name: 'logic', testMatch: /logic\/.*\.spec\.ts/ },
     { name: 'computer', testMatch: /e2e\/.*\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 860 } } },
+    // the "look" checks: a phone (touch, sharp screen) held upright and sideways;
+    // art, picture comparisons, speed and voice (tests/look)
+    { name: 'phone', testMatch: /look\/.*\.spec\.ts/, use: {
+      ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+      launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'] },
+    } },
   ],
   webServer: process.env.BASE_URL ? undefined : {
-    command: 'npx next start -p 3100',
+    // jump links on (test server only, never Production), so checks can open any screen
+    command: 'KAILIA_JUMP_LINKS=on npx next start -p 3100',
     url: 'http://localhost:3100',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
